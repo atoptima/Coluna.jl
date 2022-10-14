@@ -69,6 +69,7 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     divide::AbstractDivideAlgorithm
     max_num_nodes::Int64
     open_nodes_limit::Int64
+    time_limit::Int64
     opt_atol::Float64
     opt_rtol::Float64
     previous::Union{Nothing,Node}
@@ -116,6 +117,7 @@ function new_space(
         algo.dividealg,
         algo.maxnumnodes,
         algo.opennodeslimit,
+        algo.timelimit,
         algo.opt_atol,
         algo.opt_rtol,
         nothing,

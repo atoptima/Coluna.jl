@@ -3,8 +3,9 @@
         conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
         dividealg::AbstractDivideAlgorithm = Branching(),
         explorestrategy::AbstractExploreStrategy = DepthFirstStrategy(),
-        maxnumnodes::Int = 100000,
-        opennodeslimit::Int = 100,
+        maxnumnodes = 100000,
+        opennodeslimit = 100,
+        timelimit = -1, # -1 means no time limit
         opt_atol::Float64 = DEF_OPTIMALITY_ATOL,
         opt_rtol::Float64 = DEF_OPTIMALITY_RTOL,
         branchingtreefile = ""
@@ -18,6 +19,7 @@ to select the next node to treat.
 Parameters : 
 - `maxnumnodes` : maximum number of nodes explored by the algorithm
 - `opennodeslimit` : maximum number of nodes waiting to be explored
+- `timelimit` : time limit in seconds of the algorithm
 - `opt_atol` : optimality absolute tolerance (alpha)
 - `opt_rtol` : optimality relative tolerance (alpha)
 
@@ -30,6 +32,7 @@ Options :
     explorestrategy::AbstractExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000
     opennodeslimit::Int64 = 100
+    timelimit::Int64 = -1 # means no time limit
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
     branchingtreefile::String = ""
@@ -46,6 +49,13 @@ function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation)
 end
 
 function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationState)
+    # TreeSearchAlgorithm is the only algorithm that changes the global time limit in the
+    # environment. However, time limit set from JuMP/MOI has priority.
+    if env.global_time_limit == -1
+        env.global_time_limit = algo.timelimit
+    else
+        @warn "Global time limit has been set through JuMP/MOI. Ignoring the time limit of TreeSearchAlgorithm."
+    end
     search_space = new_space(search_space_type(algo), algo, reform, input)
     return tree_search(algo.explorestrategy, search_space, env, input)
 end
