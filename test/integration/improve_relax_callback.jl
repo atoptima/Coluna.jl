@@ -1,35 +1,28 @@
-# This file implements a toy bin packing model for Node Finalizer. It solves an instance with
-# three items where any two of them fits into a bin but the three together do not. Pricing is
-# solved by inspection onn the set of six possible solutions (three singletons and three pairs)
-# which gives a fractional solution at the root node. Then node finalizer function
-# "enumerative_finalizer" is called to find the optimal solution still at the root node and
-# avoid branching (which would fail because maxnumnodes is set to 1).
-# If "heuristic_finalizer" is true, then it allows branching and assumes that the solution found
-# is not necessarily optimal. 
-CL.@with_kw struct EnumerativeFinalizer <: ClA.AbstractOptimizationAlgorithm
-    optimizer::Function
+# This file implements a toy bin packing model to test the before-cutgen-user algorithm.
+# It solves an instance with three items where any two of them fits into a bin but the three
+# together do not. Pricing is solved by inspection on the set of six possible solutions
+# (three singletons and three pairs) which gives a fractional solution at the root node.
+# Then a relaxation improvement function "improve_relaxation" is called to remove two of
+# the pairs from the list of pricing solutions and from the master problem.
+CL.@with_kw struct ImproveRelaxationAlgo <: ClA.AbstractOptimizationAlgorithm
+    userfunc::Function
+end
+
+struct VarData <: BD.AbstractCustomData
+    items::Vector{Int}
 end
 
 function ClA.run!(
-    algo::EnumerativeFinalizer, env::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationState
+    algo::ImproveRelaxationAlgo, ::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationState
 )
     masterform = ClMP.getmaster(reform)
     _, spform = first(ClMP.get_dw_pricing_sps(reform))
     cbdata = ClMP.PricingCallbackData(spform)
-    isopt, primal_sol = algo.optimizer(masterform, cbdata)
-    result = ClA.OptimizationState(
-        masterform, 
-        ip_primal_bound = ClA.get_ip_primal_bound(input),
-        termination_status = isopt ? CL.OPTIMAL : CL.OTHER_LIMIT
-    )
-    if primal_sol !== nothing
-        ClA.add_ip_primal_sol!(result, primal_sol)
-    end
-    return result
+    return algo.userfunc(masterform, cbdata)
 end
 
 
-function test_node_finalizer(heuristic_finalizer)
+function test_improve_relaxation()
     function build_toy_model(optimizer)
         toy = BlockModel(optimizer, direct_model = true)
         I = [1, 2, 3]
@@ -39,11 +32,12 @@ function test_node_finalizer(heuristic_finalizer)
         @constraint(toy, sp[i in I], sum(x[b,i] for b in B) == 1)
         @objective(toy, Min, sum(y[b] for b in B))
         @dantzig_wolfe_decomposition(toy, dec, B)
+        customvars!(toy, VarData)
 
         return toy, x, y, dec, B
     end
 
-    call_enumerative_finalizer(masterform, cbdata) = enumerative_finalizer(masterform, cbdata)
+    call_improve_relaxation(masterform, cbdata) = improve_relaxation(masterform, cbdata)
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
@@ -57,18 +51,21 @@ function test_node_finalizer(heuristic_finalizer)
                                 ))
                                 ],
                     primal_heuristics = [],
-                    node_finalizer = ClA.NodeFinalizer(
-                            EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 
-                            0, "Enumerative"
+                    before_cutgen_user_algorithm = ClA.BeforeCutGenUserAlgo(
+                            ImproveRelaxationAlgo(
+                                userfunc = call_improve_relaxation
+                            ), 
+                            "Improve relaxation"
                     )
                 ),
-                maxnumnodes = heuristic_finalizer ? 10000 : 1
+                maxnumnodes = 1
             )
         )
     )
 
     model, x, y, dec, B = build_toy_model(coluna)
 
+    relax_improved = false # TODO: use storages to pass this information
     function enumerative_pricing(cbdata)
         # Get the reduced costs of the original variables
         I = [1, 2, 3]
@@ -77,7 +74,11 @@ function test_node_finalizer(heuristic_finalizer)
         rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
 
         # check all possible solutions
-        sols = [[1], [2], [3], [1, 2], [1, 3], [2, 3]]
+        if relax_improved
+            sols = [[1], [2], [3], [2, 3]]
+        else
+            sols = [[1], [2], [3], [1, 2], [1, 3], [2, 3]]
+        end
         best_s = Int[]
         best_rc = Inf
         for s in sols
@@ -101,7 +102,7 @@ function test_node_finalizer(heuristic_finalizer)
 
         # Submit the solution
         MOI.submit(
-            model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
+            model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals, VarData(best_s)
         )
         MOI.submit(model, BD.PricingDualBound(cbdata), solcost)
         return
@@ -112,7 +113,7 @@ function test_node_finalizer(heuristic_finalizer)
         solver = enumerative_pricing
     )
 
-    function enumerative_finalizer(masterform, cbdata)
+    function improve_relaxation(masterform, cbdata)
         # Get the reduced costs of the original variables
         I = [1, 2, 3]
         b = BlockDecomposition.callback_spid(cbdata, model)
@@ -120,28 +121,22 @@ function test_node_finalizer(heuristic_finalizer)
         rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
         @test (rc_y, rc_x) == (1.0, [-0.5, -0.5, -0.5])
 
-        # Add the columns that are possibly missing for the solution [[1], [2,3]] in the master problem
-        # [1]
-        opt = JuMP.backend(model)
-        vars = [y[b], x[b, 1]]
-        varids = [CL._get_varid_of_origvar_in_form(opt.env, cbdata.form, v) for v in JuMP.index.(vars)]
-        push!(varids, cbdata.form.duty_data.setup_var)
-        sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-        col_id = ClMP.insert_column!(masterform, sol, "MC")
-        mc_1 = ClMP.getvar(masterform, col_id)
+        # deactivate the columns of solutions [1, 2] and [1, 3] from the master
+        changed = false
+        for (vid, var) in ClMP.getvars(masterform)
+            if ClMP.iscuractive(masterform, vid) && ClMP.getduty(vid) <= ClMP.MasterCol
+                varname = ClMP.getname(masterform, var)
+                @show varname, var.custom_data
+                if var.custom_data.items in [[1, 2], [1, 3]]
+                    ClMP.deactivate!(masterform, vid)
+                    changed = true
+                    relax_improved = true
+                end
+            end
+        end
 
-        # [2, 3]
-        vars = [y[b], x[b, 2], x[b, 3]]
-        varids = [CL._get_varid_of_origvar_in_form(opt.env, cbdata.form, v) for v in JuMP.index.(vars)]
-        push!(varids, cbdata.form.duty_data.setup_var)
-        sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-        col_id = ClMP.insert_column!(masterform, sol, "MC")
-        mc_2_3 =  ClMP.getvar(masterform, col_id)
-
-        # add the solution to the master problem
-        varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]
-        primal_sol = ClMP.PrimalSolution(masterform, varids, [1.0, 1.0], 2.0, CL.FEASIBLE_SOL)
-        return !heuristic_finalizer, primal_sol
+        @info "improve_relaxation $(changed ? "changed" : "did not change")"
+        return changed
     end
 
     JuMP.optimize!(model)
@@ -158,7 +153,6 @@ function test_node_finalizer(heuristic_finalizer)
     end
 end
 
-@testset "Old - node finalizer" begin
-    test_node_finalizer(false) # exact
-    test_node_finalizer(true)  # heuristic
+@testset "Improve relaxation callback" begin
+    test_improve_relaxation()
 end
