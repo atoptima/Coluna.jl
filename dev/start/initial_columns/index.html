@@ -43,33 +43,33 @@ initial_columns = [machine1, machine2, machine3];</code></pre><p>We can write th
         MOI.submit(model, BlockDecomposition.InitialColumn(cbdata), vars, vals)
     end
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_columns_callback (generic function with 1 method)</code></pre><p>The initial columns callback is a function. It takes as argument <code>cbdata</code> which is a data structure that allows the user to interact with Coluna within the callback.</p><p>We provide the initial columns callback to Coluna through the following method:</p><pre><code class="language-julia hljs">MOI.set(model, BlockDecomposition.InitialColumnsCallback(), initial_columns_callback)</code></pre><p>You can then optimize:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.5.0 | https://github.com/atoptima/Coluna.jl
+Version 0.5.1 | https://github.com/atoptima/Coluna.jl
 initial columns callback 2
 initial columns callback 3
 initial columns callback 1
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.63 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.87 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   -5.3000&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
-  &lt;it=  4&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  1&gt; &lt;et= 0.87&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   -5.3000&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et= 0.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
+  &lt;it=  3&gt; &lt;et= 0.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  4&gt; &lt;et= 0.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
 [ Info: Dual bound reached primal bound.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            2.25s /  28.2%            218MiB /  32.3%
+       Tot / % measured:            2.90s /  30.2%            218MiB /  32.3%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    634ms  100.0%   634ms   70.4MiB  100.0%  70.4MiB
-   SolveLpForm              4    662μs    0.1%   166μs    198KiB    0.3%  49.6KiB
-   Update reduced c...      4   45.4μs    0.0%  11.3μs   20.5KiB    0.0%  5.13KiB
-   Update Lagrangia...      4   33.6μs    0.0%  8.40μs   8.12KiB    0.0%  2.03KiB
-   Cleanup columns          4   13.0μs    0.0%  3.25μs   2.11KiB    0.0%     540B
-   Smoothing update         4   3.50μs    0.0%   875ns      448B    0.0%     112B
+ Coluna                     1    875ms  100.0%   875ms   70.5MiB  100.0%  70.5MiB
+   SolveLpForm              4    888μs    0.1%   222μs    198KiB    0.3%  49.6KiB
+   Update reduced c...      4   54.6μs    0.0%  13.7μs   20.5KiB    0.0%  5.13KiB
+   Update Lagrangia...      4   45.5μs    0.0%  11.4μs   8.12KiB    0.0%  2.03KiB
+   Cleanup columns          4   18.6μs    0.0%  4.65μs   2.11KiB    0.0%     540B
+   Smoothing update         4   5.10μs    0.0%  1.27μs      448B    0.0%     112B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 5.1
-[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 14 October 2022 18:16">Friday 14 October 2022</span>. Using Julia version 1.8.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Tuesday 25 October 2022 18:01">Tuesday 25 October 2022</span>. Using Julia version 1.8.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
