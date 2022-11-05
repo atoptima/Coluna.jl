@@ -196,7 +196,7 @@ Runs several rounds of column and cut generation.
 Returns `false` if the column generation returns `false` or time limit is reached.
 Returns `true` if the conquer algorithm continues.
 """
-function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
+function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state, node)
     nb_cut_rounds = 0
     run_conquer = true
     cuts_were_added = true
@@ -355,7 +355,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
 
     time_limit_reached!(node_state, env) && return
 
-    run_conquer = run_colcutgen!(ctx, env, reform, node_state)
+    run_conquer = run_colcutgen!(ctx, env, reform, node_state, node)
     !run_conquer && return
 
     time_limit_reached!(node_state, env) && return

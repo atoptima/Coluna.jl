@@ -9,6 +9,7 @@ mutable struct Node <: AbstractNode
     branchdescription::String
     records::Records
     conquerwasrun::Bool
+    user_info::AbstractNodeUserInfo
 end
 
 getdepth(n::Node) = n.depth
@@ -22,6 +23,9 @@ set_records!(n::Node, records) = n.records = records
 
 get_branch_description(n::Node) = n.branchdescription # printer
 
+set_user_info!(n::Node, info::AbstractNodeUserInfo) = n.user_info = info
+get_user_info(n::Node) = n.user_info
+
 # Priority of nodes depends on the explore strategy.
 get_priority(::AbstractExploreStrategy, ::Node) = error("todo")
 get_priority(::DepthFirstStrategy, n::Node) = -n.depth
@@ -29,7 +33,10 @@ get_priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
 # TODO move
 function Node(node::SbNode)
-    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.records, node.conquerwasrun)
+    return Node(
+        node.depth, node.parent, node.optstate, node.branchdescription,
+        node.records, node.conquerwasrun, get_user_info(node.parent)
+    )
 end
 
 ############################################################################################
@@ -132,7 +139,8 @@ end
 function new_root(sp::BaBSearchSpace, input)
     nodestate = OptimizationState(getmaster(sp.reformulation), input, false, false)
     return Node(
-        0, nothing, nodestate, "", create_records(sp.reformulation), false
+        0, nothing, nodestate, "", create_records(sp.reformulation), false,
+        get_root_user_info(sp.divide)
     )
 end
 

@@ -12,6 +12,12 @@ struct VarData <: BD.AbstractCustomData
     items::Vector{Int}
 end
 
+struct ToyNodeInfo <: ClA.AbstractNodeUserInfo
+    value::Int
+end
+
+# TODO: Implement `notify_user_info_change` and `record_user_info`
+
 function ClA.run!(
     algo::ImproveRelaxationAlgo, ::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationState
 )
@@ -58,6 +64,7 @@ function test_improve_relaxation()
                             "Improve relaxation"
                     )
                 ),
+                dividealg = Branching(root_user_info = ToyNodeInfo(33)),
                 maxnumnodes = 1
             )
         )
@@ -65,7 +72,7 @@ function test_improve_relaxation()
 
     model, x, y, dec, B = build_toy_model(coluna)
 
-    relax_improved = false # TODO: use storages to pass this information
+    relax_improved = false # TODO: use the new user infos to pass this information
     function enumerative_pricing(cbdata)
         # Get the reduced costs of the original variables
         I = [1, 2, 3]
@@ -154,5 +161,9 @@ function test_improve_relaxation()
 end
 
 @testset "Improve relaxation callback" begin
+    # TODO: make two tests: one to improve the relaxation and solve at the root node
+    # and other to test the inheritance of the new storage unit (increment it in both children
+    # nodes and check but check if the ones received from parent are unchanged)
+    # Try to mimic MasterBranchConstrsUnit
     test_improve_relaxation()
 end
