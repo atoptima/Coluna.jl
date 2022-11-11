@@ -38,6 +38,7 @@ module ColunaTests
             include(joinpath(dirpath, filename))
         end
     end
+    include(joinpath(@__DIR__, "unit", "parser.jl"))
 
     ########################################################################################
     # Integration tests
