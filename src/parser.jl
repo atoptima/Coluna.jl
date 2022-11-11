@@ -242,6 +242,15 @@ end
 read_variables!(::Any, ::Any, ::ReadCache, ::AbstractString) = nothing
 
 function reformfromcache(cache::ReadCache)
+
+    if isempty(cache.master.objective.vars)
+        error("No objective function provided")
+    end
+
+    if isempty(cache.variables)
+        error("No variable duty and kind defined")
+    end
+
     env = Env{VarId}(Params())
     reform = Reformulation(env)
 
@@ -251,18 +260,26 @@ function reformfromcache(cache::ReadCache)
     for (_, sp) in cache.subproblems
         spform = nothing
         for varid in sp.varids
-            var = cache.variables[varid]
-            if var.duty <= DwSpPricingVar || var.duty <= MasterRepPricingVar
-                if spform === nothing
-                    spform = create_formulation!(
-                        env,
-                        DwSp(nothing, nothing, nothing, var.kind);
-                        obj_sense = cache.master.sense
-                    )
+            if haskey(cache.variables, varid)
+                var = cache.variables[varid]
+                if var.duty <= DwSpPricingVar || var.duty <= MasterRepPricingVar
+                    if spform === nothing
+                        spform = create_formulation!(
+                            env,
+                            DwSp(nothing, nothing, nothing, var.kind);
+                            obj_sense = cache.master.sense
+                        )
+                    end
+                    v = setvar!(spform, varid, DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
+                    if haskey(cache.master.objective.vars, varid)
+                        setperencost!(spform, v, cache.master.objective.vars[varid])
+                    else
+                        error("Variable $varid not present in objective function")
+                    end
+                    all_spvars[varid] = v
                 end
-                v = setvar!(spform, varid, DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
-                setperencost!(spform, v, cache.master.objective.vars[varid])
-                all_spvars[varid] = v
+            else
+                error("Variable $varid duty and/or kind not defined")
             end
         end
         push!(subproblems, spform)
@@ -280,14 +297,22 @@ function reformfromcache(cache::ReadCache)
 
     #create master variables
     for (varid, cost) in cache.master.objective.vars
-        var = cache.variables[varid]
-        if var.duty <= MasterPureVar
-            v = setvar!(master, varid, MasterPureVar; lb = var.lb, ub = var.ub, kind = var.kind)
+        if haskey(cache.variables, varid)
+            var = cache.variables[varid]
+            if var.duty <= MasterPureVar
+                v = setvar!(master, varid, MasterPureVar; lb = var.lb, ub = var.ub, kind = var.kind)
+            else
+                if haskey(all_spvars, varid)
+                    v = setvar!(master, varid, MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = getid(all_spvars[varid]))
+                else
+                    error("Variable $varid not present in any subproblem")
+                end
+            end
+            setperencost!(master, v, cost)
+            mastervars[varid] = v
         else
-            v = setvar!(master, varid, MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = getid(all_spvars[varid]))
+            error("Variable $varid duty and/or kind not defined")
         end
-        setperencost!(master, v, cost)
-        mastervars[varid] = v
     end
 
     #create master constraints
@@ -297,11 +322,19 @@ function reformfromcache(cache::ReadCache)
         members = Dict{VarId, Float64}()
         constr_duty = MasterPureConstr
         for (varid, coeff) in constr.lhs.vars
-            var = cache.variables[varid]
-            if var.duty <= DwSpPricingVar || var.duty <= MasterRepPricingVar # check if should be a MasterMixedConstr
-                constr_duty = MasterMixedConstr
+            if haskey(cache.variables, varid)
+                var = cache.variables[varid]
+                if var.duty <= DwSpPricingVar || var.duty <= MasterRepPricingVar # check if should be a MasterMixedConstr
+                    constr_duty = MasterMixedConstr
+                end
+                if haskey(mastervars, varid)
+                    push!(members, getid(mastervars[varid]) => coeff)
+                else
+                    error("Variable $varid not present in objective function")
+                end
+            else
+                error("Variable $varid duty and/or kind not defined")
             end
-            push!(members, getid(mastervars[varid]) => coeff)
         end
         c = setconstr!(master, "c$i", constr_duty; rhs = constr.rhs, sense = constr.sense, members = members)
         push!(constraints, c)
