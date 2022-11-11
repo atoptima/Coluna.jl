@@ -120,7 +120,7 @@ function children(space::AbstractColunaSearchSpace, current::AbstractNode, env, 
         MathProg.get_user_info(reform), x -> MathProg.set_user_info(reform, x)
     )
     MathProg.set_user_info_record_function(
-        MathProg.get_user_info(reform), _ -> MathProg.get_user_info(reform)
+        MathProg.get_user_info(reform), () -> MathProg.get_user_info(reform)
     )
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
