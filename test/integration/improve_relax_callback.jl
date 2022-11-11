@@ -64,7 +64,7 @@ function test_improve_relaxation()
                             "Improve relaxation"
                     )
                 ),
-                dividealg = Branching(root_user_info = ToyNodeInfo(33)),
+                dividealg = ClA.Branching(root_user_info = ToyNodeInfo(33)),
                 maxnumnodes = 1
             )
         )

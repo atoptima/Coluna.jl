@@ -112,6 +112,35 @@ end
 
 ############################################################################
 
+abstract type AbstractNodeUserInfo end
+
+struct DummyUserInfo <: AbstractNodeUserInfo end
+
+"Creates a copy of a node user info to be passed to child nodes"
+function copy_info(info::AbstractNodeUserInfo)
+    return info     # Fall back that copies is-bits objects and passes references of others
+end
+
+"Sets the function called to notify a new active user info when a node starts to be treated"
+function set_user_info_notify_function(::AbstractNodeUserInfo, ::Function)
+    return  # Fall back that does nothing
+end
+
+"Sets the function called to record the updated user info for the current node"
+function set_user_info_record_function(::AbstractNodeUserInfo, ::Function)
+    return  # Fall back that does nothing
+end
+
+"Notifies a new active user info when a node starts to be treated"
+function notify_user_info(::AbstractNodeUserInfo)
+    return  # Fall back that does nothing
+end
+
+"Gets the updated user info to record at the current node"
+function get_user_info_to_record(::AbstractNodeUserInfo)
+    return DummyUserInfo()  # Fall back that returns a dummy user info
+end
+
 """
     AbstractFormulation
 
@@ -125,3 +154,12 @@ per storage unit type used by algorithms.
 """
 abstract type AbstractFormulation <: AbstractModel end
 
+"Sets the user info stored at the formulation"
+function set_user_info!(::AbstractFormulation, ::AbstractNodeUserInfo)
+    return  # Fall back that does nothing
+end
+
+"Gets the user info stored at the formulation"
+function get_user_info(::AbstractFormulation)
+    return DummyUserInfo()  # Fall back that gets a dummy user info
+end

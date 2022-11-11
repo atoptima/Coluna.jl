@@ -44,21 +44,11 @@ abstract type AbstractNode end
 "Returns `true` is the node is root; `false` otherwise."
 @mustimplement "Node" isroot(::AbstractNode) # BaB implementation
 
-abstract type AbstractNodeUserInfo end
-
-struct DummyUserInfo <: AbstractNodeUserInfo end
-
 "Sets the user info stored at the node"
 @mustimplement "Node" set_user_info!(::AbstractNode, ::AbstractNodeUserInfo)
 
 "Gets the user info stored at the node"
 @mustimplement "Node" get_user_info(::AbstractNode)
-
-"Notifies the change in the current user info because a new node started to be treated"
-@mustimplement "NodeUserInfo" notify_user_info_change(::AbstractNodeUserInfo)
-
-"Records the updated user info value in the current node"
-@mustimplement "NodeUserInfo" record_user_info(::AbstractNodeUserInfo)
 
 # TODO: remove untreated nodes.
 "Evaluate and generate children. This method has a specific implementation for Coluna."
@@ -126,6 +116,12 @@ function children(space::AbstractColunaSearchSpace, current::AbstractNode, env, 
     set_previous!(space, current)
     # run the conquer algorithm.
     reform = get_reformulation(space)
+    MathProg.set_user_info_notify_function(
+        MathProg.get_user_info(reform), x -> MathProg.set_user_info(reform, x)
+    )
+    MathProg.set_user_info_record_function(
+        MathProg.get_user_info(reform), _ -> MathProg.get_user_info(reform)
+    )
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
     conquer_output = run!(conquer_alg, env, reform, conquer_input)
