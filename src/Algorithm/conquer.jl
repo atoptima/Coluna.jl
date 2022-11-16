@@ -215,6 +215,8 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
             master_changed = run_before_cutgen_user_algo!(
                 ctx, before_cutgen_user_algorithm, env, reform, node_state
             )
+        else
+            master_changed = false
         end
 
         sol = get_best_lp_primal_sol(node_state)

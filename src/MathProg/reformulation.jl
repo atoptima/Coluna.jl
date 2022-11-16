@@ -6,7 +6,7 @@ mutable struct Reformulation <: AbstractFormulation
     dw_pricing_subprs::Dict{FormId, AbstractModel} 
     benders_sep_subprs::Dict{FormId, AbstractModel}
     storage::Union{Nothing,NewStorage}
-    node_user_info::AbstractNodeUserInfo
+    node_user_info::Union{Nothing,AbstractNodeUserInfo}
 end
 
 """
@@ -19,10 +19,6 @@ Construct an empty `Reformulation`.
  """
 function Reformulation(env)
     uid = env.form_counter += 1
-    info = DummyUserInfo()
-    if !isnothing(env.params.solver)
-        info = env.params.solver.dividealg.root_user_info
-    end
     reform = Reformulation(
         uid,
         nothing,
@@ -30,7 +26,7 @@ function Reformulation(env)
         Dict{FormId, AbstractModel}(),
         Dict{FormId, AbstractModel}(),
         nothing,
-        info
+        nothing
     )
     reform.storage = NewStorage(reform)
     return reform

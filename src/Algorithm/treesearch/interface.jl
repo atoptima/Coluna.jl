@@ -45,10 +45,14 @@ abstract type AbstractNode end
 @mustimplement "Node" isroot(::AbstractNode) # BaB implementation
 
 "Sets the user info stored at the node"
-@mustimplement "Node" set_user_info!(::AbstractNode, ::AbstractNodeUserInfo)
+function set_user_info!(::AbstractNode, ::AbstractNodeUserInfo)
+    return  # Fall back that does nothing
+end
 
 "Gets the user info stored at the node"
-@mustimplement "Node" get_user_info(::AbstractNode)
+function get_user_info(::AbstractNode)
+    return DummyUserInfo()  # Fall back that gets a dummy user info
+end
 
 # TODO: remove untreated nodes.
 "Evaluate and generate children. This method has a specific implementation for Coluna."
