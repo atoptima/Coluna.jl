@@ -196,7 +196,7 @@ Runs several rounds of column and cut generation.
 Returns `false` if the column generation returns `false` or time limit is reached.
 Returns `true` if the conquer algorithm continues.
 """
-function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state, node)
+function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
     nb_cut_rounds = 0
     run_conquer = true
     cuts_were_added = true
@@ -211,9 +211,11 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state, node)
         end
     
         before_cutgen_user_algorithm = ctx.params.before_cutgen_user_algorithm
-        master_changed = run_before_cutgen_user_algo!(
-            ctx, before_cutgen_user_algorithm, env, reform, node_state
-        )
+        if !isnothing(before_cutgen_user_algorithm)
+            master_changed = run_before_cutgen_user_algo!(
+                ctx, before_cutgen_user_algorithm, env, reform, node_state
+            )
+        end
 
         sol = get_best_lp_primal_sol(node_state)
         cuts_were_added = false
@@ -355,7 +357,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
 
     time_limit_reached!(node_state, env) && return
 
-    run_conquer = run_colcutgen!(ctx, env, reform, node_state, node)
+    run_conquer = run_colcutgen!(ctx, env, reform, node_state)
     !run_conquer && return
 
     time_limit_reached!(node_state, env) && return
@@ -385,7 +387,12 @@ end
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
     ctx = new_context(type_of_context(algo), algo, reform, input)
+    node = get_node(input)
+    parent = get_parent(node)
+    info = isnothing(parent) ? get_user_info(node) : get_user_info(parent)
+    MathProg.set_user_info!(reform, MathProg.copy_info(info))
     run_colcutgen_conquer!(ctx, env, reform, input)
+    set_user_info!(node, MathProg.get_user_info(reform))
     return
 end
 

@@ -116,12 +116,6 @@ function children(space::AbstractColunaSearchSpace, current::AbstractNode, env, 
     set_previous!(space, current)
     # run the conquer algorithm.
     reform = get_reformulation(space)
-    MathProg.set_user_info_notify_function(
-        MathProg.get_user_info(reform), x -> MathProg.set_user_info(reform, x)
-    )
-    MathProg.set_user_info_record_function(
-        MathProg.get_user_info(reform), () -> MathProg.get_user_info(reform)
-    )
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
     conquer_output = run!(conquer_alg, env, reform, conquer_input)

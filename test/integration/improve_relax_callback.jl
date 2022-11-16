@@ -16,7 +16,8 @@ struct ToyNodeInfo <: ClA.AbstractNodeUserInfo
     value::Int
 end
 
-# TODO: Implement `notify_user_info_change` and `record_user_info`
+# Don't need this because `ToyNodeInfo` is bits
+# ClMP.copy_info(info::ToyNodeInfo) = ToyNodeInfo(info.value)
 
 function ClA.run!(
     algo::ImproveRelaxationAlgo, ::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationState
@@ -28,7 +29,7 @@ function ClA.run!(
 end
 
 
-function test_improve_relaxation()
+function test_improve_relaxation(; do_improve::Bool)
     function build_toy_model(optimizer)
         toy = BlockModel(optimizer, direct_model = true)
         I = [1, 2, 3]
@@ -64,15 +65,16 @@ function test_improve_relaxation()
                             "Improve relaxation"
                     )
                 ),
-                dividealg = ClA.Branching(root_user_info = ToyNodeInfo(33)),
-                maxnumnodes = 1
+                dividealg = ClA.Branching(root_user_info = ToyNodeInfo(111)),
+                maxnumnodes = do_improve ? 1 : 10
             )
         )
     )
 
     model, x, y, dec, B = build_toy_model(coluna)
 
-    relax_improved = false # TODO: use the new user infos to pass this information
+    max_info_val = 0
+
     function enumerative_pricing(cbdata)
         # Get the reduced costs of the original variables
         I = [1, 2, 3]
@@ -81,7 +83,10 @@ function test_improve_relaxation()
         rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
 
         # check all possible solutions
-        if relax_improved
+        reform = cbdata.form.parent_formulation.parent_formulation
+        info_val = ClMP.get_user_info(reform).value
+        max_info_val = max(max_info_val, info_val)
+        if info_val == 9999
             sols = [[1], [2], [3], [2, 3]]
         else
             sols = [[1], [2], [3], [1, 2], [1, 3], [2, 3]]
@@ -112,6 +117,12 @@ function test_improve_relaxation()
             model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals, VarData(best_s)
         )
         MOI.submit(model, BD.PricingDualBound(cbdata), solcost)
+
+        # increment the user info value for testing
+        if !do_improve
+            info = ClMP.get_user_info(reform)
+            ClMP.set_user_info!(reform, ToyNodeInfo(info.value + 111))
+        end
         return
     end
     subproblems = BD.getsubproblems(dec)
@@ -121,29 +132,33 @@ function test_improve_relaxation()
     )
 
     function improve_relaxation(masterform, cbdata)
-        # Get the reduced costs of the original variables
-        I = [1, 2, 3]
-        b = BlockDecomposition.callback_spid(cbdata, model)
-        rc_y = BD.callback_reduced_cost(cbdata, y[b])
-        rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
-        @test (rc_y, rc_x) == (1.0, [-0.5, -0.5, -0.5])
+        if do_improve
+            # Get the reduced costs of the original variables
+            I = [1, 2, 3]
+            b = BlockDecomposition.callback_spid(cbdata, model)
+            rc_y = BD.callback_reduced_cost(cbdata, y[b])
+            rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
+            @test (rc_y, rc_x) == (1.0, [-0.5, -0.5, -0.5])
 
-        # deactivate the columns of solutions [1, 2] and [1, 3] from the master
-        changed = false
-        for (vid, var) in ClMP.getvars(masterform)
-            if ClMP.iscuractive(masterform, vid) && ClMP.getduty(vid) <= ClMP.MasterCol
-                varname = ClMP.getname(masterform, var)
-                @show varname, var.custom_data
-                if var.custom_data.items in [[1, 2], [1, 3]]
-                    ClMP.deactivate!(masterform, vid)
-                    changed = true
-                    relax_improved = true
+            # deactivate the columns of solutions [1, 2] and [1, 3] from the master
+            changed = false
+            for (vid, var) in ClMP.getvars(masterform)
+                if ClMP.iscuractive(masterform, vid) && ClMP.getduty(vid) <= ClMP.MasterCol
+                    varname = ClMP.getname(masterform, var)
+                    @show varname, var.custom_data
+                    if var.custom_data.items in [[1, 2], [1, 3]]
+                        ClMP.deactivate!(masterform, vid)
+                        changed = true
+                        ClMP.set_user_info!(masterform.parent_formulation, ToyNodeInfo(9999))
+                    end
                 end
             end
-        end
 
-        @info "improve_relaxation $(changed ? "changed" : "did not change")"
-        return changed
+            @info "improve_relaxation $(changed ? "changed" : "did not change")"
+            return changed
+        else
+            return false
+        end
     end
 
     JuMP.optimize!(model)
@@ -158,12 +173,14 @@ function test_improve_relaxation()
             @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
         end
     end
+    @test do_improve || max_info_val == 888
 end
 
 @testset "Improve relaxation callback" begin
-    # TODO: make two tests: one to improve the relaxation and solve at the root node
-    # and other to test the inheritance of the new storage unit (increment it in both children
-    # nodes and check but check if the ones received from parent are unchanged)
+    # Make two tests: one to improve the relaxation and solve at the root node and other to test
+    # the inheritance of the new user information (increment it in both children nodes and check
+    # but check if the ones received from parent are unchanged).
     # Try to mimic MasterBranchConstrsUnit
-    test_improve_relaxation()
+    test_improve_relaxation(do_improve = true)
+    test_improve_relaxation(do_improve = false)
 end
