@@ -11,16 +11,16 @@ const _KW_SECTION = Dict(
     "dw_sp" => _KW_SUBPROBLEM,
     "sp" => _KW_SUBPROBLEM,
     # Integ
-    "int" => Integ,
-    "integer" => Integ,
-    "integers" => Integ,
+    "int" => ClMP.Integ,
+    "integer" => ClMP.Integ,
+    "integers" => ClMP.Integ,
     # Continuous
-    "cont" => Continuous,
-    "continuous" => Continuous,
+    "cont" => ClMP.Continuous,
+    "continuous" => ClMP.Continuous,
     # Binary
-    "bin" => Binary,
-    "binary" => Binary,
-    "binaries" => Binary,
+    "bin" => ClMP.Binary,
+    "binary" => ClMP.Binary,
+    "binaries" => ClMP.Binary,
     # _KW_BOUNDS
     "bound" => _KW_BOUNDS,
     "bounds" => _KW_BOUNDS,
@@ -28,28 +28,28 @@ const _KW_SECTION = Dict(
 
 const _KW_SUBSECTION = Dict(
     # MaxSense
-    "max" => MaxSense,
-    "maximize" => MaxSense,
-    "maximise" => MaxSense,
-    "maximum" => MaxSense,
+    "max" => CL.MaxSense,
+    "maximize" => CL.MaxSense,
+    "maximise" => CL.MaxSense,
+    "maximum" => CL.MaxSense,
     # MinSense
-    "min" => MinSense,
-    "minimize" => MinSense,
-    "minimise" => MinSense,
-    "minimum" => MinSense,
+    "min" => CL.MinSense,
+    "minimize" => CL.MinSense,
+    "minimise" => CL.MinSense,
+    "minimum" => CL.MinSense,
     # _KW_CONSTRAINTS
     "subject to" => _KW_CONSTRAINTS,
     "such that" => _KW_CONSTRAINTS,
     "st" => _KW_CONSTRAINTS,
     "s.t." => _KW_CONSTRAINTS,
     # MasterPureVar
-    "pure" => MasterPureVar,
-    "pures" => MasterPureVar,
+    "pure" => ClMP.MasterPureVar,
+    "pures" => ClMP.MasterPureVar,
     # MasterRepPricingVar
-    "representative" => MasterRepPricingVar,
-    "representatives" => MasterRepPricingVar,
+    "representative" => ClMP.MasterRepPricingVar,
+    "representatives" => ClMP.MasterRepPricingVar,
     # DwSpPricingVar
-    "pricing" => DwSpPricingVar,
+    "pricing" => ClMP.DwSpPricingVar,
 )
 
 const coeff_re = "\\d+(\\.\\d+)?"
@@ -59,15 +59,15 @@ mutable struct ExprCache
 end
 
 mutable struct VarCache
-    kind::VarKind
-    duty::MathProg.Duty
+    kind::ClMP.VarKind
+    duty::ClMP.Duty
     lb::Float64
     ub::Float64
 end
 
 mutable struct ConstrCache
     lhs::ExprCache
-    sense::ConstrSense
+    sense::ClMP.ConstrSense
     rhs::Float64
 end
 
@@ -77,7 +77,7 @@ mutable struct SubproblemCache
 end
 
 mutable struct MasterCache
-    sense::Type{<:AbstractSense}
+    sense::Type{<:ClB.AbstractSense}
     objective::ExprCache
     constraints::Vector{ConstrCache}
 end
@@ -91,7 +91,7 @@ end
 function ReadCache()
     return ReadCache(
         MasterCache(
-            MinSense,
+            CL.MinSense,
             ExprCache(
                 Dict{String, Float64}()
             ),
@@ -150,12 +150,12 @@ function _read_constraint(l::AbstractString)
     if m !== nothing
         lhs = _read_expression(m[1])
         sense = if m[2] == ">="
-            Greater
+            ClMP.Greater
         else
             if m[2] == "<="
-                Less
+                ClMP.Less
             else
-                Equal
+                ClMP.Equal
             end
         end
         rhs = parse(Float64, m[3])
@@ -181,7 +181,7 @@ function _read_bounds(l::AbstractString, r::Regex)
     return vars, bound1, bound2
 end
 
-function read_master!(sense::Type{<:AbstractSense}, cache::ReadCache, line::AbstractString)
+function read_master!(sense::Type{<:ClB.AbstractSense}, cache::ReadCache, line::AbstractString)
     obj = _read_expression(line)
     cache.master.sense = sense
     cache.master.objective = obj
@@ -232,7 +232,7 @@ function read_bounds!(cache::ReadCache, line::AbstractString)
     end
 end
 
-function read_variables!(kind::VarKind, duty::MathProg.Duty, cache::ReadCache, line::AbstractString)
+function read_variables!(kind::ClMP.VarKind, duty::ClMP.Duty, cache::ReadCache, line::AbstractString)
     vars = _get_vars_list(line)
     for v in vars
         cache.variables[v] = VarCache(kind, duty, -Inf, Inf)
@@ -251,28 +251,28 @@ function reformfromcache(cache::ReadCache)
         error("No variable duty and kind defined")
     end
 
-    env = Env{VarId}(Params())
-    reform = Reformulation(env)
+    env = Env{ClMP.VarId}(CL.Params())
+    reform = ClMP.Reformulation(env)
 
     #create subproblems
     subproblems = []
-    all_spvars = Dict{String, Variable}()
+    all_spvars = Dict{String, ClMP.Variable}()
     for (_, sp) in cache.subproblems
         spform = nothing
         for varid in sp.varids
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
-                if var.duty <= DwSpPricingVar || var.duty <= MasterRepPricingVar
+                if var.duty <= ClMP.DwSpPricingVar || var.duty <= ClMP.MasterRepPricingVar
                     if spform === nothing
-                        spform = create_formulation!(
+                        spform = ClMP.create_formulation!(
                             env,
-                            DwSp(nothing, nothing, nothing, var.kind);
+                            ClMP.DwSp(nothing, nothing, nothing, var.kind);
                             obj_sense = cache.master.sense
                         )
                     end
-                    v = setvar!(spform, varid, DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
+                    v = ClMP.setvar!(spform, varid, ClMP.DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
                     if haskey(cache.master.objective.vars, varid)
-                        setperencost!(spform, v, cache.master.objective.vars[varid])
+                        ClMP.setperencost!(spform, v, cache.master.objective.vars[varid])
                     else
                         error("Variable $varid not present in objective function")
                     end
@@ -283,32 +283,32 @@ function reformfromcache(cache::ReadCache)
             end
         end
         push!(subproblems, spform)
-        add_dw_pricing_sp!(reform, spform)
+        ClMP.add_dw_pricing_sp!(reform, spform)
     end
 
-    master = create_formulation!(
+    master = ClMP.create_formulation!(
         env,
-        DwMaster();
+        ClMP.DwMaster();
         obj_sense = cache.master.sense,
         parent_formulation = reform
     )
-    setmaster!(reform, master)
-    mastervars = Dict{String, Variable}()
+    ClMP.setmaster!(reform, master)
+    mastervars = Dict{String, ClMP.Variable}()
 
     #create master variables
     for (varid, cost) in cache.master.objective.vars
         if haskey(cache.variables, varid)
             var = cache.variables[varid]
-            if var.duty <= MasterPureVar
-                v = setvar!(master, varid, MasterPureVar; lb = var.lb, ub = var.ub, kind = var.kind)
+            if var.duty <= ClMP.MasterPureVar
+                v = ClMP.setvar!(master, varid, ClMP.MasterPureVar; lb = var.lb, ub = var.ub, kind = var.kind)
             else
                 if haskey(all_spvars, varid)
-                    v = setvar!(master, varid, MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = getid(all_spvars[varid]))
+                    v = ClMP.setvar!(master, varid, ClMP.MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = ClMP.getid(all_spvars[varid]))
                 else
                     error("Variable $varid not present in any subproblem")
                 end
             end
-            setperencost!(master, v, cost)
+            ClMP.setperencost!(master, v, cost)
             mastervars[varid] = v
         else
             error("Variable $varid duty and/or kind not defined")
@@ -319,16 +319,16 @@ function reformfromcache(cache::ReadCache)
     i = 1
     constraints = []
     for constr in cache.master.constraints
-        members = Dict{VarId, Float64}()
-        constr_duty = MasterPureConstr
+        members = Dict{ClMP.VarId, Float64}()
+        constr_duty = ClMP.MasterPureConstr
         for (varid, coeff) in constr.lhs.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
-                if var.duty <= DwSpPricingVar || var.duty <= MasterRepPricingVar # check if should be a MasterMixedConstr
-                    constr_duty = MasterMixedConstr
+                if var.duty <= ClMP.DwSpPricingVar || var.duty <= ClMP.MasterRepPricingVar # check if should be a MasterMixedConstr
+                    constr_duty = ClMP.MasterMixedConstr
                 end
                 if haskey(mastervars, varid)
-                    push!(members, getid(mastervars[varid]) => coeff)
+                    push!(members, ClMP.getid(mastervars[varid]) => coeff)
                 else
                     error("Variable $varid not present in objective function")
                 end
@@ -336,15 +336,15 @@ function reformfromcache(cache::ReadCache)
                 error("Variable $varid duty and/or kind not defined")
             end
         end
-        c = setconstr!(master, "c$i", constr_duty; rhs = constr.rhs, sense = constr.sense, members = members)
+        c = ClMP.setconstr!(master, "c$i", constr_duty; rhs = constr.rhs, sense = constr.sense, members = members)
         push!(constraints, c)
         i += 1
     end
     #create subproblems constraints in master
     for (_, sp) in cache.subproblems
         for constr in sp.constraints
-            members = Dict(getid(mastervars[varid]) => coeff for (varid, coeff) in constr.lhs.vars)
-            c = setconstr!(master, "c$i", MasterMixedConstr; rhs = constr.rhs, sense = constr.sense, members = members)
+            members = Dict(ClMP.getid(mastervars[varid]) => coeff for (varid, coeff) in constr.lhs.vars)
+            c = ClMP.setconstr!(master, "c$i", ClMP.MasterMixedConstr; rhs = constr.rhs, sense = constr.sense, members = members)
             push!(constraints, c)
             i += 1
         end
@@ -352,9 +352,9 @@ function reformfromcache(cache::ReadCache)
 
     for sp in subproblems
         sp.parent_formulation = master
-        closefillmode!(getcoefmatrix(sp))
+        closefillmode!(ClMP.getcoefmatrix(sp))
     end
-    closefillmode!(getcoefmatrix(master))
+    closefillmode!(ClMP.getcoefmatrix(master))
 
     return env, master, subproblems, constraints
 end

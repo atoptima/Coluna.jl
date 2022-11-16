@@ -61,7 +61,4 @@ include("MOIwrapper.jl")
 include("MOIcallbacks.jl")
 include("decomposition.jl")
 
-include("parser.jl")
-export reformfromstring
-
 end # module

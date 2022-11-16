@@ -21,6 +21,8 @@ module ColunaTests
 
     rng = MersenneTwister(1234123)
 
+    include("parser.jl")
+
     @testset "Version" begin
         coluna_ver = Coluna.version()
         toml_ver = VersionNumber(
