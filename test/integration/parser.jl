@@ -51,7 +51,7 @@ end
                 y1 >= 1
                 1 <= y2
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefObjectiveParserError reformfromstring(s)
 
         # OF not defined
         s = """
@@ -70,7 +70,7 @@ end
                 y1 >= 1
                 1 <= y2
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefObjectiveParserError reformfromstring(s)
     end
 
     @testset "no subproblems" begin
@@ -121,7 +121,7 @@ end
             bounds
                 y <= 10
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
     end
 
     @testset "variables not defined" begin
@@ -144,7 +144,7 @@ end
             bounds
                 x >= 10
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
 
         # master variable not present in OF
         s = """
@@ -159,7 +159,7 @@ end
             bounds
                 x, y >= 5
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
 
         # variable in OF with no duty and kind defined
         s = """
@@ -178,7 +178,7 @@ end
             bounds
                 2 <= x, w <= 10
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
 
         # variable in constraint with no duty and kind defined
         s = """
@@ -197,7 +197,7 @@ end
             bounds
                 2 <= x, w <= 10
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
 
         # subproblem variable with no duty and kind defined
         s = """
@@ -214,7 +214,7 @@ end
             bound
                 2 <= x <= 10
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
 
         # no duty/kind section defined
         s = """
@@ -228,7 +228,7 @@ end
             bounds
                 2 <= x <= 10
         """
-        @test_throws ErrorException reformfromstring(s)
+        @test_throws UndefVarParserError reformfromstring(s)
     end
 
     @testset "minimize no bounds and representatives" begin

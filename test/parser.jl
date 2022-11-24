@@ -54,6 +54,12 @@ const _KW_SUBSECTION = Dict(
 
 const coeff_re = "\\d+(\\.\\d+)?"
 
+struct UndefObjectiveParserError <: Exception end
+
+struct UndefVarParserError <: Exception
+    msg::String
+end
+
 mutable struct ExprCache
     vars::Dict{String, Float64}
 end
@@ -86,6 +92,16 @@ mutable struct ReadCache
     master::MasterCache
     subproblems::Dict{Int64,SubproblemCache}
     variables::Dict{String,VarCache}
+end
+
+function Base.showerror(io::IO, ::UndefObjectiveParserError)
+    msg = "No objective function provided"
+    println(io, msg)
+end
+
+function Base.showerror(io::IO, e::UndefVarParserError)
+    println(io, e.msg)
+    return
 end
 
 function ReadCache()
@@ -261,12 +277,12 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
                     if haskey(cache.master.objective.vars, varid)
                         ClMP.setperencost!(spform, v, cache.master.objective.vars[varid])
                     else
-                        error("Variable $varid not present in objective function")
+                        throw(UndefVarParserError("Variable $varid not present in objective function"))
                     end
                     all_spvars[varid] = v
                 end
             else
-                error("Variable $varid duty and/or kind not defined")
+                throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
             end
         end
         push!(subproblems, spform)
@@ -286,13 +302,13 @@ function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClM
                 if haskey(all_spvars, varid)
                     v = ClMP.setvar!(master, varid, ClMP.MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = ClMP.getid(all_spvars[varid]))
                 else
-                    error("Variable $varid not present in any subproblem")
+                    throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                 end
             end
             ClMP.setperencost!(master, v, cost)
             mastervars[varid] = v
         else
-            error("Variable $varid duty and/or kind not defined")
+            throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
         end
     end
     return mastervars
@@ -314,10 +330,10 @@ function add_constraints!(master::ClMP.Formulation, mastervars::Dict{String, ClM
                 if haskey(mastervars, varid)
                     push!(members, ClMP.getid(mastervars[varid]) => coeff)
                 else
-                    error("Variable $varid not present in objective function")
+                    throw(UndefVarParserError("Variable $varid not present in objective function"))
                 end
             else
-                error("Variable $varid duty and/or kind not defined")
+                throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
             end
         end
         c = ClMP.setconstr!(master, "c$i", constr_duty; rhs = constr.rhs, sense = constr.sense, members = members)
@@ -338,10 +354,10 @@ end
 
 function reformfromcache(cache::ReadCache)
     if isempty(cache.master.objective.vars)
-        error("No objective function provided")
+        throw(UndefObjectiveParserError())
     end
     if isempty(cache.variables)
-        error("No variable duty and kind defined")
+        throw(UndefVarParserError("No variable duty and kind defined"))
     end
     env = Env{ClMP.VarId}(CL.Params())
     reform = ClMP.Reformulation(env)
