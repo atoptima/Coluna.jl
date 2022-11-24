@@ -104,7 +104,7 @@ end
 
 function _strip_identation(l::AbstractString)
     m = match(r"^(\s+)(.+)", l)
-    if m !== nothing
+    if !isnothing(m)
         return m[2]
     end
     return l
@@ -130,13 +130,13 @@ function _read_expression(l::AbstractString)
     line = _strip_line(l)
     vars = Dict{String, Float64}()
     first_m = match(Regex("^([+-])?($coeff_re)?\\*?(\\w+)(.*)"), line) # first element of expr
-    if first_m !== nothing
-        sign = first_m[1] === nothing ? "+" : first_m[1] # has a sign
-        coeff = first_m[2] === nothing ? "1" : first_m[2] # has a coefficient
+    if !isnothing(first_m)
+        sign = isnothing(first_m[1]) ? "+" : first_m[1] # has a sign
+        coeff = isnothing(first_m[2]) ? "1" : first_m[2] # has a coefficient
         cost = parse(Float64, string(sign, coeff))
         vars[String(first_m[4])] = cost
         for m in eachmatch(Regex("([+-])($coeff_re)?\\*?(\\w+)"), first_m[5]) # rest of the elements
-            coeff = m[2] === nothing ? "1" : m[2]
+            coeff = isnothing(m[2]) ? "1" : m[2]
             cost = parse(Float64, string(m[1], coeff))
             vars[String(m[4])] = cost
         end
@@ -147,7 +147,7 @@ end
 function _read_constraint(l::AbstractString)
     line = _strip_line(l)
     m = match(Regex("(.+)(>=|<=|==)($coeff_re)"), line)
-    if m !== nothing
+    if !isnothing(m)
         lhs = _read_expression(m[1])
         sense = if m[2] == ">="
             ClMP.Greater
@@ -169,12 +169,12 @@ function _read_bounds(l::AbstractString, r::Regex)
     vars = String[]
     bound1, bound2 = ("","")
     m = match(r, line)
-    if m !== nothing
+    if !isnothing(m)
         vars = _get_vars_list(m[4]) # separate variables as "x_1, x_2" into a list [x_1, x_2]
-        if m[1] !== nothing # has lower bound (nb <= var) or upper bound (nb >= var)
+        if !isnothing(m[1]) # has lower bound (nb <= var) or upper bound (nb >= var)
             bound1 = String(m[2])
         end
-        if m[5] !== nothing # has upper bound (var <= nb) or lower bound (var >= nb)
+        if !isnothing(m[5]) # has upper bound (var <= nb) or lower bound (var >= nb)
             bound2 = String(m[6])
         end
     end
@@ -189,7 +189,7 @@ end
 
 function read_master!(::Val{:constraints}, cache::ReadCache, line::AbstractString)
     constr = _read_constraint(line)
-    if constr !== nothing
+    if !isnothing(constr)
         push!(cache.master.constraints, constr)
     end
 end
@@ -198,7 +198,7 @@ read_master!(::Any, cache::ReadCache, line::AbstractString) = nothing
 
 function read_subproblem!(cache::ReadCache, line::AbstractString, nb_sp::Int64)
     constr = _read_constraint(line)
-    if constr !== nothing
+    if !isnothing(constr)
         varids = collect(keys(constr.lhs.vars))
         if haskey(cache.subproblems, nb_sp)
             push!(cache.subproblems[nb_sp].constraints, constr)
@@ -241,20 +241,7 @@ end
 
 read_variables!(::Any, ::Any, ::ReadCache, ::AbstractString) = nothing
 
-function reformfromcache(cache::ReadCache)
-
-    if isempty(cache.master.objective.vars)
-        error("No objective function provided")
-    end
-
-    if isempty(cache.variables)
-        error("No variable duty and kind defined")
-    end
-
-    env = Env{ClMP.VarId}(CL.Params())
-    reform = ClMP.Reformulation(env)
-
-    #create subproblems
+function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
     subproblems = []
     all_spvars = Dict{String, ClMP.Variable}()
     for (_, sp) in cache.subproblems
@@ -263,7 +250,7 @@ function reformfromcache(cache::ReadCache)
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
                 if var.duty <= ClMP.DwSpPricingVar || var.duty <= ClMP.MasterRepPricingVar
-                    if spform === nothing
+                    if isnothing(spform)
                         spform = ClMP.create_formulation!(
                             env,
                             ClMP.DwSp(nothing, nothing, nothing, var.kind);
@@ -285,17 +272,11 @@ function reformfromcache(cache::ReadCache)
         push!(subproblems, spform)
         ClMP.add_dw_pricing_sp!(reform, spform)
     end
+    return subproblems, all_spvars
+end
 
-    master = ClMP.create_formulation!(
-        env,
-        ClMP.DwMaster();
-        obj_sense = cache.master.sense,
-        parent_formulation = reform
-    )
-    ClMP.setmaster!(reform, master)
+function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClMP.Variable}, cache::ReadCache)
     mastervars = Dict{String, ClMP.Variable}()
-
-    #create master variables
     for (varid, cost) in cache.master.objective.vars
         if haskey(cache.variables, varid)
             var = cache.variables[varid]
@@ -314,7 +295,10 @@ function reformfromcache(cache::ReadCache)
             error("Variable $varid duty and/or kind not defined")
         end
     end
+    return mastervars
+end
 
+function add_constraints!(master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, cache::ReadCache)
     #create master constraints
     i = 1
     constraints = []
@@ -349,6 +333,30 @@ function reformfromcache(cache::ReadCache)
             i += 1
         end
     end
+    return constraints
+end
+
+function reformfromcache(cache::ReadCache)
+    if isempty(cache.master.objective.vars)
+        error("No objective function provided")
+    end
+    if isempty(cache.variables)
+        error("No variable duty and kind defined")
+    end
+    env = Env{ClMP.VarId}(CL.Params())
+    reform = ClMP.Reformulation(env)
+
+    subproblems, all_spvars = create_subproblems!(env, reform, cache)
+
+    master = ClMP.create_formulation!(
+        env,
+        ClMP.DwMaster();
+        obj_sense = cache.master.sense,
+        parent_formulation = reform
+    )
+    ClMP.setmaster!(reform, master)
+    mastervars = add_master_vars!(master, all_spvars, cache)
+    constraints = add_constraints!(master, mastervars, cache)
 
     for sp in subproblems
         sp.parent_formulation = master

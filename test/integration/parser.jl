@@ -6,11 +6,11 @@ struct AuxiliaryConstrInfo
 end
 
 function get_vars_info(form::CL.Formulation)
-    names = []
-    kinds = []
-    duties = []
-    costs = []
-    bounds = []
+    names = String[]
+    kinds = ClMP.VarKind[]
+    duties = ClMP.Duty{ClMP.Variable}[]
+    costs = Float64[]
+    bounds = Tuple{Float64,Float64}[]
     for (varid, var) in CL.getvars(form)
         push!(names, CL.getname(form, var))
         push!(kinds, CL.getperenkind(form, var))
@@ -25,7 +25,7 @@ function get_constrs_info(form::CL.Formulation)
     infos = AuxiliaryConstrInfo[]
     coeff_matrix = CL.getcoefmatrix(form)
     for (constrid, constr) in CL.getconstrs(form)
-        coeffs = []
+        coeffs = Tuple{String,Float64}[]
         for (varid, coeff) in @view coeff_matrix[constrid, :]
             push!(coeffs, (CL.getname(form, varid), coeff))
         end
