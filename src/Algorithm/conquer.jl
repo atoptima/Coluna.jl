@@ -39,7 +39,7 @@ end
 #                      BeforeCutGenUserAlgo
 ####################################################################
 
-struct BeforeCutGenUserAlgo
+struct BeforeCutGenUserAlgo <: AbstractConquerAlgorithm
     algorithm::AbstractOptimizationAlgorithm
     name::String
 end
@@ -132,6 +132,9 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     end
     for heuristic in algo.primal_heuristics
         push!(child_algos, (heuristic.algorithm, reform))
+    end
+    if !isnothing(algo.before_cutgen_user_algorithm)
+        push!(child_algos, (algo.before_cutgen_user_algorithm, reform))
     end
     return child_algos
 end

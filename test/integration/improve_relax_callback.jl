@@ -12,9 +12,37 @@ struct VarData <: BD.AbstractCustomData
     items::Vector{Int}
 end
 
-struct ToyNodeInfo <: ClA.AbstractNodeUserInfo
+# struct ToyNodeInfo <: ClA.AbstractNodeUserInfo
+#     value::Int
+# end
+
+mutable struct ToyNodeInfoUnit <: ClB.AbstractNewStorageUnit 
     value::Int
 end
+
+ClB.new_storage_unit(::Type{ToyNodeInfoUnit}, _) = ToyNodeInfoUnit(111)
+
+struct ToyNodeInfo <: ClB.AbstractNewRecord
+    value::Int
+end
+
+ClB.record_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfo
+ClB.storage_unit_type(::Type{ToyNodeInfo}) = ToyNodeInfoUnit
+
+struct ToyNodeInfoKey <: ClA.AbstractStorageUnitKey end
+
+ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
+ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
+
+function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
+    return ToyNodeInfo(unit.value)
+end
+
+function ClB.restore_from_record!(form::ClMP.Formulation, unit::ToyNodeInfoUnit, record::ToyNodeInfo)
+    unit.value = record.value
+    return
+end
+
 
 # Don't need this because `ToyNodeInfo` is bits
 # ClMP.copy_info(info::ToyNodeInfo) = ToyNodeInfo(info.value)
@@ -28,6 +56,21 @@ function ClA.run!(
     return algo.userfunc(masterform, cbdata)
 end
 
+function ClA.get_units_usage(algo::ImproveRelaxationAlgo, reform::ClMP.Reformulation) 
+    units_usage = Tuple{ClMP.AbstractModel,ClB.UnitType,ClB.UnitPermission}[]
+    master = ClMP.getmaster(reform)
+    push!(units_usage, (master, ToyNodeInfoUnit, ClB.READ_AND_WRITE))
+    println("\e[31m THIS IS A CALL TO get_units_usage \e[00m")
+    println("WE ADD A TOYNODEINFO")
+    return units_usage
+end
+
+function ClA.get_child_algorithms(algo::ClA.BeforeCutGenUserAlgo, reform::ClMP.Reformulation)
+    println("\e[42m THIS IS A CALL TO get_child_algorithm \e[00m")
+    child_algos = Tuple{ClA.AbstractAlgorithm, ClMP.AbstractModel}[]
+    push!(child_algos, (algo.algorithm, reform))
+    return child_algos
+end
 
 function test_improve_relaxation(; do_improve::Bool)
     function build_toy_model(optimizer)
@@ -65,7 +108,7 @@ function test_improve_relaxation(; do_improve::Bool)
                             "Improve relaxation"
                     )
                 ),
-                dividealg = ClA.Branching(root_user_info = ToyNodeInfo(111)),
+                dividealg = ClA.Branching(),
                 maxnumnodes = do_improve ? 1 : 10
             )
         )
@@ -84,7 +127,10 @@ function test_improve_relaxation(; do_improve::Bool)
 
         # check all possible solutions
         reform = cbdata.form.parent_formulation.parent_formulation
-        info_val = ClMP.get_user_info(reform).value
+
+        storage = ClMP.getstorage(ClMP.getmaster(reform))
+        unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
+        info_val = unit.value
         max_info_val = max(max_info_val, info_val)
         if info_val == 9999
             sols = [[1], [2], [3], [2, 3]]
@@ -120,8 +166,7 @@ function test_improve_relaxation(; do_improve::Bool)
 
         # increment the user info value for testing
         if !do_improve
-            info = ClMP.get_user_info(reform)
-            ClMP.set_user_info!(reform, ToyNodeInfo(info.value + 111))
+            unit.value += 111 # TODO: to improve
         end
         return
     end
@@ -149,7 +194,9 @@ function test_improve_relaxation(; do_improve::Bool)
                     if var.custom_data.items in [[1, 2], [1, 3]]
                         ClMP.deactivate!(masterform, vid)
                         changed = true
-                        ClMP.set_user_info!(masterform.parent_formulation, ToyNodeInfo(9999))
+                        storage = ClMP.getstorage(masterform)
+                        unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
+                        unit.value = 9999
                     end
                 end
             end
@@ -173,6 +220,7 @@ function test_improve_relaxation(; do_improve::Bool)
             @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
         end
     end
+    @show max_info_val
     @test do_improve || max_info_val == 888
 end
 
