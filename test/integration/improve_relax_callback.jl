@@ -35,14 +35,25 @@ ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
 ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
 
 function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
+    println("\e[31m new record $(unit.value) \e[00m")
     return ToyNodeInfo(unit.value)
 end
 
 function ClB.restore_from_record!(form::ClMP.Formulation, unit::ToyNodeInfoUnit, record::ToyNodeInfo)
+    println("\e[1;31m ToyNodeInfoUnit: restore from record (value of record $(record.value)) \e[00m")
     unit.value = record.value
     return
 end
 
+function ClA.get_branching_candidate_units_usage(::ClA.SingleVarBranchingCandidate, reform)
+    units_to_restore = ClA.UnitsUsage()
+    push!(units_to_restore.units_used, (ClMP.getmaster(reform), ClA.MasterBranchConstrsUnit))
+    push!(units_to_restore.units_used, (ClMP.getmaster(reform), ToyNodeInfoUnit))
+    return units_to_restore
+end
+
+ClA.ismanager(::ClA.BeforeCutGenUserAlgo) = false
+ClA.ismanager(::ImproveRelaxationAlgo) = false
 
 # Don't need this because `ToyNodeInfo` is bits
 # ClMP.copy_info(info::ToyNodeInfo) = ToyNodeInfo(info.value)
