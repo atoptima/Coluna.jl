@@ -39,9 +39,6 @@ ClB.getstorage(reform::Reformulation) = reform.storage
 
 # methods specific to Formulation
 
-set_user_info!(reform::Reformulation, info::AbstractNodeUserInfo) = reform.node_user_info = info
-get_user_info(reform::Reformulation) = reform.node_user_info
-
 """
     getobjsense(reformulation)
 

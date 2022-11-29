@@ -48,7 +48,7 @@ function ClA.get_branching_candidate_units_usage(::ClA.SingleVarBranchingCandida
     return units_to_restore
 end
 
-ClA.ismanager(::ClA.BeforeCutGenUserAlgo) = false
+ClA.ismanager(::ClA.BeforeCutGenAlgo) = false
 ClA.ismanager(::ImproveRelaxationAlgo) = false
 
 # Don't need this because `ToyNodeInfo` is bits
@@ -72,7 +72,7 @@ function ClA.get_units_usage(algo::ImproveRelaxationAlgo, reform::ClMP.Reformula
     return units_usage
 end
 
-function ClA.get_child_algorithms(algo::ClA.BeforeCutGenUserAlgo, reform::ClMP.Reformulation)
+function ClA.get_child_algorithms(algo::ClA.BeforeCutGenAlgo, reform::ClMP.Reformulation)
     println("\e[42m THIS IS A CALL TO get_child_algorithm \e[00m")
     child_algos = Tuple{ClA.AbstractAlgorithm, ClMP.AbstractModel}[]
     push!(child_algos, (algo.algorithm, reform))
@@ -108,7 +108,7 @@ function test_improve_relaxation(; do_improve::Bool)
                                 ))
                                 ],
                     primal_heuristics = [],
-                    before_cutgen_user_algorithm = ClA.BeforeCutGenUserAlgo(
+                    before_cutgen_user_algorithm = ClA.BeforeCutGenAlgo(
                             ImproveRelaxationAlgo(
                                 userfunc = call_improve_relaxation
                             ), 
@@ -174,8 +174,7 @@ function test_improve_relaxation(; do_improve::Bool)
 
         # increment the user info value for testing
         if !do_improve
-            info = ClMP.get_user_info(reform)
-            ClMP.set_user_info!(reform, ToyNodeInfo(info.value + 111))
+            unit.value += 111
         end
         return
     end

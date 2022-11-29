@@ -111,8 +111,6 @@ abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 # divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
-get_root_user_info(::AbstractDivideAlgorithm) = DummyUserInfo()
-
 @mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, ::Env, ::AbstractModel, ::AbstractDivideInput) 
 
 # this function is needed to check whether the best primal solution should be copied to the node optimization state
