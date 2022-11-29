@@ -31,8 +31,16 @@ ParamRestrictedMasterHeuristic() =
 
 struct NodeFinalizer
     algorithm::AbstractOptimizationAlgorithm
-    frequency::Integer
     min_depth::Integer
+    name::String
+end
+
+####################################################################
+#                      BeforeCutGenUserAlgo
+####################################################################
+
+struct BeforeCutGenUserAlgo
+    algorithm::AbstractOptimizationAlgorithm
     name::String
 end
 
@@ -95,6 +103,7 @@ Parameters :
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
     primal_heuristics::Vector{ParameterizedHeuristic} = [ParamRestrictedMasterHeuristic()]
+    before_cutgen_user_algorithm::Union{Nothing, BeforeCutGenUserAlgo} = nothing
     node_finalizer::Union{Nothing, NodeFinalizer} = nothing
     preprocess = nothing
     cutgen = CutCallbacks()
@@ -167,6 +176,21 @@ function run_colgen!(ctx::ColCutGenContext, colgen, env, reform, node_state)
     return true
 end
 
+function run_before_cutgen_user_algo!(
+    ::ColCutGenContext, before_cutgen_user_algo, env, reform, node_state
+)
+    if ismanager(before_cutgen_user_algo.algorithm)
+        records = create_records(reform)
+    end
+
+    changed = run!(before_cutgen_user_algo.algorithm, env, reform, node_state)
+
+    if ismanager(before_cutgen_user_algo.algorithm) 
+        restore_from_records!(input.units_to_restore, records)
+    end
+    return changed
+end
+
 """
 Runs several rounds of column and cut generation.
 Returns `false` if the column generation returns `false` or time limit is reached.
@@ -176,7 +200,8 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
     nb_cut_rounds = 0
     run_conquer = true
     cuts_were_added = true
-    while run_conquer && cuts_were_added
+    master_changed = true
+    while run_conquer && (cuts_were_added || master_changed)
         for (stage_index, colgen) in Iterators.reverse(Iterators.enumerate(ctx.params.stages))
             # print stage_index
             run_conquer = run_colgen!(ctx, colgen, env, reform, node_state)
@@ -185,6 +210,15 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
             end
         end
     
+        before_cutgen_user_algorithm = ctx.params.before_cutgen_user_algorithm
+        if !isnothing(before_cutgen_user_algorithm)
+            master_changed = run_before_cutgen_user_algo!(
+                ctx, before_cutgen_user_algorithm, env, reform, node_state
+            )
+        else
+            master_changed = false
+        end
+
         sol = get_best_lp_primal_sol(node_state)
         cuts_were_added = false
         if !isnothing(sol) 
@@ -355,7 +389,12 @@ end
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
     ctx = new_context(type_of_context(algo), algo, reform, input)
+    node = get_node(input)
+    parent = get_parent(node)
+    info = isnothing(parent) ? get_user_info(node) : get_user_info(parent)
+    MathProg.set_user_info!(reform, MathProg.copy_info(info))
     run_colcutgen_conquer!(ctx, env, reform, input)
+    set_user_info!(node, MathProg.get_user_info(reform))
     return
 end
 

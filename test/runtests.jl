@@ -5,4 +5,4 @@ include("ColunaTests.jl")
 retest(Coluna, ColunaTests)
 
 # Run a specific test:
-#retest(ColunaTests, "Unit - MasterColumnsRecord")
+# retest(ColunaTests, "Improve relaxation callback")

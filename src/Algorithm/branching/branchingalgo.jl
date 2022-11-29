@@ -42,7 +42,10 @@ Chooses the best candidate according to a selection criterion and generates the 
     selection_criterion::AbstractSelectionCriterion = MostFractionalCriterion()
     rules = [PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
     int_tol = 1e-6
+    root_user_info::AbstractNodeUserInfo = DummyUserInfo()
 end
+
+get_root_user_info(algo::Branching) = algo.root_user_info
 
 get_selection_nb_candidates(::Branching) = 1
 
@@ -111,7 +114,10 @@ restrict the number of retained candidates until only one is left.
     selection_criterion::AbstractSelectionCriterion = MostFractionalCriterion()
     verbose = true
     int_tol = 1e-6
+    root_user_info::AbstractNodeUserInfo = DummyUserInfo()
 end
+
+get_root_user_info(algo::StrongBranching) = algo.root_user_info
 
 ## Implementation of Algorithm API.
 

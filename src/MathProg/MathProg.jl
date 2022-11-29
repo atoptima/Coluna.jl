@@ -67,7 +67,7 @@ export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
 # Methods related to Reformulation
 export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw_pricing_sps,
     set_reformulation!, get_benders_sep_sps, get_dw_pricing_sp_ub_constrid,
-    get_dw_pricing_sp_lb_constrid, setmaster!
+    get_dw_pricing_sp_lb_constrid, setmaster!, get_user_info, set_user_info!
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
@@ -77,7 +77,8 @@ export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
     push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
-    insert_column!, get_column_from_pool, getfixedvars
+    insert_column!, get_column_from_pool, getfixedvars, AbstractNodeUserInfo, DummyUserInfo,
+    copy_info
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp

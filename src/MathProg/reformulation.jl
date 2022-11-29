@@ -6,6 +6,7 @@ mutable struct Reformulation <: AbstractFormulation
     dw_pricing_subprs::Dict{FormId, AbstractModel} 
     benders_sep_subprs::Dict{FormId, AbstractModel}
     storage::Union{Nothing,NewStorage}
+    node_user_info::Union{Nothing,AbstractNodeUserInfo}
 end
 
 """
@@ -24,6 +25,7 @@ function Reformulation(env)
         nothing,
         Dict{FormId, AbstractModel}(),
         Dict{FormId, AbstractModel}(),
+        nothing,
         nothing
     )
     reform.storage = NewStorage(reform)
@@ -36,6 +38,9 @@ ClB.getuid(reform::Reformulation) = reform.uid
 ClB.getstorage(reform::Reformulation) = reform.storage
 
 # methods specific to Formulation
+
+set_user_info!(reform::Reformulation, info::AbstractNodeUserInfo) = reform.node_user_info = info
+get_user_info(reform::Reformulation) = reform.node_user_info
 
 """
     getobjsense(reformulation)
