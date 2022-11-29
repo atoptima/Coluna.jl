@@ -67,7 +67,7 @@ export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
 # Methods related to Reformulation
 export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw_pricing_sps,
     set_reformulation!, get_benders_sep_sps, get_dw_pricing_sp_ub_constrid,
-    get_dw_pricing_sp_lb_constrid, setmaster!, get_user_info, set_user_info!
+    get_dw_pricing_sp_lb_constrid, setmaster!
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,

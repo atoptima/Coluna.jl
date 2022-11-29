@@ -133,13 +133,3 @@ used by algorithms. A formulation contains one storage unit
 per storage unit type used by algorithms.    
 """
 abstract type AbstractFormulation <: AbstractModel end
-
-"Sets the user info stored at the formulation"
-function set_user_info!(::AbstractFormulation, ::AbstractNodeUserInfo)
-    return  # Fall back that does nothing
-end
-
-"Gets the user info stored at the formulation"
-function get_user_info(::AbstractFormulation)
-    return DummyUserInfo()  # Fall back that gets a dummy user info
-end
