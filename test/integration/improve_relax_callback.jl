@@ -12,9 +12,44 @@ struct VarData <: BD.AbstractCustomData
     items::Vector{Int}
 end
 
-struct ToyNodeInfo <: ClA.AbstractNodeUserInfo
+mutable struct ToyNodeInfoUnit <: ClB.AbstractNewStorageUnit 
     value::Int
 end
+
+ClB.new_storage_unit(::Type{ToyNodeInfoUnit}, _) = ToyNodeInfoUnit(111)
+
+struct ToyNodeInfo <: ClB.AbstractNewRecord
+    value::Int
+end
+
+ClB.record_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfo
+ClB.storage_unit_type(::Type{ToyNodeInfo}) = ToyNodeInfoUnit
+
+struct ToyNodeInfoKey <: ClA.AbstractStorageUnitKey end
+
+ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
+ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
+
+function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
+    println("\e[31m new record $(unit.value) \e[00m")
+    return ToyNodeInfo(unit.value)
+end
+
+function ClB.restore_from_record!(form::ClMP.Formulation, unit::ToyNodeInfoUnit, record::ToyNodeInfo)
+    println("\e[1;31m ToyNodeInfoUnit: restore from record (value of record $(record.value)) \e[00m")
+    unit.value = record.value
+    return
+end
+
+function ClA.get_branching_candidate_units_usage(::ClA.SingleVarBranchingCandidate, reform)
+    units_to_restore = ClA.UnitsUsage()
+    push!(units_to_restore.units_used, (ClMP.getmaster(reform), ClA.MasterBranchConstrsUnit))
+    push!(units_to_restore.units_used, (ClMP.getmaster(reform), ToyNodeInfoUnit))
+    return units_to_restore
+end
+
+ClA.ismanager(::ClA.BeforeCutGenUserAlgo) = false
+ClA.ismanager(::ImproveRelaxationAlgo) = false
 
 # Don't need this because `ToyNodeInfo` is bits
 # ClMP.copy_info(info::ToyNodeInfo) = ToyNodeInfo(info.value)
@@ -28,6 +63,21 @@ function ClA.run!(
     return algo.userfunc(masterform, cbdata)
 end
 
+function ClA.get_units_usage(algo::ImproveRelaxationAlgo, reform::ClMP.Reformulation) 
+    units_usage = Tuple{ClMP.AbstractModel,ClB.UnitType,ClB.UnitPermission}[]
+    master = ClMP.getmaster(reform)
+    push!(units_usage, (master, ToyNodeInfoUnit, ClB.READ_AND_WRITE))
+    println("\e[31m THIS IS A CALL TO get_units_usage \e[00m")
+    println("WE ADD A TOYNODEINFO")
+    return units_usage
+end
+
+function ClA.get_child_algorithms(algo::ClA.BeforeCutGenUserAlgo, reform::ClMP.Reformulation)
+    println("\e[42m THIS IS A CALL TO get_child_algorithm \e[00m")
+    child_algos = Tuple{ClA.AbstractAlgorithm, ClMP.AbstractModel}[]
+    push!(child_algos, (algo.algorithm, reform))
+    return child_algos
+end
 
 function test_improve_relaxation(; do_improve::Bool)
     function build_toy_model(optimizer)
@@ -65,7 +115,7 @@ function test_improve_relaxation(; do_improve::Bool)
                             "Improve relaxation"
                     )
                 ),
-                dividealg = ClA.Branching(root_user_info = ToyNodeInfo(111)),
+                dividealg = ClA.Branching(),
                 maxnumnodes = do_improve ? 1 : 10
             )
         )
@@ -84,7 +134,11 @@ function test_improve_relaxation(; do_improve::Bool)
 
         # check all possible solutions
         reform = cbdata.form.parent_formulation.parent_formulation
-        info_val = ClMP.get_user_info(reform).value
+
+        storage = ClMP.getstorage(ClMP.getmaster(reform))
+        unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
+        info_val = unit.value
+
         max_info_val = max(max_info_val, info_val)
         if info_val == 9999
             sols = [[1], [2], [3], [2, 3]]
@@ -149,7 +203,10 @@ function test_improve_relaxation(; do_improve::Bool)
                     if var.custom_data.items in [[1, 2], [1, 3]]
                         ClMP.deactivate!(masterform, vid)
                         changed = true
-                        ClMP.set_user_info!(masterform.parent_formulation, ToyNodeInfo(9999))
+
+                        storage = ClMP.getstorage(masterform)
+                        unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
+                        unit.value = 9999
                     end
                 end
             end

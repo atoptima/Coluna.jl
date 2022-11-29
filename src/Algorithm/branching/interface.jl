@@ -45,6 +45,9 @@ Make sure that this method returns an object the same type as the second argumen
 """
 @mustimplement "BranchingCandidate" generate_children!(c::AbstractBranchingCandidate, env, reform, parent)
 
+"List of storage units to restore before evaluating the node."
+@mustimplement "BranchingCandidate" get_branching_candidate_units_usage(::AbstractBranchingCandidate, reform)
+
 ############################################################################################
 # Selection Criteria of branching candidates
 ############################################################################################
