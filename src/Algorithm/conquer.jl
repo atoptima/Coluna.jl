@@ -31,8 +31,17 @@ ParamRestrictedMasterHeuristic() =
 
 struct NodeFinalizer
     algorithm::AbstractOptimizationAlgorithm
-    frequency::Integer
     min_depth::Integer
+    name::String
+end
+
+####################################################################
+#                      BeforeCutGenAlgo
+####################################################################
+
+"Algorithm called before cut generation."
+struct BeforeCutGenAlgo <: AbstractConquerAlgorithm
+    algorithm::AbstractOptimizationAlgorithm
     name::String
 end
 
@@ -95,6 +104,7 @@ Parameters :
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
     primal_heuristics::Vector{ParameterizedHeuristic} = [ParamRestrictedMasterHeuristic()]
+    before_cutgen_user_algorithm::Union{Nothing, BeforeCutGenAlgo} = nothing
     node_finalizer::Union{Nothing, NodeFinalizer} = nothing
     preprocess = nothing
     cutgen = CutCallbacks()
@@ -123,6 +133,9 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     end
     for heuristic in algo.primal_heuristics
         push!(child_algos, (heuristic.algorithm, reform))
+    end
+    if !isnothing(algo.before_cutgen_user_algorithm)
+        push!(child_algos, (algo.before_cutgen_user_algorithm, reform))
     end
     return child_algos
 end
@@ -167,6 +180,21 @@ function run_colgen!(ctx::ColCutGenContext, colgen, env, reform, node_state)
     return true
 end
 
+function run_before_cutgen_user_algo!(
+    ::ColCutGenContext, before_cutgen_user_algo, env, reform, node_state
+)
+    if ismanager(before_cutgen_user_algo.algorithm)
+        records = create_records(reform)
+    end
+
+    changed = run!(before_cutgen_user_algo.algorithm, env, reform, node_state)
+
+    if ismanager(before_cutgen_user_algo.algorithm) 
+        restore_from_records!(input.units_to_restore, records)
+    end
+    return changed
+end
+
 """
 Runs several rounds of column and cut generation.
 Returns `false` if the column generation returns `false` or time limit is reached.
@@ -175,16 +203,25 @@ Returns `true` if the conquer algorithm continues.
 function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
     nb_cut_rounds = 0
     run_conquer = true
-    cuts_were_added = true
-    while run_conquer && cuts_were_added
+    master_changed = true # stores value returned by the algorithm called before cut gen.
+    cuts_were_added = true # stores value returned by cut gen.
+    while run_conquer && (cuts_were_added || master_changed)
         for (stage_index, colgen) in Iterators.reverse(Iterators.enumerate(ctx.params.stages))
-            # print stage_index
+            # TODO: print stage_index
             run_conquer = run_colgen!(ctx, colgen, env, reform, node_state)
             if !run_conquer
                 return false
             end
         end
     
+        master_changed = false
+        before_cutgen_user_algorithm = ctx.params.before_cutgen_user_algorithm
+        if !isnothing(before_cutgen_user_algorithm)
+            master_changed = run_before_cutgen_user_algo!(
+                ctx, before_cutgen_user_algorithm, env, reform, node_state
+            )
+        end
+
         sol = get_best_lp_primal_sol(node_state)
         cuts_were_added = false
         if !isnothing(sol) 

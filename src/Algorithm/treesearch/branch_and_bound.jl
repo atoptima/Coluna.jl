@@ -29,7 +29,10 @@ get_priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
 # TODO move
 function Node(node::SbNode)
-    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.records, node.conquerwasrun)
+    return Node(
+        node.depth, node.parent, node.optstate, node.branchdescription,
+        node.records, node.conquerwasrun
+    )
 end
 
 ############################################################################################

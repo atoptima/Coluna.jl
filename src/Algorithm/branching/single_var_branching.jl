@@ -31,6 +31,13 @@ get_children(candidate::SingleVarBranchingCandidate) = candidate.children
 set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
 get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
+function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, reform)
+    units_to_restore = UnitsUsage()
+    master = getmaster(reform)
+    push!(units_to_restore.units_used, (master, MasterBranchConstrsUnit))
+    return units_to_restore
+end
+
 function generate_children!(
     candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
     parent::AbstractNode
@@ -43,8 +50,7 @@ function generate_children!(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    units_to_restore = UnitsUsage()
-    push!(units_to_restore.units_used, (master, MasterBranchConstrsUnit))
+    units_to_restore = get_branching_candidate_units_usage(candidate, reform)
 
     # adding the first branching constraints
     restore_from_records!(units_to_restore, parent.records)
