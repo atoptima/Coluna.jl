@@ -112,15 +112,6 @@ end
 
 ############################################################################
 
-abstract type AbstractNodeUserInfo end
-
-struct DummyUserInfo <: AbstractNodeUserInfo end
-
-"Creates a copy of a node user info to be passed to child nodes"
-function copy_info(info::AbstractNodeUserInfo)
-    return info     # Fall back that copies is-bits objects and passes references of others
-end
-
 """
     AbstractFormulation
 

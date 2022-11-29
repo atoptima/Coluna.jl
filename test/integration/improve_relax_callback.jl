@@ -31,12 +31,10 @@ ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
 ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
 
 function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
-    println("\e[31m new record $(unit.value) \e[00m")
     return ToyNodeInfo(unit.value)
 end
 
 function ClB.restore_from_record!(form::ClMP.Formulation, unit::ToyNodeInfoUnit, record::ToyNodeInfo)
-    println("\e[1;31m ToyNodeInfoUnit: restore from record (value of record $(record.value)) \e[00m")
     unit.value = record.value
     return
 end
@@ -67,13 +65,10 @@ function ClA.get_units_usage(algo::ImproveRelaxationAlgo, reform::ClMP.Reformula
     units_usage = Tuple{ClMP.AbstractModel,ClB.UnitType,ClB.UnitPermission}[]
     master = ClMP.getmaster(reform)
     push!(units_usage, (master, ToyNodeInfoUnit, ClB.READ_AND_WRITE))
-    println("\e[31m THIS IS A CALL TO get_units_usage \e[00m")
-    println("WE ADD A TOYNODEINFO")
     return units_usage
 end
 
 function ClA.get_child_algorithms(algo::ClA.BeforeCutGenAlgo, reform::ClMP.Reformulation)
-    println("\e[42m THIS IS A CALL TO get_child_algorithm \e[00m")
     child_algos = Tuple{ClA.AbstractAlgorithm, ClMP.AbstractModel}[]
     push!(child_algos, (algo.algorithm, reform))
     return child_algos
@@ -198,7 +193,6 @@ function test_improve_relaxation(; do_improve::Bool)
             for (vid, var) in ClMP.getvars(masterform)
                 if ClMP.iscuractive(masterform, vid) && ClMP.getduty(vid) <= ClMP.MasterCol
                     varname = ClMP.getname(masterform, var)
-                    @show varname, var.custom_data
                     if var.custom_data.items in [[1, 2], [1, 3]]
                         ClMP.deactivate!(masterform, vid)
                         changed = true
@@ -218,7 +212,7 @@ function test_improve_relaxation(; do_improve::Bool)
     end
 
     JuMP.optimize!(model)
-    @show JuMP.objective_value(model)
+    @test JuMP.objective_value(model) ≈ 2.0
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     for b in B
         sets = BD.getsolutions(model, b)

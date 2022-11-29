@@ -44,16 +44,6 @@ abstract type AbstractNode end
 "Returns `true` is the node is root; `false` otherwise."
 @mustimplement "Node" isroot(::AbstractNode) # BaB implementation
 
-"Sets the user info stored at the node"
-function set_user_info!(::AbstractNode, ::AbstractNodeUserInfo)
-    return  # Fall back that does nothing
-end
-
-"Gets the user info stored at the node"
-function get_user_info(::AbstractNode)
-    return DummyUserInfo()  # Fall back that gets a dummy user info
-end
-
 # TODO: remove untreated nodes.
 "Evaluate and generate children. This method has a specific implementation for Coluna."
 @mustimplement "TreeSearch" children(sp, n, env, untreated_nodes)
