@@ -2,7 +2,8 @@ using Coluna, ReTest
 
 include("ColunaTests.jl")
 
-#retest(Coluna, ColunaTests)
+retest(Coluna, ColunaTests)
 
 # Run a specific test:
-retest(ColunaTests, "Improve relaxation callback")
+
+# retest(ColunaTests, "Improve relaxation callback")

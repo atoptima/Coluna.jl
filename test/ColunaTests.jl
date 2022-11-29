@@ -21,6 +21,8 @@ module ColunaTests
 
     rng = MersenneTwister(1234123)
 
+    include("parser.jl")
+
     @testset "Version" begin
         coluna_ver = Coluna.version()
         toml_ver = VersionNumber(
@@ -38,6 +40,7 @@ module ColunaTests
             include(joinpath(dirpath, filename))
         end
     end
+    include(joinpath(@__DIR__, "unit", "parser.jl"))
 
     ########################################################################################
     # Integration tests

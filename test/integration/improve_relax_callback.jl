@@ -12,10 +12,6 @@ struct VarData <: BD.AbstractCustomData
     items::Vector{Int}
 end
 
-# struct ToyNodeInfo <: ClA.AbstractNodeUserInfo
-#     value::Int
-# end
-
 mutable struct ToyNodeInfoUnit <: ClB.AbstractNewStorageUnit 
     value::Int
 end
@@ -142,6 +138,7 @@ function test_improve_relaxation(; do_improve::Bool)
         storage = ClMP.getstorage(ClMP.getmaster(reform))
         unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
         info_val = unit.value
+
         max_info_val = max(max_info_val, info_val)
         if info_val == 9999
             sols = [[1], [2], [3], [2, 3]]
@@ -177,7 +174,8 @@ function test_improve_relaxation(; do_improve::Bool)
 
         # increment the user info value for testing
         if !do_improve
-            unit.value += 111 # TODO: to improve
+            info = ClMP.get_user_info(reform)
+            ClMP.set_user_info!(reform, ToyNodeInfo(info.value + 111))
         end
         return
     end
@@ -205,6 +203,7 @@ function test_improve_relaxation(; do_improve::Bool)
                     if var.custom_data.items in [[1, 2], [1, 3]]
                         ClMP.deactivate!(masterform, vid)
                         changed = true
+
                         storage = ClMP.getstorage(masterform)
                         unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
                         unit.value = 9999
@@ -231,7 +230,6 @@ function test_improve_relaxation(; do_improve::Bool)
             @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
         end
     end
-    @show max_info_val
     @test do_improve || max_info_val == 888
 end
 
