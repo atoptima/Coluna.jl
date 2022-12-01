@@ -22,7 +22,6 @@ filter_constrs(filter, form) = filter_collection(filter, form, getconstrs(form))
 
 # Predefined filters (two cases: pair and tuple):
 active_and_explicit((form, key_val)) = iscuractive(form, first(key_val)) && isexplicit(form, first(key_val))
-active_and_explicit((form, (id, _))) = iscuractive(form, id) && isexplicit(form, id)
 
 duty((_, (id, _))) = getduty(id)
 

@@ -544,7 +544,9 @@ function solve_sps_to_gencols!(
     nb_new_cols = 0
     for sp_optstate in sp_optstates
         # TODO: refactor
-        get_best_ip_primal_sol(sp_optstate) === nothing && continue
+        if isnothing(get_best_ip_primal_sol(sp_optstate))
+            return -1, nothing
+        end
         spuid = getuid(get_best_ip_primal_sol(sp_optstate).solution.model)
         spinfo = spinfos[spuid]
         # end
@@ -573,7 +575,7 @@ function solve_sps_to_gencols!(
         else
             # If a subproblem is infeasible, then the original formulation is
             # infeasible. Therefore we can stop the column generation.
-            return -1
+            return -1, nothing
         end
         nb_new_cols += nb_cols_sp
     end
