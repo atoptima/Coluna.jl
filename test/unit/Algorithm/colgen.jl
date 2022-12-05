@@ -44,7 +44,9 @@ end
         @testset "Two identical columns at two iterations" begin
             # Expected: unexpected variable state error.
             env, master, spform, spvars, constr = reformulation_for_colgen()
-            algo = ClA.ColumnGeneration()
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
             phase = 1
 
             ## Iteration 1
@@ -83,13 +85,15 @@ end
             )
             ClA.add_ip_primal_sols!(sp_optstate, col3)
             
-            @test_throws ClA.ColumnAlreadyInsertedColGenError ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+            @test_throws ClA.ColumnAlreadyInsertedColGenWarning ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
         end
 
         @testset "Two identical columns at same iteration" begin
             # Expected: no error and two identical columns in the formulation
             env, master, spform, spvars, constr = reformulation_for_colgen()
-            algo = ClA.ColumnGeneration()
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
 
             redcosts_spsols = [-2.0, -2.0, 2.0]
             phase = 1
@@ -124,7 +128,9 @@ end
 
         @testset "Deactivated column added twice at same iteration" begin
             env, master, spform, spvars, constr = reformulation_for_colgen()
-            algo = ClA.ColumnGeneration()
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
 
             # Add column.
             col1 = ClMP.PrimalSolution(
@@ -166,7 +172,9 @@ end
 
         @testset "Infeasible subproblem" begin
             env, master, spform, spvars, constr = reformulation_for_colgen()
-            algo = ClA.ColumnGeneration()
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
 
             sp_optstate = ClA.OptimizationState(spform; termination_status = ClB.INFEASIBLE_OR_UNBOUNDED)
 
