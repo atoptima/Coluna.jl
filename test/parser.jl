@@ -77,20 +77,15 @@ mutable struct ConstrCache
     rhs::Float64
 end
 
-mutable struct SubproblemCache
-    constraints::Vector{ConstrCache}
-    varids::Vector{String}
-end
-
-mutable struct MasterCache
+mutable struct ProblemCache
     sense::Type{<:ClB.AbstractSense}
     objective::ExprCache
     constraints::Vector{ConstrCache}
 end
 
 mutable struct ReadCache
-    master::MasterCache
-    subproblems::Dict{Int64,SubproblemCache}
+    master::ProblemCache
+    subproblems::Dict{Int64,ProblemCache}
     variables::Dict{String,VarCache}
 end
 
@@ -106,14 +101,14 @@ end
 
 function ReadCache()
     return ReadCache(
-        MasterCache(
+        ProblemCache(
             CL.MinSense,
             ExprCache(
                 Dict{String, Float64}()
             ),
             ConstrCache[]
         ),
-        Dict{Int64,SubproblemCache}(),
+        Dict{Int64,ProblemCache}(),
         Dict{String,VarCache}()
     )
 end
@@ -212,16 +207,21 @@ end
 
 read_master!(::Any, cache::ReadCache, line::AbstractString) = nothing
 
-function read_subproblem!(cache::ReadCache, line::AbstractString, nb_sp::Int64)
+function read_subproblem!(sense::Type{<:ClB.AbstractSense}, cache::ReadCache, line::AbstractString, nb_sp::Int64)
+    obj = _read_expression(line)
+    if haskey(cache.subproblems, nb_sp)
+        cache.subproblems[nb_sp].sense = sense
+        cache.subproblems[nb_sp].obj = obj
+    else
+        cache.subproblems[nb_sp] = ProblemCache(sense, obj, [])
+    end
+end
+
+function read_subproblem!(::Val{:constraints}, cache::ReadCache, line::AbstractString, nb_sp::Int64)
     constr = _read_constraint(line)
     if !isnothing(constr)
-        varids = collect(keys(constr.lhs.vars))
         if haskey(cache.subproblems, nb_sp)
             push!(cache.subproblems[nb_sp].constraints, constr)
-            push!(cache.subproblems[nb_sp].varids, varids...)
-            unique!(cache.subproblems[nb_sp].varids)
-        else
-            cache.subproblems[nb_sp] = SubproblemCache([constr], varids)
         end
     end
 end
@@ -258,11 +258,13 @@ end
 read_variables!(::Any, ::Any, ::ReadCache, ::AbstractString) = nothing
 
 function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
+    i = 1
+    constraints = ClMP.Constraint[]
     subproblems = []
     all_spvars = Dict{String, ClMP.Variable}()
     for (_, sp) in cache.subproblems
         spform = nothing
-        for varid in sp.varids
+        for (varid, cost) in sp.objective.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
                 if var.duty <= ClMP.DwSpPricingVar || var.duty <= ClMP.MasterRepPricingVar
@@ -270,25 +272,27 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
                         spform = ClMP.create_formulation!(
                             env,
                             ClMP.DwSp(nothing, nothing, nothing, var.kind);
-                            obj_sense = cache.master.sense
+                            obj_sense = sp.sense
                         )
                     end
                     v = ClMP.setvar!(spform, varid, ClMP.DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
-                    if haskey(cache.master.objective.vars, varid)
-                        ClMP.setperencost!(spform, v, cache.master.objective.vars[varid])
-                    else
-                        throw(UndefVarParserError("Variable $varid not present in objective function"))
-                    end
+                    ClMP.setperencost!(spform, v, cost)
                     all_spvars[varid] = v
                 end
             else
                 throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
             end
         end
+        for constr in sp.constraints
+            members = Dict(ClMP.getid(all_spvars[varid]) => coeff for (varid, coeff) in constr.lhs.vars)
+            c = ClMP.setconstr!(spform, "sp_c$i", ClMP.DwSpPureConstr; rhs = constr.rhs, sense = constr.sense, members = members)
+            push!(constraints, c)
+            i += 1
+        end
         push!(subproblems, spform)
         ClMP.add_dw_pricing_sp!(reform, spform)
     end
-    return subproblems, all_spvars
+    return subproblems, all_spvars, constraints
 end
 
 function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClMP.Variable}, cache::ReadCache)
@@ -314,10 +318,9 @@ function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClM
     return mastervars
 end
 
-function add_constraints!(master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, cache::ReadCache)
+function add_master_constraints!(master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, constraints::Vector{ClMP.Constraint}, cache::ReadCache)
     #create master constraints
     i = 1
-    constraints = []
     for constr in cache.master.constraints
         members = Dict{ClMP.VarId, Float64}()
         constr_duty = ClMP.MasterPureConstr
@@ -340,16 +343,6 @@ function add_constraints!(master::ClMP.Formulation, mastervars::Dict{String, ClM
         push!(constraints, c)
         i += 1
     end
-    #create subproblems constraints in master
-    for (_, sp) in cache.subproblems
-        for constr in sp.constraints
-            members = Dict(ClMP.getid(mastervars[varid]) => coeff for (varid, coeff) in constr.lhs.vars)
-            c = ClMP.setconstr!(master, "c$i", ClMP.MasterMixedConstr; rhs = constr.rhs, sense = constr.sense, members = members)
-            push!(constraints, c)
-            i += 1
-        end
-    end
-    return constraints
 end
 
 function reformfromcache(cache::ReadCache)
@@ -362,7 +355,7 @@ function reformfromcache(cache::ReadCache)
     env = Env{ClMP.VarId}(CL.Params())
     reform = ClMP.Reformulation(env)
 
-    subproblems, all_spvars = create_subproblems!(env, reform, cache)
+    subproblems, all_spvars, constraints = create_subproblems!(env, reform, cache)
 
     master = ClMP.create_formulation!(
         env,
@@ -372,7 +365,7 @@ function reformfromcache(cache::ReadCache)
     )
     ClMP.setmaster!(reform, master)
     mastervars = add_master_vars!(master, all_spvars, cache)
-    constraints = add_constraints!(master, mastervars, cache)
+    add_master_constraints!(master, mastervars, constraints, cache)
 
     for sp in subproblems
         sp.parent_formulation = master
@@ -409,7 +402,7 @@ function reformfromstring(s::String)
             continue
         end
         if section == _KW_SUBPROBLEM
-            read_subproblem!(cache, line, nb_subproblems)
+            read_subproblem!(sub_section, cache, line, nb_subproblems)
             continue
         end
         if section == _KW_BOUNDS
