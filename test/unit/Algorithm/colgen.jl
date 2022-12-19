@@ -1,165 +1,170 @@
-function reformulation_for_colgen(nb_variables = 5, obj_sense = Coluna.MathProg.MinSense)
-    env = Env{ClMP.VarId}(Coluna.Params())
-
-    spform = ClMP.create_formulation!(env, ClMP.DwSp(nothing, nothing, nothing, ClMP.Integ), obj_sense = obj_sense)
-    # Create subproblem variables
-    spvars = Dict{String, ClMP.Variable}()
-    for i in 1:nb_variables
-        x = ClMP.setvar!(spform, "x$i", ClMP.DwSpPricingVar)
-        ClMP.setperencost!(spform, x, i * 1.0)
-        spvars["x$i"] = x
-    end
-
-    # Create the reformulation
-    reform = ClMP.Reformulation(env)
-    ClMP.add_dw_pricing_sp!(reform, spform)
-
-    master = ClMP.create_formulation!(env, ClMP.DwMaster(); obj_sense = obj_sense)
-    ClMP.setmaster!(reform, master)
-    spform.parent_formulation = master
-    master.parent_formulation = reform
-    # Create sp representative variables in the master
-    mastervars = Dict{String, ClMP.Variable}()
-    for i in 1:nb_variables
-        x = ClMP.setvar!(
-            master, "x$i", ClMP.MasterRepPricingVar, id = ClMP.getid(spvars["x$i"])
-        )
-        ClMP.setperencost!(master, x, i * 1.0)
-        mastervars["x$i"] = x
-    end
-
-    # Create a constraint in the master
-    constr = ClMP.setconstr!(
-        master, "constr", ClMP.MasterMixedConstr;
-        members = Dict(ClMP.getid(mastervars["x$i"]) => 1.0 * i for i in 1:nb_variables)
-    )
-
-    closefillmode!(ClMP.getcoefmatrix(master))
-    closefillmode!(ClMP.getcoefmatrix(spform))
-    return env, master, spform, spvars, constr
-end
-
 @testset "Algorithm - colgen" begin
-    @testset "Two identical columns at two iterations" begin
-        # Expected: unexpected variable state error.
-        env, master, spform, spvars, constr = reformulation_for_colgen()
-        algo = ClA.ColumnGeneration()
-        phase = 1
+    form_string = """
+        master
+            min
+            x1 + x2 + x3 + x4 + x5
+            s.t.
+            x1 + x2 + x3 + x4 + x5 >= 0.0
 
-        ## Iteration 1
-        redcosts_spsols = [-2.0, 2.0]
-        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
+        dw_sp
+            min
+            x1 + x2 + x3 + x4 + x5
 
-        col1 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            1.0,
-            ClB.FEASIBLE_SOL
-        )
-        col2 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x2", "x3"]),
-            [5.0, 2.0],
-            2.5,
-            ClB.FEASIBLE_SOL
-        ) # not inserted because positive reduced cost.
-        ClA.add_ip_primal_sols!(sp_optstate, col1, col2)
-        
-        nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
-        @test nb_new_cols == 1
+        continuous
+            representatives
+                x1, x2, x3, x4, x5
+    """
+    @testset "insert_columns!" begin
+        @testset "Two identical columns at two iterations" begin
+            # Expected: unexpected variable state error.
+            env, master, subproblems, constraints = reformfromstring(form_string)
+            spform = subproblems[1]
+            spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
+            phase = 1
 
-        ## Iteration 2
-        redcosts_spsols = [-1.0]
-        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
+            ## Iteration 1
+            redcosts_spsols = [-2.0, 2.0]
+            sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
 
-        col3 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            3.0,
-            ClB.FEASIBLE_SOL
-        )
-        ClA.add_ip_primal_sols!(sp_optstate, col3)
-        
-        @test_throws ClA.ColumnAlreadyInsertedColGenError ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
-    end
+            col1 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                1.0,
+                ClB.FEASIBLE_SOL
+            )
+            col2 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x2", "x3"]),
+                [5.0, 2.0],
+                2.5,
+                ClB.FEASIBLE_SOL
+            ) # not inserted because positive reduced cost.
+            ClA.add_ip_primal_sols!(sp_optstate, col1, col2)
+            
+            nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+            @test nb_new_cols == 1
 
-    @testset "Two identical columns at same iteration" begin
-        # Expected: no error and two identical columns in the formulation
-        env, master, spform, spvars, constr = reformulation_for_colgen()
-        algo = ClA.ColumnGeneration()
+            ## Iteration 2
+            redcosts_spsols = [-1.0]
+            sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
 
-        redcosts_spsols = [-2.0, -2.0, 2.0]
-        phase = 1
+            col3 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                3.0,
+                ClB.FEASIBLE_SOL
+            )
+            ClA.add_ip_primal_sols!(sp_optstate, col3)
+            
+            @test_throws ClA.ColumnAlreadyInsertedColGenWarning ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+        end
 
-        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
-        col1 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            1.0,
-            ClB.FEASIBLE_SOL
-        )
-        col2 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            2.0,
-            ClB.FEASIBLE_SOL
-        )
-        col3 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x2", "x3"]),
-            [5.0, 2.0],
-            3.5,
-            ClB.FEASIBLE_SOL
-        ) # not inserted because positive reduced cost.
-        ClA.add_ip_primal_sols!(sp_optstate, col1, col2, col3)
+        @testset "Two identical columns at same iteration" begin
+            # Expected: no error and two identical columns in the formulation
+            env, master, subproblems, constraints = reformfromstring(form_string)
+            spform = subproblems[1]
+            spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
 
-        nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
-        @test nb_new_cols == 2
-    end
+            redcosts_spsols = [-2.0, -2.0, 2.0]
+            phase = 1
 
-    @testset "Deactivated column added twice at same iteration" begin
-        env, master, spform, spvars, constr = reformulation_for_colgen()
-        algo = ClA.ColumnGeneration()
+            sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
+            col1 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                1.0,
+                ClB.FEASIBLE_SOL
+            )
+            col2 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                2.0,
+                ClB.FEASIBLE_SOL
+            )
+            col3 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x2", "x3"]),
+                [5.0, 2.0],
+                3.5,
+                ClB.FEASIBLE_SOL
+            ) # not inserted because positive reduced cost.
+            ClA.add_ip_primal_sols!(sp_optstate, col1, col2, col3)
 
-        # Add column.
-        col1 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            1.0,
-            ClB.FEASIBLE_SOL
-        )
-        col_id = ClA.insert_column!(master, col1, "MC")
+            nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+            @test nb_new_cols == 2
+        end
 
-        # Deactivate column.
-        ClMP.deactivate!(master, col_id)
+        @testset "Deactivated column added twice at same iteration" begin
+            env, master, subproblems, constraints = reformfromstring(form_string)
+            spform = subproblems[1]
+            spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
 
-        # Add same column twice.
-        redcosts_spsols = [-2.0, -2.0]
-        phase = 1
+            # Add column.
+            col1 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                1.0,
+                ClB.FEASIBLE_SOL
+            )
+            col_id = ClA.insert_column!(master, col1, "MC")
 
-        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
-        col2 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            1.0,
-            ClB.FEASIBLE_SOL
-        )
-        col3 = ClMP.PrimalSolution(
-            spform, 
-            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
-            [1.0, 2.0],
-            2.0,
-            ClB.FEASIBLE_SOL
-        )
-        ClA.add_ip_primal_sols!(sp_optstate, col2, col3)
+            # Deactivate column.
+            ClMP.deactivate!(master, col_id)
 
-        nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
-        @test nb_new_cols == 1
+            # Add same column twice.
+            redcosts_spsols = [-2.0, -2.0]
+            phase = 1
+
+            sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
+            col2 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                1.0,
+                ClB.FEASIBLE_SOL
+            )
+            col3 = ClMP.PrimalSolution(
+                spform, 
+                map(x -> spvarids[x], ["x1", "x3"]),
+                [1.0, 2.0],
+                2.0,
+                ClB.FEASIBLE_SOL
+            )
+            ClA.add_ip_primal_sols!(sp_optstate, col2, col3)
+
+            nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+            @test nb_new_cols == 1
+        end
+
+        @testset "Infeasible subproblem" begin
+            env, master, subproblems, constraints = reformfromstring(form_string)
+            spform = subproblems[1]
+            spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
+            algo = ClA.ColumnGeneration(
+                throw_column_already_inserted_warning = true
+            )
+
+            sp_optstate = ClA.OptimizationState(spform; termination_status = ClB.INFEASIBLE_OR_UNBOUNDED)
+
+            redcosts_spsols = [3.9256065065274015e-10]
+            phase = 1
+
+            nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+            @test nb_new_cols == -1
+        end
     end
 end

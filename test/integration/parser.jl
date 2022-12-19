@@ -43,7 +43,10 @@ end
         # master not defined
         s = """
             SP
-                - 6.3y1 + 3y2 == 5.9
+                Min
+                    - 2y1 + y2
+                S.t.
+                    - 6.3y1 + 3y2 == 5.9
             Continuous
                 pricing
                     y1, y2
@@ -58,14 +61,19 @@ end
             Master
                 max
                 such that
-                    x + y1 + y2 <= 50.3
+                    x + y1 <= 50.3
             SP
-                - 6.3y1 + 3y2 == 5.9
+                max
+                    - 2y1 + y2
+                such that
+                    - 6.3y1 + 3y2 == 5.9
             Continuous
                 pure
                     x
+                representative
+                    y1
                 pricing
-                    y1, y2
+                    y2
             bounds
                 y1 >= 1
                 1 <= y2
@@ -103,7 +111,7 @@ end
 
         @test isempty(subproblems)
 
-        # sp variable present in master but no subproblem
+        # representative variable present in master but no subproblem
         s = """
             master
                 maximise
@@ -116,7 +124,7 @@ end
             Int
                 pure
                     y
-                pricing
+                representative
                     w
             bounds
                 y <= 10
@@ -125,7 +133,7 @@ end
     end
 
     @testset "variables not defined" begin
-        # subproblem variables not present in OF
+        # representative variable not present in OF
         s = """
             master
                 maximum
@@ -133,7 +141,10 @@ end
                 such that
                     x - y1 <= 25
             dw_sp
-                y1 - y2 >= 25
+                maximum
+                    6y2 - 2.0*y1
+                such that
+                    y1 - y2 >= 25
             cont
                 pure
                     x
@@ -165,16 +176,12 @@ end
         s = """
             master
                 min
-                    3*x + 7w - y
+                    3*x + 7w
                 st
                     x + w == 25
-            dw_sp
-                y >= 25
             int
                 pure
                     x
-                pricing
-                    y
             bounds
                 2 <= x, w <= 10
         """
@@ -184,16 +191,12 @@ end
         s = """
             master
                 minimise
-                    3*x + 7w - y
+                    3*x + 7w
                 such that
                     x + w - z == 25
-            dw_sp
-                y >= 25
             int
                 pure
                     x, w
-                pricing
-                    y
             bounds
                 2 <= x, w <= 10
         """
@@ -203,16 +206,19 @@ end
         s = """
             master
                 min
-                    3*x - y
+                    3*x - w
                 such that
-                    x + y == 25
+                    x + w == 25
             dw_sp
-                y >= 25
+                min
+                    y
+                such that
+                    y >= 25
             integer
                 pure
-                    x
+                    x, w
             bound
-                2 <= x <= 10
+                2 <= x, w <= 10
         """
         @test_throws UndefVarParserError reformfromstring(s)
 
@@ -223,86 +229,91 @@ end
                     3*x - y
                 such that
                     x + y == 25
-            dw_sp
-                y >= 25
             bounds
-                2 <= x <= 10
+                2 <= x, y <= 10
         """
         @test_throws UndefVarParserError reformfromstring(s)
     end
 
-    @testset "minimize no bounds and representatives" begin
+    @testset "minimize no bounds" begin
         s = """
             Master
                 Minimize
-                2*x + 4.5y1 + y2
+                2*x + 4.5*y1
                 Subject To
                 x + y1 <= 10.5
-                x + y2 >= 3
 
             SP
+                Min
+                y1 + y2
+                St
                 - 6.3y1 + 3y2 == 5.9
 
             Continuous
                 pure
                     x
+                representative
+                    y1
                 pricing
-                    y1, y2
+                    y2
         """
         env, master, subproblems, constraints = reformfromstring(s)
 
         @test CL.getobjsense(master) == CL.MinSense
 
         names, kinds, duties, costs, bounds = get_vars_info(master)
-        @test names == ["y2", "x", "y1"]
-        @test kinds == [ClMP.Continuous, ClMP.Continuous, ClMP.Continuous]
-        @test duties == [ClMP.MasterRepPricingVar, ClMP.MasterPureVar, ClMP.MasterRepPricingVar]
-        @test costs == [1.0, 2.0, 4.5]
-        @test bounds == [(-Inf, Inf), (-Inf, Inf), (-Inf, Inf)]
+        @test names == ["x", "y1"]
+        @test kinds == [ClMP.Continuous, ClMP.Continuous]
+        @test duties == [ClMP.MasterPureVar, ClMP.MasterRepPricingVar]
+        @test costs == [2.0, 4.5]
+        @test bounds == [(-Inf, Inf), (-Inf, Inf)]
 
         constrs = get_constrs_info(master)
-        c1 = constrs[1] # x + y2 >= 3
-        @test c1.coeffs == [("y2", 1.0), ("x", 1.0)]
-        @test c1.duty == ClMP.MasterMixedConstr
-        @test c1.sense == CL.Greater
-        @test c1.rhs == 3.0
-
-        c1 = constrs[2] # - 6.3y1 + 3y2 == 5.9
-        @test c1.coeffs == [("y1", -6.3), ("y2", 3.0)]
-        @test c1.duty == ClMP.MasterMixedConstr
-        @test c1.sense == CL.Equal
-        @test c1.rhs == 5.9
-
-        c1 = constrs[3] # x + y1 <= 10.5
+        c1 = constrs[1] # x + y1 <= 10.5
         @test c1.coeffs == [("y1", 1.0), ("x", 1.0)]
         @test c1.duty == ClMP.MasterMixedConstr
         @test c1.sense == CL.Less
         @test c1.rhs == 10.5
 
         sp1 = subproblems[1]
+        @test CL.getobjsense(sp1) == CL.MinSense
+
         names, kinds, duties, costs, bounds = get_vars_info(sp1)
         @test names == ["y2", "y1"]
         @test kinds == [ClMP.Continuous, ClMP.Continuous]
         @test duties == [ClMP.DwSpPricingVar, ClMP.DwSpPricingVar]
-        @test costs == [1.0, 4.5]
+        @test costs == [1.0, 1.0]
         @test bounds == [(-Inf, Inf), (-Inf, Inf)]
+
+        constrs = get_constrs_info(sp1)
+        c1 = constrs[1] # - 6.3y1 + 3y2 == 5.9
+        @test c1.coeffs == [("y1", -6.3), ("y2", 3.0)]
+        @test c1.duty == ClMP.DwSpPureConstr
+        @test c1.sense == CL.Equal
+        @test c1.rhs == 5.9
     end
 
     @testset "minimize multiple kinds, duties, subproblems and bounds" begin
         s = """
             master
                 min
-                2*x - 5w + 4.5y1 + 9*y2 - 3z_1 + z_2 + 2.2*z_3
+                2*x - 5w + y1 + y2
                 s.t.
-                x - 3y1 + 8*y2 + z_1 >= 20
+                x - 3y1 + 8*y2 >= 20
                 x + w <= 9
 
             dw_sp
+                min
+                4.5*y1 - 3*z_1 + z_2
+                s.t.
                 6.3y1 + z_1 == 5
-                z_2 - 5*y2 >= 4.2
+                z_1 - 5*z_2 >= 4.2
 
             dw_sp
-                2*z_3 + y1 - 3*y2 >= 3.8
+                min
+                9*y2 + 2.2*z_3
+                s.t.
+                2*z_3 - 3y2 >= 3.8
 
             integers
                 pures
@@ -324,57 +335,63 @@ end
         @test CL.getobjsense(master) == CL.MinSense
 
         names, kinds, duties, costs, bounds = get_vars_info(master)
-        @test names == ["z_1", "y1", "y2", "z_2", "x", "w", "z_3"]
-        @test kinds == [ClMP.Continuous, ClMP.Binary, ClMP.Binary, ClMP.Continuous, ClMP.Integ, ClMP.Integ, ClMP.Continuous]
-        @test duties == [ClMP.MasterRepPricingVar, ClMP.MasterRepPricingVar, ClMP.MasterRepPricingVar, ClMP.MasterRepPricingVar, ClMP.MasterPureVar, ClMP.MasterPureVar, ClMP.MasterRepPricingVar]
-        @test costs == [-3.0, 4.5, 9.0, 1.0, 2.0, -5.0, 2.2]
-        @test bounds == [(6.2, Inf), (0.0, 1.0), (0.0, 1.0), (6.2, Inf), (0.0, 20.0), (-Inf, Inf), (-Inf, Inf)]
+        @test names == ["w", "x", "y2", "y1"]
+        @test kinds == [ClMP.Integ, ClMP.Integ, ClMP.Binary, ClMP.Binary]
+        @test duties == [ClMP.MasterPureVar, ClMP.MasterPureVar, ClMP.MasterRepPricingVar, ClMP.MasterRepPricingVar]
+        @test costs == [-5.0, 2.0, 1.0, 1.0]
+        @test bounds == [(-Inf, Inf), (0.0, 20.0), (0.0, 1.0), (0.0, 1.0)]
 
         constrs = get_constrs_info(master)
-        c1 = constrs[1] # z_2 - 5*y2 >= 4.2
-        @test c1.coeffs == [("y2", -5.0), ("z_2", 1.0)]
-        @test c1.duty == ClMP.MasterMixedConstr
-        @test c1.sense == CL.Greater
-        @test c1.rhs == 4.2
+        c1 = constrs[1] # x + w <= 9
+        @test c1.coeffs == [("w", 1.0), ("x", 1.0)]
+        @test c1.duty == ClMP.MasterPureConstr
+        @test c1.sense == CL.Less
+        @test c1.rhs == 9.0
 
-        c2 = constrs[2] # 6.3y1 + z_1 == 5
-        @test c2.coeffs == [("y1", 6.3), ("z_1", 1.0)]
+        c2 = constrs[2] # x - 3y1 + 8*y2 >= 20
+        @test c2.coeffs == [("y2", 8.0), ("y1", -3.0), ("x", 1.0)]
         @test c2.duty == ClMP.MasterMixedConstr
-        @test c2.sense == CL.Equal
-        @test c2.rhs == 5.0
-
-        c3 = constrs[3] # x + w <= 9
-        @test c3.coeffs == [("w", 1.0), ("x", 1.0)]
-        @test c3.duty == ClMP.MasterPureConstr
-        @test c3.sense == CL.Less
-        @test c3.rhs == 9.0
-
-        c4 = constrs[4] # 2*z_3 + y1 - 3*y2 >= 3.8
-        @test c4.coeffs == [("z_3", 2.0), ("y1", 1.0), ("y2", -3.0)]
-        @test c4.duty == ClMP.MasterMixedConstr
-        @test c4.sense == CL.Greater
-        @test c4.rhs == 3.8
-
-        c5 = constrs[5] # x - 3y1 + 8*y2 + z_1 >= 20
-        @test c5.coeffs == [("y1", -3.0), ("z_1", 1.0), ("y2", 8.0), ("x", 1.0)]
-        @test c5.duty == ClMP.MasterMixedConstr
-        @test c5.sense == CL.Greater
-        @test c5.rhs == 20.0
+        @test c2.sense == CL.Greater
+        @test c2.rhs == 20.0
 
         sp1 = subproblems[1]
+        @test CL.getobjsense(sp1) == CL.MinSense
+
         names, kinds, duties, costs, bounds = get_vars_info(sp1)
-        @test names == ["y1", "y2", "z_3"]
-        @test kinds == [ClMP.Binary, ClMP.Binary, ClMP.Continuous]
-        @test duties == [ClMP.DwSpPricingVar, ClMP.DwSpPricingVar, ClMP.DwSpPricingVar]
-        @test costs == [4.5, 9.0, 2.2]
-        @test bounds == [(0.0, 1.0), (0.0, 1.0), (-Inf, Inf)]
+        @test names == ["y2", "z_3"]
+        @test kinds == [ClMP.Binary, ClMP.Continuous]
+        @test duties == [ClMP.DwSpPricingVar, ClMP.DwSpPricingVar]
+        @test costs == [9.0, 2.2]
+        @test bounds == [(0.0, 1.0), (-Inf, Inf)]
+
+        constrs = get_constrs_info(sp1)
+        c1 = constrs[1] # 2*z_3 - 3*y2 >= 3.8
+        @test c1.coeffs == [("z_3", 2.0), ("y2", -3.0)]
+        @test c1.duty == ClMP.DwSpPureConstr
+        @test c1.sense == CL.Greater
+        @test c1.rhs == 3.8
 
         sp2 = subproblems[2]
+        @test CL.getobjsense(sp2) == CL.MinSense
+
         names, kinds, duties, costs, bounds = get_vars_info(sp2)
-        @test names == ["z_1", "y1", "y2", "z_2"]
-        @test kinds == [ClMP.Continuous, ClMP.Binary, ClMP.Binary, ClMP.Continuous]
-        @test duties == [ClMP.DwSpPricingVar, ClMP.DwSpPricingVar, ClMP.DwSpPricingVar, ClMP.DwSpPricingVar]
-        @test costs == [-3.0, 4.5, 9.0, 1.0]
-        @test bounds == [(6.2, Inf), (0.0, 1.0), (0.0, 1.0), (6.2, Inf)]
+        @test names == ["z_1", "z_2", "y1"]
+        @test kinds == [ClMP.Continuous, ClMP.Continuous, ClMP.Binary]
+        @test duties == [ClMP.DwSpPricingVar, ClMP.DwSpPricingVar, ClMP.DwSpPricingVar]
+        @test costs == [-3.0, 1.0, 4.5]
+        @test bounds == [(6.2, Inf), (6.2, Inf), (0.0, 1.0)]
+
+        constrs = get_constrs_info(sp2)
+        c1 = constrs[1] # 6.3y1 + z_1 == 5
+        @test c1.coeffs == [("y1", 6.3), ("z_1", 1.0)]
+        @test c1.duty == ClMP.DwSpPureConstr
+        @test c1.sense == CL.Equal
+        @test c1.rhs == 5.0
+
+        c2 = constrs[2] # z_1 - 5*z_2 >= 4.2
+        @test c2.coeffs == [("z_2", -5.0), ("z_1", 1.0)]
+        @test c2.duty == ClMP.DwSpPureConstr
+        @test c2.sense == CL.Greater
+        @test c2.rhs == 4.2
     end
 end

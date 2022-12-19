@@ -11,6 +11,7 @@
         max_nb_iterations = 1000,
         log_print_frequency = 1,
         redcost_tol = 1e-4,
+        show_column_already_inserted_warning = true,
         cleanup_threshold = 10000,
         cleanup_ratio = 0.66,
         smoothing_stabilization = 0.0 # should be in [0, 1],
@@ -74,6 +75,8 @@ Here are their meanings :
     log_print_frequency::Int64 = 1
     store_all_ip_primal_sols::Bool = false
     redcost_tol::Float64 = 1e-4
+    show_column_already_inserted_warning = true
+    throw_column_already_inserted_warning = false
     solve_subproblems_parallel::Bool = false
     cleanup_threshold::Int64 = 10000
     cleanup_ratio::Float64 = 0.66
@@ -119,7 +122,7 @@ reduced cost in min (resp. max) problem that already exists in the master
 and that is already active. 
 An active master column cannot have a negative reduced cost.
 """
-struct ColumnAlreadyInsertedColGenError
+struct ColumnAlreadyInsertedColGenWarning
     column_in_master::Bool
     column_is_active::Bool
     column_reduced_cost::Float64
@@ -128,7 +131,7 @@ struct ColumnAlreadyInsertedColGenError
     subproblem::Formulation{DwSp}
 end
 
-function Base.show(io::IO, err::ColumnAlreadyInsertedColGenError)
+function Base.show(io::IO, err::ColumnAlreadyInsertedColGenWarning)
     msg = """
     Unexpected variable state during column insertion.
     ======
@@ -469,9 +472,15 @@ function insert_columns!(
                     else
                         in_master = haskey(masterform, col_id)
                         is_active = iscuractive(masterform, col_id)
-                        throw(ColumnAlreadyInsertedColGenError(
+                        warning = ColumnAlreadyInsertedColGenWarning(
                             in_master, is_active, red_cost, col_id, masterform, sol.solution.model
-                        ))
+                        )
+                        if algo.show_column_already_inserted_warning
+                            @warn warning
+                        end
+                        if algo.throw_column_already_inserted_warning
+                            throw(warning)
+                        end
                     end
                 else
                     push!(primal_sols_to_insert, sol)
@@ -544,7 +553,9 @@ function solve_sps_to_gencols!(
     nb_new_cols = 0
     for sp_optstate in sp_optstates
         # TODO: refactor
-        get_best_ip_primal_sol(sp_optstate) === nothing && continue
+        if isnothing(get_best_ip_primal_sol(sp_optstate))
+            return -1, nothing
+        end
         spuid = getuid(get_best_ip_primal_sol(sp_optstate).solution.model)
         spinfo = spinfos[spuid]
         # end
@@ -573,7 +584,7 @@ function solve_sps_to_gencols!(
         else
             # If a subproblem is infeasible, then the original formulation is
             # infeasible. Therefore we can stop the column generation.
-            return -1
+            return -1, nothing
         end
         nb_new_cols += nb_cols_sp
     end
