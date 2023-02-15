@@ -56,7 +56,7 @@ Set the current cost of variable in the formulation.
 If the variable is active and explicit, this change is buffered before application to the 
 subsolver.
 """
-function setcurcost!(form::Formulation, var::Variable, cost::Float64)
+function setcurcost!(form::Formulation, var::Variable, cost)
     var.curdata.cost = cost
     if isexplicit(form, var) && iscuractive(form, var)
         change_cost!(form.buffer, getid(var))
@@ -64,7 +64,7 @@ function setcurcost!(form::Formulation, var::Variable, cost::Float64)
     return
 end
 
-function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
+function setcurcost!(form::Formulation, varid::VarId, cost)
     return setcurcost!(form, getvar(form, varid), cost)
 end
 
@@ -106,8 +106,14 @@ getcurlb(::Formulation, var::Variable) = var.curdata.lb
 Set the current lower bound of a variable in a formulation.
 If the variable is active and explicit, change is buffered before application to the
 subsolver.
+If the variable had fixed value, it unfixes the variable.
 """
-function setcurlb!(form::Formulation, var::Variable, lb::Float64)
+function setcurlb!(form::Formulation, var::Variable, lb)
+    if isfixed(form, var)
+        @warn "Cannot change lower bound of fixed variable."
+        return
+    end
+
     var.curdata.lb = lb
     if isexplicit(form, var) && iscuractive(form, var)
         change_bound!(form.buffer, getid(var))
@@ -115,7 +121,8 @@ function setcurlb!(form::Formulation, var::Variable, lb::Float64)
     _setcurbounds_wrt_curkind!(form, var, getcurkind(form, var))
     return
 end
-setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getvar(form, varid), lb)
+setcurlb!(form::Formulation, varid::VarId, lb) =  setcurlb!(form, getvar(form, varid), lb)
+
 
 ## Upper bound
 """
@@ -155,8 +162,14 @@ getcurub(::Formulation, var::Variable) = var.curdata.ub
 Set the current upper bound of a variable in a formulation.
 If the variable is active and explicit, change is buffered before application to the
 subsolver.
+If the variable had fixed value, it unfixes the variable.
 """
-function setcurub!(form::Formulation, var::Variable, ub::Float64)
+function setcurub!(form::Formulation, var::Variable, ub)
+    if isfixed(form, var)
+        @warn "Cannot change upper bound of fixed variable."
+        return
+    end
+
     var.curdata.ub = ub
     if isexplicit(form, var) && iscuractive(form, var)
         change_bound!(form.buffer, getid(var))
@@ -164,8 +177,72 @@ function setcurub!(form::Formulation, var::Variable, ub::Float64)
     _setcurbounds_wrt_curkind!(form, var, getcurkind(form, var))
     return
 end
-setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar(form, varid), ub)
+setcurub!(form::Formulation, varid::VarId, ub) = setcurub!(form, getvar(form, varid), ub)
 
+## fix cur bounds
+function _propagate_fix!(form, var_id, value)
+    var_members = @view getcoefmatrix(form)[:, var_id]
+    for (constr_id, coef) in var_members
+        fixed_term = value * coef
+        rhs = getcurrhs(form, constr_id)
+        setcurrhs!(form, constr_id, rhs - fixed_term)
+    end
+    return
+end
+
+"""
+    fix!(formulation, varid, value)
+    fix!(formulation, variable, value)
+    
+Fixes the current bounds of an active and explicit variable to a given value.
+It deactives the variable and updates the rhs of the constraints that involve this variable.
+
+You must use `unfix!` to change the bounds of the variable.
+"""
+fix!(form::Formulation, varid::VarId, value) = fix!(form, getvar(form, varid), value)
+function fix!(form::Formulation, var::Variable, value)
+    if !isfixed(form, var) && isexplicit(form, var) && iscuractive(form, var)
+        deactivate!(form, var)
+        var.curdata.is_fixed = true
+        var.curdata.ub = value
+        var.curdata.lb = value
+        _fixvar!(form.manager, var)
+        _propagate_fix!(form, getid(var), value)
+        return true
+    end
+    name = getname(form, var)
+    @warn "Cannot fix variable $name because it is non-explicit or unactive."
+    return false
+end
+
+"""
+    unfix!(formulation, varid)
+    unfix!(formulation, variable)
+
+Unfixes the variable.
+It activates the variable and update the rhs of the constraints that involve this variable.
+"""
+unfix!(form::Formulation, varid::VarId) = unfix!(form, getvar(form, varid))
+function unfix!(form::Formulation, var::Variable)
+    if isfixed(form, var) && isexplicit(form, var) && !iscuractive(form, var)
+        value = getcurlb(form, var)
+        var.curdata.is_fixed = false
+        _unfixvar!(form.manager, var)
+        activate!(form, var)
+        _propagate_fix!(form, getid(var), -value)
+        return true
+    end
+    name = getname(form, var)
+    @warn "Cannot unfix variable $name because it is unfixed, non-explicit, or active."
+    return false
+end
+
+"""
+    getfixedvars(formulation)
+
+Returns a set that contains the ids of the fixed variables in the formulation.
+"""
+getfixedvars(form::Formulation) = _fixedvars(form.manager)
 
 # Constraint
 ## rhs
@@ -432,6 +509,10 @@ setcurincval!(::Formulation, constr::Constraint, inc_val::Real) =
 setcurincval!(form::Formulation, constrid::ConstrId, inc_val) = 
     setcurincval!(form, getconstr(form, constrid), inc_val)
 
+## fixed
+isfixed(form::Formulation, varid::VarId) = isfixed(form, getvar(form, varid))
+isfixed(::Formulation, var::Variable) = var.curdata.is_fixed
+
 ## active
 """
     isperenactive(formulation, varconstrid)
@@ -457,6 +538,7 @@ iscuractive(form::Formulation, varid::VarId) = iscuractive(form, getvar(form, va
 iscuractive(::Formulation, var::Variable) = var.curdata.is_active
 iscuractive(form::Formulation, constrid::ConstrId) = iscuractive(form, getconstr(form, constrid))
 iscuractive(::Formulation, constr::Constraint) = constr.curdata.is_active
+
 
 ## activate!
 function _activate!(form::Formulation, varconstr::AbstractVarConstr)
@@ -486,7 +568,14 @@ function activate!(form::Formulation, constr::Constraint)
     return
 end
 
-activate!(form::Formulation, var::Variable) = _activate!(form, var)
+function activate!(form::Formulation, var::Variable)
+    if isfixed(form, var)
+        @warn "Cannot activate fixed variable."
+        return
+    end
+    _activate!(form, var)
+    return
+end
 
 function activate!(form::Formulation, varconstrid::Id{VC}) where {VC <: AbstractVarConstr}
     return activate!(form, getelem(form, varconstrid))

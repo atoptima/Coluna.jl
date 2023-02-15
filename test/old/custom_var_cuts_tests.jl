@@ -76,7 +76,7 @@ end
             if typeof(constr.custom_data) == MyCustomCutData
                 push!(custduals, (
                     constr.custom_data.min_items,
-                    getcurincval(cbdata.form.parent_formulation, constr)
+                    ClMP.getcurincval(cbdata.form.parent_formulation, constr)
                 ))
             end
         end
@@ -126,7 +126,7 @@ end
         # compute the constraint violation
         viol = -1.0
         for (varid, varval) in cbdata.orig_sol
-            var = getvar(cbdata.form, varid)
+            var = ClMP.getvar(cbdata.form, varid)
             if var.custom_data !== nothing
                 if var.custom_data.nb_items >= 2
                     viol += varval

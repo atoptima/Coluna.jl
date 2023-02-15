@@ -52,7 +52,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 
     function Optimizer()
         model = new()
-        model.env = Env(Params())
+        model.env = Env{VarId}(Params())
         model.inner = Problem(model.env)
         model.is_objective_set = false
         model.objective_type = ZERO
@@ -165,6 +165,7 @@ MOI.supports(::Optimizer, ::MOI.ConstraintPrimalStart) = false
 MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 MOI.supports(::Optimizer, ::BlockDecomposition.ConstraintDecomposition) = true
 MOI.supports(::Optimizer, ::BlockDecomposition.VariableDecomposition) = true
+MOI.supports(::Optimizer, ::BlockDecomposition.RepresentativeVar) = true
 
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, val)
@@ -838,6 +839,15 @@ function MOI.set(
     return
 end
 
+# In the case of a representative variable.
+function MOI.set(
+    model::Optimizer, ::BD.VariableDecomposition, varid::MOI.VariableIndex,
+    annotations::Vector{<:BD.Annotation}
+)
+    store_repr!(model.annotations, annotations, _info(model, varid).var)
+    return
+end
+
 function MOI.set(
     model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
 )
@@ -853,6 +863,28 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
     return MOI.AbstractVariableAttribute[MOI.VariableName()]
+end
+
+# TODO: we'll have to check if this implementation fits good pratices.
+function MOI.set(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex, annotations)
+    # nothing to do.
+    # see MOI.set(model, ::BD.VariableDecomposition, varid, ::Vector{<:BD.Annotation})
+    return
+end
+
+function MOI.get(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex)
+    # nothing to return.
+    return 
+end
+
+function MOI.set(model::Optimizer, ::BD.ListOfRepresentatives, list)
+    # nothing to do.
+    return
+end
+
+function MOI.get(model::Optimizer, ::BD.ListOfRepresentatives)
+    # nothing to return
+    return
 end
 
 ############################################################################################
@@ -1049,7 +1081,7 @@ function BD.value(info::ColumnInfo, index::MOI.VariableIndex)
     varid = info.optimizer.env.varids[index]
     origin_form_uid = getoriginformuid(info.column_var_id)
     spform = get_dw_pricing_sps(info.optimizer.inner.re_formulation)[origin_form_uid]
-    return getprimalsolpool(spform)[info.column_var_id,varid]
+    return get_primal_sol_pool(spform)[info.column_var_id,varid]
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfVariables)
@@ -1067,7 +1099,7 @@ function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
         F = MOI.get(model, MOI.ObjectiveFunctionType())
         push!(attributes, MOI.ObjectiveFunction{F}())
     end
-    if model.objective_sense !== nothing
+    if !isnothing(model.objective_sense)
         push!(attributes, MOI.ObjectiveSense())
     end
     if model.has_usercut_cb
@@ -1212,8 +1244,9 @@ function MOI.get(
 )
     MOI.throw_if_not_valid(model, index)
     dualsols = get_lp_dual_sols(model.result)
+    sense = model.objective_sense == MOI.MAX_SENSE ? -1.0 : 1.0
     if 1 <= attr.result_index <= length(dualsols)
-        return get(dualsols[attr.result_index], getid(_info(model, index).constr), 0.0)
+        return sense * get(dualsols[attr.result_index], getid(_info(model, index).constr), 0.0)
     end
     return error("Invalid result index.")
 end
@@ -1250,10 +1283,11 @@ function MOI.get(
     # TODO: check if optimization in progress.
     MOI.check_result_index_bounds(model, attr)
     dualsols = get_lp_dual_sols(model.result)
+    sense = model.objective_sense == MOI.MAX_SENSE ? -1.0 : 1.0
     if 1 <= attr.result_index <= length(dualsols)
         dualsol = dualsols[attr.result_index]
         varinfo = _info(model, MOI.VariableIndex(index.value)) 
-        return _singlevarconstrdualval(dualsol, varinfo.var, S)
+        return sense * _singlevarconstrdualval(dualsol, varinfo.var, S)
     end
     error("Invalid result index.")
 end
@@ -1266,8 +1300,9 @@ function MOI.get(
     # TODO: check if optimization in progress.
     MOI.check_result_index_bounds(model, attr)
     dualsols = get_lp_dual_sols(model.result)
+    sense = model.objective_sense == MOI.MAX_SENSE ? -1.0 : 1.0
     if 1 <= attr.result_index <= length(dualsols)
-        return get(dualsols[attr.result_index], constrid, 0.0)
+        return sense * get(dualsols[attr.result_index], constrid, 0.0)
     end
     return error("Invalid result index.")
 end

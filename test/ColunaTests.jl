@@ -1,6 +1,6 @@
 module ColunaTests
     using Base.CoreLogging: error
-    using DynamicSparseArrays, Coluna, TOML
+    using DynamicSparseArrays, SparseArrays, Coluna, TOML
 
     using ReTest, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
     global_logger(ConsoleLogger(stderr, LogLevel(0)))
@@ -21,6 +21,8 @@ module ColunaTests
 
     rng = MersenneTwister(1234123)
 
+    include("parser.jl")
+
     @testset "Version" begin
         coluna_ver = Coluna.version()
         toml_ver = VersionNumber(
@@ -38,6 +40,7 @@ module ColunaTests
             include(joinpath(dirpath, filename))
         end
     end
+    include(joinpath(@__DIR__, "unit", "parser.jl"))
 
     ########################################################################################
     # Integration tests
@@ -47,9 +50,9 @@ module ColunaTests
         include(joinpath(dirpath, filename))
     end
 
-    ########################################################################################
-    # MOI integration tests
-    ########################################################################################
+    # ########################################################################################
+    # # MOI integration tests
+    # ########################################################################################
     @testset "MOI integration" begin
         include("MathOptInterface/MOI_wrapper.jl")
     end

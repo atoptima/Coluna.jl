@@ -1,25 +1,29 @@
-# Coluna 0.4.0 Release notes
+# Coluna 0.5.0 Release notes
 
-Major update of the MOI wrapper and various bugfixes.
-## Changes
+This release is a major update of the algorithms.
+From now on, we will release new versions more frequently.
 
-### Pricing callback API
+In the `Algorithm` submodule:
 
-The pricing callback has to transmit the dual bound which is use to compute the contribution of the subproblem to the lagrangian bound in column generation.
-
-```julia
-MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), db)
-```
-
-Moreover, it's not possible to retrieve the column generation stage from the callback data anymore.
-
-
-## Dep updates
-
-- BlockDecomposition -> v1.7
-- MOI -> 1
+- Interface & generic implementation for the tree search algorithm; default implementation of a branch & bound; documentation
+- Simplified interface for storages; documentation
+- Interface & generic implementation for the branching algorithm; interface & default implementation for the strong branching; documentation
+- Preparation of the conquer algorithm refactoring 
+- Preparation of the column generation algorithm refactoring 
+- Preparation of the refactoring of the algorithms calling the subsolver
+- End of development of the Preprocessing algorithm (no unit tests and had bugs); it will be replaced by the Presolve algorithm that does not work
+- Increase of the reduced cost tolerance in the column generation algorithm
+- Separation of algorithm and printing logic
+- Various bug fixes
 
 
-## Removed
+In the `MathProg` submodule:
 
-- Specific treatement of single variable constraint of a formulation in `MathProg`.
+- `VarIds` & `ConstrIds` are subtype of Integer so we can use them as indices of sparse vectors and arrays
+- Solution are stored in sparse array from `SparseArrays` (not a packed memory array from `DynamicSparseArray` anymore because the solution is static)
+
+
+Other:
+
+- Documentation of dynamic sparse arrays
+- Support of expressions in BlockDecomposition

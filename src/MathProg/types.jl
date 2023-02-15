@@ -124,4 +124,3 @@ used by algorithms. A formulation contains one storage unit
 per storage unit type used by algorithms.    
 """
 abstract type AbstractFormulation <: AbstractModel end
-

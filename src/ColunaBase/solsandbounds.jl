@@ -40,6 +40,21 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
 """
+    best(b1, b2)
+
+Returns the best bound between b1 and b2.
+"""
+best(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b1 : b2
+
+"""
+    worst(b1, b2)
+
+Returns the worst bound between b1 and b2.
+"""
+worst(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b2 : b1
+
+
+"""
     diff(pb, db)
     diff(db, pb)
 
@@ -242,11 +257,11 @@ function convert_status(coluna_status::SolutionStatus)
 end
 
 # Basic structure of a solution
-struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
+struct Solution{Model<:AbstractModel,Decision<:Integer,Value} <: AbstractSparseVector{Decision,Value}
     model::Model
     bound::Float64
     status::SolutionStatus
-    sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
+    sol::SparseVector{Value,Decision}
 end
 
 """
@@ -268,10 +283,9 @@ Create a solution to the `model`. Other arguments are:
 - `status` is the solution status.
 """
 function Solution{Mo,De,Va}(
-    model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, 
-    status::SolutionStatus
-) where {Mo<:AbstractModel,De,Va,T}
-    sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
+    model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus
+) where {Mo<:AbstractModel,De,Va}
+    sol = sparsevec(decisions, values, Coluna.MAX_NB_ELEMS)
     return Solution(model, solution_value, status, sol)
 end
 
@@ -287,22 +301,56 @@ getvalue(s::Solution) = float(s.bound)
 "Return the solution status of `solution`."
 getstatus(s::Solution) = s.status
 
-Base.iterate(s::Solution) = iterate(s.sol)
-Base.iterate(s::Solution, state) = iterate(s.sol, state)
+# implementing indexing interface
+Base.getindex(s::Solution, i::Integer) = getindex(s.sol, i)
+Base.setindex!(s::Solution, v, i::Integer) = setindex!(s.sol, v, i)
+Base.firstindex(s::Solution) = firstindex(s.sol)
+Base.lastindex(s::Solution) = lastindex(s.sol)
+
+# implementing abstract array interface
+Base.size(s::Solution) = size(s.sol)
 Base.length(s::Solution) = length(s.sol)
-Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id]
-Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
-Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
+Base.IndexStyle(::Type{<:Solution{Mo,De,Va}}) where {Mo,De,Va} =
+    IndexStyle(SparseVector{Va,De})
+SparseArrays.nnz(s::Solution) = nnz(s.sol)
+
+# It iterates only on non-zero values because:
+# - we use indices (`Id`) that behaves like an Int with additional information and given a 
+#   indice, we cannot deduce the additional information for the next one (i.e. impossible to
+#   create an Id for next integer);
+# - we don't know the length of the vector (it depends on the number of variables & 
+#   constraints that varies over time).
+function Base.iterate(s::Solution)
+    iterator = Iterators.zip(findnz(s.sol)...)
+    next = iterate(iterator)
+    isnothing(next) && return nothing
+    (item, zip_state) = next
+    return (item, (zip_state, iterator))
+end
+
+function Base.iterate(::Solution, state)
+    (zip_state, iterator) = state
+    next = iterate(iterator, zip_state)
+    isnothing(next) && return nothing
+    (next_item, next_zip_state) = next
+    return (next_item, (next_zip_state, iterator))
+end
+
+# # implementing sparse array interface
+# SparseArrays.nnz(s::Solution) = nnz(s.sol)
+# SparseArrays.nonzeroinds(s::Solution) = SparseArrays.nonzeroinds(s.sol)
+# SparseArrays.nonzeros(s::Solution) = nonzeros(s.sol)
+
+function _eq_sparse_vec(a::SparseVector, b::SparseVector)
+    a_ids, a_vals = findnz(a)
+    b_ids, b_vals = findnz(b)
+    return a_ids == b_ids && a_vals == b_vals
+end
 
 Base.:(==)(::Solution, ::Solution) = false
 function Base.:(==)(a::S, b::S) where {S<:Solution}
     return a.model == b.model && a.bound == b.bound && a.status == b.status &&
-            a.sol == b.sol
-end
-
-# TODO : remove when refactoring Benders
-function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.model, s.bound, s.status, filter(f, s.sol))
+        _eq_sparse_vec(a.sol, b.sol)
 end
 
 function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,De,Va}
@@ -313,12 +361,48 @@ function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,
     return false
 end
 
-function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
+function Base.show(io::IOContext, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
     println(io, "Solution")
     for (decision, value) in solution
         println(io, "| ", decision, " = ", value)
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
+
 # Todo : revise method
 Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))
+
+# Implementing comparison between solution & dynamic matrix col view for solution comparison
+function Base.:(==)(v1::DynamicMatrixColView, v2::Solution)
+    for ((i1,j1), (i2,j2)) in Iterators.zip(v1,v2)
+        if !(i1 == i2 && j1 == j2)
+            return false
+        end
+    end
+    return true
+end
+
+# Implementation of the addition & subtraction in SparseArrays always converts indices into
+# `Int`. We need a custom implementation to presever the index type.
+function _sol_custom_binarymap(
+    f::Function, s1::Solution{Mo,De,Va1}, s2::Solution{Mo,De,Va2}
+) where {Mo,De,Va1,Va2}
+    x = s1.sol
+    y = s2.sol
+    R = Base.Broadcast.combine_eltypes(f, (x, y))
+    n = length(x)
+    length(y) == n || throw(DimensionMismatch())
+    xnzind = SparseArrays.nonzeroinds(x)
+    xnzval = nonzeros(x)
+    ynzind = SparseArrays.nonzeroinds(y)
+    ynzval = nonzeros(y)
+    mx = length(xnzind)
+    my = length(ynzind)
+    cap = mx + my
+    rind = Vector{De}(undef,cap)
+    rval = Vector{R}(undef,cap)
+    ir = SparseArrays._binarymap_mode_1!(f, mx, my, xnzind, xnzval, ynzind, ynzval, rind, rval)
+    resize!(rind, ir)
+    resize!(rval, ir)
+    return SparseVector(n, rind, rval)
+end

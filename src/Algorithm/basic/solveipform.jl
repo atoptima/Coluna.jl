@@ -1,55 +1,4 @@
 ################################################################################
-# Parameters for each type of optimizer
-################################################################################
-"""
-    MoiOptimize(
-        time_limit = 600
-        deactivate_artificial_vars = false
-        enforce_integrality = false
-        get_dual_bound = true
-    )
-
-Configuration for an optimizer that calls a subsolver through MathOptInterface.
-
-Parameters:
-- `time_limit`: in seconds
-- `deactivate_artificial_vars`: deactivate all artificial variables of the formulation if equals `true`
-- `enforce_integrality`: enforce integer variables that are relaxed if equals `true`
-- `get_dual_bound`: store the dual objective value in the output if equals `true`
-"""
-@with_kw struct MoiOptimize
-    time_limit::Int = 600
-    deactivate_artificial_vars::Bool = true
-    enforce_integrality::Bool = true
-    get_dual_bound::Bool = true
-    get_dual_solution::Bool = false # Used in MOI integration tests.
-    max_nb_ip_primal_sols::Int = 50
-    log_level::Int = 2
-    silent::Bool = true
-end
-
-"""
-    UserOptimize(
-        max_nb_ip_primal_sols = 50
-    )
-
-Configuration for an optimizer that calls a pricing callback to solve the problem.
-
-Parameters:
-- `max_nb_ip_primal_sols`: maximum number of solutions returned by the callback kept
-"""
-@with_kw struct UserOptimize
-    max_nb_ip_primal_sols::Int = 50
-end
-
-"""
-    CustomOptimize()
-
-Configuration for an optimizer that calls a custom solver to solve a custom model.
-"""
-struct CustomOptimize end
-
-################################################################################
 # Algorithm
 ################################################################################
 """
@@ -100,7 +49,7 @@ _optimizer_params(::Formulation, algo::SolveIpForm, ::UserOptimizer) = algo.user
 _optimizer_params(form::Formulation, algo::SolveIpForm, ::CustomOptimizer) = getinner(getoptimizer(form, algo.optimizer_id))
 _optimizer_params(::Formulation, ::SolveIpForm, ::NoOptimizer) = nothing
 
-function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationState)
     opt = getoptimizer(form, algo.optimizer_id)
     params = _optimizer_params(form, algo, opt)
     if params !== nothing
@@ -109,7 +58,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
     return error("Cannot optimize formulation with optimizer of type $(typeof(opt)).")
 end
 
-run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationInput) = 
+run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationState) = 
     run!(algo, env, getmaster(reform), input)
 
 ################################################################################
@@ -133,9 +82,9 @@ function get_units_usage(
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
+    #push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
+        #push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
         push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
         push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
         push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
@@ -149,7 +98,7 @@ get_units_usage(algo::SolveIpForm, reform::Reformulation) =
 # get_units_usage of UserOptimize
 function get_units_usage(::UserOptimize, spform::Formulation{DwSp}) 
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-    push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
+    #push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
     return units_usage
 end
 
@@ -168,12 +117,12 @@ check_if_optimizer_supports_ip(optimizer::NoOptimizer) = false
 
 # run! of MoiOptimize
 function run!(
-    algo::MoiOptimize, ::Env, form::Formulation, input::OptimizationInput; 
+    algo::MoiOptimize, ::Env, form::Formulation, input::OptimizationState; 
     optimizer_id::Int = 1
-)::OptimizationOutput
+)
     result = OptimizationState(
         form, 
-        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        ip_primal_bound = get_ip_primal_bound(input),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
@@ -182,28 +131,14 @@ function run!(
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
-        return OptimizationOutput(result)
+        return result
     end
 
     primal_sols = optimize_ip_form!(algo, optimizer, form, result)
 
-    partial_sol = nothing
-    partial_sol_value = 0.0
-    if isa(form, Formulation{MathProg.DwMaster})
-        partsolunit = getstorageunit(form, PartialSolutionUnit)
-        partial_sol = get_primal_solution(partsolunit, form)
-        partial_sol_value = getvalue(partial_sol)
-    end
-
     if length(primal_sols) > 0
-        if partial_sol !== nothing
-            for primal_sol in primal_sols
-                add_ip_primal_sol!(result, cat(partial_sol, primal_sol))
-            end
-        else
-            for primal_sol in primal_sols
-                add_ip_primal_sol!(result, primal_sol)
-            end
+        for primal_sol in primal_sols
+            add_ip_primal_sol!(result, primal_sol)
         end
         if algo.log_level == 0
             @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(result))
@@ -218,7 +153,7 @@ function run!(
         end
     end
     if algo.get_dual_bound && getterminationstatus(result) == OPTIMAL
-        dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
+        dual_bound = getvalue(get_ip_primal_bound(result))
         set_ip_dual_bound!(result, DualBound(form, dual_bound))
         set_lp_dual_bound!(result, DualBound(form, dual_bound))
     end
@@ -232,16 +167,14 @@ function run!(
         end
     end
 
-    return OptimizationOutput(result)
+    return result
 end
 
 function optimize_ip_form!(
     algo::MoiOptimize, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
-    MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
-    MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
     # No way to enforce upper bound or lower bound through MOI.
-    # Add a constraint c'x <= UB in form ?
+    # We must add a constraint c'x <= UB in formulation.
 
     if algo.deactivate_artificial_vars
         deactivate!(form, vcid -> isanArtificialDuty(getduty(vcid)))
@@ -250,7 +183,7 @@ function optimize_ip_form!(
         enforce_integrality!(form)
     end
 
-    optimize_with_moi!(optimizer, form, result)
+    optimize_with_moi!(optimizer, form, algo, result)
     primal_sols = get_primal_solutions(form, optimizer)
 
     if algo.enforce_integrality
@@ -297,12 +230,12 @@ end
 
 # run! of UserOptimize
 function run!(
-    algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationInput;
+    algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationState;
     optimizer_id::Int = 1
-)::OptimizationOutput
+)
     result = OptimizationState(
         spform, 
-        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        ip_primal_bound = get_ip_primal_bound(input),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
@@ -334,7 +267,7 @@ function run!(
     else
         setterminationstatus!(result, OTHER_LIMIT)
     end
-    return OptimizationOutput(result)
+    return result
 end
 
 # No run! method for CustomOptimize because it directly calls the run! method

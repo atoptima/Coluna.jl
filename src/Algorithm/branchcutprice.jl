@@ -54,7 +54,7 @@ Parameters :
 
 function BranchCutAndPriceAlgorithm(;
         maxnumnodes::Int = 100000,
-        branchingtreefile::Union{Nothing, String} = nothing,
+        branchingtreefile::String = "",
         opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL,
         opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL,
         restmastipheur_timelimit::Int = 600,
@@ -67,9 +67,9 @@ function BranchCutAndPriceAlgorithm(;
         stbranch_phases_num_candidates::Vector{Int64} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}} = [(userstage=1, solverid=1, maxiters=100)]
 )
-    heuristics = ParameterisedHeuristic[]
+    heuristics = ParameterizedHeuristic[]
     if restmastipheur_timelimit > 0
-        heuristic = ParameterisedHeuristic(
+        heuristic = ParameterizedHeuristic(
             SolveIpForm(moi_params = MoiOptimize(
                 get_dual_bound = false,
                 time_limit = restmastipheur_timelimit
@@ -115,7 +115,7 @@ function BranchCutAndPriceAlgorithm(;
         branching_phases = BranchingPhase[]
         if length(stbranch_phases_num_candidates) >= 2
             push!(branching_phases, 
-                BranchingPhase(first(stbranch_phases_num_candidates), RestrMasterLPConquer())
+                BranchingPhase(first(stbranch_phases_num_candidates), RestrMasterLPConquer(), ProductScore())
             )    
             if length(stbranch_phases_num_candidates) >= 3
                 intrmphase_stages = ColumnGeneration[]
@@ -145,14 +145,14 @@ function BranchCutAndPriceAlgorithm(;
                     opt_rtol = opt_rtol
                 )
                 push!(branching_phases, 
-                    BranchingPhase(stbranch_phases_num_candidates[2], intrmphase_conquer)
+                    BranchingPhase(stbranch_phases_num_candidates[2], intrmphase_conquer, ProductScore())
                 )    
             end
         end            
-        push!(branching_phases, BranchingPhase(last(stbranch_phases_num_candidates), conquer))    
+        push!(branching_phases, BranchingPhase(last(stbranch_phases_num_candidates), conquer, TreeDepthScore()))    
         branching = StrongBranching(rules = branching_rules, phases = branching_phases)
     else
-        branching = StrongBranching(rules = branching_rules)
+        branching = Branching(rules = branching_rules)
     end
 
     return TreeSearchAlgorithm(

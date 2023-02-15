@@ -1,9 +1,54 @@
+############################################################################################
 # MathProg > Solutions
 # Representations of the primal & dual solutions to a MILP formulation
+############################################################################################
 
+"Supertype for solutions operated by Coluna."
 abstract type AbstractSolution end
 
-# Primal Solution
+# The API for `AbstractSolution` is not very clear yet.
+
+# Redefine methods from ColunaBase to access the formulation, the value, the
+# status of a Solution, and other specific information
+ColunaBase.getmodel(s::AbstractSolution) = getmodel(s.solution)
+ColunaBase.getvalue(s::AbstractSolution) = getvalue(s.solution)
+ColunaBase.getbound(s::AbstractSolution) = getbound(s.solution)
+ColunaBase.getstatus(s::AbstractSolution) = getstatus(s.solution)
+
+Base.length(s::AbstractSolution) = length(s.solution)
+Base.get(s::AbstractSolution, id, default) = get(s.solution, id, default)
+Base.getindex(s::AbstractSolution, id) = getindex(s.solution, id)
+Base.setindex!(s::AbstractSolution, val, id) = setindex!(s.solution, val, id)
+
+# Iterating over a PrimalSolution or a DualSolution is similar to iterating over
+# ColunaBase.Solution
+Base.iterate(s::AbstractSolution) = iterate(s.solution)
+Base.iterate(s::AbstractSolution, state) = iterate(s.solution, state)
+
+function contains(sol::AbstractSolution, f::Function)
+    for (elemid, _) in sol
+        f(elemid) && return true
+    end
+    return false
+end
+
+function _sols_from_same_model(sols::NTuple{N, S}) where {N,S<:AbstractSolution}
+    for i in 2:length(sols)
+        getmodel(sols[i-1]) != getmodel(sols[i]) && return false
+    end
+    return true
+end
+
+# To check if a solution is part of solutions from the pool.
+Base.:(==)(v1::DynamicMatrixColView, v2::AbstractSolution) = v1 == v2.solution
+
+# To allocate an array with size equals to the number of non-zero elements when using
+# "generation" syntax.
+Base.length(gen::Base.Generator{<:AbstractSolution}) = nnz(gen.iter.solution)
+
+############################################################################################
+# Primal Solution                                                                          
+############################################################################################
 struct PrimalSolution{M} <: AbstractSolution
     solution::Solution{M,VarId,Float64}
     custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData}
@@ -38,10 +83,47 @@ function Base.:(==)(a::PrimalSolution, b::PrimalSolution)
     return a.solution == b.solution && a.custom_data == b.custom_data
 end
 
+Base.copy(s::P) where {P<:PrimalSolution}= P(copy(s.solution), copy(s.custom_data))
+
+function Base.isinteger(sol::PrimalSolution)
+    for (vc_id, val) in sol
+        if getperenkind(getmodel(sol), vc_id) !== Continuous && abs(round(val) - val) > 1e-5
+            return false
+        end
+    end
+    return true
+end
+
+function Base.isless(s1::PrimalSolution, s2::PrimalSolution)
+    getobjsense(getmodel(s1)) == MinSense && return s1.solution.bound > s2.solution.bound
+    return s1.solution.bound < s2.solution.bound
+end
+
+# Method `cat` is not implemented for a set of DualSolutions because @guimarqu don't know 
+# how to concatenate var red cost of a variable if both bounds are active in different 
+# solutions and because we don't need it for now.
+function Base.cat(sols::PrimalSolution...)
+    if !_sols_from_same_model(sols)
+        error("Cannot concatenate solutions not attached to the same model.")
+    end
+
+    ids = VarId[]
+    vals = Float64[]
+    for sol in sols, (id, value) in sol
+        push!(ids, id)
+        push!(vals, value)
+    end
+    return PrimalSolution(
+        getmodel(sols[1]), ids, vals, sum(getvalue.(sols)), getstatus(sols[1])
+    )
+end
+
+############################################################################################
 # Dual Solution
+############################################################################################
 
 # Indicate whether the active bound of a variable is the lower or the upper one.
-@enum ActiveBound LOWER UPPER
+@enum ActiveBound LOWER UPPER LOWER_AND_UPPER
 
 struct DualSolution{M} <: AbstractSolution
     solution::Solution{M,ConstrId,Float64}
@@ -90,82 +172,13 @@ function Base.:(==)(a::DualSolution, b::DualSolution)
         a.custom_data == b.custom_data
 end
 
+Base.copy(s::D) where {D<:DualSolution} = D(copy(s.solution), copy(s.var_redcosts), copy(s.custom_data))
+
 get_var_redcosts(s::DualSolution) = s.var_redcosts
-
-# Redefine methods from ColunaBase to access the formulation, the value, the
-# status of a Solution, and other specific information
-ColunaBase.getmodel(s::AbstractSolution) = getmodel(s.solution)
-ColunaBase.getvalue(s::AbstractSolution) = getvalue(s.solution)
-ColunaBase.getbound(s::AbstractSolution) = getbound(s.solution)
-ColunaBase.getstatus(s::AbstractSolution) = getstatus(s.solution)
-Base.length(s::AbstractSolution) = length(s.solution)
-Base.get(s::AbstractSolution, id, default) = Base.get(s.solution, id, default)
-Base.getindex(s::AbstractSolution, id) = Base.getindex(s.solution, id)
-Base.setindex!(s::AbstractSolution, val, id) = Base.setindex!(s.solution, val, id)
-
-# Iterating over a PrimalSolution or a DualSolution is similar to iterating over
-# ColunaBase.Solution
-Base.iterate(s::AbstractSolution) = iterate(s.solution)
-Base.iterate(s::AbstractSolution, state) = iterate(s.solution, state)
-
-function Base.isinteger(sol::PrimalSolution)
-    for (vc_id, val) in sol
-        if getperenkind(getmodel(sol), vc_id) !== Continuous && abs(round(val) - val) > 1e-5
-            return false
-        end
-    end
-    return true
-end
-
-function Base.isless(s1::PrimalSolution, s2::PrimalSolution)
-    getobjsense(getmodel(s1)) == MinSense && return s1.solution.bound > s2.solution.bound
-    return s1.solution.bound < s2.solution.bound
-end
 
 function Base.isless(s1::DualSolution, s2::DualSolution)
     getobjsense(getmodel(s1)) == MinSense && return s1.solution.bound < s2.solution.bound
     return s1.solution.bound > s2.solution.bound
-end
-
-function contains(sol::AbstractSolution, f::Function)
-    for (elemid, _) in sol
-        f(elemid) && return true
-    end
-    return false
-end
-
-function _sols_from_same_model(sols::NTuple{N, S}) where {N,S<:AbstractSolution}
-    for i in 2:length(sols)
-        getmodel(sols[i-1]) != getmodel(sols[i]) && return false
-    end
-    return true
-end
-
-# Method `cat` is not implemented for a set of DualSolutions because @guimarqu don't know 
-# how to concatenate var red cost of a variable if both bounds are active in different 
-# solutions and because we don't need it for now.
-function Base.cat(sols::PrimalSolution...)
-    if !_sols_from_same_model(sols)
-        error("Cannot concatenate solutions not attached to the same model.")
-    end
-
-    ids = VarId[]
-    vals = Float64[]
-    for sol in sols, (id, value) in sol
-        push!(ids, id)
-        push!(vals, value)
-    end
-    return PrimalSolution(
-        getmodel(sols[1]), ids, vals, sum(getvalue.(sols)), getstatus(sols[1])
-    )
-end
-
-function Base.print(io::IO, form::AbstractFormulation, sol::Solution)
-    println(io, "Solution")
-    for (id, val) in sol
-        println(io, getname(form, id), " = ", val)
-    end
-    return
 end
 
 function Base.show(io::IO, solution::DualSolution{M}) where {M}
@@ -187,13 +200,70 @@ function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
 
-# Following methods are needed by Benders
-# TODO : check if we can remove them during refactoring of Benders
-# not performant
-Base.haskey(s::AbstractSolution, key) = haskey(s.solution, key)
-# we can't filter the constraints, the variables, and the custom data.
-function Base.filter(f::Function, s::DualSolution)
-    return DualSolution(
-        filter(f, s.solution), s.var_redcosts, s.custom_data
-    )
+############################################################################################
+# Linear Algebra
+############################################################################################
+
+# op(::S, ::S) has return type `S` for op ∈ (:+, :-) and S <: AbstractSolution 
+
+_math_op_constructor(::Type{S}, form::F, varids, varvals, cost) where {S<:PrimalSolution,F} =
+    PrimalSolution(form, varids, varvals, cost, ClB.UNKNOWN_SOLUTION_STATUS)
+
+_math_op_constructor(::Type{<:S}, form::F, constrids, constrvals, cost) where {S<:DualSolution,F} = 
+    DualSolution(form, constrids, constrvals, [], [], [], cost, ClB.UNKNOWN_SOLUTION_STATUS)
+
+_math_op_cost(::Type{<:S}, form, varids, varvals) where {S<:PrimalSolution} = 
+    mapreduce(((id,val),) -> getcurcost(form, id) * val, +, Iterators.zip(varids, varvals); init = 0.0)
+
+_math_op_cost(::Type{<:S}, form, constrids, constrvals) where {S<:DualSolution} =
+    mapreduce(((id, val),) -> getcurrhs(form, id) * val, +, Iterators.zip(constrids, constrvals); init = 0.0)
+
+function Base.:(*)(a::Real, s::S) where {S<:AbstractSolution}
+    ids, vals = findnz(a * s.solution.sol)
+    cost = _math_op_cost(S, getmodel(s), ids, vals)
+    return _math_op_constructor(S, getmodel(s), ids, vals, cost)
 end
+
+for op in (:+, :-)
+    @eval begin
+        function Base.$op(s1::S, s2::S) where {S<:AbstractSolution}
+            @assert getmodel(s1) == getmodel(s2)
+            ids, vals = findnz(ColunaBase._sol_custom_binarymap($op, s1.solution, s2.solution))
+            cost = _math_op_cost(S, getmodel(s1), ids, vals)
+            return _math_op_constructor(S, getmodel(s1), ids, vals, cost)
+        end
+    end
+end
+
+# transpose
+struct Transposed{S<:AbstractSolution}
+    sol::S
+end
+
+Base.transpose(s::AbstractSolution) = Transposed(s)
+
+Base.:(*)(s1::Transposed{S}, s2::S) where {S<:AbstractSolution} =
+    transpose(s1.sol.solution.sol) * s2.solution.sol
+
+function Base.:(*)(s::Transposed{<:AbstractSolution}, vec::SparseVector)
+    # We multiply two sparse vectors that may have different sizes.
+    sol_vec = s.sol.solution.sol
+    len = Coluna.MAX_NB_ELEMS
+    vec1 = sparsevec(findnz(sol_vec)..., len)
+    vec2 = sparsevec(findnz(vec)..., len)
+    return transpose(vec1) * vec2
+end
+
+# *(::M, ::S) has return type `SparseVector` for:
+#  - M <: DynamicSparseMatrix
+#  - S <: AbstractSolution
+
+# We don't support operation with classic sparse matrix because row and col ids
+# must be of the same type. 
+# In Coluna, we use VarId to index the cols and 
+# ConstrId to index the rows.
+
+Base.:(*)(m::DynamicSparseMatrix, s::AbstractSolution) = m * s.solution.sol
+Base.:(*)(m::DynamicSparseArrays.Transposed{<:DynamicSparseMatrix}, s::AbstractSolution) = m * s.solution.sol
+
+LinearAlgebra.norm(s::AbstractSolution) = norm(s.solution.sol)

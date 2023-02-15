@@ -11,21 +11,21 @@ CL.@with_kw struct EnumerativeFinalizer <: ClA.AbstractOptimizationAlgorithm
 end
 
 function ClA.run!(
-    algo::EnumerativeFinalizer, env::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationInput
-)::ClA.OptimizationOutput
+    algo::EnumerativeFinalizer, env::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationState
+)
     masterform = ClMP.getmaster(reform)
     _, spform = first(ClMP.get_dw_pricing_sps(reform))
     cbdata = ClMP.PricingCallbackData(spform)
     isopt, primal_sol = algo.optimizer(masterform, cbdata)
     result = ClA.OptimizationState(
         masterform, 
-        ip_primal_bound = ClA.get_ip_primal_bound(ClA.getoptstate(input)),
+        ip_primal_bound = ClA.get_ip_primal_bound(input),
         termination_status = isopt ? CL.OPTIMAL : CL.OTHER_LIMIT
     )
     if primal_sol !== nothing
         ClA.add_ip_primal_sol!(result, primal_sol)
     end
-    return ClA.OptimizationOutput(result)
+    return result
 end
 
 
@@ -59,7 +59,7 @@ function test_node_finalizer(heuristic_finalizer)
                     primal_heuristics = [],
                     node_finalizer = ClA.NodeFinalizer(
                             EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 
-                            1, 0, "Enumerative"
+                            0, "Enumerative"
                     )
                 ),
                 maxnumnodes = heuristic_finalizer ? 10000 : 1

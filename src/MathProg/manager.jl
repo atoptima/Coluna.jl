@@ -1,5 +1,3 @@
-const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64}
-
 const VarMembership = Dict{VarId, Float64}
 const ConstrMembership = Dict{ConstrId, Float64}
 const ConstrConstrMatrix = DynamicSparseArrays.DynamicSparseMatrix{ConstrId,ConstrId,Float64}
@@ -7,7 +5,7 @@ const VarConstrDualSolMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,Con
 const VarVarMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64}
 
 # Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
-DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
+DynamicSparseArrays.semaphore_key(I::Type{Id{VC}}) where VC = I(Duty{VC}(0), -1, -1, -1, -1)
 
 # We wrap the coefficient matrix because we need to buffer the changes.
 struct CoefficientMatrix{C,V,T}
@@ -51,7 +49,8 @@ mutable struct FormulationManager
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sols_varbounds::VarConstrDualSolMatrix # cols = dual solutions with constrid, rows = variables
-    dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
+    dual_sol_rhss::DynamicSparseVector{ConstrId} # dual solutions with constrid map to their rhs
+    fixed_vars::Set{VarId}
     robust_constr_generators::Vector{RobustConstraintsGenerator}
     custom_families_id::Dict{DataType,Int}
 end
@@ -67,6 +66,7 @@ function FormulationManager(buffer; custom_families_id = Dict{BD.AbstractCustomD
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         dynamicsparse(VarId, ConstrId, Tuple{Float64, ActiveBound}; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),
+        Set{VarId}(),
         RobustConstraintsGenerator[],
         custom_families_id
     )
@@ -83,6 +83,19 @@ function _addvar!(m::FormulationManager, var::Variable)
     m.vars[var.id] = var
     return
 end
+
+# Internal method to fix a variable in the formulation manager.
+function _fixvar!(m::FormulationManager, var::Variable)
+    push!(m.fixed_vars, getid(var))
+    return
+end
+
+function _unfixvar!(m::FormulationManager, var::Variable)
+    delete!(m.fixed_vars, getid(var))
+    return
+end
+
+_fixedvars(m::FormulationManager) = m.fixed_vars
 
 # Internal methods to store a Constraint in the formulation manager.
 function _addconstr!(m::FormulationManager, constr::Constraint)

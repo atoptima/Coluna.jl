@@ -1,23 +1,22 @@
 module MathProg
 
 import BlockDecomposition
-import Distributed
 import MathOptInterface
 import TimerOutputs
 
-import ..Coluna # for NestedEnum (types.jl:210)
+using ..Coluna # for NestedEnum (types.jl:210)
 using ..ColunaBase
 
 import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
 
-using DynamicSparseArrays, Logging, Printf
+using DynamicSparseArrays, SparseArrays, Logging, Printf, LinearAlgebra
 
 const BD = BlockDecomposition
+const ClB = ColunaBase
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
 const MAX_NB_FORMULATIONS = typemax(Int16)
-const MAX_NB_PROCESSES = typemax(Int8)
 
 include("types.jl")
 include("vcids.jl")
@@ -46,9 +45,9 @@ export  MaxSense, MinSense,
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
-       getid, getuid,
+       getid,
        enforce_integrality!, relax_integrality!,
-       getobjsense, getoptimizer, getoptimizers,
+       getobjsense, getoptimizer,
        update!,
        getduty,
        computereducedrhs,
@@ -71,14 +70,14 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
     get_dw_pricing_sp_lb_constrid, setmaster!
 
 # Methods related to formulations
-export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolpool, getprimalsolcosts,
+export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
+    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
     push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
-    insert_column!, get_column_from_pool
+    insert_column!, get_column_from_pool, getfixedvars
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp
@@ -92,7 +91,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, isfixed, fix!, unfix!
 
 # Types & methods related to solutions & bounds
 export PrimalBound, DualBound, AbstractSolution, PrimalSolution, DualSolution, ActiveBound, ObjValues,

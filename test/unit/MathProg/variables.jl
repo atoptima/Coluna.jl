@@ -1,6 +1,6 @@
 @testset "MathProg - variable" begin
     @testset "getters and setters" begin
-        form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
         var = ClMP.setvar!(
             form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
             kind = ClMP.Integ, inc_val = 4.0
@@ -45,7 +45,7 @@
     end
 
     @testset "bounds of binary variable 1" begin
-        form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
         var = ClMP.setvar!(
             form, "var1", ClMP.OriginalVar, kind = ClMP.Binary
         )
@@ -87,7 +87,7 @@
     end
 
     @testset "bounds of binary variable 2" begin
-        form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
         var = ClMP.setvar!(
             form, "var1", ClMP.OriginalVar, kind = ClMP.Continuous, lb = -10.0, ub = 10.0
         )
@@ -106,7 +106,7 @@
     end
 
     @testset "bounds of binary variable 3" begin
-        form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
         var = ClMP.setvar!(
             form, "var1", ClMP.OriginalVar, kind = ClMP.Continuous, lb = -10.0, ub = 10.0
         )
@@ -135,5 +135,88 @@
 
         @test ClMP.getindex(v_rec) == ClMP.MoiVarIndex(-20)
         @test ClMP.getbounds(v_rec) == ClMP.MoiVarBound(10)
+    end
+
+    @testset "fix variable 1" begin
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
+        var = ClMP.setvar!(
+            form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
+            kind = ClMP.Integ, inc_val = 4.0
+        )
+        DynamicSparseArrays.closefillmode!(ClMP.getcoefmatrix(form))
+
+        varid = ClMP.getid(var)
+        
+        @test ClMP.iscuractive(form, var)
+        @test ClMP.isexplicit(form, var)
+        @test !ClMP.isfixed(form, var)
+        @test !in(varid, form.manager.fixed_vars)
+
+        ClMP.fix!(form, var, 0.0)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
+        @test in(varid, form.manager.fixed_vars)
+    end
+    @testset "fix variable 2" begin
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
+        var = ClMP.setvar!(
+            form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
+            kind = ClMP.Integ, inc_val = 4.0
+        )
+        DynamicSparseArrays.closefillmode!(ClMP.getcoefmatrix(form))
+
+        varid = ClMP.getid(var)
+        ClMP.deactivate!(form, varid)
+        @test !ClMP.iscuractive(form, varid)
+        ClMP.fix!(form, varid, 0)  # try to fix an unactive variable -> should not work.
+        @test !ClMP.isfixed(form, varid)
+        @test ClMP.getcurub(form, var) == 1
+        @test ClMP.getcurlb(form, var) == -1
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+    end
+
+    @testset "fix variable 3" begin
+        # sequential fix
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
+        var = ClMP.setvar!(
+            form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
+            kind = ClMP.Integ, inc_val = 4.0
+        )
+        DynamicSparseArrays.closefillmode!(ClMP.getcoefmatrix(form))
+
+        varid = ClMP.getid(var)
+        @test !in(varid, form.manager.fixed_vars)
+
+        ClMP.fix!(form, var, 0.0)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
+        @test in(varid, form.manager.fixed_vars)
+
+        ClMP.unfix!(form, var)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test !ClMP.isfixed(form, var)
+        @test ClMP.iscuractive(form, var)
+        @test !in(varid, form.manager.fixed_vars)
+
+        ClMP.fix!(form, var, 1.0)
+        @test ClMP.getcurub(form, var) == 1
+        @test ClMP.getcurlb(form, var) == 1
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
+        @test in(varid, form.manager.fixed_vars)
     end
 end

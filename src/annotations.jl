@@ -3,6 +3,7 @@
 mutable struct Annotations
     tree::Union{BD.Tree, Nothing}
     ann_per_var::Dict{VarId, BD.Annotation}
+    ann_per_repr_var::Dict{VarId, Vector{BD.Annotation}}
     ann_per_constr::Dict{ConstrId, BD.Annotation}
     vars_per_ann::Dict{BD.Annotation, Dict{VarId,Variable}}
     constrs_per_ann::Dict{BD.Annotation, Dict{ConstrId,Constraint}}
@@ -12,7 +13,9 @@ end
 
 Annotations() = Annotations(
     nothing,
-    Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}(),
+    Dict{VarId, BD.Annotation}(), 
+    Dict{VarId, Vector{BD.Annotation}}(),
+    Dict{ConstrId, BD.Annotation}(),
     Dict{BD.Annotation, Dict{VarId,Variable}}(),
     Dict{BD.Annotation, Dict{ConstrId,Constraint}}(),
     Dict{Int, BD.Annotation}(),
@@ -26,6 +29,18 @@ function store!(annotations::Annotations, ann::BD.Annotation, var::Variable)
         annotations.vars_per_ann[ann] = Dict{VarId, Variable}()
     end
     annotations.vars_per_ann[ann][getid(var)] = var
+    return
+end
+
+function store_repr!(annotations::Annotations, ann::Vector{<:BD.Annotation}, var::Variable)
+    push!(annotations.annotation_set, ann...)
+    annotations.ann_per_repr_var[getid(var)] = ann
+    for a in ann
+        if !haskey(annotations.vars_per_ann, a)
+            annotations.vars_per_ann[a] = Dict{VarId, Variable}()
+        end
+        annotations.vars_per_ann[a][getid(var)] = var
+    end
     return
 end
 
@@ -54,4 +69,8 @@ function Base.get(annotations::Annotations, form::AbstractFormulation)
         error("Formulation with uid $form_uid does not have any annotation.")
     end
     return annotations.ann_per_form[form_uid]
+end
+
+function is_representative(annotations::Annotations, varid::VarId)
+    return haskey(annotations.ann_per_repr_var, varid)
 end

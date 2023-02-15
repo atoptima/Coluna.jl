@@ -1,7 +1,12 @@
 # Introduction
 
+!!! danger
+    Coluna is under active development.
+    Some features are undocumented because they are very experimental.
+    Current users are expected to read the source code.
+
 !!! warning
-    Some features are undocumented because they are not yet considered stable.
+    We assume that readers are familiar with integer programming and exact optimization methods.
 
 
 Coluna is a framework written in Julia to implement a decomposition approach to optimize 
@@ -45,7 +50,7 @@ You can install Coluna and its dependencies through the package manager of Julia
 ] add Coluna
 ```
 
-## Extra dependances
+## Extra dependencies
 
 - CPLEX.jl >= 0.7.0 (cf [issue 446](https://github.com/atoptima/Coluna.jl/issues/446))
 

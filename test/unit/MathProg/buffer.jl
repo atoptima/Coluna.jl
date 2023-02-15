@@ -1,5 +1,5 @@
 function model_factory_for_buffer()
-    form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+    form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
     push!(form.optimizers, ClMP.MoiOptimizer(MOI._instantiate_and_check(GLPK.Optimizer)))
     var = ClMP.setvar!(
         form, "var1", ClMP.OriginalVar, cost=2.0, lb=-1.0, ub=1.0, 
@@ -225,7 +225,7 @@ _empty_buffer() = ClMP.FormulationBuffer{ClMP.VarId,ClMP.Variable,ClMP.ConstrId,
         form, var, constr = model_factory_for_buffer()
 
         expected_buffer = _empty_buffer()
-        expected_buffer.changed_bound = Set{VarId}([ClMP.getid(var)])
+        expected_buffer.changed_bound = Set{ClMP.VarId}([ClMP.getid(var)])
 
         ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
         ClMP.setperenlb!(form, var, 0.0)

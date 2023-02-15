@@ -1,4 +1,6 @@
 DynamicSparseArrays.semaphore_key(::Type{Char}) = ' '
+Base.zero(::Type{Char}) = ' '
+DynamicSparseArrays.semaphore_key(::Type{Int}) = 0
 
 function coefmatrix_factory()
     rows = ['a', 'a', 'b', 'b', 'd', 'f']

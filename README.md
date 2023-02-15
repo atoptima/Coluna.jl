@@ -38,7 +38,8 @@ branch-and-cut-and-price algorithms. We look for beta users as Coluna is under
 active development.
 
 - ![Stable](https://img.shields.io/badge/-stable-brightgreen) No stable feature at the moment
-- ![Beta](https://img.shields.io/badge/-beta-green) Features that work but you may have some bugs:
+- ![Beta](https://img.shields.io/badge/-beta-green) Features that work but still in development:
+  - Branch-and-price-and-cut algorithm
   - Cuts generation
   - Column generation algorithm
   - Dantzig-Wolfe decomposition
@@ -46,9 +47,10 @@ active development.
   - Robust cut callback
   - Stabilization
   - Strong-branching
-- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
+- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but these features may have bugs and be not performant:
   - Benders decomposition
-  - Branch-and-price-and-cut algorithm
+  - Benders algorithm
+  - Non-robust cuts
   - Clean up of large scale formulations
 - ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, foundations have been laid:
   - Nested/Recursive decomposition

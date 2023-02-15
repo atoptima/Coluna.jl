@@ -1,53 +1,33 @@
 @testset "Integration - initial columns callback" begin
-    # DW subproblem formulation having a given nb of variables.
-    # Its parent is the master with representatives of sp vars & a constraint sum_i i*x_i <= 0.
-    # Cost of variable x[i] is i.
-    function build_reformulation(nb_variables)
-        env = CL.Env(CL.Params())
+    function build_reformulation()
+        nb_variables = 4
+        form_string = """
+            master
+                min
+                1.0*x1 + 2.0*x2 + 3.0*x3 + 4.0*x4
+                s.t.
+                1.0*x1 + 2.0*x2 + 3.0*x3 + 4.0*x4 >= 0.0
 
-        # Create the reformulation
-        reform = Reformulation()
+            dw_sp
+                min
+                1.0*x1 + 2.0*x2 + 3.0*x3 + 4.0*x4
 
-        # Create subproblem and variables
-        spform = ClMP.create_formulation!(env, DwSp(nothing, 0, 1, ClMP.Continuous))
-        spvars = Dict{String, ClMP.Variable}();
-        for i in 1:nb_variables
-            x =  ClMP.setvar!(spform, "x$i", ClMP.DwSpPricingVar)
-            ClMP.setperencost!(spform, x, i * 1.0)
-            spvars["x$i"] = x
-        end
-        ClMP.add_dw_pricing_sp!(reform, spform)
-
-        # Create master and representatives
-        master = ClMP.create_formulation!(env, DwMaster(); parent_formulation = reform)
-        spform.parent_formulation = master
-        mastervars = Dict{String, ClMP.Variable}();
-        for i in 1:nb_variables
-            x = ClMP.setvar!(
-                master, "x$i", ClMP.MasterRepPricingVar, id = getid(spvars["x$i"])
-            )
-            ClMP.setperencost!(master, x, i * 1.0)
-            mastervars["x$i"] = x
-        end
-
-        constr = ClMP.setconstr!(
-            master, "constr", ClMP.MasterMixedConstr; 
-            members = Dict(ClMP.getid(mastervars["x$i"]) => 1.0 * i for i in 1:nb_variables)
-        )
-        ClMP.setmaster!(reform, master)
-
-        master.var_counter += 4 # we added 4 variables with customized id
-        closefillmode!(ClMP.getcoefmatrix(master))
-        closefillmode!(ClMP.getcoefmatrix(spform))
+            continuous
+                representatives
+                    x1, x2, x3, x4
+        """
+        env, master, subproblems, constraints = reformfromstring(form_string)
+        spform = subproblems[1]
+        spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
 
         # Fake JuMP model to simulate the user interacting with it in the callback.
         fake_model = JuMP.Model()
         @variable(fake_model, x[i in 1:nb_variables])
-    
+
         for name in ["x$i" for i in 1:nb_variables] 
-            CleverDicts.add_item(env.varids, ClMP.getid(spvars[name]))
+            CleverDicts.add_item(env.varids, spvarids[name])
         end
-        return env, master, spform, spvars, x, constr
+        return env, master, spform, x, constraints[1]
     end
 
     # Create a formulation with 4 variables [x1 x2 x3 x4] and provide an initial column
@@ -55,7 +35,7 @@
     # Cost of the column in the master should be 7.
     # Coefficient of the column in the constraint should be 7.
     @testset "normal case" begin
-        env, master, spform, vars, x, constr = build_reformulation(4)
+        env, master, spform, x, constr = build_reformulation()
 
         function callback(cbdata)
             variables = [x[1].index, x[3].index]
