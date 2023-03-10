@@ -118,6 +118,6 @@ optimize!(model)
 db2 = objective_bound(model)
 
 
-db1
+db2
 
 
