@@ -154,8 +154,6 @@ struct ComputeSolCostInputAti1
 end
 
 function ClA.run!(algo::ComputeSolCostAti1, env, model::FormulationAti1, input::ComputeSolCostInputAti1)
-    LOG_ATI1 && println("== $(algo.log) ==")
-    LOG_ATI1 && @show model.var_domains
     sol_cost = 0.0
     for (cost, (ub, lb)) in Iterators.zip(model.var_cost, model.var_domains)
         var_val = ub == lb ? ub : 0.5
@@ -211,10 +209,8 @@ struct DivingInputAti1
 end
 
 function ClA.run!(algo::DivingAti1, env, model::FormulationAti1, input::DivingInputAti1)
-    LOG_ATI1 && println("~~~~~~~~ Diving starts ~~~~~~~~")
     diving_space = ClA.new_space(ClA.search_space_type(algo), algo, model, input)
     output = ClA.tree_search(algo.explore, diving_space, env, input)
-    LOG_ATI1 && println("~~~~~~~~ end of Diving ~~~~~~~~")
     return output
 end
 

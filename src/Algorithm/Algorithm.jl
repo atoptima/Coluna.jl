@@ -41,6 +41,12 @@ include("basic/cutcallback.jl")
 
 # Child algorithms used by conquer algorithms
 include("colgenstabilization.jl")
+
+# Column generation
+include("colgen/interface.jl")
+include("colgen/colgen.jl")
+
+
 include("colgen.jl")
 include("benders.jl")
 

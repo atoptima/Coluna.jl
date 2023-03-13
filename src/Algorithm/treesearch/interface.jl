@@ -29,7 +29,7 @@ abstract type AbstractNode end
 "Returns the priority of the node depending on the explore strategy."
 @mustimplement "Node" get_priority(::AbstractExploreStrategy, ::AbstractNode)
 
-##### Addition methods for the node interface (needed by conquer)
+##### Additional methods for the node interface (needed by conquer)
 "Returns an `OptimizationState` that contains best bounds and solutions at the node."
 @mustimplement "Node" get_opt_state(::AbstractNode) # conquer, divide
 

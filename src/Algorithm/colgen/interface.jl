@@ -4,7 +4,14 @@ abstract type AbstractColGenContext end
 Structure where we store performance information about the column generation algorithm.
 We can use these kpis as a stopping criteria for instance.
 """
-abstract type AbstractColGendKpis end
+abstract type AbstractColGenKpis end
+
+
+"""
+An iterator that indicates how a set of phases follow each other.
+
+"""
+abstract type AbstractColGenPhaseIterator end
 
 """
 A phase of the column generation.
@@ -13,13 +20,15 @@ Each phase is associated with a specific set up of the reformulation.
 abstract type AbstractColGenPhase end
 
 "Returns the phase with which the column generation algorithm must start." 
-@mustimplement "ColGen" initial_phase(::AbstractColGenContext)
+@mustimplement "ColGenPhase" initial_phase(::AbstractColGenContext)
 
 """
 Returns the next phase of the column generation algorithm.
 Returns `nothing` if the algorithm must stop.
 """
-@mustimplement "ColGen" next_phase(::AbstractColGenContext, phase::AbstractColGenPhase, reform)
+@mustimplement "ColGenPhase" next_phase(::AbstractColGenContext, ::AbstractColGenPhase, ctx::AbstractColGenContext)
+
+
 
 "Setup the reformulation for the given phase."
 @mustimplement "ColGen" setup_reformulation(::AbstractColGenContext, ::AbstractColGenPhase, reform)
@@ -28,11 +37,26 @@ Returns `nothing` if the algorithm must stop.
 @mustimplement "ColGen" stop_colgen_phase(context, phase, reform)
 
 
-@mustimplement "ColGen" before_colgen_iteration(::AbstractColGenContext)
+"""
+Placeholder method called before the column generation iteration.
+Does nothing by default but can be redefined to print some informations for instance.
+We strongly advise users against the use of this method to modify the context or the reformulation.
+"""
+@mustimplement "ColGen" before_colgen_iteration(ctx::AbstractColGenContext, phase, reform)
 
-@mustimplement "ColGen" colgen_iteration(::AbstractColGenContext)
 
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext)
+"""
+Runs an iteration of column generation.
+"""
+@mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform)
+
+
+"""
+Placeholder method called after the column generation iteration.
+Does nothing by default but can be redefined to print some informations for instance.
+We strongly advise users against the use of this method to modify the context or the reformulation.
+"""
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
 
 @mustimplement "ColGen" initial_primal_solution()
 
@@ -40,7 +64,7 @@ Returns `nothing` if the algorithm must stop.
 
 @mustimplement "ColGen" before_cut_separation()
 
-@mustimplement "ColGen" run_cut_seperation!()
+@mustimplement "ColGen" run_cut_separation!()
 
 @mustimplement "ColGen" after_cut_separation()
 
@@ -49,9 +73,9 @@ function run_colgen_phase!(context, phase, reform)
     cutsep_iteration = 0
     while !stop_colgen_phase(context, phase, reform)
         # cleanup ?
-        before_colgen_iteration(context)
-        run_colgen_iteration!(context, phase, reform)
-        after_colgen_iteration(context)
+        before_colgen_iteration(context, phase, reform)
+        colgen_iter_output = run_colgen_iteration!(context, phase, reform)
+        after_colgen_iteration(context, phase, reform, colgen_iter_output)
         colgen_iteration += 1
         if separate_cuts()
             before_cut_separation()
