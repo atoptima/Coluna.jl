@@ -29,9 +29,8 @@ Returns `nothing` if the algorithm must stop.
 @mustimplement "ColGenPhase" next_phase(::AbstractColGenContext, ::AbstractColGenPhase, ctx::AbstractColGenContext)
 
 
-
 "Setup the reformulation for the given phase."
-@mustimplement "ColGen" setup_reformulation(::AbstractColGenContext, ::AbstractColGenPhase, reform)
+@mustimplement "ColGen" setup_reformulation!(::AbstractColGenPhase, ::AbstractColGenContext, reform)
 
 "Returns `true` if the column generation phase must stop."
 @mustimplement "ColGen" stop_colgen_phase(context, phase, reform)
@@ -89,7 +88,7 @@ end
 function run!()
     phase = initial_phase(context)
     while !isnothing(phase)
-        setup_reformulation(context, phase, reform)
+        setup_reformulation(reform, phase, context)
         run_colgen_phase!(context, phase, reform)
         phase = next_phase(context, phase, reform)
     end

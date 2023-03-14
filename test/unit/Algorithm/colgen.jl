@@ -17,7 +17,7 @@
     @testset "insert_columns!" begin
         @testset "Two identical columns at two iterations" begin
             # Expected: unexpected variable state error.
-            env, master, subproblems, constraints = reformfromstring(form_string)
+            env, master, subproblems, constraints, _ = reformfromstring(form_string)
             spform = subproblems[1]
             spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
             algo = ClA.ColumnGeneration(
@@ -66,7 +66,7 @@
 
         @testset "Two identical columns at same iteration" begin
             # Expected: no error and two identical columns in the formulation
-            env, master, subproblems, constraints = reformfromstring(form_string)
+            env, master, subproblems, constraints, _ = reformfromstring(form_string)
             spform = subproblems[1]
             spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
             algo = ClA.ColumnGeneration(
@@ -105,7 +105,7 @@
         end
 
         @testset "Deactivated column added twice at same iteration" begin
-            env, master, subproblems, constraints = reformfromstring(form_string)
+            env, master, subproblems, constraints, _ = reformfromstring(form_string)
             spform = subproblems[1]
             spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
             algo = ClA.ColumnGeneration(
@@ -151,7 +151,7 @@
         end
 
         @testset "Infeasible subproblem" begin
-            env, master, subproblems, constraints = reformfromstring(form_string)
+            env, master, subproblems, constraints, _ = reformfromstring(form_string)
             spform = subproblems[1]
             spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
             algo = ClA.ColumnGeneration(

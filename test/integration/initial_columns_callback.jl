@@ -16,7 +16,7 @@
                 representatives
                     x1, x2, x3, x4
         """
-        env, master, subproblems, constraints = reformfromstring(form_string)
+        env, master, subproblems, constraints, _ = reformfromstring(form_string)
         spform = subproblems[1]
         spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
 

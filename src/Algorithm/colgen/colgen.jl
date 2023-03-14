@@ -31,9 +31,10 @@ or the cost of artificial variables is not large enough. Phase 1 must be run.
 struct ColGenPhase3 <: AbstractColGenPhase end
 
 # Implementation of ColGenPhase interface
-
+## Implementation of `initial_phase`.
 initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
 
+## Implementation of `next_phase`.
 function next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, ctx)
     # If master LP solution has no artificial vars, it means that the phase 1 has succeeded.
     # We have a set of columns that forms a feasible solution to the LP master and we can 
@@ -58,14 +59,55 @@ function next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, ctx)
     return nothing
 end
 
-# TODO
-colgen_mast_lp_sol_has_art_vars(ctx::ColGenContext) = false 
+## Methods used in the implementation and that we should mock in tests.
+function colgen_mast_lp_sol_has_art_vars(ctx::ColGenContext)
 
+end
 
+## Implementatation of `setup_reformulation!`
+## Phase 1 => non-artifical variables have cost equal to 0
+function setup_reformulation!(reform, ::ColGenPhase1)
+    master = getmaster(reform)
+    for (varid, _) in getvars(master)
+        if !isanArtificialDuty(getduty(varid))
+            setcurcost!(master, varid, 0.0)
+        end
+    end
+    return
+end
+
+## Phase 2 => deactivate artifical variables and make sure that the cost of non-artifical
+## variables is correct.
+function setup_reformulation!(reform, ::ColGenPhase2)
+    master = getmaster(reform)
+    for (varid, var) in getvars(master)
+        if isanArtificialDuty(getduty(varid))
+            deactivate!(master, varid)
+        else
+            setcurcost!(master, varid, getperencost(master, var))
+        end
+    end
+    return
+end
+
+## Phase 3 => make sure artifical variables are active and cost is correct.
+function setup_reformulation!(reform, ::ColGenPhase3)
+    master = getmaster(reform)
+    for (varid, var) in getvars(master)
+        if isanArtificialDuty(getduty(varid))
+            activate!(master, varid)
+        end
+        setcurcost!(master, varid, getperencost(master, var))
+    end
+    return
+end
 
 ######### Column generation
 
 # Placeholder methods:  
 
 before_colgen_iteration(::ColGenContext, _, _) = nothing
-after_colgen_iteration(::ColGenContext, _, _) = nothing
+after_colgen_iteration(::ColGenContext, _, _, _) = nothing
+
+
+######### Column generation iteration

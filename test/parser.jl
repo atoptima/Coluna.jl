@@ -50,6 +50,9 @@ const _KW_SUBSECTION = Dict(
     "representatives" => ClMP.MasterRepPricingVar,
     # DwSpPricingVar
     "pricing" => ClMP.DwSpPricingVar,
+    # MasterArtVar
+    "artificial" => ClMP.MasterArtVar,
+    "artificials" => ClMP.MasterArtVar,
 )
 
 const coeff_re = "\\d+(\\.\\d+)?"
@@ -300,8 +303,8 @@ function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClM
     for (varid, cost) in cache.master.objective.vars
         if haskey(cache.variables, varid)
             var = cache.variables[varid]
-            if var.duty <= ClMP.MasterPureVar
-                v = ClMP.setvar!(master, varid, ClMP.MasterPureVar; lb = var.lb, ub = var.ub, kind = var.kind)
+            if var.duty <= ClMP.AbstractMasterVar
+                v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind)
             else
                 if haskey(all_spvars, varid)
                     v = ClMP.setvar!(master, varid, ClMP.MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = ClMP.getid(all_spvars[varid]))
@@ -373,7 +376,7 @@ function reformfromcache(cache::ReadCache)
     end
     closefillmode!(ClMP.getcoefmatrix(master))
 
-    return env, master, subproblems, constraints
+    return env, master, subproblems, constraints, reform
 end
 
 function reformfromstring(s::String)
@@ -412,7 +415,7 @@ function reformfromstring(s::String)
         read_variables!(section, sub_section, cache, line)
     end
 
-    env, master, subproblems, constraints = reformfromcache(cache)
+    env, master, subproblems, constraints, reform = reformfromcache(cache)
 
-    return env, master, subproblems, constraints
+    return env, master, subproblems, constraints, reform
 end
