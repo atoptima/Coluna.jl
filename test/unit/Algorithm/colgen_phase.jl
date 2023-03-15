@@ -4,7 +4,7 @@ struct TestColGenContext <: ClA.AbstractColGenContext
 end
 ClA.colgen_mast_lp_sol_has_art_vars(ctx::TestColGenContext) = ctx.has_art_vars
 
-@testset "Algorithm - colgen" begin
+@testset "Algorithm - colgen phase" begin
     # These tests are pretty straightforward.
     # They are just here to make sure nobody changes the behavior of the phases.
     @testset "initial_phase" begin
