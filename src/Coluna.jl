@@ -44,6 +44,9 @@ include("parameters.jl")
 include("env.jl")
 export Env
 
+include("MustImplement/MustImplement.jl")
+using .MustImplement
+
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
 

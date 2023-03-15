@@ -1,6 +1,6 @@
 module ColunaBase
 
-using ..Coluna
+using ..Coluna, ..MustImplement
 
 using DynamicSparseArrays, MathOptInterface, TimerOutputs, RandomNumbers, Random, SparseArrays
 
@@ -40,10 +40,6 @@ export UnitType,
 export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,
     new_record, record_type, storage_unit_type, restore_from_record!, create_record
 
-# mustimplement.jl
-export @mustimplement
-
-include("mustimplement.jl")
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
