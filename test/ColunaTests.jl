@@ -34,7 +34,7 @@ module ColunaTests
     ########################################################################################
     # Unit tests
     ########################################################################################
-    for submodule in ["ColunaBase", "MathProg", "Algorithm"]
+    for submodule in ["MustImplement", "ColunaBase", "MathProg", "Algorithm"]
         dirpath = joinpath(@__DIR__, "unit", submodule)
         for filename in readdir(dirpath)
             include(joinpath(dirpath, filename))
