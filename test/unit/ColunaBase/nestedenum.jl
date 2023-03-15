@@ -20,7 +20,7 @@ ClB.@nestedenum begin
     E <= VarConstrDuty
 end
 
-@testset "ColunaBase - nested enum" begin
+function nested_enum()
     @test <=(A1, A)
     @test A1 <= A
 
@@ -30,3 +30,4 @@ end
     @test <=(B3A, B)
     @test B3A <= B
 end
+register!(unit_tests, "nestedenum", nested_enum)
