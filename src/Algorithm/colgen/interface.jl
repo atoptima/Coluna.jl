@@ -6,10 +6,8 @@ We can use these kpis as a stopping criteria for instance.
 """
 abstract type AbstractColGenKpis end
 
-
 """
 An iterator that indicates how a set of phases follow each other.
-
 """
 abstract type AbstractColGenPhaseIterator end
 
@@ -48,7 +46,6 @@ We strongly advise users against the use of this method to modify the context or
 Runs an iteration of column generation.
 """
 @mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform)
-
 
 """
 Placeholder method called after the column generation iteration.
@@ -107,7 +104,7 @@ Returns an instance of an object that implements both following functions:
 It should at least return a dual solution (obtained with LP optimization or subgradient) 
 otherwise column generation cannot continue.
 """
-@mustimplement "ColGenIteration" optimize_master_problem!()
+@mustimplement "ColGenIteration" optimize_master_lp_problem!(master, context, env)
 
 """
 Returns primal solution of master optimization problem. 
@@ -183,8 +180,9 @@ if we should stop solving pricing subproblems.
 """
     run_colgen_iteration!(context, phase, reform)
 """
-function run_colgen_iteration!()
-    mast_result = optimize_master_lp_problem!(context, phase, reform)
+function run_colgen_iteration!(context, phase, env)
+    master = get_master(context)
+    mast_result = optimize_master_lp_problem!(master, context, env)
 
     _check_master_termination_status(mast_result)
 
@@ -201,7 +199,7 @@ function run_colgen_iteration!()
 
     dual_mast_result = get_dual_sol(mast_result)
     if isnothing(dual_mast_result)
-        # error or stop?
+        # error or stop? (depends on the context)
     end
 
     update_master_constrs_dual_vals!(context, phase, reform, mast_dual_sol)
