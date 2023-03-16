@@ -177,6 +177,19 @@ if we should stop solving pricing subproblems.
 @mustimplement "ColGenPricingStrategy" next_sp(::AbstractPricingStrategy)
 
 
+@mustimplement "ColGenIteration" check_primal_ip_feasibility()
+
+@mustimplement "ColGenIteration" get_master(ctx)
+
+@mustimplement "ColGenIteration" get_reform(ctx)
+
+@mustimplement "ColGenIteration" get_orig_costs(context)
+@mustimplement "ColGenIteration" get_coef_matrix(context)
+
+function check_master_termination_status(mast_result)
+    # TODO
+end
+
 """
     run_colgen_iteration!(context, phase, reform)
 """
@@ -184,25 +197,25 @@ function run_colgen_iteration!(context, phase, env)
     master = get_master(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
 
-    _check_master_termination_status(mast_result)
+    check_master_termination_status(mast_result)
 
     # Master primal solution
-    primal_mast_result = get_primal_sol(mast_result)
-    if !isnothing(primal_mast_result)
+    mast_primal_sol = get_primal_sol(mast_result)
+    if !isnothing(mast_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
-        ip_primal_sol = check_primal_ip_feasibility(context, phase, reform)
+        ip_primal_sol = check_primal_ip_feasibility(phase, mast_primal_sol, get_reform(context))
         if !isnothing(ip_primal_sol)
             update_inc_primal_sol!(context, ip_primal_sol)
         end
     end
 
-    dual_mast_result = get_dual_sol(mast_result)
-    if isnothing(dual_mast_result)
+    mast_dual_sol = get_dual_sol(mast_result)
+    if isnothing(mast_dual_sol)
         # error or stop? (depends on the context)
     end
 
-    update_master_constrs_dual_vals!(context, phase, reform, mast_dual_sol)
+    update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
     # Stabilization
 
@@ -211,8 +224,14 @@ function run_colgen_iteration!(context, phase, env)
     # not the case when you compute reduced costs (the most efficient way to compute sp vars
     # reduced costs is to perform a SpMV operation on the whole coefficient matrix of the 
     # master).
-    # Second, it allows devs to tests if reduced costs are well computed. 
-    red_costs = compute_sp_vars_red_costs(context, phase, reform, mast_dual_sol)
+    # Second, it allows devs to tests if reduced costs are well computed.
+    c = get_orig_costs(context)
+    A = get_coef_matrix(context)
+    red_costs = c - transpose(A) * mast_dual_sol
+    # TODO: dispatch using a "calculation" type.
+    #red_costs = compute_sp_vars_red_costs(context, get_reform(context), mast_dual_sol)
+
+
     for sp in get_dw_sp(reform)
         update_sp_vars_red_costs!(context, sp, red_costs)
     end

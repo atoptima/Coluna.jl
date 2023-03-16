@@ -53,6 +53,8 @@ const _KW_SUBSECTION = Dict(
     # MasterArtVar
     "artificial" => ClMP.MasterArtVar,
     "artificials" => ClMP.MasterArtVar,
+    # MasterColumns
+    "columns" => ClMP.MasterCol
 )
 
 const coeff_re = "\\d+(\\.\\d+)?"
@@ -349,6 +351,7 @@ function add_master_constraints!(master::ClMP.Formulation, mastervars::Dict{Stri
 end
 
 function reformfromcache(cache::ReadCache)
+    @show cache.master
     if isempty(cache.master.objective.vars)
         throw(UndefObjectiveParserError())
     end

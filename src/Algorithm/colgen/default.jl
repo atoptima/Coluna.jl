@@ -1,5 +1,3 @@
-using ColGen
-
 struct ColGenContext <: ColGen.AbstractColGenContext
     # Information to solve the master
     master_solve_alg
@@ -66,7 +64,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, ctx)
 end
 
 ## Methods used in the implementation and that we should mock in tests.
-function ColGen.colgen_mast_lp_sol_has_art_vars(ctx::ColGenContext)
+function colgen_mast_lp_sol_has_art_vars(ctx::ColGenContext)
 
 end
 
@@ -123,7 +121,7 @@ end
 
 #get_primal_sol(mast_result)
 
-function ColGen.check_primal_ip_feasibility(mast_lp_primal_sol)
+function ColGen.check_primal_ip_feasibility(ctx, mast_lp_primal_sol)
     println("\e[31m check primal ip feasibility \e[00m")
     return !contains(mast_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid))) &&
         isinteger(proj_cols_on_rep(mast_lp_primal_sol, getmodel(mast_lp_primal_sol)))
@@ -133,7 +131,7 @@ end
 
 #get_dual_sol(mast_result)
 
-function ColGen.update_master_constrs_dual_vals!()
+function ColGen.update_master_constrs_dual_vals!(ctx, master, smooth_dual_sol)
     println("\e[32m update_master_constrs_dual_vals \e[00m")
     # Set all dual value of all constraints to 0.
     for constr in Iterators.values(getconstrs(master))
