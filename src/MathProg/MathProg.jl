@@ -7,7 +7,7 @@ import TimerOutputs
 using ..Coluna # for NestedEnum (types.jl:210)
 using ..ColunaBase
 
-import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
+import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view, isequal
 
 using DynamicSparseArrays, SparseArrays, Logging, Printf, LinearAlgebra
 

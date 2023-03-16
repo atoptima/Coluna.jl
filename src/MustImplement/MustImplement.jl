@@ -1,4 +1,11 @@
 """
+Exposes `@mustimplement` macro to help developers identifying API definitions.
+"""
+module MustImplement
+
+using Random
+
+"""
     IncompleteInterfaceError <: Exception
 
 Exception to be thrown when an interface function is called without default implementation.
@@ -60,4 +67,8 @@ macro mustimplement(interface_name, sig)
                 )
             )
     end
+end
+
+export @mustimplement, IncompleteInterfaceError
+
 end

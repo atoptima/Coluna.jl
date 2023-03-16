@@ -39,7 +39,7 @@ function ClB.restore_from_record!(
     return
 end
 
-@testset "ColunaBase - storage" begin
+function storage()
     model = ModelCs1(fill('A', NB_VARS_CS1), [3,4,5])
     storage = ClB.NewStorage(model)
     r1 = ClB.create_record(storage, CharStorageUnitCs1) # create_record -> save_current_state
@@ -55,3 +55,4 @@ end
     ClB.restore_from_record!(storage, r2)
     @test model.char_values[3] == 'B'
 end
+register!(unit_tests, "storage", storage)

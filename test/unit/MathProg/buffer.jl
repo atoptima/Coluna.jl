@@ -27,238 +27,250 @@ end
 
 _empty_buffer() = ClMP.FormulationBuffer{ClMP.VarId,ClMP.Variable,ClMP.ConstrId,ClMP.Constraint}()
 
-@testset "MathProg - buffer" begin
-    @testset "model factory - buffer initial state" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-        constrid = ClMP.getid(constr)
-        expected_buffer = _empty_buffer()
-        expected_buffer.changed_obj_sense = false # minimization by default
-        expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
-        expected_buffer.var_buffer.added = Set([varid])
-        expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
-        expected_buffer.constr_buffer.added = Set([constrid])
-        _test_buffer(form.buffer, expected_buffer)
-    end
 
-    @testset "setcurcost! & deactivate variable" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
-        expected_buffer.var_buffer.removed = Set([varid])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurcost!(form, var, 3.0)
-        ClMP.deactivate!(form, var)
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # should not throw any error
-        @test ClMP.iscuractive(form, var) == false
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "setcurkind! & deactivate variable" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
-        expected_buffer.var_buffer.removed = Set([varid])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurkind!(form, var, ClMP.Integ)
-        ClMP.deactivate!(form, var)
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # should not throw any error
-        @test ClMP.iscuractive(form, var) == false
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "setcurlb! & deactivate variable" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
-        expected_buffer.var_buffer.removed = Set([varid])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurlb!(form, var, 0.0)
-        ClMP.deactivate!(form, var)
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        @test ClMP.iscuractive(form, var) == false
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "setcurub! & deactivate variable" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
-        expected_buffer.var_buffer.removed = Set([varid])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurub!(form, var, 0.0)
-        ClMP.deactivate!(form, var)
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        @test ClMP.iscuractive(form, var) == false
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "setcurrhs! & deactivate constraint" begin
-        form, var, constr = model_factory_for_buffer()
-        constrid = ClMP.getid(constr)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
-        expected_buffer.constr_buffer.removed = Set([constrid])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurrhs!(form, constr, 0.0)
-        ClMP.deactivate!(form, constr)
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        @test ClMP.iscuractive(form, constr) == false
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "set matrix coeff" begin 
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-        constrid = ClMP.getid(constr)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.reset_coeffs = Dict((constrid => varid) => 5.0)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] = 5.0
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        @test ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] == 5.0
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!       
-    end
-
-    @testset "add variable and set matrix coeff" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-        constrid = ClMP.getid(constr)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        var2 = ClMP.setvar!(
-            form, "var2", ClMP.OriginalVar, cost=3.0, lb=-2.0, ub=2.0, 
-            kind=ClMP.Integ, inc_val=4.0
-        )
-        ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var2)] = 8.0
-
-        expected_buffer = _empty_buffer()
-        # change of the matrix is not buffered because it is a new variable and Coluna has
-        # to create the whole column in the subsolver.
-        expected_buffer.var_buffer.added = Set([ClMP.getid(var2)])
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "set matrix coeff & deactivate var + constr" begin
-        form, var, constr = model_factory_for_buffer()
-        varid = ClMP.getid(var)
-        constrid = ClMP.getid(constr)
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
-        expected_buffer.var_buffer.removed = Set([varid])
-        expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
-        expected_buffer.constr_buffer.removed = Set([constrid])
-
-        # matrix coefficient change is kept because it's too expensive to propagate
-        # variable or column deletion in the matrix coeff buffer
-        expected_buffer.reset_coeffs = Dict((constrid => varid) => 3.0)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] = 3.0
-        ClMP.deactivate!(form, var)
-        ClMP.deactivate!(form, constr)
-
-        _test_buffer(form.buffer, expected_buffer)
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        @test ClMP.iscuractive(form, var) == false
-        @test ClMP.iscuractive(form, constr) == false
-        @test ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] == 3.0
-        _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
-    end
-
-    @testset "change objective sense" begin
-        form, var, constr = model_factory_for_buffer()
-        
-        expected_buffer = _empty_buffer()
-        expected_buffer.changed_obj_sense = true
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.set_objective_sense!(form, false) # maximization
-
-        _test_buffer(form.buffer, expected_buffer)
-        @test ClMP.getobjsense(form) == ClMP.MaxSense
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        _test_buffer(form.buffer, _empty_buffer())
-    end
-
-    @testset "set peren lb and ub" begin
-        form, var, constr = model_factory_for_buffer()
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.changed_bound = Set{ClMP.VarId}([ClMP.getid(var)])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setperenlb!(form, var, 0.0)
-        ClMP.setperenub!(form, var, 1.0)
-
-        _test_buffer(form.buffer, expected_buffer)
-    end
-
-    @testset "Remove variable" begin
-        form, var, constr = model_factory_for_buffer()
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.var_buffer.removed = Set([ClMP.getid(var)])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurcost!(form, var, 2.0)  # make sure we delete buffered changes
-        delete!(form, var)
-
-        _test_buffer(form.buffer, expected_buffer)
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # make sure exception thrown
-    end
-
-    @testset "Remove constraint" begin
-        form, var, constr = model_factory_for_buffer()
-
-        expected_buffer = _empty_buffer()
-        expected_buffer.constr_buffer.removed = Set([ClMP.getid(constr)])
-
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
-        ClMP.setcurrhs!(form, constr, 3.0) # make sure we delete buffered changes
-        delete!(form, constr)
-
-        #_test_buffer(form.buffer, expected_buffer)
-        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # make sure exception thrown
-    end
+function model_factory_buffer_initial_state()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+    constrid = ClMP.getid(constr)
+    expected_buffer = _empty_buffer()
+    expected_buffer.changed_obj_sense = false # minimization by default
+    expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
+    expected_buffer.var_buffer.added = Set([varid])
+    expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
+    expected_buffer.constr_buffer.added = Set([constrid])
+    _test_buffer(form.buffer, expected_buffer)
 end
+register!(unit_tests, "buffer", model_factory_buffer_initial_state)
+
+function setcurcost!_and_deactivate_variable()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
+    expected_buffer.var_buffer.removed = Set([varid])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurcost!(form, var, 3.0)
+    ClMP.deactivate!(form, var)
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # should not throw any error
+    @test ClMP.iscuractive(form, var) == false
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", setcurcost!_and_deactivate_variable)
+
+function setcurkind!_deactivate_variable()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
+    expected_buffer.var_buffer.removed = Set([varid])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurkind!(form, var, ClMP.Integ)
+    ClMP.deactivate!(form, var)
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # should not throw any error
+    @test ClMP.iscuractive(form, var) == false
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", setcurkind!_deactivate_variable)
+
+function setcurlb!_deactivate_variable()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
+    expected_buffer.var_buffer.removed = Set([varid])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurlb!(form, var, 0.0)
+    ClMP.deactivate!(form, var)
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    @test ClMP.iscuractive(form, var) == false
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", setcurlb!_deactivate_variable)
+
+function setcurub!_deactivate_variable()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
+    expected_buffer.var_buffer.removed = Set([varid])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurub!(form, var, 0.0)
+    ClMP.deactivate!(form, var)
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    @test ClMP.iscuractive(form, var) == false
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", setcurub!_deactivate_variable)
+
+function setcurrhs!_deactivate_constraint()
+    form, var, constr = model_factory_for_buffer()
+    constrid = ClMP.getid(constr)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
+    expected_buffer.constr_buffer.removed = Set([constrid])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurrhs!(form, constr, 0.0)
+    ClMP.deactivate!(form, constr)
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    @test ClMP.iscuractive(form, constr) == false
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", setcurrhs!_deactivate_constraint)
+
+function set_matrix_coeff()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+    constrid = ClMP.getid(constr)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.reset_coeffs = Dict((constrid => varid) => 5.0)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] = 5.0
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    @test ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] == 5.0
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!       
+end
+register!(unit_tests, "buffer", set_matrix_coeff)
+
+function add_variable_and_set_matrix_coeff()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+    constrid = ClMP.getid(constr)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    var2 = ClMP.setvar!(
+        form, "var2", ClMP.OriginalVar, cost=3.0, lb=-2.0, ub=2.0, 
+        kind=ClMP.Integ, inc_val=4.0
+    )
+    ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var2)] = 8.0
+
+    expected_buffer = _empty_buffer()
+    # change of the matrix is not buffered because it is a new variable and Coluna has
+    # to create the whole column in the subsolver.
+    expected_buffer.var_buffer.added = Set([ClMP.getid(var2)])
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", add_variable_and_set_matrix_coeff)
+
+function set_matrix_coeff_and_deactivate_var_and_constr()
+    form, var, constr = model_factory_for_buffer()
+    varid = ClMP.getid(var)
+    constrid = ClMP.getid(constr)
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
+    expected_buffer.var_buffer.removed = Set([varid])
+    expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
+    expected_buffer.constr_buffer.removed = Set([constrid])
+
+    # matrix coefficient change is kept because it's too expensive to propagate
+    # variable or column deletion in the matrix coeff buffer
+    expected_buffer.reset_coeffs = Dict((constrid => varid) => 3.0)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] = 3.0
+    ClMP.deactivate!(form, var)
+    ClMP.deactivate!(form, constr)
+
+    _test_buffer(form.buffer, expected_buffer)
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    @test ClMP.iscuractive(form, var) == false
+    @test ClMP.iscuractive(form, constr) == false
+    @test ClMP.getcoefmatrix(form)[ClMP.getid(constr), ClMP.getid(var)] == 3.0
+    _test_buffer(form.buffer, _empty_buffer()) # empty buffer after sync_solver!        
+end
+register!(unit_tests, "buffer", set_matrix_coeff_and_deactivate_var_and_constr)
+
+function change_objective_sense()
+    form, var, constr = model_factory_for_buffer()
+    
+    expected_buffer = _empty_buffer()
+    expected_buffer.changed_obj_sense = true
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.set_objective_sense!(form, false) # maximization
+
+    _test_buffer(form.buffer, expected_buffer)
+    @test ClMP.getobjsense(form) == ClMP.MaxSense
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    _test_buffer(form.buffer, _empty_buffer())
+end
+register!(unit_tests, "buffer", change_objective_sense)
+
+function set_peren_lb_and_ub()
+    form, var, constr = model_factory_for_buffer()
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.changed_bound = Set{ClMP.VarId}([ClMP.getid(var)])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setperenlb!(form, var, 0.0)
+    ClMP.setperenub!(form, var, 1.0)
+
+    _test_buffer(form.buffer, expected_buffer)
+end
+register!(unit_tests, "buffer", set_peren_lb_and_ub)
+   
+function remove_variable()
+    form, var, constr = model_factory_for_buffer()
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.var_buffer.removed = Set([ClMP.getid(var)])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurcost!(form, var, 2.0)  # make sure we delete buffered changes
+    delete!(form, var)
+
+    _test_buffer(form.buffer, expected_buffer)
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # make sure exception thrown
+end
+register!(unit_tests, "buffer", remove_variable)
+
+function remove_constraint()
+    form, var, constr = model_factory_for_buffer()
+
+    expected_buffer = _empty_buffer()
+    expected_buffer.constr_buffer.removed = Set([ClMP.getid(constr)])
+
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+    ClMP.setcurrhs!(form, constr, 3.0) # make sure we delete buffered changes
+    delete!(form, constr)
+
+    #_test_buffer(form.buffer, expected_buffer)
+    ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form) # make sure exception thrown
+end
+register!(unit_tests, "buffer", remove_constraint)
