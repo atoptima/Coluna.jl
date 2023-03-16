@@ -11,6 +11,7 @@ typical_test_dirs = [
     joinpath("unit", "ColunaBase"),
     joinpath("unit", "MathProg"),   
     joinpath("unit", "MustImplement"),
+    joinpath("unit", "ColGen"),
 ]
 tracked_dirs = filter(isdir, typical_test_dirs)
 
@@ -26,6 +27,7 @@ function listen_to_tests(funcs)
         try
             entr(all_test_files, [MODULES...]; postpone = recovering) do
                 run(`clear`) # clear terminal
+                unit_tests = Registry()
                 map(funcs) do f
                     f()
                 end

@@ -3,12 +3,8 @@ using Revise
 using Base.CoreLogging: error
 using DynamicSparseArrays, SparseArrays, Coluna, TOML
 
-<<<<<<< HEAD
-# retest(Coluna, ColunaTests)
-=======
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
->>>>>>> master
 
 const MOI = MathOptInterface
 const MOIU = MOI.Utilities
@@ -39,12 +35,15 @@ const MODULES = [
     Coluna.Algorithm,
 ]
 
+rng = MersenneTwister(1234123)
+
 if !isempty(ARGS)
     # assume that the call is coming from revise.sh
     include("revise.jl")
+else
+    include("unit/run.jl")
+    run_unit_tests()
 end
-
-rng = MersenneTwister(1234123)
 
 include("parser.jl")
 
@@ -56,4 +55,3 @@ include("parser.jl")
     @test coluna_ver == toml_ver   
 end
 
-include("unit/run.jl")
