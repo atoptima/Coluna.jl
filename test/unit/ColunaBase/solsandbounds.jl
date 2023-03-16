@@ -149,13 +149,13 @@ function printbounds()
 end
 register!(unit_tests, "bounds", printbounds)
 
-function show()
+function show_test()
     pb = ClB.Bound{Primal,MaxSense}(4)
     io = IOBuffer()
     show(io, pb)
     @test String(take!(io)) == "4.0" 
 end
-register!(unit_tests, "bounds", show)
+register!(unit_tests, "bounds", show_test)
 
 function promotions_and_conversion()
     pb = ClB.Bound{Primal,MaxSense}(4.0)
@@ -301,7 +301,6 @@ function test_solution_iterations(solution::ClB.Solution, dict::Dict)
     end
     return
 end
-register!(unit_tests, "solution", test_solution_iterations)
 
 function solution_constructor_iterate_print()
     model = FakeModel()

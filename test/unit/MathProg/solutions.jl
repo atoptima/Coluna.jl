@@ -31,7 +31,7 @@ function isless_max_sense()
 end
 register!(unit_tests, "solutions", isless_max_sense)
 
-function isequal()
+function isequal_test()
     form = ClMP.create_formulation!(
         Env{ClMP.VarId}(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
     )
@@ -66,7 +66,7 @@ function isequal()
     )
     @test dualsol1 == dualsol2
 end
-register!(unit_tests, "solutions", isequal)
+register!(unit_tests, "solutions", isequal_test)
 
 function lin_alg_1_vec_basic_op()
     form = ClMP.create_formulation!(

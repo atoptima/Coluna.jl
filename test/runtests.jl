@@ -35,12 +35,15 @@ const MODULES = [
     Coluna.Algorithm,
 ]
 
+rng = MersenneTwister(1234123)
+
 if !isempty(ARGS)
     # assume that the call is coming from revise.sh
     include("revise.jl")
+else
+    include("unit/run.jl")
+    run_unit_tests()
 end
-
-rng = MersenneTwister(1234123)
 
 include("parser.jl")
 
@@ -52,5 +55,4 @@ include("parser.jl")
     @test coluna_ver == toml_ver   
 end
 
-include("unit/run.jl")
 

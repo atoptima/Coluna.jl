@@ -43,7 +43,7 @@ function view_row()
 end
 register!(unit_tests, "formulations", view_row)
 
-function transpose()
+function transpose_test()
     rows, cols, vals, matrix = coefmatrix_factory()
     closefillmode!(matrix)
 
@@ -53,4 +53,4 @@ function transpose()
         @test transposed_matrix[j,i] == matrix[i,j] == v
     end
 end
-register!(unit_tests, "formulations", transpose)
+register!(unit_tests, "formulations", transpose_test)
