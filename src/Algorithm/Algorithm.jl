@@ -4,7 +4,7 @@ using DataStructures
 import MathOptInterface
 import TimerOutputs
 
-using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement
+using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen
 
 using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics, SparseArrays, LinearAlgebra
 
@@ -41,6 +41,12 @@ include("basic/cutcallback.jl")
 
 # Child algorithms used by conquer algorithms
 include("colgenstabilization.jl")
+
+# Column generation
+include("colgen/utils.jl")
+include("colgen/default.jl")
+
+
 include("colgen.jl")
 include("benders.jl")
 

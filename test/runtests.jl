@@ -20,12 +20,13 @@ const ClB = Coluna.ColunaBase
 const ClMP = Coluna.MathProg
 const ClA = Coluna.Algorithm
 
-using Coluna.ColunaBase, Coluna.MathProg
+using Coluna.ColunaBase, Coluna.MathProg, Coluna.ColGen
 
 include("TestRegistry/TestRegistry.jl")
 using .TestRegistry
 
 unit_tests = Registry()
+include("parser.jl")
 
 const MODULES = [
     Coluna,
@@ -33,6 +34,7 @@ const MODULES = [
     Coluna.MustImplement,
     Coluna.MathProg,
     Coluna.Algorithm,
+    Coluna.ColGen
 ]
 
 rng = MersenneTwister(1234123)
@@ -45,7 +47,6 @@ else
     run_unit_tests()
 end
 
-include("parser.jl")
 
 @testset "Version" begin
     coluna_ver = Coluna.version()
@@ -54,5 +55,4 @@ include("parser.jl")
     )
     @test coluna_ver == toml_ver   
 end
-
 

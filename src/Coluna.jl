@@ -47,6 +47,9 @@ export Env
 include("MustImplement/MustImplement.jl")
 using .MustImplement
 
+include("ColGen/ColGen.jl")
+using .ColGen
+
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
 

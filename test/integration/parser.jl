@@ -98,7 +98,7 @@ end
             bounds
                 y <= 10
         """
-        env, master, subproblems, constraints = reformfromstring(s)
+        env, master, subproblems, constraints, _ = reformfromstring(s)
 
         @test CL.getobjsense(master) == CL.MaxSense
 
@@ -257,7 +257,7 @@ end
                 pricing
                     y2
         """
-        env, master, subproblems, constraints = reformfromstring(s)
+        env, master, subproblems, constraints, _ = reformfromstring(s)
 
         @test CL.getobjsense(master) == CL.MinSense
 
@@ -330,7 +330,7 @@ end
                 0 <= y1 <= 1
                 z_1, z_2 >= 6.2
         """
-        env, master, subproblems, constraints = reformfromstring(s)
+        env, master, subproblems, constraints, _ = reformfromstring(s)
 
         @test CL.getobjsense(master) == CL.MinSense
 
@@ -393,5 +393,29 @@ end
         @test c2.duty == ClMP.DwSpPureConstr
         @test c2.sense == CL.Greater
         @test c2.rhs == 4.2
+    end
+
+    @testset "artificial variables"  begin
+        s = """
+        master
+            min
+            3*y + 2*z
+            s.t.
+            y + z >= 1
+
+        continuous
+            pure
+                y
+            artificial
+                z
+    """
+    env, master, subproblems, constraints, _ = reformfromstring(s)
+
+    names, kinds, duties, costs, bounds = get_vars_info(master)
+    @test names == ["y", "z"]
+    @test kinds == [ClMP.Continuous, ClMP.Continuous]
+    @test duties == [ClMP.MasterPureVar, ClMP.MasterArtVar]
+    @test costs == [3.0, 2.0]
+    @test bounds == [(-Inf, Inf), (-Inf, Inf)]
     end
 end
