@@ -54,10 +54,17 @@ struct ColGenIterationTestContext <: ColGen.AbstractColGenContext
     reform::ClMP.Reformulation
 end
 
-struct ColGenIterationTestResult
+struct ColGenIterationTestMasterResult
     term_status::ClB.TerminationStatus
     primal_sol::Union{Nothing, Vector{Float64}}
     dual_sol::Union{Nothing, Vector{Float64}}
+end
+
+struct ColGenIterationTestPricingResult
+    term_status::ClB.TerminationStatus
+    primal_sols::Vector{Vector{Float64}}
+    primal_bound::Float64
+    dual_bound::Float64
 end
 
 struct ColGenIterationTestPhase <: ColGen.AbstractColGenPhase end
@@ -75,7 +82,7 @@ function ColGen.optimize_master_lp_problem!(master, ctx::ColGenIterationTestCont
         nothing
     end
 
-    return ColGenIterationTestResult(ctx.master_term_status, primal_sol, dual_sol)
+    return ColGenIterationTestMasterResult(ctx.master_term_status, primal_sol, dual_sol)
 end
 
 # Reduced costs
@@ -84,17 +91,56 @@ end
 ColGen.get_master(ctx::ColGenIterationTestContext) = ClMP.getmaster(ctx.reform)
 ColGen.get_reform(ctx::ColGenIterationTestContext) = ctx.reform
 
-ColGen.get_primal_sol(res::ColGenIterationTestResult) = res.primal_sol
-ColGen.get_dual_sol(res::ColGenIterationTestResult) = res.dual_sol
+ColGen.get_primal_sol(res::ColGenIterationTestMasterResult) = res.primal_sol
+ColGen.get_dual_sol(res::ColGenIterationTestMasterResult) = res.dual_sol
 
 ColGen.check_primal_ip_feasibility(::ColGenIterationTestPhase, sol, reform) = nothing
 
 ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, dual_mast_sol) = nothing
 
+ColGen.get_orig_costs(::ColGenIterationTestContext) = [7, 2, 1, 5, 3, 6, 8, 4, 2, 9]
+ColGen.get_coef_matrix(::ColGenIterationTestContext) = [
+    1 1 1 1 0 0 0 0 0 0; 
+    1 0 0 0 1 1 1 0 0 0; 
+    0 1 0 0 1 0 0 1 1 0; 
+    0 0 1 0 0 1 0 1 0 1; 
+    0 0 0 1 0 0 1 0 1 1
+]
+
+function ColGen.update_sp_vars_red_costs!(::ColGenIterationTestContext, subprob, red_costs)
+    for (var_id, var) in ClMP.getvars(subprob)
+        setcurcost!(subprob, var, red_costs[var_id])
+    end
+    return
+end
+
+ColGen.get_pricing_subprobs(context) = ClMP.get_dw_pricing_sps(context.reform)
+
+ColGen.compute_sp_init_db(::ColGenIterationTestContext, sp) = -Inf
+
+ColGen.pool_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
+
+function ColGen.optimize_pricing_problem!(::ColGenIterationTestContext, form)
+    return ColGenIterationTestPricingResult(ClB.OPTIMAL, [[1, 0, 0, 0, 0, 0, 0]], 0, 0)
+end
+
+function ColGen.get_primal_sols(res::ColGenIterationTestPricingResult)
+    return res.primal_sols
+end
+
+ColGen.get_dual_bound(res::ColGenIterationTestPricingResult) = res.dual_bound
+
+function ColGen.insert_columns!(::ColGenIterationTestContext, phase, reform, generated_columns)
+    return
+end
+
+function ColGen.compute_dual_bound!(::ColGenIterationTestContext, phase, reform, sps_db)
+    return 0
+end
+
 function run_colgen_iteration_test()
     reform, master, vars_by_name = get_reform_master_and_vars_colgen_iteration()
 
     ColGen.run_colgen_iteration!(ColGenIterationTestContext(ClB.OPTIMAL, reform), ColGenIterationTestPhase(), nothing)
-
 end
 register!(unit_tests, "colgen_iteration", run_colgen_iteration_test)

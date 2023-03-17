@@ -106,6 +106,19 @@ function ColGen.setup_reformulation!(reform, ::ColGenPhase3)
     return
 end
 
+######### Pricing strategy
+struct ClassicPricingStrategy <: ColGen.AbstractPricingStrategy 
+    subprobs::Dict{FormId, Formulation{DwSp}}
+end
+
+function ColGen.get_pricing_strategy(ctx::ColGen.AbstractColGenContext, _)
+    ClassicPricingStrategy(Dict(i => sp for (i, sp) in ColGen.get_pricing_subprobs(ctx)))
+end
+
+ColGen.iterate_sp(ps::ClassicPricingStrategy) = iterate(ps.subprobs)
+ColGen.iterate_sp(ps::ClassicPricingStrategy, state) = iterate(ps.subprobs, state)
+
+
 ######### Column generation
 
 # Placeholder methods:  

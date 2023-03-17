@@ -351,7 +351,6 @@ function add_master_constraints!(master::ClMP.Formulation, mastervars::Dict{Stri
 end
 
 function reformfromcache(cache::ReadCache)
-    @show cache.master
     if isempty(cache.master.objective.vars)
         throw(UndefObjectiveParserError())
     end

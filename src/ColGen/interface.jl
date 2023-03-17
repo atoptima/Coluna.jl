@@ -168,13 +168,13 @@ abstract type AbstractPricingStrategy end
 """
 Returns the first subproblem that must be optimized.
 """
-@mustimplement "ColGenPricingStrategy" first_sp(::AbstractPricingStrategy)
+@mustimplement "ColGenPricingStrategy" iterate_sp(::AbstractPricingStrategy)
 
 """
 Returns the next subproblem to optimize, or `nothing` if all subproblems have been solved or 
 if we should stop solving pricing subproblems.
 """
-@mustimplement "ColGenPricingStrategy" next_sp(::AbstractPricingStrategy)
+@mustimplement "ColGenPricingStrategy" iterate_sp(::AbstractPricingStrategy, state)
 
 
 @mustimplement "ColGenIteration" check_primal_ip_feasibility()
@@ -185,8 +185,19 @@ if we should stop solving pricing subproblems.
 
 @mustimplement "ColGenIteration" get_orig_costs(context)
 @mustimplement "ColGenIteration" get_coef_matrix(context)
+@mustimplement "ColGenIteration" get_pricing_subprobs(context)
+
+@mustimplement "ColGenIteration" get_pricing_strategy(context, phase)
+
+@mustimplement "ColGenIteration" get_primal_sols(res)
+
+@mustimplement "ColGenIteration" get_dual_bound(res)
 
 function check_master_termination_status(mast_result)
+    # TODO
+end
+
+function check_pricing_termination_status(pricing_result)
     # TODO
 end
 
@@ -231,8 +242,9 @@ function run_colgen_iteration!(context, phase, env)
     # TODO: dispatch using a "calculation" type.
     #red_costs = compute_sp_vars_red_costs(context, get_reform(context), mast_dual_sol)
 
+    @show red_costs
 
-    for sp in get_dw_sp(reform)
+    for (_, sp) in get_pricing_subprobs(context)
         update_sp_vars_red_costs!(context, sp, red_costs)
     end
 
@@ -242,39 +254,41 @@ function run_colgen_iteration!(context, phase, env)
     # Depending on the pricing strategy, the user can choose to solve only some subproblems.
     # If the some subproblems have not been solved, we use this initial dual bound to
     # compute the master dual bound.
-    sps_db = Dict(id(sp) => compute_sp_init_db(context, sp) for sp in get_dw_sp(reform))
+    sps_db = Dict(sp_id => compute_sp_init_db(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
 
     # Solve pricing subproblems
     pricing_strategy = get_pricing_strategy(context, phase)
-    sp_to_solve = first_sp(pricing_strategy, reform)
+    sp_to_solve_it = iterate_sp(pricing_strategy)
 
     # All generated columns will be stored in the following container. We will insert them
     # into the master after the optimization of the pricing subproblems.
-    generated_columns = pool_of_columns()
+    generated_columns = pool_of_columns(context)
 
-    while !isnothing(sp_to_solve)
+    while !isnothing(sp_to_solve_it)
+        (sp_id, sp_to_solve), state = sp_to_solve_it
         pricing_result = optimize_pricing_problem!(context, sp_to_solve)
-        _check_pricing_termination_status(pricing_result)
+        check_pricing_termination_status(pricing_result)
 
         primal_sols = get_primal_sols(pricing_result)
         for primal_sol in primal_sols # multi column generation
+            # TODO: ensure eltype of generated_columns is the same as eltype of primal_sol
             push!(generated_columns, primal_sol)
         end
 
         # Updates the initial bound if the pricing subproblem result has a dual bound.
-        sp_db = get_dual_bound(context, pricing_result)
+        sp_db = get_dual_bound(pricing_result)
         if !isnothing(sp_db)
-            sps_db[id(sp_to_solve)] = sp_db
+            sps_db[sp_id] = sp_db
         end
 
-        sp_to_solve = next_sp(pricing_strategy, sp_to_solve)
+        sp_to_solve_it = iterate(sp_to_solve_it, state)
     end
 
     # Insert columns into the master.
-    insert_columns!(context, phase, reform, generated_columns)
+    insert_columns!(context, phase, get_reform(context), generated_columns)
 
 
-    db = compute_dual_bound!(context, phase, reform, sps_db)
+    db = compute_dual_bound!(context, phase, get_reform(context), sps_db)
     # check gap
 
     return
