@@ -3,8 +3,11 @@ module ColGen
 
 using ..MustImplement
 
+abstract type AbstractColGenContext end 
+
+
 include("phases.jl")
-include("pricing_strategy.jl")
+include("pricing.jl")
 
 include("interface.jl")
 

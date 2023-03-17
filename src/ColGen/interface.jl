@@ -1,5 +1,3 @@
-abstract type AbstractColGenContext end 
-
 """
 Structure where we store performance information about the column generation algorithm.
 We can use these kpis as a stopping criteria for instance.
@@ -66,30 +64,71 @@ function run!()
 end
 
 ############################################################################################
+# Reformulation getters
+############################################################################################
+"Returns Dantzig-Wolfe reformulation."
+@mustimplement "ColGen" get_reform(ctx)
+
+"Returns master formulation."
+@mustimplement "ColGen" get_master(ctx)
+
+"""
+    get_pricing_subprobs(ctx) -> Vector{Tuple{SuproblemId, SpFormulation}}
+
+Returns subproblem formulations.
+"""
+@mustimplement "ColGen" get_pricing_subprobs(ctx)
+
+############################################################################################
 # Master resolution.
 ############################################################################################
 
 """
-Returns an instance of an object that implements both following functions:
+    optimize_master_lp_problem!(master, context, env) -> MasterResult
+
+Returns an instance of a custom object `MasterResult` that implements following methods:
+- `get_obj_val`: objective value of the master (mandatory)
 - `get_primal_sol`: primal solution to the master (optional)
 - `get_dual_sol`: dual solution to the master (mandatory otherwise column generation stops)
 
 It should at least return a dual solution (obtained with LP optimization or subgradient) 
 otherwise column generation cannot continue.
 """
-@mustimplement "ColGenIteration" optimize_master_lp_problem!(master, context, env)
+@mustimplement "ColGenMaster" optimize_master_lp_problem!(master, context, env)
 
 """
-Returns primal solution of master optimization problem. 
-See `optimize_master_problem!`.
+Returns the optimal objective value of the master LP problem."
+See `optimize_master_lp_problem!`.
 """
-@mustimplement "ColGenIteration" get_primal_sol()
+@mustimplement "ColGenMaster" get_obj_val(master_res)
 
 """
-Returns dual solution of master optimization problem. 
-See `optimize_master_problem!`.
+Returns primal solution to the master LP problem. 
+See `optimize_master_lp_problem!`.
 """
-@mustimplement "ColGenIteration" get_dual_sol()
+@mustimplement "ColGenMaster" get_primal_sol(master_res)
+
+"""
+Returns dual solution to the master optimization problem. 
+See `optimize_master_lp_problem!`.
+"""
+@mustimplement "ColGenMaster" get_dual_sol(master_res)
+
+"""
+Updates dual value of the master constraints.
+Dual values of the constraints can be used when the pricing solver supports non-robust cut.
+
+**Note (by guimarqu)**: This is something that should be discussed because another option
+is to provide the master LP dual solution to the pricing solver instead of storing the same
+information at two different places.
+"""
+@mustimplement "ColGenMaster" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol)
+
+"""
+Returns a primal solution expressed in the original problem variables if the current master
+LP solution is integer feasible; `nothing` otherwise.
+"""
+@mustimplement "ColGenMaster" check_primal_ip_feasibility(phase, mast_lp_primal_sol, reform)
 
 ############################################################################################
 # Reduced costs calculation.
@@ -106,40 +145,19 @@ to compute reduced cost `̄c = c - transpose(A) * π`.
 """
 @mustimplement "ColGenReducedCosts" get_coef_matrix(ctx::AbstractColGenContext)
 
-"Update reduced costs of variables of a given subproblem."
+"Updates reduced costs of variables of a given subproblem."
 @mustimplement "ColGenReducedCosts" update_sp_vars_red_costs!(ctx::AbstractColGenContext, sp, red_costs)
 
-
+############################################################################################
+# Columns insertion.
 ############################################################################################
 
-
-
-
-
-
-
-"TODO"
-@mustimplement "ColGenIteration" update_master_constrs_dual_vals!()
-
-
-
-"Returns the dual bound to the master."
-@mustimplement "ColGenIteration" compute_dual_bound!()
-
-"Inserts columns into the master. Returns the number of columns inserted."
-@mustimplement "ColGenIteration" insert_columns!()
-
-
-
-@mustimplement "ColGenIteration" check_primal_ip_feasibility()
-
-@mustimplement "ColGenIteration" get_master(ctx)
-
-@mustimplement "ColGenIteration" get_reform(ctx)
-
-
-
-@mustimplement "ColGenIteration" get_pricing_subprobs(context)
+"""
+Inserts columns into the master. Returns the number of columns inserted.
+Implementation is responsible for checking if the column must be inserted and warn the user
+if something unexpected happens.
+"""
+@mustimplement "ColGen" insert_columns!(reform, ctx, phase, columns)
 
 
 function check_master_termination_status(mast_result)
@@ -150,8 +168,8 @@ function check_pricing_termination_status(pricing_result)
     # TODO
 end
 
-function compute_dual_bound(ctx, phase, master_lp, master_dbs)
-    return master_lp - mapreduce(((id, val),) -> val, +, master_dbs)
+function compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs)
+    return master_lp_obj_val + mapreduce(((id, val),) -> val, +, master_dbs)
 end
 
 """
@@ -179,6 +197,9 @@ function run_colgen_iteration!(context, phase, env)
         # error or stop? (depends on the context)
     end
 
+    # TODO discussion.
+    # Do we need this method?
+    # I think we can just pass the master LP dual solution to the pricing solver. 
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
     # Stabilization
@@ -207,7 +228,7 @@ function run_colgen_iteration!(context, phase, env)
 
     # All generated columns will be stored in the following container. We will insert them
     # into the master after the optimization of the pricing subproblems.
-    generated_columns = pool_of_columns(context)
+    generated_columns = set_of_columns(context)
 
     while !isnothing(sp_to_solve_it)
         (sp_id, sp_to_solve), state = sp_to_solve_it
@@ -232,12 +253,12 @@ function run_colgen_iteration!(context, phase, env)
 
     # Insert columns into the master.
     # The implementation is responsible for checking if the column is "valid".
-    insert_columns!(context, phase, get_reform(context), generated_columns)
+    nb_cols_inserted = insert_columns!(get_reform(context), context, phase, generated_columns)
 
-
-    db = compute_dual_bound!(context, phase, master_lp, sps_db)
+    master_lp_obj_val = get_obj_val(mast_result)
+    db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
     # check gap
 
-    return
+    return master_lp_obj_val, db, nb_cols_inserted
 end
 

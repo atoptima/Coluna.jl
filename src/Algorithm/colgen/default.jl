@@ -155,11 +155,6 @@ function ColGen.update_master_constrs_dual_vals!(ctx, master, smooth_dual_sol)
     end
 end
 
-function ColGen.compute_sp_vars_red_costs(ctx, mast_lp_dual_sol)
-    println("\e[34m compute_sp_vars_red_costs \e[00m")
-    return ctx.redcost_mem.c - transpose(ctx.redcost_mem.A) * mast_lp_dual_sol
-end
-
 function ColGen.update_sp_vars_red_costs!(ctx, sp, red_costs)
     println("\e[34m update_sp_vars_red_costs \e[00m")
     for (var_id, _) in getvars(sp)
