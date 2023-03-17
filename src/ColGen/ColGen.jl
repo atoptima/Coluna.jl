@@ -3,6 +3,9 @@ module ColGen
 
 using ..MustImplement
 
+include("phases.jl")
+include("pricing_strategy.jl")
+
 include("interface.jl")
 
 end

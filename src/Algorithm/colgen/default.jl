@@ -115,8 +115,7 @@ function ColGen.get_pricing_strategy(ctx::ColGen.AbstractColGenContext, _)
     ClassicPricingStrategy(Dict(i => sp for (i, sp) in ColGen.get_pricing_subprobs(ctx)))
 end
 
-ColGen.iterate_sp(ps::ClassicPricingStrategy) = iterate(ps.subprobs)
-ColGen.iterate_sp(ps::ClassicPricingStrategy, state) = iterate(ps.subprobs, state)
+ColGen.pricing_strategy_iterate(ps::ClassicPricingStrategy) = iterate(ps.subprobs)
 
 
 ######### Column generation
