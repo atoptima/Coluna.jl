@@ -45,6 +45,9 @@ include("colgenstabilization.jl")
 # Column generation
 include("colgen/utils.jl")
 include("colgen/default.jl")
+include("colgen/phases.jl")
+include("colgen/pricing.jl")
+include("colgen/iteration.jl")
 
 
 include("colgen.jl")

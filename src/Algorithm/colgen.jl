@@ -217,6 +217,7 @@ function clear_before_colgen_iteration!(spinfo::SubprobInfo)
     return
 end
 
+# used by stabiization only
 function compute_subgradient_contribution(
     algo::ColumnGeneration, master::Formulation, puremastervars::Vector{Pair{VarId,Float64}},
     spinfos::Dict{FormId,SubprobInfo}
@@ -241,6 +242,7 @@ function compute_subgradient_contribution(
     return sparsevec(var_ids, var_vals)
 end
 
+# used in reduced_costs_of_solutions
 function compute_reduced_cost(
     stab_is_used, masterform::Formulation,
     spsol::PrimalSolution, lp_dual_sol::DualSolution

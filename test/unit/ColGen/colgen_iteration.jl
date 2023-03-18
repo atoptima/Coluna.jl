@@ -9,8 +9,7 @@
 # - error handling
 # - output
 
-# function get_reform_master_and_vars_colgen_iteration()
-#     form_string1 = """
+# This is the problems that we consider here:
 #         master
 #             min
 #             7x_12 + 2x_13 + x_14 + 5x_15 + 3x_23 + 6x_24 + 8x_25 + 4x_34 + 2x_35 + 9x_45 + 28λ1 + 25λ2 + 21λ3 + 19λ4 + 22λ5 + 18λ6 + 28λ7
@@ -53,12 +52,6 @@
 #             x_34 >= 0
 #             x_35 >= 0
 #             x_45 >= 0
-#     """
-
-#     _, master, _, _, reform = reformfromstring(form_string1)
-#     vars_by_name = Dict{String, ClMP.Variable}(ClMP.getname(master, var) => var for (_, var) in ClMP.getvars(master))
-#     return reform, master, vars_by_name
-# end
 
 struct ColGenIterationTestMaster end
 struct ColGenIterationTestPricing end
@@ -263,4 +256,3 @@ function colgen_iteration_pricing_unbounded()
     @test output.unbounded_subproblem == true
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
-

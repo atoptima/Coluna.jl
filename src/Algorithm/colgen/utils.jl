@@ -75,6 +75,11 @@ subproblem variables:
   representative variables.
 
 Calculation is `c - transpose(A) * master_lp_dual_solution`.
+
+This information is given to the generic implementation of the column generation algorithm
+through methods:
+- ColGen.get_orig_costs 
+- ColGen.get_orig_coefmatrix
 """
 struct ReducedCostsCalculationHelper
     c::SparseVector{Float64,VarId}
