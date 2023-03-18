@@ -9,11 +9,11 @@ Basically, this object is used like this:
 
 ```julia
     pricing_strategy = ColGen.get_pricing_strategy(ctx, phase)
-    it = ColGen.pricing_strategy_iterate(pricing_strategy)
-    while !isnothing(it)
-        (sp_id, sp_to_solve), state = It
+    next = ColGen.pricing_strategy_iterate(pricing_strategy)
+    while !isnothing(next)
+        (sp_id, sp_to_solve), state = next
         # Solve the subproblem `sp_to_solve`.
-        it = iterate(it, state)
+        next = ColGen.pricing_strategy_iterate(pricing_strategy, state)
     end
 ```
 """
@@ -28,12 +28,14 @@ Returns the pricing strategy object.
 
 """
     pricing_strategy_iterate(pricing_strategy) -> ((sp_id, sp_to_solve), state)
+    pricing_strategy_iterate(pricing_strategy, state) -> ((sp_id, sp_to_solve), state)
 
 Returns an iterator with the first pricing subproblem that must be optimized.
 The next subproblem is returned by a call to `Base.iterate` using the information
 provided by this method.
 """
 @mustimplement "ColGenPricing" pricing_strategy_iterate(::AbstractPricingStrategy)
+@mustimplement "ColGenPricing" pricing_strategy_iterate(::AbstractPricingStrategy, state)
 
 #############################################################################
 # Columns generation.

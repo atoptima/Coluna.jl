@@ -80,6 +80,18 @@ Returns subproblem formulations.
 @mustimplement "ColGen" get_pricing_subprobs(ctx)
 
 ############################################################################################
+# Solution status getters
+############################################################################################
+"Returns true if a master or pricing problem result is infeasible; false otherwise."
+@mustimplement "ColGen" is_infeasible(res)
+
+"Returns true if a master or pricing problem result is unbounded; false otherwise."
+@mustimplement "ColGen" is_unbounded(res)
+
+"Returns true if a master or pricing problem result is optimal; false otherwise."
+@mustimplement "ColGen" is_optimal(res)
+
+############################################################################################
 # Master resolution.
 ############################################################################################
 
@@ -172,12 +184,30 @@ function compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs)
     return master_lp_obj_val + mapreduce(((id, val),) -> val, +, master_dbs)
 end
 
+struct ColGenIterationOutput
+    mlp::Union{Nothing, Float64}
+    db::Union{Nothing, Float64}
+    nb_new_cols::Int
+    infeasible_master::Bool
+    unbounded_master::Bool
+    infeasible_subproblem::Bool
+    unbounded_subproblem::Bool
+end
+
 """
-    run_colgen_iteration!(context, phase, reform)
+    run_colgen_iteration!(context, phase, reform) -> ColGenIterationOutput
 """
 function run_colgen_iteration!(context, phase, env)
     master = get_master(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
+
+    # Iteration continues only if master is not infeasible nor unbounded and has dual
+    # solution.
+    if is_infeasible(mast_result)
+        return ColGenIterationOutput(nothing, Inf, 0, true, false, false, false)
+    elseif is_unbounded(mast_result)
+        return ColGenIterationOutput(-Inf, nothing, 0, false, true, false, false)
+    end
 
     check_master_termination_status(mast_result)
 
@@ -233,6 +263,14 @@ function run_colgen_iteration!(context, phase, env)
     while !isnothing(sp_to_solve_it)
         (sp_id, sp_to_solve), state = sp_to_solve_it
         pricing_result = optimize_pricing_problem!(context, sp_to_solve)
+
+        # Iteration continues only if the pricing solution is not infeasible nor unbounded.
+        if is_infeasible(pricing_result)
+            return ColGenIterationOutput(nothing, Inf, 0, false, false, true, false)
+        elseif is_unbounded(pricing_result)
+            return ColGenIterationOutput(nothing, nothing, 0, false, false, false, true)
+        end
+
         check_pricing_termination_status(pricing_result)
 
         primal_sols = get_primal_sols(pricing_result)
@@ -248,7 +286,7 @@ function run_colgen_iteration!(context, phase, env)
             sps_db[sp_id] = sp_db
         end
 
-        sp_to_solve_it = iterate(sp_to_solve_it, state)
+        sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
     end
 
     # Insert columns into the master.
@@ -259,6 +297,6 @@ function run_colgen_iteration!(context, phase, env)
     db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
     # check gap
 
-    return master_lp_obj_val, db, nb_cols_inserted
+    return ColGenIterationOutput(master_lp_obj_val, db, nb_cols_inserted, false, false, false, false)
 end
 
