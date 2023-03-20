@@ -71,6 +71,60 @@ end
 register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
 
+# All the tests are based on the Generalized Assignment problem.
+# x_jm = 1 if job j is assigned to machine m
+gap1() =  """
+    master
+        min
+        x_11 + 3x_12 + 4x_13 + 5x_14 + 6x_15 + 3x_21 + x_22 + 2x_23 + 3x_24 + 4x_25
+        s.t.
+        x_11 + x_12 + x_13 + x_14 + x_15 >= 1
+        x_21 + x_22 + x_23 + x_24 + x_25 >= 1
+
+    dw_sp
+        min
+        x_11 + 3x_12 + 4x_13 + 5x_14 + 6x_15
+        s.t.
+        2x_11 + 3x_12 + 4x_13 + 5x_14 + 6x_15 <= 15
+
+    dw_sp
+        min
+        3x_21 + x_22 + 2x_23 + 3x_24 + 4x_25
+        s.t.
+        3x_21 + 4x_22 + 3x_23 + 2x_24 + 4x_25 <= 20
+
+    integer
+        representatives
+            x_11, x_12, x_13, x_14, x_15, x_21, x_22, x_23, x_24, x_25
+
+    bounds
+        0 <= x_11 <= 1
+        0 <= x_12 <= 1
+        0 <= x_13 <= 1
+        0 <= x_14 <= 1
+        0 <= x_15 <= 1
+        0 <= x_21 <= 1
+        0 <= x_22 <= 1
+        0 <= x_23 <= 1
+        0 <= x_24 <= 1
+        0 <= x_25 <= 1
+    """
+
+function test_colgen_iteration()
+    env, master, sps, _, reform = reformfromstring(gap1())
+    # vids = get_name_to_varids(master)
+    # cids = get_name_to_constrids(master)
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+end
+register!(unit_tests, "colgen_default", test_colgen_iteration)
+
 
 
 #         master

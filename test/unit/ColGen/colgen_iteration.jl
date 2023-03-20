@@ -126,13 +126,13 @@ ColGen.get_primal_sols(res::ColGenIterationTestPricingResult) = res.primal_sols
 ColGen.get_dual_bound(res::ColGenIterationTestPricingResult) = res.dual_bound
 ColGen.compute_sp_init_db(::ColGenIterationTestContext, sp) = -Inf
 ColGen.set_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
-ColGen.push_in_set!(set, col) = push!(set, col)
+ColGen.push_in_set!(set::Vector{Vector{Float64}}, col::Vector) = push!(set, col)
 ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status == ClB.INFEASIBLE
 ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.DUAL_INFEASIBLE
 ColGen.is_optimal(res::ColGenIterationTestPricingResult) = res.term_status == ClB.OPTIMAL
 
 ## mock of the pricing solver
-function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form)
+function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form, env, master_dual_sol)
     primal_val = nothing
     dual_val = nothing
     sols = Vector{Float64}[]

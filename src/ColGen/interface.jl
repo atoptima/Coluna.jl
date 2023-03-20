@@ -140,7 +140,7 @@ information at two different places.
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility(phase, mast_lp_primal_sol, reform)
+@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, phase, reform)
 
 ############################################################################################
 # Reduced costs calculation.
@@ -173,7 +173,9 @@ if something unexpected happens.
 
 
 function check_master_termination_status(mast_result)
-    # TODO
+    if !is_infeasible(mast_result) && !is_unbounded(mast_result)
+        @assert !isnothing(get_dual_sol(mast_result))
+    end
 end
 
 function check_pricing_termination_status(pricing_result)
@@ -224,6 +226,7 @@ function run_colgen_iteration!(context, phase, env)
 
     mast_dual_sol = get_dual_sol(mast_result)
     if isnothing(mast_dual_sol)
+        error("Cannot continue")
         # error or stop? (depends on the context)
     end
 
@@ -262,7 +265,7 @@ function run_colgen_iteration!(context, phase, env)
 
     while !isnothing(sp_to_solve_it)
         (sp_id, sp_to_solve), state = sp_to_solve_it
-        pricing_result = optimize_pricing_problem!(context, sp_to_solve)
+        pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, mast_dual_sol)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
