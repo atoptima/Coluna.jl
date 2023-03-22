@@ -110,8 +110,89 @@ gap1() =  """
         0 <= x_25 <= 1
     """
 
+function form2() 
+    form = """
+        master
+            min
+            7x_12 + 2x_13 + x_14 + 5x_15 + 3x_23 + 6x_24 + 8x_25 + 4x_34 + 2x_35 + 9x_45 + 28λ1 + 25λ2 + 21λ3 + 19λ4 + 22λ5 + 18λ6 + 28λ7
+            s.t.
+            x_12 + x_13 + x_14 + x_15 + 2λ1 + 2λ2 + 2λ3 + 2λ4 + 2λ5 + 2λ6 + 2λ7 == 2
+            x_12 + x_23 + x_24 + x_25 + 2λ1 + 2λ2 + 2λ3 + 1λ4 + 1λ5 + 2λ6 + 3λ7 == 2
+            x_13 + x_23 + x_34 + x_35 + 2λ1 + 3λ2 + 2λ3 + 3λ4 + 2λ5 + 3λ6 + 1λ7 == 2
+            x_14 + x_24 + x_34 + x_45 + 2λ1 + 2λ2 + 3λ3 + 3λ4 + 3λ5 + 1λ6 + 1λ7 == 2
+            x_15 + x_25 + x_35 + x_45 + 2λ1 + 1λ2 + 1λ3 + 1λ4 + 2λ5 + 2λ6 + 3λ7 == 2
+
+        dw_sp
+            min
+            7x_12 + 2x_13 + x_14 + 5x_15 + 3x_23 + 6x_24 + 8x_25 + 4x_34 + 2x_35 + 9x_45
+            s.t.
+            x_15 + x_25 + x_35 + x_45
+
+        continuous
+            columns
+                λ1, λ2, λ3, λ4, λ5, λ6, λ7
+
+        integer
+            representatives
+                x_12, x_13, x_14, x_15, x_23, x_24, x_25, x_34, x_35, x_45
+
+        bounds
+            λ1 >= 0
+            λ2 >= 0
+            λ3 >= 0
+            λ4 >= 0
+            λ5 >= 0
+            λ6 >= 0
+            λ7 >= 0
+            x_12 >= 0
+            x_13 >= 0
+            x_14 >= 0
+            x_15 >= 0
+            x_23 >= 0
+            x_24 >= 0
+            x_25 >= 0
+            x_34 >= 0
+            x_35 >= 0
+            x_45 >= 0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+
+    setupvar = ClMP.setvar!(sps[1], "pricing_setup_var", ClMP.DwSpSetupVar; 
+        cost = 0.0, lb = 1.0, ub = 1.0, kind = Integ, is_explicit = true
+    )
+    setuprepvar = ClMP.setvar!(master, "pricing_setup_var", MasterRepPricingSetupVar; 
+        cost = 0.0, lb = 1.0, ub = 1.0, kind = Integ, is_explicit = false
+    )
+
+    # λ1 + λ2 + λ3 + λ4 + λ5 + λ6 + λ7 >= 1
+    lb_mult = 1.0
+    name = "sp_lb_1"
+    lb_conv_constr = ClMP.setconstr!(
+        master, name, ClMP.MasterConvexityConstr; rhs = lb_mult, kind = ClMP.Essential,
+        sense = ClMP.Greater, inc_val = 100.0,
+        loc_art_var_abs_cost = 0.0
+    )
+    coefmatrix = ClMP.getcoefmatrix(master)
+    coefmatrix[getid(lb_conv_constr), getid(setuprepvar)] = 1.0
+
+    # λ1 + λ2 + λ3 + λ4 + λ5 + λ6 + λ7 <= 1
+    ub_mult = 1.0
+    name = "sp_ub_1"    
+    ub_conv_constr = ClMP.setconstr!(
+        master, name, ClMP.MasterConvexityConstr; rhs = ub_mult, kind = ClMP.Essential, 
+        sense = ClMP.Less, inc_val = 100.0,
+        loc_art_var_abs_cost = 0.0
+    )
+    coefmatrix[getid(ub_conv_constr), getid(setuprepvar)] = 1.0
+
+    return env, master, sps, reform
+end
+
 function test_colgen_iteration()
-    env, master, sps, _, reform = reformfromstring(gap1())
+    env, master, sps, reform = form2()
+
+    @show master
+
     # vids = get_name_to_varids(master)
     # cids = get_name_to_constrids(master)
 

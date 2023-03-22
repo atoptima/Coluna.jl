@@ -165,6 +165,7 @@ end
 
 ColGen.get_primal_sol(master_res::ColGenMasterResult) = get_best_lp_primal_sol(master_res.result)
 ColGen.get_dual_sol(master_res::ColGenMasterResult) = get_best_lp_dual_sol(master_res.result)
+ColGen.get_obj_val(master_res::ColGenMasterResult) = get_lp_primal_bound(master_res.result)
 
 function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, reform, master_lp_dual_sol)
 
@@ -186,10 +187,12 @@ function ColGen.update_sp_vars_red_costs!(ctx::ColGenContext, sp::Formulation{Dw
 end
 
 # Columns insertion
-function insert_columns!(reform, ctx::ColGenContext, phase, columns)
-
+function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
+    for column in columns
+        @show column
+    end
+    return 1
 end
-
 
 #############################################################################
 # Pricing strategy
@@ -209,21 +212,23 @@ function ColGen.compute_sp_init_db(ctx::ColGenContext, sp::Formulation{DwSp})
     return ctx.optim_sense == MinSense ? -Inf : Inf
 end
 
+struct GeneratedColumn
+    column::PrimalSolution{Formulation{DwSp}}
+    red_cost::Float64
+end
+
 """
     A structure to store a collection of columns
 """
 struct ColumnsSet
-    columns::Vector{PrimalSolution{Formulation{DwSp}}}
-    ColumnsSet() = new(PrimalSolution{Formulation{DwSp}}[])
+    columns::Vector{GeneratedColumn}
+    ColumnsSet() = new(GeneratedColumn[])
 end
+Base.iterate(set::ColumnsSet) = iterate(set.columns)
+Base.iterate(set::ColumnsSet, state) = iterate(set.columns, state)
 
 function ColGen.set_of_columns(ctx::ColGenContext)
     return ColumnsSet()
-end
-
-struct GeneratedColumn
-    column::PrimalSolution{Formulation{DwSp}}
-    red_cost::Float64
 end
 
 struct ColGenPricingResult{F,S}
@@ -241,30 +246,24 @@ function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
     return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
 end
 
-ColGen.get_primal_sols(pricing_res) = get_ip_primal_sols(pricing_res.result)
-ColGen.get_dual_bound(pricing_res) = get_best_ip_dual_bound(pricing_res.result)
+ColGen.get_primal_sols(pricing_res) = pricing_res.columns
+ColGen.get_dual_bound(pricing_res) = get_ip_dual_bound(pricing_res.result)
 
-function has_improving_red_cost(column::PrimalSolution{Formulation{DwSp}})
-    @show column.cost
-    @show column.objval
-end
-
+has_improving_red_cost(column::GeneratedColumn) = column.red_cost < 0
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
 function ColGen.push_in_set!(pool, column)
-    println("\e[34m push in set! \e[00m")
-    println("\e[35m ------------ \e[00m")
+    println("push_in_set!")
     # We keep only columns that improve reduced cost
     if has_improving_red_cost(column)
         push!(pool.columns, column)
     end
-    @show pool
-    @show column
+    return
 end
 
 function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, master_dual_sol)
     input = OptimizationState(sp)
-    opt_state = run!(ctx.pricing_solve_alg, env, sp, input)
+    opt_state = run!(ctx.pricing_solve_alg, env, sp, input) # master & master dual sol for non robust cuts
 
     # Reduced cost of a column is composed of the cost of the subproblem variables
     # and the contribution of the master convex combination constraints.
@@ -273,10 +272,10 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     lb_dual = 0.0 # master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
     ub_dual = 0.0 # master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
     generated_columns = GeneratedColumn[]
+
     for col in get_ip_primal_sols(opt_state)
         red_cost = getvalue(col) - lb_dual - ub_dual
         push!(generated_columns, GeneratedColumn(col, red_cost))
     end
-
     return ColGenPricingResult(opt_state, generated_columns)
 end

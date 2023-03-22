@@ -183,6 +183,7 @@ function check_pricing_termination_status(pricing_result)
 end
 
 function compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs)
+    # TODO pure master variables are missing.
     return master_lp_obj_val + mapreduce(((id, val),) -> val, +, master_dbs)
 end
 
@@ -236,6 +237,16 @@ function run_colgen_iteration!(context, phase, env)
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
     # Stabilization
+    # initialize stabilisation for the iteration
+    # update_stab_after_rm_solve! 
+    # stabcenter is master_dual_sol
+    # return alpha * stab_center + (1 - alpha) * lp_dual_sol
+
+
+    # With stabilization, you solve several times the suproblem because you can have misprice
+    # loop:
+    #   - solve all subproblems 
+    #   - check if misprice 
 
     # Compute reduced cost (generic operation) by you must support math operations.
     c = get_orig_costs(context)
@@ -297,9 +308,17 @@ function run_colgen_iteration!(context, phase, env)
     nb_cols_inserted = insert_columns!(get_reform(context), context, phase, generated_columns)
 
     master_lp_obj_val = get_obj_val(mast_result)
-    db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
+
+    # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
+    valid_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
+
+    pseudo_db = 0 # same but using primal bound of the pricing result.
+    # pseudo_db used only in the stabilization (update_stability_center!)
+
+    # update_stab_after_gencols!
+
     # check gap
 
-    return ColGenIterationOutput(master_lp_obj_val, db, nb_cols_inserted, false, false, false, false)
+    return ColGenIterationOutput(master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false)
 end
 

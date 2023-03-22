@@ -45,7 +45,6 @@ function ClB.restore_from_record!(
     return
 end
 
-
 # function ColGenStabilizationUnit(master::Formulation)
 #     return ColGenStabilizationUnit(
 #         0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
@@ -101,7 +100,6 @@ function update_alpha_automatically!(
     unit::ColGenStabilizationUnit, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
     smooth_dual_sol::DualSolution{M}, h, subgradient_contribution
 ) where {M}    
-
     master = getmodel(lp_dual_sol)
 
     # first we calculate the in-sep direction
