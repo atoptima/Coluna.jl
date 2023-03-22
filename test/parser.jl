@@ -54,7 +54,13 @@ const _KW_SUBSECTION = Dict(
     "artificial" => ClMP.MasterArtVar,
     "artificials" => ClMP.MasterArtVar,
     # MasterColumns
-    "columns" => ClMP.MasterCol
+    "columns" => ClMP.MasterCol,
+    # MasterRepPricingSetupVar
+    "pricing_setup" => ClMP.MasterRepPricingSetupVar
+)
+
+const _KW_CONSTR_DUTIES = Dict(
+    "MasterConvexityConstr" => ClMP.MasterConvexityConstr
 )
 
 const coeff_re = "\\d+(\\.\\d+)?"
@@ -80,6 +86,7 @@ mutable struct ConstrCache
     lhs::ExprCache
     sense::ClMP.ConstrSense
     rhs::Float64
+    duty::Union{Nothing,ClMP.Duty}
 end
 
 mutable struct ProblemCache
@@ -162,7 +169,7 @@ end
 
 function _read_constraint(l::AbstractString)
     line = _strip_line(l)
-    m = match(Regex("(.+)(>=|<=|==)($coeff_re)"), line)
+    m = match(Regex("(.+)(>=|<=|==)($coeff_re)(\\{([a-zA-Z]+)\\})?"), line)
     if !isnothing(m)
         lhs = _read_expression(m[1])
         sense = if m[2] == ">="
@@ -175,7 +182,8 @@ function _read_constraint(l::AbstractString)
             end
         end
         rhs = parse(Float64, m[3])
-        return ConstrCache(lhs, sense, rhs)
+        duty = isnothing(m[6]) ? nothing : _KW_CONSTR_DUTIES[m[6]]
+        return ConstrCache(lhs, sense, rhs, duty)
     end
     return nothing
 end
@@ -272,13 +280,17 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
         for (varid, cost) in sp.objective.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
-                if var.duty <= ClMP.DwSpPricingVar || var.duty <= ClMP.MasterRepPricingVar
+                if var.duty <= ClMP.DwSpPricingVar || var.duty <= ClMP.MasterRepPricingVar || var.duty <= ClMP.MasterRepPricingSetupVar
                     if isnothing(spform)
                         spform = ClMP.create_formulation!(
                             env,
                             ClMP.DwSp(nothing, nothing, nothing, var.kind);
                             obj_sense = sp.sense
                         )
+                    end
+                    duty = ClMP.DwSpPricingVar
+                    if var.duty <= ClMP.MasterRepPricingSetupVar
+                        duty = ClMP.DwSpSetupVar
                     end
                     v = ClMP.setvar!(spform, varid, ClMP.DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
                     ClMP.setperencost!(spform, v, cost)
@@ -329,6 +341,9 @@ function add_master_constraints!(master::ClMP.Formulation, mastervars::Dict{Stri
     for constr in cache.master.constraints
         members = Dict{ClMP.VarId, Float64}()
         constr_duty = ClMP.MasterPureConstr
+        if !isnothing(constr.duty)
+            constr_duty = constr.duty
+        end
         for (varid, coeff) in constr.lhs.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
