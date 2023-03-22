@@ -140,7 +140,7 @@ information at two different places.
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility(phase, mast_lp_primal_sol, reform)
+@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, phase, reform)
 
 ############################################################################################
 # Reduced costs calculation.
@@ -173,7 +173,9 @@ if something unexpected happens.
 
 
 function check_master_termination_status(mast_result)
-    # TODO
+    if !is_infeasible(mast_result) && !is_unbounded(mast_result)
+        @assert !isnothing(get_dual_sol(mast_result))
+    end
 end
 
 function check_pricing_termination_status(pricing_result)
@@ -181,6 +183,7 @@ function check_pricing_termination_status(pricing_result)
 end
 
 function compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs)
+    # TODO pure master variables are missing.
     return master_lp_obj_val + mapreduce(((id, val),) -> val, +, master_dbs)
 end
 
@@ -224,6 +227,7 @@ function run_colgen_iteration!(context, phase, env)
 
     mast_dual_sol = get_dual_sol(mast_result)
     if isnothing(mast_dual_sol)
+        error("Cannot continue")
         # error or stop? (depends on the context)
     end
 
@@ -233,6 +237,16 @@ function run_colgen_iteration!(context, phase, env)
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
     # Stabilization
+    # initialize stabilisation for the iteration
+    # update_stab_after_rm_solve! 
+    # stabcenter is master_dual_sol
+    # return alpha * stab_center + (1 - alpha) * lp_dual_sol
+
+
+    # With stabilization, you solve several times the suproblem because you can have misprice
+    # loop:
+    #   - solve all subproblems 
+    #   - check if misprice 
 
     # Compute reduced cost (generic operation) by you must support math operations.
     c = get_orig_costs(context)
@@ -262,7 +276,7 @@ function run_colgen_iteration!(context, phase, env)
 
     while !isnothing(sp_to_solve_it)
         (sp_id, sp_to_solve), state = sp_to_solve_it
-        pricing_result = optimize_pricing_problem!(context, sp_to_solve)
+        pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, mast_dual_sol)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
@@ -294,9 +308,17 @@ function run_colgen_iteration!(context, phase, env)
     nb_cols_inserted = insert_columns!(get_reform(context), context, phase, generated_columns)
 
     master_lp_obj_val = get_obj_val(mast_result)
-    db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
+
+    # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
+    valid_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
+
+    pseudo_db = 0 # same but using primal bound of the pricing result.
+    # pseudo_db used only in the stabilization (update_stability_center!)
+
+    # update_stab_after_gencols!
+
     # check gap
 
-    return ColGenIterationOutput(master_lp_obj_val, db, nb_cols_inserted, false, false, false, false)
+    return ColGenIterationOutput(master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false)
 end
 

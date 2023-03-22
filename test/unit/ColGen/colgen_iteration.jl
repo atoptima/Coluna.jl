@@ -9,8 +9,7 @@
 # - error handling
 # - output
 
-# function get_reform_master_and_vars_colgen_iteration()
-#     form_string1 = """
+# This is the problems that we consider here:
 #         master
 #             min
 #             7x_12 + 2x_13 + x_14 + 5x_15 + 3x_23 + 6x_24 + 8x_25 + 4x_34 + 2x_35 + 9x_45 + 28λ1 + 25λ2 + 21λ3 + 19λ4 + 22λ5 + 18λ6 + 28λ7
@@ -53,12 +52,6 @@
 #             x_34 >= 0
 #             x_35 >= 0
 #             x_45 >= 0
-#     """
-
-#     _, master, _, _, reform = reformfromstring(form_string1)
-#     vars_by_name = Dict{String, ClMP.Variable}(ClMP.getname(master, var) => var for (_, var) in ClMP.getvars(master))
-#     return reform, master, vars_by_name
-# end
 
 struct ColGenIterationTestMaster end
 struct ColGenIterationTestPricing end
@@ -133,13 +126,13 @@ ColGen.get_primal_sols(res::ColGenIterationTestPricingResult) = res.primal_sols
 ColGen.get_dual_bound(res::ColGenIterationTestPricingResult) = res.dual_bound
 ColGen.compute_sp_init_db(::ColGenIterationTestContext, sp) = -Inf
 ColGen.set_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
-ColGen.push_in_set!(set, col) = push!(set, col)
+ColGen.push_in_set!(set::Vector{Vector{Float64}}, col::Vector) = push!(set, col)
 ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status == ClB.INFEASIBLE
 ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.DUAL_INFEASIBLE
 ColGen.is_optimal(res::ColGenIterationTestPricingResult) = res.term_status == ClB.OPTIMAL
 
 ## mock of the pricing solver
-function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form)
+function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form, env, master_dual_sol)
     primal_val = nothing
     dual_val = nothing
     sols = Vector{Float64}[]
@@ -263,4 +256,3 @@ function colgen_iteration_pricing_unbounded()
     @test output.unbounded_subproblem == true
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
-
