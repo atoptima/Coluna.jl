@@ -292,7 +292,10 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
                     if var.duty <= ClMP.MasterRepPricingSetupVar
                         duty = ClMP.DwSpSetupVar
                     end
-                    v = ClMP.setvar!(spform, varid, ClMP.DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
+                    v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind)
+                    if var.duty <= ClMP.DwSpPricingVar
+                        spform.duty_data.setup_var = ClMP.getid(spform, v)
+                    end
                     ClMP.setperencost!(spform, v, cost)
                     all_spvars[varid] = (v, spform)
                 end
@@ -323,11 +326,15 @@ function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict, cache::Rea
             else
                 if haskey(all_spvars, varid)
                     var, sp = all_spvars[varid]
-                    v = ClMP.clonevar!(sp, master, sp, var, ClMP.MasterRepPricingVar; is_explicit = false)
+                    duty = ClMP.MasterRepPricingVar
+                    if ClMP.getduty(ClMP.getid(var)) <= ClMP.DwSpSetupVar
+                        duty = ClMP.MasterRepPricingSetupVar
+                    end
+                    v = ClMP.clonevar!(sp, master, sp, var, duty; is_explicit = false)
                 else
                     throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                 end
-        end
+            end
             ClMP.setperencost!(master, v, cost)
             mastervars[varid] = v
         else
@@ -337,7 +344,7 @@ function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict, cache::Rea
     return mastervars
 end
 
-function add_master_constraints!(master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, constraints::Vector{ClMP.Constraint}, cache::ReadCache)
+function add_master_constraints!(reform, master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, constraints::Vector{ClMP.Constraint}, cache::ReadCache)
     #create master constraints
     i = 1
     for constr in cache.master.constraints
@@ -362,6 +369,17 @@ function add_master_constraints!(master::ClMP.Formulation, mastervars::Dict{Stri
             end
         end
         c = ClMP.setconstr!(master, "c$i", constr_duty; rhs = constr.rhs, sense = constr.sense, members = members)
+        if constr_duty <= ClMP.MasterConvexityConstr
+            setup_var_id = collect(keys(filter(x -> ClMP.getduty(x[1]) <= ClMP.MasterRepPricingSetupVar, members)))[1]
+            spform = collect(values(filter(sp -> haskey(sp[2], setup_var_id), ClMP.get_dw_pricing_sps(reform))))[1]
+            if constr.sense == ClMP.Less
+                spform.duty_data.upper_multiplicity_constr_id = ClMP.getid(c)
+            elseif constr.sense == ClMP.Greater
+                spform.duty_data.lower_multiplicity_constr_id = ClMP.getid(c)
+            else
+                throw(UndefConstraintParserError("Convexity constraint $c must be <= or >="))
+            end
+        end
         push!(constraints, c)
         i += 1
     end
@@ -387,7 +405,7 @@ function reformfromcache(cache::ReadCache)
     )
     ClMP.setmaster!(reform, master)
     mastervars = add_master_vars!(master, all_spvars, cache)
-    add_master_constraints!(master, mastervars, constraints, cache)
+    add_master_constraints!(reform, master, mastervars, constraints, cache)
 
     for sp in subproblems
         sp.parent_formulation = master
