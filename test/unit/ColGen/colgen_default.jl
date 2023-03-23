@@ -42,6 +42,8 @@ function test_reduced_costs_calculation_helper()
     _, master, _, _, _ = reformfromstring(form1())
     vids = get_name_to_varids(master)
     cids = get_name_to_constrids(master)
+
+    @show master
     
     helper = ClA.ReducedCostsCalculationHelper(master)
     @test helper.c[vids["x1"]] == 3
@@ -179,6 +181,66 @@ function toy_gap_with_obj_const()
 end
 
 
+### Implementation of ColGen API to test and call the default implementation
+struct TestColGenIterationContext <: ColGen.AbstractColGenContext
+    context::ClA.ColGenContext
+    master_lp_primal_sol::Dict{String, Float64}
+    master_lp_dual_sol::Dict{String, Float64}
+    master_lp_obj_val::Float64
+    pricing_var_reduced_costs::Dict{String, Float64}
+end
+
+ColGen.get_reform(ctx::TestColGenIterationContext) = ColGen.get_reform(ctx.context)
+ColGen.get_master(ctx::TestColGenIterationContext) = ColGen.get_master(ctx.context)
+ColGen.get_pricing_subprobs(ctx::TestColGenIterationContext) = ColGen.get_pricing_subprobs(ctx.context)
+
+function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationContext, env)
+    output = ColGen.optimize_master_lp_problem!(master, ctx.context, env)
+    primal_sol = ColGen.get_primal_sol(output)
+    @show primal_sol
+    for (var_id, var) in ClMP.getvars(master)
+        name = ClMP.getname(master, var)
+        if !haskey(ctx.master_lp_primal_sol, name)
+            @test primal_sol[var_id] ≈ 0.0
+        else
+            @test primal_sol[var_id] ≈ ctx.master_lp_primal_sol[name]
+        end
+    end
+    return output
+end
+
+ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
+ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
+ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)
+ColGen.get_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_orig_costs(ctx.context)
+ColGen.get_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_coef_matrix(ctx.context)
+
+function ColGen.update_sp_vars_red_costs!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, red_costs)
+    @show red_costs
+    ColGen.update_sp_vars_red_costs!(ctx.context, sp, red_costs)
+    for (_, var) in ClMP.getvars(sp)
+        name = ClMP.getname(sp, var)
+        @test ctx.pricing_var_reduced_costs[name] ≈ ClMP.getcurcost(sp, var)
+    end
+    return
+end
+
+ColGen.compute_sp_init_db(ctx::TestColGenIterationContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.context, sp)
+ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(ctx.context)
+
+# Columns insertion
+function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, columns)
+    ColGen.insert_columns!(reform, ctx.context, phase, columns)
+    # test here
+    return 1
+end
+
+function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, master_dual_sol)
+    output = ColGen.optimize_pricing_problem!(ctx.context, sp, env, master_dual_sol)
+    # test here
+    return output
+end
+
 function test_colgen_iteration_min_gap()
     env, master, sps, reform = min_toy_gap()
 
@@ -187,14 +249,55 @@ function test_colgen_iteration_min_gap()
 
     # vids = get_name_to_varids(master)
     # cids = get_name_to_constrids(master)
+    
+    master_lp_primal_sol = Dict(
+        "MC_30" => 1/3,
+        "MC_31" => 2/3,
+        "MC_32" => 1/3,
+        "MC_36" => 1/3,
+        "MC_37" => 1/3,
+    )
+    master_lp_dual_sol = Dict(
+        "c1" => 1/3,
+        "c2" => 2/3,
+        "c5" => 1/3,
+        "c6" => 1/3,
+        "c7" => 1/3,
+    )
+    master_obj_val = 79.67
 
-    # ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
-    # ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    # ClMP.relax_integrality!(master)
-    # for sp in sps
-    #     ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    # end
-    # ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    pricing_var_reduced_costs = Dict(
+        "x_11" => - 3.3333333300000003,
+        "x_12" => - 12.333333329999999,
+        "x_13" => 11.0,
+        "x_14" => 21.0,
+        "x_15" => - 3.3333333300000003,
+        "x_16" => - 8.66666667,
+        "x_17" => - 9.0,
+        "PricingSetupVar_sp_5" => 0.0,
+        "x_21" => - 10.33333333,
+        "x_22" => - 5.3333333299999985,
+        "x_23" => 11.0,
+        "x_24" => 12.0,
+        "x_25" => 4.66666667,
+        "x_26" => - 5.66666667,
+        "x_27" => - 23.0,
+        "PricingSetupVar_sp_4" => 0.0,
+    )
+
+    ctx = TestColGenIterationContext(
+        ClA.ColGenContext(reform, ClA.ColumnGeneration()),
+        master_lp_primal_sol,
+        master_lp_dual_sol,
+        master_obj_val,
+        pricing_var_reduced_costs,
+    )
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
