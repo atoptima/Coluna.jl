@@ -2,11 +2,12 @@
 form1() = """
 master
     min
-    3x1 + 2x2 + 5x3 + 4y1 + 3y2 + 5y3
+    3x1 + 2x2 + 5x3 + 4y1 + 3y2 + 5y3 + z
     s.t.
-    x1 + x2 + x3 + y1 + y2 + y3  >= 10
-    x1 + 2x2     + y1 + 2y2      <= 100
-    x1 +     3x3 + y1 +    + 3y3 == 100
+    x1 + x2 + x3 + y1 + y2 + y3 + 2z >= 10
+    x1 + 2x2     + y1 + 2y2     + z <= 100
+    x1 +     3x3 + y1 +    + 3y3    == 100
+                                  z <= 5   
 
 dw_sp
     min
@@ -17,6 +18,9 @@ dw_sp
     integer
         representatives
             x1, x2, x3, y1, y2, y3
+
+        pure
+            z
     
     bounds
         x1 >= 0
@@ -25,6 +29,7 @@ dw_sp
         y1 >= 0
         y2 >= 0
         y3 >= 0
+        z >= 0
 """
 
 function get_name_to_varids(form)
@@ -46,33 +51,52 @@ end
 # Simple case with only subproblem representatives variables.
 function test_reduced_costs_calculation_helper()
     _, master, _, _, _ = reformfromstring(form1())
+    @show master
     vids = get_name_to_varids(master)
     cids = get_name_to_constrids(master)
     
     helper = ClA.ReducedCostsCalculationHelper(master)
-    @test helper.c[vids["x1"]] == 3
-    @test helper.c[vids["x2"]] == 2
-    @test helper.c[vids["x3"]] == 5
-    @test helper.c[vids["y1"]] == 4
-    @test helper.c[vids["y2"]] == 3
-    @test helper.c[vids["y3"]] == 5
+    @test helper.dw_subprob_c[vids["x1"]] == 3
+    @test helper.dw_subprob_c[vids["x2"]] == 2
+    @test helper.dw_subprob_c[vids["x3"]] == 5
+    @test helper.dw_subprob_c[vids["y1"]] == 4
+    @test helper.dw_subprob_c[vids["y2"]] == 3
+    @test helper.dw_subprob_c[vids["y3"]] == 5
+    @test helper.dw_subprob_c[vids["z"]] == 0
 
-    @test helper.A[cids["c1"], vids["x1"]] == 1
-    @test helper.A[cids["c1"], vids["x2"]] == 1
-    @test helper.A[cids["c1"], vids["x3"]] == 1
-    @test helper.A[cids["c1"], vids["y1"]] == 1
-    @test helper.A[cids["c1"], vids["y2"]] == 1
-    @test helper.A[cids["c1"], vids["y3"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["x1"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["x2"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["x3"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["y1"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["y2"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["y3"]] == 1
+    @test helper.dw_subprob_A[cids["c1"], vids["z"]] == 0  # z is not in the subproblem.
 
-    @test helper.A[cids["c2"], vids["x1"]] == 1
-    @test helper.A[cids["c2"], vids["x2"]] == 2
-    @test helper.A[cids["c2"], vids["y1"]] == 1
-    @test helper.A[cids["c2"], vids["y2"]] == 2
+    @test helper.dw_subprob_A[cids["c2"], vids["x1"]] == 1
+    @test helper.dw_subprob_A[cids["c2"], vids["x2"]] == 2
+    @test helper.dw_subprob_A[cids["c2"], vids["y1"]] == 1
+    @test helper.dw_subprob_A[cids["c2"], vids["y2"]] == 2
+    @test helper.dw_subprob_A[cids["c2"], vids["z"]] == 0 # z is not in the subproblem.
 
-    @test helper.A[cids["c3"], vids["x1"]] == 1
-    @test helper.A[cids["c3"], vids["x3"]] == 3
-    @test helper.A[cids["c3"], vids["y1"]] == 1
-    @test helper.A[cids["c3"], vids["y3"]] == 3
+    @test helper.dw_subprob_A[cids["c3"], vids["x1"]] == 1
+    @test helper.dw_subprob_A[cids["c3"], vids["x3"]] == 3
+    @test helper.dw_subprob_A[cids["c3"], vids["y1"]] == 1
+    @test helper.dw_subprob_A[cids["c3"], vids["y3"]] == 3
+    @test helper.dw_subprob_A[cids["c3"], vids["z"]] == 0 # z is not in the subproblem.
+
+    @test helper.master_c[vids["x1"]] == 0 # x1 is not in the master.
+    @test helper.master_c[vids["x2"]] == 0 # x2 is not in the master.
+    @test helper.master_c[vids["x3"]] == 0 # x3 is not in the master.
+    @test helper.master_c[vids["y1"]] == 0 # y1 is not in the master.
+    @test helper.master_c[vids["y2"]] == 0 # y2 is not in the master.
+    @test helper.master_c[vids["y3"]] == 0 # y3 is not in the master.
+    @test helper.master_c[vids["z"]] == 1
+
+    @test helper.master_A[cids["c1"], vids["x1"]] == 0 # x1 is not in the master.
+    @test helper.master_A[cids["c1"], vids["z"]] == 2
+    @test helper.master_A[cids["c2"], vids["z"]] == 1
+    @test helper.master_A[cids["c3"], vids["z"]] == 0
+    @test helper.master_A[cids["c4"], vids["z"]] == 1
 end
 register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
@@ -486,7 +510,6 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
     end
 
     dual_sol = ColGen.get_dual_sol(output)
-    @show dual_sol
     for (constr_id, constr) in ClMP.getconstrs(master)
         name = ClMP.getname(master, constr)
         if !haskey(ctx.master_lp_dual_sol, name)
@@ -501,17 +524,13 @@ end
 ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
 ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
 ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)
-ColGen.get_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_orig_costs(ctx.context)
-ColGen.get_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_coef_matrix(ctx.context)
+ColGen.get_subprob_var_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_orig_costs(ctx.context)
+ColGen.get_subprob_var_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_coef_matrix(ctx.context)
 
 function ColGen.update_sp_vars_red_costs!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, red_costs)
-    for i in 1:5
-        println("\e[34m ***************** \e[00m")
-    end
     ColGen.update_sp_vars_red_costs!(ctx.context, sp, red_costs)
     for (_, var) in ClMP.getvars(sp)
         name = ClMP.getname(sp, var)
-        println(" ---- name = $(name) ---- expected : $(ctx.pricing_var_reduced_costs[name]) ---- actual : $(ClMP.getcurcost(sp, var)) --- cur_cost = $(ClMP.getcurcost(sp, var)))")
         @test ctx.pricing_var_reduced_costs[name] ≈ ClMP.getcurcost(sp, var)
     end
     return
@@ -597,7 +616,7 @@ function test_colgen_iteration_min_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
+register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 function test_colgen_iteration_max_gap()
     env, master, sps, reform = max_toy_gap()
@@ -659,10 +678,8 @@ function test_colgen_iteration_max_gap()
     @test output.unbounded_master == false
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
-
-
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
+register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
 
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
@@ -681,13 +698,13 @@ function test_colgen_iteration_pure_master_vars()
         "c6" => 15.41666667,
         "c7" => 19.26666667,  # fixed
         "c8" => -10.86666667,
-        "c10" =>  -22.55,
+        "c10" => -22.55,
         "c12" => -30.83333334
     )
     master_obj_val = 52.95 
 
     pricing_var_reduced_costs = Dict(
-        "x_11" => 0.26666666999999933,
+        "x_11" => - 0.26666666999999933,
         "x_12" => - 12.13333333,
         "x_13" => - 7.56666667,
         "x_14" => 0.0,
