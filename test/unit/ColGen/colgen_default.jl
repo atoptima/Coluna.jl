@@ -646,8 +646,6 @@ function test_colgen_iteration_max_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 
-    #@show master
-    #@show sps
 
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
