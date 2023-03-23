@@ -263,19 +263,24 @@ bounds
 end
 
 function toy_gap_with_penalties()
+    # We add variables z1 and z2 to fix the dual value of constraint c4 to 21.
+    # We add variables z3 and z4 to fix the dual value of constraint c3 to 18.56666667.
+    # We add variables z5 and z6 to fix the dual value of constraint c7 to 19.26666667.
+    # We add variables z7 and z8 to fix the dual value of constraint c1 to 8.26666667.
+    # We add variables z9 and z10 to fix the dual value of constraint c2 to 17.13333333
     form = """
 master
     min
-    3.15 y_1 + 5.949999999999999 y_2 + 7.699999999999999 y_3 + 11.549999999999999 y_4 + 7.0 y_5 + 4.55 y_6 + 8.399999999999999 y_7 + 10000.0 local_art_of_cov_5 + 10000.0 local_art_of_cov_4 + 10000.0 local_art_of_cov_6 + 10000.0 local_art_of_cov_7 + 10000.0 local_art_of_cov_2 + 10000.0 local_art_of_limit_pen + 10000.0 local_art_of_cov_3 + 10000.0 local_art_of_cov_1 + 10000.0 local_art_of_sp_lb_5 + 10000.0 local_art_of_sp_ub_5 + 10000.0 local_art_of_sp_lb_4 + 10000.0 local_art_of_sp_ub_4 + 100000.0 global_pos_art_var + 100000.0 global_neg_art_var + 51.0 MC_38 + 38.0 MC_39 + 10.0 MC_40 + 28.0 MC_41 + 19.0 MC_42 + 26.0 MC_43 + 31.0 MC_44 + 42.0 MC_45 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+    3.15 y_1 + 5.949999999999999 y_2 + 7.699999999999999 y_3 + 11.549999999999999 y_4 + 7.0 y_5 + 4.55 y_6 + 8.399999999999999 y_7 + 10000.0 local_art_of_cov_5 + 10000.0 local_art_of_cov_4 + 10000.0 local_art_of_cov_6 + 10000.0 local_art_of_cov_7 + 10000.0 local_art_of_cov_2 + 10000.0 local_art_of_limit_pen + 10000.0 local_art_of_cov_3 + 10000.0 local_art_of_cov_1 + 10000.0 local_art_of_sp_lb_5 + 10000.0 local_art_of_sp_ub_5 + 10000.0 local_art_of_sp_lb_4 + 10000.0 local_art_of_sp_ub_4 + 100000.0 global_pos_art_var + 100000.0 global_neg_art_var + 51.0 MC_38 + 38.0 MC_39 + 10.0 MC_40 + 28.0 MC_41 + 19.0 MC_42 + 26.0 MC_43 + 31.0 MC_44 + 42.0 MC_45 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 21 z1 - 21 z2 + 18.56666667 z3 -18.56666667 z4 + 19.26666667 z5 - 19.26666667 z6 + 8.26666667 z7 - 8.26666667 z8 + 17.13333333 z9 - 17.13333333 z10
     s.t.
-    1.0 x_11 + 1.0 x_21 + 1.0 y_1 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43  >= 1.0
-    1.0 x_12 + 1.0 x_22 + 1.0 y_2 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_40 + 1.0 MC_44 + 1.0 MC_45  >= 1.0
-    1.0 x_13 + 1.0 x_23 + 1.0 y_3 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
-    1.0 x_14 + 1.0 x_24 + 1.0 y_4 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_44  >= 1.0
+    1.0 x_11 + 1.0 x_21 + 1.0 y_1 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43 + z7 - z8 >= 1.0
+    1.0 x_12 + 1.0 x_22 + 1.0 y_2 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_40 + 1.0 MC_44 + 1.0 MC_45 + z9 - z10 >= 1.0
+    1.0 x_13 + 1.0 x_23 + 1.0 y_3 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45 + z3 - z4 >= 1.0
+    1.0 x_14 + 1.0 x_24 + 1.0 y_4 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_44 + z1 - z2 >= 1.0
     1.0 x_15 + 1.0 x_25 + 1.0 y_5 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
     1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 1.0
-    1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_45  >= 1.0
-    1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var  <= 1.0
+    1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_45 + z5 - z6 >= 1.0
+    1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var <= 1.0
     1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 0.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  <= 1.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 0.0 {MasterConvexityConstr}
@@ -301,7 +306,7 @@ continuous
         local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var, local_art_of_limit_pen
     
     pure
-        y_1, y_2, y_3, y_4, y_5, y_6, y_7
+        y_1, y_2, y_3, y_4, y_5, y_6, y_7, z1, z2, z3, z4, z5, z6, z7, z8, z9, z10
 
 integer
     pricing_setup
@@ -466,7 +471,6 @@ ColGen.get_pricing_subprobs(ctx::TestColGenIterationContext) = ColGen.get_pricin
 function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationContext, env)
     output = ColGen.optimize_master_lp_problem!(master, ctx.context, env)
     primal_sol = ColGen.get_primal_sol(output)
-    @show primal_sol
     for (var_id, var) in ClMP.getvars(master)
         name = ClMP.getname(master, var)
         if !haskey(ctx.master_lp_primal_sol, name)
@@ -477,6 +481,7 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
     end
 
     dual_sol = ColGen.get_dual_sol(output)
+    @show dual_sol
     for (constr_id, constr) in ClMP.getconstrs(master)
         name = ClMP.getname(master, constr)
         if !haskey(ctx.master_lp_dual_sol, name)
@@ -607,14 +612,16 @@ function test_colgen_iteration_pure_master_vars()
         "y_2" => 1,
     )
     master_lp_dual_sol = Dict(
-        "c1" => 8.26666667,
-        "c2" => 17.13333333,
-        "c3" => 18.56666667,
-        "c4" => 21.0,
+        "c1" => 8.26666667, # fixed
+        "c2" => 17.13333333,  # fixed
+        "c3" => 18.56666667,  # fixed
+        "c4" => 21.0,  # fixed
         "c5" => 17.86666667,
         "c6" => 15.41666667,
-        "c7" => 19.26666667,
-        "c8" => -10.86666667
+        "c7" => 19.26666667,  # fixed
+        "c8" => -10.86666667,
+        "c10" =>  -22.55,
+        "c12" => -30.83333334
     )
     master_obj_val = 52.95 
 
