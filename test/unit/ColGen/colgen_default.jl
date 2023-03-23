@@ -582,9 +582,58 @@ register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 function test_colgen_iteration_max_gap()
     env, master, sps, reform = max_toy_gap()
+    
+    master_lp_primal_sol = Dict(
+        "MC_30" => 0.5,
+        "MC_31" => 0.5,
+        "MC_33" => 0.5,
+        "MC_34" => 0.5,
+    )
+    master_lp_dual_sol = Dict(
+        "c1" => 3.0,
+        "c2" => 6.0,
+        "c4" => 15.0,
+        "c5" => 22.0,
+        "c6" => 11.0,
+        "c7" => 8.0,
+    )
+    master_obj_val = 87.00
 
-    @show master
-    @show sps
+    pricing_var_reduced_costs = Dict(
+        "x_11" => 5.0,
+        "x_12" => - 1.0,
+        "x_13" => 11.0,
+        "x_14" => 6.0,
+        "x_15" => - 16.0,
+        "x_16" => - 6.0,
+        "x_17" => 11.0,
+        "PricingSetupVar_sp_5" => 0.0,
+        "x_21" => - 2.0,
+        "x_22" => 6.0,
+        "x_23" => 11.0,
+        "x_24" => - 3.0,
+        "x_25" => - 8.0,
+        "x_26" => - 3.0,
+        "x_27" => - 3.0,
+        "PricingSetupVar_sp_4" => 0.0,
+    )
+
+    ctx = TestColGenIterationContext(
+        ClA.ColGenContext(reform, ClA.ColumnGeneration()),
+        master_lp_primal_sol,
+        master_lp_dual_sol,
+        master_obj_val,
+        pricing_var_reduced_costs,
+    )
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+
+    #@show master
+    #@show sps
 
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
