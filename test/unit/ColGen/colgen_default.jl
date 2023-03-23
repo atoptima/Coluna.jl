@@ -266,6 +266,7 @@ master
     1.0 x_15 + 1.0 x_25 + 1.0 y_5 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
     1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 1.0
     1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_45  >= 1.0
+    1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var  <= 1.0
     1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 0.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  <= 1.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 0.0 {MasterConvexityConstr}
