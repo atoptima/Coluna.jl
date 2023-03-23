@@ -93,7 +93,7 @@ function ReducedCostsCalculationHelper(master)
     for var_id in Iterators.keys(getvars(master))
         if iscuractive(master, var_id) && getduty(var_id) <= AbstractMasterRepDwSpVar
             push!(dwspvar_ids, var_id)
-            push!(peren_costs, getcurcost(master, var_id))
+            push!(peren_costs, getperencost(master, var_id))
         end
     end
 

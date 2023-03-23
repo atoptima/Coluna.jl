@@ -318,10 +318,11 @@ function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClM
         if haskey(cache.variables, varid)
             var = cache.variables[varid]
             if var.duty <= ClMP.AbstractMasterVar
-                v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind)
+                is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
+                v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
             else
                 if haskey(all_spvars, varid)
-                    v = ClMP.setvar!(master, varid, ClMP.MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = ClMP.getid(all_spvars[varid]))
+                    v = ClMP.setvar!(master, varid, ClMP.MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = ClMP.getid(all_spvars[varid]), is_explicit = false)
                 else
                     throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                 end
