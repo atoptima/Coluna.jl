@@ -149,13 +149,13 @@ LP solution is integer feasible; `nothing` otherwise.
 Returns the original cost `c` of subproblems variables.
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
-@mustimplement "ColGenReducedCosts " get_orig_costs(ctx::AbstractColGenContext)
+@mustimplement "ColGenReducedCosts " get_subprob_var_orig_costs(ctx::AbstractColGenContext)
 
 """
 Returns the coefficient matrix `A` of subproblem variables in the master
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
-@mustimplement "ColGenReducedCosts" get_coef_matrix(ctx::AbstractColGenContext)
+@mustimplement "ColGenReducedCosts" get_subprob_var_coef_matrix(ctx::AbstractColGenContext)
 
 "Updates reduced costs of variables of a given subproblem."
 @mustimplement "ColGenReducedCosts" update_sp_vars_red_costs!(ctx::AbstractColGenContext, sp, red_costs)
@@ -184,6 +184,8 @@ end
 
 function compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs)
     # TODO pure master variables are missing.
+    @show master_lp_obj_val
+    @show master_dbs
     return master_lp_obj_val + mapreduce(((id, val),) -> val, +, master_dbs)
 end
 
@@ -242,15 +244,14 @@ function run_colgen_iteration!(context, phase, env)
     # stabcenter is master_dual_sol
     # return alpha * stab_center + (1 - alpha) * lp_dual_sol
 
-
     # With stabilization, you solve several times the suproblem because you can have misprice
     # loop:
     #   - solve all subproblems 
     #   - check if misprice 
 
     # Compute reduced cost (generic operation) by you must support math operations.
-    c = get_orig_costs(context)
-    A = get_coef_matrix(context)
+    c = get_subprob_var_orig_costs(context)
+    A = get_subprob_var_coef_matrix(context)
     red_costs = c - transpose(A) * mast_dual_sol
 
     # Updates subproblems reduced costs.

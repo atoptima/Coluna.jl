@@ -176,8 +176,8 @@ function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, phase, reform)
 end
 
 # Reduced costs calculation
-ColGen.get_orig_costs(ctx::ColGenContext) = ctx.reduced_cost_helper.c
-ColGen.get_coef_matrix(ctx::ColGenContext) = ctx.reduced_cost_helper.A
+ColGen.get_subprob_var_orig_costs(ctx::ColGenContext) = ctx.reduced_cost_helper.dw_subprob_c
+ColGen.get_subprob_var_coef_matrix(ctx::ColGenContext) = ctx.reduced_cost_helper.dw_subprob_A
 
 function ColGen.update_sp_vars_red_costs!(ctx::ColGenContext, sp::Formulation{DwSp}, red_costs)
     for (var_id, _) in getvars(sp)
@@ -234,6 +234,7 @@ end
 struct ColGenPricingResult{F,S}
     result::OptimizationState{F,S}
     columns::Vector{GeneratedColumn}
+    best_red_cost::Float64
 end
 
 function ColGen.is_infeasible(pricing_res::ColGenPricingResult)
@@ -247,9 +248,10 @@ function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
 end
 
 ColGen.get_primal_sols(pricing_res) = pricing_res.columns
-ColGen.get_dual_bound(pricing_res) = get_ip_dual_bound(pricing_res.result)
+ColGen.get_dual_bound(pricing_res) = pricing_res.best_red_cost
 
-has_improving_red_cost(column::GeneratedColumn) = column.red_cost < 0
+is_improving_red_cost(red_cost) = red_cost < 0
+has_improving_red_cost(column::GeneratedColumn) = is_improving_red_cost(column.red_cost)
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
 function ColGen.push_in_set!(pool, column)
@@ -270,16 +272,20 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     # (C) the contribution of the pure master variables.
 
     # Master convexity constraints contribution.
+    # TODO: talk with fv & Ruslan because this way to take into account convexity constraints has
+    # drawbacks (numerical stability).
     lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
     ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
 
     # Pure master variables contribution.
-    # TODO
+    # TODO (only when stabilization is used otherwise already taken into account by master obj val)
 
     generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
         red_cost = getvalue(col) - lb_dual - ub_dual
         push!(generated_columns, GeneratedColumn(col, red_cost))
     end
-    return ColGenPricingResult(opt_state, generated_columns)
+
+    best_red_cost = getvalue(get_ip_dual_bound(opt_state)) - lb_dual - ub_dual
+    return ColGenPricingResult(opt_state, generated_columns, best_red_cost)
 end

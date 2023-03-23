@@ -67,43 +67,67 @@ function _submatrix(
 end
 
 """
-Extracted information to speed-up calculation of reduced costs of master variables.
-We extract from the master only the information we need to compute the reduced cost of DW 
+Extracted information to speed-up calculation of reduced costs of subproblem representatives
+and pure master variables.
+We extract from the master the information we need to compute the reduced cost of DW 
 subproblem variables:
-- `c` contains the perenial cost of DW subproblem representative variables
-- `A` is a submatrix of the master coefficient matrix that involves only DW subproblem
+- `dw_subprob_c` contains the perenial cost of DW subproblem representative variables
+- `dw_subprob_A` is a submatrix of the master coefficient matrix that involves only DW subproblem
   representative variables.
+We also extract from the master the information we need to compute the reduced cost of pure
+master variables:
+- `pure_master_c` contains the perenial cost of pure master variables
+- `pure_master_A` is a submatrix of the master coefficient matrix that involves only pure master
+  variables.
 
 Calculation is `c - transpose(A) * master_lp_dual_solution`.
 
 This information is given to the generic implementation of the column generation algorithm
 through methods:
-- ColGen.get_orig_costs 
+- ColGen.get_subprob_var_orig_costs 
 - ColGen.get_orig_coefmatrix
 """
 struct ReducedCostsCalculationHelper
-    c::SparseVector{Float64,VarId}
-    A::DynamicSparseMatrix{ConstrId,VarId,Float64}
+    dw_subprob_c::SparseVector{Float64,VarId}
+    dw_subprob_A::DynamicSparseMatrix{ConstrId,VarId,Float64}
+    master_c::SparseVector{Float64,VarId}
+    master_A::DynamicSparseMatrix{ConstrId,VarId,Float64}
 end
 
-function ReducedCostsCalculationHelper(master)
-    dwspvar_ids = VarId[]
+"""
+Function `var_duty_func(var_id)` returns `true` if we want to keep the variable `var_id`; `false` otherwise.
+Same for `constr_duty_func(constr_id)`.
+"""
+function _get_costs_and_coeffs(master, var_duty_func, constr_duty_func)
+    var_ids = VarId[]
     peren_costs = Float64[]
 
     for var_id in Iterators.keys(getvars(master))
-        if iscuractive(master, var_id) && getduty(var_id) <= AbstractMasterRepDwSpVar
-            push!(dwspvar_ids, var_id)
+        if iscuractive(master, var_id) && var_duty_func(var_id)
+            push!(var_ids, var_id)
             push!(peren_costs, getperencost(master, var_id))
         end
     end
 
-    dwsprep_costs = sparsevec(dwspvar_ids, peren_costs, Coluna.MAX_NB_ELEMS)
-    dwsprep_coefmatrix = _submatrix(
+    costs = sparsevec(var_ids, peren_costs, Coluna.MAX_NB_ELEMS)
+    coef_matrix = _submatrix(master, constr_duty_func, var_duty_func)
+    return costs, coef_matrix 
+end
+
+function ReducedCostsCalculationHelper(master)
+    dw_subprob_c, dw_subprob_A = _get_costs_and_coeffs(
         master, 
-        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
-        var_id -> getduty(var_id) <= AbstractMasterRepDwSpVar
+        var_id -> getduty(var_id) <= AbstractMasterRepDwSpVar,
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr)
     )
-    return ReducedCostsCalculationHelper(dwsprep_costs, dwsprep_coefmatrix)
+
+    master_c, master_A = _get_costs_and_coeffs(
+        master, 
+        var_id -> getduty(var_id) <= AbstractOriginMasterVar,
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr)
+    )
+
+    return ReducedCostsCalculationHelper(dw_subprob_c, dw_subprob_A, master_c, master_A)
 end
 
 """
