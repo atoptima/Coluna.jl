@@ -191,7 +191,7 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     for column in columns
         @show column
     end
-    return 1
+    return length(columns.columns)
 end
 
 #############################################################################
@@ -253,7 +253,6 @@ has_improving_red_cost(column::GeneratedColumn) = column.red_cost < 0
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
 function ColGen.push_in_set!(pool, column)
-    println("push_in_set!")
     # We keep only columns that improve reduced cost
     if has_improving_red_cost(column)
         push!(pool.columns, column)
@@ -265,14 +264,19 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     input = OptimizationState(sp)
     opt_state = run!(ctx.pricing_solve_alg, env, sp, input) # master & master dual sol for non robust cuts
 
-    # Reduced cost of a column is composed of the cost of the subproblem variables
-    # and the contribution of the master convex combination constraints.
-    # TODO: find better name
-    # TODO; make sure duty_data is well defined.
-    lb_dual = 0.0 # master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
-    ub_dual = 0.0 # master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
-    generated_columns = GeneratedColumn[]
+    # Reduced cost of a column is composed of
+    # (A) the cost of the subproblem variables
+    # (B) the contribution of the master convexity constraints.
+    # (C) the contribution of the pure master variables.
 
+    # Master convexity constraints contribution.
+    lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
+    ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
+
+    # Pure master variables contribution.
+    # TODO
+
+    generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
         red_cost = getvalue(col) - lb_dual - ub_dual
         push!(generated_columns, GeneratedColumn(col, red_cost))
