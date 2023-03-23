@@ -274,7 +274,7 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
     i = 1
     constraints = ClMP.Constraint[]
     subproblems = []
-    all_spvars = Dict{String, ClMP.Variable}()
+    all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.DwSp}}}()
     for (_, sp) in cache.subproblems
         spform = nothing
         for (varid, cost) in sp.objective.vars
@@ -294,14 +294,14 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
                     end
                     v = ClMP.setvar!(spform, varid, ClMP.DwSpPricingVar; lb = var.lb, ub = var.ub, kind = var.kind)
                     ClMP.setperencost!(spform, v, cost)
-                    all_spvars[varid] = v
+                    all_spvars[varid] = (v, spform)
                 end
             else
                 throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
             end
         end
         for constr in sp.constraints
-            members = Dict(ClMP.getid(all_spvars[varid]) => coeff for (varid, coeff) in constr.lhs.vars)
+            members = Dict(ClMP.getid(all_spvars[varid][1]) => coeff for (varid, coeff) in constr.lhs.vars)
             c = ClMP.setconstr!(spform, "sp_c$i", ClMP.DwSpPureConstr; rhs = constr.rhs, sense = constr.sense, members = members)
             push!(constraints, c)
             i += 1
@@ -312,21 +312,22 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
     return subproblems, all_spvars, constraints
 end
 
-function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict{String, ClMP.Variable}, cache::ReadCache)
+function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict, cache::ReadCache)
     mastervars = Dict{String, ClMP.Variable}()
     for (varid, cost) in cache.master.objective.vars
         if haskey(cache.variables, varid)
             var = cache.variables[varid]
-            if var.duty <= ClMP.AbstractMasterVar
+            if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
                 is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
                 v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
             else
                 if haskey(all_spvars, varid)
-                    v = ClMP.setvar!(master, varid, ClMP.MasterRepPricingVar; lb = var.lb, ub = var.ub, kind = var.kind, id = ClMP.getid(all_spvars[varid]), is_explicit = false)
+                    var, sp = all_spvars[varid]
+                    v = ClMP.clonevar!(sp, master, sp, var, ClMP.MasterRepPricingVar; is_explicit = false)
                 else
                     throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                 end
-            end
+        end
             ClMP.setperencost!(master, v, cost)
             mastervars[varid] = v
         else

@@ -7,6 +7,12 @@ master
     x1 + x2 + x3 + y1 + y2 + y3  >= 10
     x1 + 2x2     + y1 + 2y2      <= 100
     x1 +     3x3 + y1 +    + 3y3 == 100
+
+dw_sp
+    min
+    x1 + x2 + x3 + y1 + y2 + y3
+    s.t.
+    x1 + x2 + x3 + y1 + y2 + y3 >= 10
     
     integer
         representatives
@@ -42,8 +48,6 @@ function test_reduced_costs_calculation_helper()
     _, master, _, _, _ = reformfromstring(form1())
     vids = get_name_to_varids(master)
     cids = get_name_to_constrids(master)
-
-    @show master
     
     helper = ClA.ReducedCostsCalculationHelper(master)
     @test helper.c[vids["x1"]] == 3
@@ -76,19 +80,20 @@ register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 # All the tests are based on the Generalized Assignment problem.
 # x_mj = 1 if job j is assigned to machine m
 
-function min_toy_gap() 
+function min_toy_gap()
+    # We introduce variables z1 & z2 to force dual value of constraint c7 to equal to 28.
     form = """
 master
     min
-    100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 51.0 MC_30 + 38.0 MC_31 + 31.0 MC_32 + 35.0 MC_33 + 48.0 MC_34 + 13.0 MC_35 + 53.0 MC_36 + 28.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+    100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 51.0 MC_30 + 38.0 MC_31 + 31.0 MC_32 + 35.0 MC_33 + 48.0 MC_34 + 13.0 MC_35 + 53.0 MC_36 + 28.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 28 z1 - 28 z2
     s.t.
     1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_34 + 1.0 MC_35 + 1.0 MC_36  >= 1.0
-    1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_32 + 1.0 MC_33  >= 1.0
+    1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_32 + 1.0 MC_33 >= 1.0
     1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_37  >= 1.0
     1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_33 + 1.0 MC_34 + 1.0 MC_35 + 1.0 MC_36 + 1.0 MC_37  >= 1.0
     1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_31  >= 1.0
     1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_36  >= 1.0
-    1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_34 + 1.0 MC_36 + 1.0 MC_37  >= 1.0
+    1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_34 + 1.0 MC_36 + 1.0 MC_37 + z1 - z2 >= 1.0
     1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_36  >= 0.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_36  <= 1.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_37  >= 0.0 {MasterConvexityConstr}
@@ -112,6 +117,9 @@ continuous
 
     artificial
         local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+    pure
+        z1, z2
 
 integer
     pricing_setup
@@ -159,11 +167,12 @@ bounds
     MC_35 >= 0.0
     MC_36 >= 0.0
     MC_37 >= 0.0
-"""
+    z1 >= 0.0
+    z2 >= 0.0
+    """
     env, master, sps, _, reform = reformfromstring(form)
     return env, master, sps, reform
 end
-
 
 function max_toy_gap()
     form = """
@@ -458,13 +467,22 @@ ColGen.get_pricing_subprobs(ctx::TestColGenIterationContext) = ColGen.get_pricin
 function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationContext, env)
     output = ColGen.optimize_master_lp_problem!(master, ctx.context, env)
     primal_sol = ColGen.get_primal_sol(output)
-    @show primal_sol
     for (var_id, var) in ClMP.getvars(master)
         name = ClMP.getname(master, var)
         if !haskey(ctx.master_lp_primal_sol, name)
             @test primal_sol[var_id] ≈ 0.0
         else
             @test primal_sol[var_id] ≈ ctx.master_lp_primal_sol[name]
+        end
+    end
+
+    dual_sol = ColGen.get_dual_sol(output)
+    for (constr_id, constr) in ClMP.getconstrs(master)
+        name = ClMP.getname(master, constr)
+        if !haskey(ctx.master_lp_dual_sol, name)
+            @test dual_sol[constr_id] ≈ 0.0
+        else
+            @test dual_sol[constr_id] ≈ ctx.master_lp_dual_sol[name]
         end
     end
     return output
@@ -477,10 +495,13 @@ ColGen.get_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_orig_costs(c
 ColGen.get_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_coef_matrix(ctx.context)
 
 function ColGen.update_sp_vars_red_costs!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, red_costs)
-    @show red_costs
+    for i in 1:5
+        println("\e[34m ***************** \e[00m")
+    end
     ColGen.update_sp_vars_red_costs!(ctx.context, sp, red_costs)
     for (_, var) in ClMP.getvars(sp)
         name = ClMP.getname(sp, var)
+        println(" ---- name = $(name) ---- expected : $(ctx.pricing_var_reduced_costs[name]) ---- actual : $(ClMP.getcurcost(sp, var)) --- cur_cost = $(ClMP.getcurcost(sp, var)))")
         @test ctx.pricing_var_reduced_costs[name] ≈ ClMP.getcurcost(sp, var)
     end
     return
@@ -505,9 +526,6 @@ end
 function test_colgen_iteration_min_gap()
     env, master, sps, reform = min_toy_gap()
 
-    @show master
-    @show sps
-
     # vids = get_name_to_varids(master)
     # cids = get_name_to_constrids(master)
     
@@ -519,11 +537,11 @@ function test_colgen_iteration_min_gap()
         "MC_37" => 1/3,
     )
     master_lp_dual_sol = Dict(
-        "c1" => 1/3,
-        "c2" => 2/3,
-        "c5" => 1/3,
-        "c6" => 1/3,
-        "c7" => 1/3,
+        "c1" => 11.33333333,
+        "c2" => 17.33333333,
+        "c5" => 9.33333333,
+        "c6" => 13.66666667,
+        "c7" => 28.0,
     )
     master_obj_val = 79.67
 
@@ -553,7 +571,7 @@ function test_colgen_iteration_min_gap()
         master_obj_val,
         pricing_var_reduced_costs,
     )
-    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
     ClMP.relax_integrality!(master)
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
@@ -586,7 +604,6 @@ function test_colgen_iteration_obj_const()
     @show env
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
-
 
 
 
