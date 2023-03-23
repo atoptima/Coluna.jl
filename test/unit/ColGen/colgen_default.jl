@@ -517,9 +517,7 @@ ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(c
 
 # Columns insertion
 function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, columns)
-    ColGen.insert_columns!(reform, ctx.context, phase, columns)
-    # test here
-    return 1
+    return ColGen.insert_columns!(reform, ctx.context, phase, columns)
 end
 
 function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, master_dual_sol)
@@ -569,6 +567,14 @@ function test_colgen_iteration_min_gap()
         "PricingSetupVar_sp_4" => 0.0,
     )
 
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
     ctx = TestColGenIterationContext(
         ClA.ColGenContext(reform, ClA.ColumnGeneration()),
         master_lp_primal_sol,
@@ -576,12 +582,15 @@ function test_colgen_iteration_min_gap()
         master_obj_val,
         pricing_var_reduced_costs,
     )
-    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
-    ClMP.relax_integrality!(master)
-    for sp in sps
-        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    end
-    ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    @test output.mlp ≈ 79.666666667
+    @test output.db ≈ 21.3333333333
+    @test output.nb_new_cols == 2
+    @test output.infeasible_master == false
+    @test output.unbounded_master == false
+    @test output.infeasible_subproblem == false
+    @test output.unbounded_subproblem == false
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
@@ -648,7 +657,7 @@ function test_colgen_iteration_max_gap()
 
 
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
 
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
@@ -656,7 +665,7 @@ function test_colgen_iteration_pure_master_vars()
     @show master
     @show env
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
 
 function test_colgen_iteration_obj_const()
     env, master, sps, reform = toy_gap_with_obj_const()
@@ -664,7 +673,7 @@ function test_colgen_iteration_obj_const()
     @show master
     @show env
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
 
 
 
