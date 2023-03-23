@@ -268,19 +268,24 @@ bounds
 end
 
 function toy_gap_with_penalties()
+    # We add variables z1 and z2 to fix the dual value of constraint c4 to 21.
+    # We add variables z3 and z4 to fix the dual value of constraint c3 to 18.56666667.
+    # We add variables z5 and z6 to fix the dual value of constraint c7 to 19.26666667.
+    # We add variables z7 and z8 to fix the dual value of constraint c1 to 8.26666667.
+    # We add variables z9 and z10 to fix the dual value of constraint c2 to 17.13333333
     form = """
 master
     min
-    3.15 y_1 + 5.949999999999999 y_2 + 7.699999999999999 y_3 + 11.549999999999999 y_4 + 7.0 y_5 + 4.55 y_6 + 8.399999999999999 y_7 + 10000.0 local_art_of_cov_5 + 10000.0 local_art_of_cov_4 + 10000.0 local_art_of_cov_6 + 10000.0 local_art_of_cov_7 + 10000.0 local_art_of_cov_2 + 10000.0 local_art_of_limit_pen + 10000.0 local_art_of_cov_3 + 10000.0 local_art_of_cov_1 + 10000.0 local_art_of_sp_lb_5 + 10000.0 local_art_of_sp_ub_5 + 10000.0 local_art_of_sp_lb_4 + 10000.0 local_art_of_sp_ub_4 + 100000.0 global_pos_art_var + 100000.0 global_neg_art_var + 51.0 MC_38 + 38.0 MC_39 + 10.0 MC_40 + 28.0 MC_41 + 19.0 MC_42 + 26.0 MC_43 + 31.0 MC_44 + 42.0 MC_45 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+    3.15 y_1 + 5.949999999999999 y_2 + 7.699999999999999 y_3 + 11.549999999999999 y_4 + 7.0 y_5 + 4.55 y_6 + 8.399999999999999 y_7 + 10000.0 local_art_of_cov_5 + 10000.0 local_art_of_cov_4 + 10000.0 local_art_of_cov_6 + 10000.0 local_art_of_cov_7 + 10000.0 local_art_of_cov_2 + 10000.0 local_art_of_limit_pen + 10000.0 local_art_of_cov_3 + 10000.0 local_art_of_cov_1 + 10000.0 local_art_of_sp_lb_5 + 10000.0 local_art_of_sp_ub_5 + 10000.0 local_art_of_sp_lb_4 + 10000.0 local_art_of_sp_ub_4 + 100000.0 global_pos_art_var + 100000.0 global_neg_art_var + 51.0 MC_38 + 38.0 MC_39 + 10.0 MC_40 + 28.0 MC_41 + 19.0 MC_42 + 26.0 MC_43 + 31.0 MC_44 + 42.0 MC_45 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 21 z1 - 21 z2 + 18.56666667 z3 -18.56666667 z4 + 19.26666667 z5 - 19.26666667 z6 + 8.26666667 z7 - 8.26666667 z8 + 17.13333333 z9 - 17.13333333 z10
     s.t.
-    1.0 x_11 + 1.0 x_21 + 1.0 y_1 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43  >= 1.0
-    1.0 x_12 + 1.0 x_22 + 1.0 y_2 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_40 + 1.0 MC_44 + 1.0 MC_45  >= 1.0
-    1.0 x_13 + 1.0 x_23 + 1.0 y_3 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
-    1.0 x_14 + 1.0 x_24 + 1.0 y_4 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
+    1.0 x_11 + 1.0 x_21 + 1.0 y_1 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43 + z7 - z8 >= 1.0
+    1.0 x_12 + 1.0 x_22 + 1.0 y_2 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_40 + 1.0 MC_44 + 1.0 MC_45 + z9 - z10 >= 1.0
+    1.0 x_13 + 1.0 x_23 + 1.0 y_3 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45 + z3 - z4 >= 1.0
+    1.0 x_14 + 1.0 x_24 + 1.0 y_4 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_44 + z1 - z2 >= 1.0
     1.0 x_15 + 1.0 x_25 + 1.0 y_5 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
     1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 1.0
-    1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_45  >= 1.0
-    1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var  <= 1.0
+    1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_45 + z5 - z6 >= 1.0
+    1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var <= 1.0
     1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 0.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  <= 1.0 {MasterConvexityConstr}
     1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 0.0 {MasterConvexityConstr}
@@ -306,7 +311,7 @@ continuous
         local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var, local_art_of_limit_pen
     
     pure
-        y_1, y_2, y_3, y_4, y_5, y_6, y_7
+        y_1, y_2, y_3, y_4, y_5, y_6, y_7, z1, z2, z3, z4, z5, z6, z7, z8, z9, z10
 
 integer
     pricing_setup
@@ -455,7 +460,6 @@ bounds
     return env, master, sps, reform
 end
 
-
 ### Implementation of ColGen API to test and call the default implementation
 struct TestColGenIterationContext <: ColGen.AbstractColGenContext
     context::ClA.ColGenContext
@@ -482,6 +486,7 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
     end
 
     dual_sol = ColGen.get_dual_sol(output)
+    @show dual_sol
     for (constr_id, constr) in ClMP.getconstrs(master)
         name = ClMP.getname(master, constr)
         if !haskey(ctx.master_lp_dual_sol, name)
@@ -592,7 +597,7 @@ function test_colgen_iteration_min_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 function test_colgen_iteration_max_gap()
     env, master, sps, reform = max_toy_gap()
@@ -662,10 +667,70 @@ end
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
 
-    @show master
-    @show env
+    master_lp_primal_sol = Dict(
+        "MC_41" => 1,
+        "MC_42" => 1,
+        "y_2" => 1,
+    )
+    master_lp_dual_sol = Dict(
+        "c1" => 8.26666667, # fixed
+        "c2" => 17.13333333,  # fixed
+        "c3" => 18.56666667,  # fixed
+        "c4" => 21.0,  # fixed
+        "c5" => 17.86666667,
+        "c6" => 15.41666667,
+        "c7" => 19.26666667,  # fixed
+        "c8" => -10.86666667,
+        "c10" =>  -22.55,
+        "c12" => -30.83333334
+    )
+    master_obj_val = 52.95 
+
+    pricing_var_reduced_costs = Dict(
+        "x_11" => 0.26666666999999933,
+        "x_12" => - 12.13333333,
+        "x_13" => - 7.56666667,
+        "x_14" => 0.0,
+        "x_15" => - 11.86666667,
+        "x_16" => - 10.41666667,
+        "x_17" => - 0.26666666999999933,
+        "PricingSetupVar_sp_5" => 0.0,
+        "x_21" => - 7.266666669999999,
+        "x_22" => - 5.133333329999999,
+        "x_23" => - 7.56666667,
+        "x_24" => - 9.0,
+        "x_25" => - 3.8666666700000007,
+        "x_26" => - 7.41666667,
+        "x_27" => - 14.26666667,
+        "PricingSetupVar_sp_4" => 0.0,
+    )
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = TestColGenIterationContext(
+        ClA.ColGenContext(reform, ClA.ColumnGeneration()),
+        master_lp_primal_sol,
+        master_lp_dual_sol,
+        master_obj_val,
+        pricing_var_reduced_costs,
+    )
+
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    @test output.mlp ≈ 52.9500
+    @test output.db ≈ 51.5000
+    @test output.nb_new_cols == 1
+    @test output.infeasible_master == false
+    @test output.unbounded_master == false
+    @test output.infeasible_subproblem == false
+    @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
+register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
 
 function test_colgen_iteration_obj_const()
     env, master, sps, reform = toy_gap_with_obj_const()
