@@ -98,7 +98,7 @@ function test_reduced_costs_calculation_helper()
     @test helper.master_A[cids["c3"], vids["z"]] == 0
     @test helper.master_A[cids["c4"], vids["z"]] == 1
 end
-#register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
+register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
 
 # All the tests are based on the Generalized Assignment problem.
