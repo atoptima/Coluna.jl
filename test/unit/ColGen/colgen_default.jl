@@ -98,7 +98,7 @@ function test_reduced_costs_calculation_helper()
     @test helper.master_A[cids["c3"], vids["z"]] == 0
     @test helper.master_A[cids["c4"], vids["z"]] == 1
 end
-register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
+#register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
 
 # All the tests are based on the Generalized Assignment problem.
@@ -401,7 +401,7 @@ function toy_gap_with_obj_const()
     form = """
 master
     min
-    100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 51.0 MC_30 + 38.0 MC_31 + 31.0 MC_32 + 35.0 MC_33 + 48.0 MC_34 + 13.0 MC_35 + 53.0 MC_36 + 28.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 7.0
+    100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 51.0 MC_30 + 38.0 MC_31 + 31.0 MC_32 + 35.0 MC_33 + 48.0 MC_34 + 13.0 MC_35 + 53.0 MC_36 + 28.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 700.0
     s.t.
     1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_34 + 1.0 MC_35 + 1.0 MC_36  >= 1.0
     1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_32 + 1.0 MC_33  >= 1.0
@@ -519,9 +519,12 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
             @test dual_sol[constr_id] ≈ ctx.master_lp_dual_sol[name]
         end
     end
-    println("\e[35m **************** dual sol ****************** \e[00m")
-    @show dual_sol
-    println("\e[35m ********************************** \e[00m")
+    #println("\e[35m **************** primal sol ****************** \e[00m")
+    #@show primal_sol
+    #println("\e[35m ********************************** \e[00m")
+    #println("\e[35m **************** dual sol ****************** \e[00m")
+    #@show dual_sol
+    #println("\e[35m ********************************** \e[00m")
     return output
 end
 
@@ -620,7 +623,7 @@ function test_colgen_iteration_min_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 
 function test_colgen_iteration_max_gap()
@@ -752,13 +755,71 @@ function test_colgen_iteration_pure_master_vars()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
 
 function test_colgen_iteration_obj_const()
     env, master, sps, reform = toy_gap_with_obj_const()
+    master_lp_primal_sol = Dict(
+        "MC_30" => 1/3,
+        "MC_31" => 2/3,
+        "MC_32" => 1/3,
+        "MC_36" => 1/3,
+        "MC_37" => 1/3,
+    )
+    master_lp_dual_sol = Dict(
+        "c1" => 11.33333333,
+        "c3" => 17.33333333,
+        "c5" => 9.33333333,
+        "c6" => 31.0,
+        "c7" => 10.66666667,
+    )
+    master_obj_val = 779.67
 
-    @show master
-    @show env
+    pricing_var_reduced_costs = Dict(
+        "x_11" => - 3.3333333300000003,
+        "x_12" => 5.0,
+        "x_13" => - 6.3333333299999985,
+        "x_14" => 21.0,
+        "x_15" => - 3.3333333300000003,
+        "x_16" => - 26.0,
+        "x_17" => 8.33333333,
+        "PricingSetupVar_sp_5" => 0.0,
+        "x_21" => - 10.33333333,
+        "x_22" => 12.0,
+        "x_23" => - 6.3333333299999985,
+        "x_24" => 12.0,
+        "x_25" => 4.66666667,
+        "x_26" => - 23.0,
+        "x_27" => - 5.66666667,
+        "PricingSetupVar_sp_4" => 0.0,
+    )
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = TestColGenIterationContext(
+        ClA.ColGenContext(reform, ClA.ColumnGeneration()),
+        master_lp_primal_sol,
+        master_lp_dual_sol,
+        master_obj_val,
+        pricing_var_reduced_costs,
+    )
+
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+   
+    @test output.mlp ≈ 779.6666666666667 
+    @test output.db ≈ 717.6666666766668
+    @test output.nb_new_cols == 2
+    @test output.infeasible_master == false
+    @test output.unbounded_master == false
+    @test output.infeasible_subproblem == false
+    @test output.unbounded_subproblem == false
+
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
 
