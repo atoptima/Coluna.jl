@@ -518,12 +518,6 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
             @test dual_sol[constr_id] ≈ ctx.master_lp_dual_sol[name]
         end
     end
-    #println("\e[35m **************** primal sol ****************** \e[00m")
-    #@show primal_sol
-    #println("\e[35m ********************************** \e[00m")
-    #println("\e[35m **************** dual sol ****************** \e[00m")
-    #@show dual_sol
-    #println("\e[35m ********************************** \e[00m")
     return output
 end
 
