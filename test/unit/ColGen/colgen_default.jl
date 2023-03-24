@@ -616,7 +616,7 @@ function test_colgen_iteration_min_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
+register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 
 function test_colgen_iteration_max_gap()
