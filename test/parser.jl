@@ -73,6 +73,7 @@ end
 
 mutable struct ExprCache
     vars::Dict{String, Float64}
+    constant::Float64
 end
 
 mutable struct VarCache
@@ -116,7 +117,7 @@ function ReadCache()
         ProblemCache(
             CL.MinSense,
             ExprCache(
-                Dict{String, Float64}()
+                Dict{String, Float64}(), 0.0
             ),
             ConstrCache[]
         ),
@@ -152,19 +153,24 @@ end
 function _read_expression(l::AbstractString)
     line = _strip_line(l)
     vars = Dict{String, Float64}()
-    first_m = match(Regex("^([+-])?($coeff_re)?\\*?(\\w+)(.*)"), line) # first element of expr
+    constant = 0.0
+    first_m = match(Regex("^([+-])?($coeff_re)?\\*?([a-zA-Z]+\\w*)?(.*)"), line) # first element of expr
     if !isnothing(first_m)
         sign = isnothing(first_m[1]) ? "+" : first_m[1] # has a sign
         coeff = isnothing(first_m[2]) ? "1" : first_m[2] # has a coefficient
         cost = parse(Float64, string(sign, coeff))
         vars[String(first_m[4])] = cost
-        for m in eachmatch(Regex("([+-])($coeff_re)?\\*?(\\w+)"), first_m[5]) # rest of the elements
+        for m in eachmatch(Regex("([+-])($coeff_re)?\\*?([a-zA-Z]+\\w*)?"), first_m[5]) # rest of the elements
             coeff = isnothing(m[2]) ? "1" : m[2]
             cost = parse(Float64, string(m[1], coeff))
-            vars[String(m[4])] = cost
+            if isnothing(m[4])
+                constant += cost
+            else
+                vars[String(m[4])] = cost
+            end
         end
     end
-    return ExprCache(vars)
+    return ExprCache(vars, constant)
 end
 
 function _read_constraint(l::AbstractString)
@@ -405,6 +411,7 @@ function reformfromcache(cache::ReadCache)
     )
     ClMP.setmaster!(reform, master)
     mastervars = add_master_vars!(master, all_spvars, cache)
+    ClMP.setobjconst!(master, cache.master.objective.constant)
     add_master_constraints!(reform, master, mastervars, constraints, cache)
 
     for sp in subproblems

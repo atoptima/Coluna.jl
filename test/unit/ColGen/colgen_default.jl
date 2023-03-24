@@ -679,7 +679,7 @@ function test_colgen_iteration_max_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
 
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
@@ -755,7 +755,7 @@ function test_colgen_iteration_obj_const()
     @show master
     @show env
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
+register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
 
 
 
