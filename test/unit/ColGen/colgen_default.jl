@@ -200,7 +200,6 @@ end
 
 function max_toy_gap()
     # We introduce variables (z1, z2), (z3, z4) and (z5, z6) to force dual value of constraint c2, c1 and c5 to be equal to 6.0, 3.0 and 22.0 respectively.
-    # We introduce variables (z1, z2), (z3, z4) and (z5, z6) to force dual value of constraint c2, c1 and c5 to be equal to 6.0, 3.0 and 22.0 respectively.
     form = """
 master
     max
