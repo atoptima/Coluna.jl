@@ -160,7 +160,7 @@ function _read_expression(l::AbstractString)
         coeff = isnothing(first_m[2]) ? "1" : first_m[2] # has a coefficient
         cost = parse(Float64, string(sign, coeff))
         vars[String(first_m[4])] = cost
-        for m in eachmatch(Regex("([+-])($coeff_re)?\\*?([a-zA-Z]+\\w+)?"), first_m[5]) # rest of the elements
+        for m in eachmatch(Regex("([+-])($coeff_re)?\\*?([a-zA-Z]+\\w*)?"), first_m[5]) # rest of the elements
             coeff = isnothing(m[2]) ? "1" : m[2]
             cost = parse(Float64, string(m[1], coeff))
             if isnothing(m[4])
