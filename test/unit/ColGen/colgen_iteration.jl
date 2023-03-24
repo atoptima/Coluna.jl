@@ -153,8 +153,8 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form,
 end
 
 # Reduced costs
-ColGen.get_orig_costs(::ColGenIterationTestContext) = [7, 2, 1, 5, 3, 6, 8, 4, 2, 9]
-ColGen.get_coef_matrix(::ColGenIterationTestContext) = [
+ColGen.get_subprob_var_orig_costs(::ColGenIterationTestContext) = [7, 2, 1, 5, 3, 6, 8, 4, 2, 9]
+ColGen.get_subprob_var_coef_matrix(::ColGenIterationTestContext) = [
     1 1 1 1 0 0 0 0 0 0; 
     1 0 0 0 1 1 1 0 0 0; 
     0 1 0 0 1 0 0 1 1 0; 
