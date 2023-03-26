@@ -248,9 +248,9 @@ function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
 end
 
 ColGen.get_primal_sols(pricing_res) = pricing_res.columns
-ColGen.get_dual_bound(pricing_res) = pricing_res.best_red_cost
+ColGen.get_dual_bound(pricing_res) = get_lp_dual_bound(pricing_res.result)
 
-is_improving_red_cost(red_cost) = red_cost < 0
+is_improving_red_cost(red_cost) = red_cost > 0
 has_improving_red_cost(column::GeneratedColumn) = is_improving_red_cost(column.red_cost)
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
@@ -288,4 +288,23 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
 
     best_red_cost = getvalue(get_ip_dual_bound(opt_state)) - lb_dual - ub_dual
     return ColGenPricingResult(opt_state, generated_columns, best_red_cost)
+end
+
+function _convexity_contrib(ctx, master_dual_sol)
+    master = ColGen.get_master(ctx)
+    return mapreduce(+, ColGen.get_pricing_subprobs(ctx)) do it
+        _, sp = it
+        lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
+        ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
+        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        return lb_dual * lb + ub_dual * ub
+    end
+end
+
+function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
+    sp_contrib = mapreduce(((id, val),) -> val, +, sp_dbs)
+    convexity_contrib = _convexity_contrib(ctx, master_dual_sol)
+    @show master_lp_obj_val, convexity_contrib, sp_contrib
+    return master_lp_obj_val - convexity_contrib + sp_contrib
 end
