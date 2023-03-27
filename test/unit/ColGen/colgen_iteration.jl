@@ -176,6 +176,10 @@ function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, gen
     return 1
 end
 
+function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, mast_lp_obj_val, sp_dbs, mast_dual_sol)
+    return 22.5 - 23/4
+end
+
 function colgen_iteration_master_ok_pricing_ok()
     ctx = ColGenIterationTestContext()
     output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)

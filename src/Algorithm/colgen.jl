@@ -654,6 +654,7 @@ function compute_lagrangian_dual_bound(
     end
 
     valid_lagr_bound = DualBound{sense}(dual_bound + sp_contrib + puremastvars_contrib)
+    @show valid_lagr_bound
     return valid_lagr_bound
 end
 
