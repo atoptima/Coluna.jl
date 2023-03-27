@@ -815,7 +815,6 @@ function cg_main_loop!(
                     stabunit, algo, pure_master_vars,
                     smooth_dual_sol
                 )
-                @show valid_lagr_bound
                 update_ip_dual_bound!(cg_optstate, valid_lagr_bound)
                 update_lp_dual_bound!(cg_optstate, valid_lagr_bound)
 
