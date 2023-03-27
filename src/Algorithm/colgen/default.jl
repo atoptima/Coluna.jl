@@ -189,7 +189,7 @@ end
 # Columns insertion
 function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     for column in columns
-        @show column
+        #@show column
     end
     return length(columns.columns)
 end
@@ -215,6 +215,11 @@ end
 struct GeneratedColumn
     column::PrimalSolution{Formulation{DwSp}}
     red_cost::Float64
+    min_obj::Bool # TODO remove when formulation will be parametrized by the sense.
+    function GeneratedColumn(column, red_cost)
+        min_obj = getobjsense(column.solution.model) == MinSense
+        return new(column, red_cost, min_obj)
+    end
 end
 
 """
@@ -251,7 +256,13 @@ ColGen.get_primal_sols(pricing_res) = pricing_res.columns
 ColGen.get_dual_bound(pricing_res) = get_lp_dual_bound(pricing_res.result)
 
 is_improving_red_cost(red_cost) = red_cost > 0
-has_improving_red_cost(column::GeneratedColumn) = is_improving_red_cost(column.red_cost)
+is_improving_red_cost_min_sense(red_cost) = red_cost < 0
+function has_improving_red_cost(column::GeneratedColumn)
+    if column.min_obj
+        return is_improving_red_cost_min_sense(column.red_cost)
+    end
+    return is_improving_red_cost(column.red_cost)
+end
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
 function ColGen.push_in_set!(pool, column)
@@ -305,6 +316,6 @@ end
 function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
     sp_contrib = mapreduce(((id, val),) -> val, +, sp_dbs)
     convexity_contrib = _convexity_contrib(ctx, master_dual_sol)
-    @show master_lp_obj_val, convexity_contrib, sp_contrib
+    #@show master_lp_obj_val, convexity_contrib, sp_contrib
     return master_lp_obj_val - convexity_contrib + sp_contrib
 end
