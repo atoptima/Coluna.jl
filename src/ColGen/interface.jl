@@ -183,12 +183,8 @@ function check_pricing_termination_status(pricing_result)
     # TODO
 end
 
-function compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs)
-    # TODO pure master variables are missing.
-    @show master_lp_obj_val
-    @show master_dbs
-    return master_lp_obj_val + mapreduce(((id, val),) -> val, +, master_dbs)
-end
+@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol)
+
 
 struct ColGenIterationOutput
     mlp::Union{Nothing, Float64}
@@ -312,7 +308,7 @@ function run_colgen_iteration!(context, phase, env)
     master_lp_obj_val = get_obj_val(mast_result)
 
     # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
-    valid_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db)
+    valid_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db, mast_dual_sol)
 
     pseudo_db = 0 # same but using primal bound of the pricing result.
     # pseudo_db used only in the stabilization (update_stability_center!)

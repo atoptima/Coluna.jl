@@ -808,6 +808,10 @@ function _show_obj_fun(io::IO, form::Formulation)
         op = (cost < 0.0) ? "-" : "+"
         print(io, op, " ", abs(cost), " ", name, " ")
     end
+    if !iszero(getobjconst(form))
+        op = (getobjconst(form) < 0.0) ? "-" : "+"
+        print(io, op, " ", abs(getobjconst(form)))
+    end
     println(io, " ")
     return
 end

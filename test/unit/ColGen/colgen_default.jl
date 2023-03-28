@@ -62,7 +62,7 @@ end
 # Simple case with only subproblem representatives variables.
 function test_reduced_costs_calculation_helper()
     _, master, _, _, _ = reformfromstring(form1())
-    @show master
+
     vids = get_name_to_varids(master)
     cids = get_name_to_constrids(master)
     
@@ -561,6 +561,10 @@ function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::F
     return output
 end
 
+function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.context, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
+end
+
 function test_colgen_iteration_min_gap()
     env, master, sps, reform = min_toy_gap()
 
@@ -629,6 +633,7 @@ function test_colgen_iteration_min_gap()
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
+
 function test_colgen_iteration_max_gap()
     env, master, sps, reform = max_toy_gap()
     
@@ -639,12 +644,14 @@ function test_colgen_iteration_max_gap()
         "MC_34" => 0.5,
     )
     master_lp_dual_sol = Dict(
-        "c1" => 3.0,
-        "c2" => 6.0,
+        "c1" => 3.0, # fixed
+        "c2" => 6.0, # fixed
         "c4" => 15.0,
-        "c5" => 22.0,
+        "c5" => 22.0, # fixed
         "c6" => 11.0,
         "c7" => 8.0,
+        "c9" => 16.0,
+        "c11" => 6.0
     )
     master_obj_val = 87.00
 
@@ -683,14 +690,14 @@ function test_colgen_iteration_max_gap()
 
     output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
     @test output.mlp ≈ 87.00
-    @test output.db ≈ 102.00
+    @test output.db ≈ 110.00
     @test output.nb_new_cols == 2
     @test output.infeasible_master == false
     @test output.unbounded_master == false
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
+register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
 
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
@@ -758,13 +765,71 @@ function test_colgen_iteration_pure_master_vars()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
 
 function test_colgen_iteration_obj_const()
     env, master, sps, reform = toy_gap_with_obj_const()
+    master_lp_primal_sol = Dict(
+        "MC_30" => 1/3,
+        "MC_31" => 2/3,
+        "MC_32" => 1/3,
+        "MC_36" => 1/3,
+        "MC_37" => 1/3,
+    )
+    master_lp_dual_sol = Dict(
+        "c1" => 11.33333333,
+        "c3" => 17.33333333,
+        "c5" => 9.33333333,
+        "c6" => 31.0,
+        "c7" => 10.66666667,
+    )
+    master_obj_val = 779.67
 
-    @show master
-    @show env
+    pricing_var_reduced_costs = Dict(
+        "x_11" => - 3.3333333300000003,
+        "x_12" => 5.0,
+        "x_13" => - 6.3333333299999985,
+        "x_14" => 21.0,
+        "x_15" => - 3.3333333300000003,
+        "x_16" => - 26.0,
+        "x_17" => 8.33333333,
+        "PricingSetupVar_sp_5" => 0.0,
+        "x_21" => - 10.33333333,
+        "x_22" => 12.0,
+        "x_23" => - 6.3333333299999985,
+        "x_24" => 12.0,
+        "x_25" => 4.66666667,
+        "x_26" => - 23.0,
+        "x_27" => - 5.66666667,
+        "PricingSetupVar_sp_4" => 0.0,
+    )
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = TestColGenIterationContext(
+        ClA.ColGenContext(reform, ClA.ColumnGeneration()),
+        master_lp_primal_sol,
+        master_lp_dual_sol,
+        master_obj_val,
+        pricing_var_reduced_costs,
+    )
+
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+   
+    @test output.mlp ≈ 779.6666666666667 
+    @test output.db ≈ 717.6666666766668
+    @test output.nb_new_cols == 2
+    @test output.infeasible_master == false
+    @test output.unbounded_master == false
+    @test output.infeasible_subproblem == false
+    @test output.unbounded_subproblem == false
+
 end
 register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
 
