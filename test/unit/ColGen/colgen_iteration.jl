@@ -256,3 +256,4 @@ function colgen_iteration_pricing_unbounded()
     @test output.unbounded_subproblem == true
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
+

@@ -35,21 +35,22 @@ We strongly advise users against the use of this method to modify the context or
 
 @mustimplement "ColGen" after_cut_separation()
 
-function run_colgen_phase!(context, phase, reform)
+function run_colgen_phase!(context, phase, env)
     colgen_iteration = 0
     cutsep_iteration = 0
-    while !stop_colgen_phase(context, phase, reform)
+    colgen_iter_output = nothing
+    while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
         # cleanup ?
-        before_colgen_iteration(context, phase, reform)
-        colgen_iter_output = run_colgen_iteration!(context, phase, reform)
-        after_colgen_iteration(context, phase, reform, colgen_iter_output)
+        before_colgen_iteration(context, phase)
+        colgen_iter_output = run_colgen_iteration!(context, phase, env)
+        after_colgen_iteration(context, phase, colgen_iter_output)
         colgen_iteration += 1
-        if separate_cuts()
-            before_cut_separation()
-            run_cut_separation!(context, phase, reform)
-            after_cut_separation()
-            cutsep_iteration += 1
-        end
+        # if separate_cuts()
+        #     before_cut_separation()
+        #     run_cut_separation!(context, phase, reform)
+        #     after_cut_separation()
+        #     cutsep_iteration += 1
+        # end
     end
 end
 
@@ -200,7 +201,7 @@ struct ColGenIterationOutput
 end
 
 """
-    run_colgen_iteration!(context, phase, reform) -> ColGenIterationOutput
+    run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
 """
 function run_colgen_iteration!(context, phase, env)
     master = get_master(context)
