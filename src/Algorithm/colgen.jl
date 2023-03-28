@@ -393,7 +393,7 @@ function update_sp_vars_reduced_costs!(
     reform::Reformulation, helper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
     # Compute reduced costs.
-    redcosts = helper.c - transpose(helper.A) * masterdualsol
+    redcosts = helper.dw_subprob_c - transpose(helper.dw_subprob_A) * masterdualsol
 
     # TODO:  We should call a (generic) method to update reduced costs of variables of the model
     for (_, spform) in get_dw_pricing_sps(reform)
