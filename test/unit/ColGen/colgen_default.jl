@@ -214,7 +214,7 @@ function max_toy_gap()
     form = """
     master
         max
-        - 10000.0 local_art_of_cov_5 - 10000.0 local_art_of_cov_4 - 10000.0 local_art_of_cov_6 - 10000.0 local_art_of_cov_7 - 10000.0 local_art_of_cov_2 - 10000.0 local_art_of_cov_3 - 10000.0 local_art_of_cov_1 - 10000.0 local_art_of_sp_lb_5 - 10000.0 local_art_of_sp_ub_5 - 10000.0 local_art_of_sp_lb_4 - 10000.0 local_art_of_sp_ub_4 - 100000.0 global_pos_art_var - 100000.0 global_neg_art_var + + 53.0 MC_30 + 49.0 MC_31 + 35.0 MC_32 + 45.0 MC_33 + 27.0 MC_34 + 42.0 MC_35 + 45.0 MC_36 + 12.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 6.0 z1 - 6.0 z2 + 3.0 z3 - 3.0 z4 + 22.0 z5 - 22.0 z6
+        - 10000.0 local_art_of_cov_5 - 10000.0 local_art_of_cov_4 - 10000.0 local_art_of_cov_6 - 10000.0 local_art_of_cov_7 - 10000.0 local_art_of_cov_2 - 10000.0 local_art_of_cov_3 - 10000.0 local_art_of_cov_1 - 10000.0 local_art_of_sp_lb_5 - 10000.0 local_art_of_sp_ub_5 - 10000.0 local_art_of_sp_lb_4 - 10000.0 local_art_of_sp_ub_4 - 100000.0 global_pos_art_var - 100000.0 global_neg_art_var + 53.0 MC_30 + 49.0 MC_31 + 35.0 MC_32 + 45.0 MC_33 + 27.0 MC_34 + 42.0 MC_35 + 45.0 MC_36 + 12.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 6.0 z1 - 6.0 z2 + 3.0 z3 - 3.0 z4 + 22.0 z5 - 22.0 z6
         s.t.
         1.0 x_11 + 1.0 x_21 - 1.0 local_art_of_cov_1 - 1.0 global_neg_art_var + 1.0 MC_30 + 1.0 MC_34 + z3 - z4 <= 1.0
         1.0 x_12 + 1.0 x_22 - 1.0 local_art_of_cov_2 - 1.0 global_neg_art_var + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_36 + 1.0 MC_37 + z1 - z2 <= 1.0
@@ -907,8 +907,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col3])
         ColGen.push_in_set!(columns, ClA.GeneratedColumn(sol, cost))
     end
-    #@test_throws ClA.ColumnAlreadyInsertedColGenWarning 
-    ColGen.insert_columns!(reform, ctx, phase, columns)
+    @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(reform, ctx, phase, columns)
 end
 register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
 

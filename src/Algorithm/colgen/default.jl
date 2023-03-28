@@ -202,10 +202,10 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
             if haskey(master, col_id) && !iscuractive(master, col_id)
                 push!(col_ids_to_activate, col_id)
             else
-                in_master = haskey(masterform, col_id)
-                is_active = iscuractive(masterform, col_id)
+                in_master = haskey(master, col_id)
+                is_active = iscuractive(master, col_id)
                 warning = ColumnAlreadyInsertedColGenWarning(
-                    in_master, is_active, red_cost, col_id, master, column.column.solution.model
+                    in_master, is_active, column.red_cost, col_id, master, column.column.solution.model
                 )
                 if ctx.show_column_already_inserted_warning
                     @warn warning
