@@ -13,6 +13,8 @@ struct ColGenContext <: ColGen.AbstractColGenContext
     show_column_already_inserted_warning::Bool
     throw_column_already_inserted_warning::Bool
 
+    nb_colgen_iteration_limit::Int
+
     # # Information to solve the master
     # master_solve_alg
     # master_optimizer_id
@@ -30,15 +32,16 @@ struct ColGenContext <: ColGen.AbstractColGenContext
             alg.pricing_prob_solve_alg,
             rch,
             alg.show_column_already_inserted_warning,
-            alg.throw_column_already_inserted_warning
+            alg.throw_column_already_inserted_warning,
+            alg.max_nb_iterations
         )
     end
 end
 
 ColGen.get_reform(ctx::ColGenContext) = ctx.reform
 ColGen.get_master(ctx::ColGenContext) = getmaster(ctx.reform)
+ColGen.is_minimization(ctx::ColGenContext) = getobjsense(ctx.reform) == MinSense
 ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
-
 
 ###############################################################################
 # Sequence of phases
@@ -375,14 +378,24 @@ end
 #############################################################################
 # Column generation loop
 #############################################################################
-function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env,  colgen_iter_output, colgen_iteration, cutsep_iteration)
-    println("\e[34m -------------------- \e[00m")
-    @show colgen_iter_output
-    println("\e[34m -------------------- \e[00m")
-    if colgen_iteration >= 10
-        return true
-    end
-    return false
+
+# Works only for minimization.
+_gap(mlp, db) = (mlp - db) / abs(db)
+_colgen_gap_closed(mlp, db, atol, rtol) = _gap(mlp, db) < 0 || isapprox(mlp, db, atol = atol, rtol = rtol)
+
+ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, colgen_iteration, cutsep_iteration) = false
+function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGen.ColGenIterationOutput, colgen_iteration, cutsep_iteration)
+    mlp = colgen_iter_output.mlp
+    db = colgen_iter_output.db
+    sc = colgen_iter_output.min_sense ? 1 : -1
+    return _colgen_gap_closed(sc * mlp, sc * db, 1e-8, 1e-5) ||
+        colgen_iteration >= ctx.nb_colgen_iteration_limit ||
+        colgen_iter_output.time_limit_reached ||
+        colgen_iter_output.infeasible_master ||
+        colgen_iter_output.unbounded_master ||
+        colgen_iter_output.infeasible_subproblem ||
+        colgen_iter_output.unbounded_subproblem ||
+        colgen_iter_output.nb_new_cols <= 0
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing

@@ -75,6 +75,7 @@ Base.@kwdef struct ColGenIterationTestContext <: ColGen.AbstractColGenContext
 end
 ColGen.get_master(ctx::ColGenIterationTestContext) = ctx.master
 ColGen.get_reform(ctx::ColGenIterationTestContext) = ctx.reform
+ColGen.is_minimization(ctx::ColGenIterationTestContext) = true
 ColGen.get_pricing_subprobs(context) = [(1, context.pricing)]
 
 # Pricing strategy
