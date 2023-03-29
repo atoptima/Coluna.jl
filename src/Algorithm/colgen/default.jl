@@ -10,6 +10,9 @@ struct ColGenContext <: ColGen.AbstractColGenContext
 
     reduced_cost_helper::ReducedCostsCalculationHelper
 
+    show_column_already_inserted_warning::Bool
+    throw_column_already_inserted_warning::Bool
+
     # # Information to solve the master
     # master_solve_alg
     # master_optimizer_id
@@ -25,7 +28,9 @@ struct ColGenContext <: ColGen.AbstractColGenContext
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
             alg.pricing_prob_solve_alg,
-            rch
+            rch,
+            alg.show_column_already_inserted_warning,
+            alg.throw_column_already_inserted_warning
         )
     end
 end
@@ -150,6 +155,7 @@ end
 function ColGen.optimize_master_lp_problem!(master, ctx::ColGenContext, env)
     rm_input = OptimizationState(master, ip_primal_bound=ctx.current_ip_primal_bound)
     opt_state = run!(ctx.restr_master_solve_alg, env, master, rm_input, ctx.restr_master_optimizer_id)
+    @show opt_state
     return ColGenMasterResult(opt_state)
 end
 
@@ -188,10 +194,56 @@ end
 
 # Columns insertion
 function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
+    primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
+    col_ids_to_activate = Set{VarId}()
+    master = ColGen.get_master(ctx)
     for column in columns
-        #@show column
+        println("*****")
+        @show column
+        col_id = get_column_from_pool(column.column)
+        if !isnothing(col_id)
+            if haskey(master, col_id) && !iscuractive(master, col_id)
+                push!(col_ids_to_activate, col_id)
+            else
+                in_master = haskey(master, col_id)
+                is_active = iscuractive(master, col_id)
+                warning = ColumnAlreadyInsertedColGenWarning(
+                    in_master, is_active, column.red_cost, col_id, master, column.column.solution.model
+                )
+                if ctx.show_column_already_inserted_warning
+                    @warn warning
+                end
+                if ctx.throw_column_already_inserted_warning
+                    throw(warning)
+                end
+            end
+        else
+            push!(primal_sols_to_insert, column.column)
+        end
     end
-    return length(columns.columns)
+
+    nb_added_cols = 0
+    nb_reactivated_cols = 0
+
+    # Then, we add the new columns (i.e. not in the pool).
+    for sol in primal_sols_to_insert
+        col_id = insert_column!(master, sol, "MC")
+        # if phase == 1 (TODO: dispatch)
+        #     setcurcost!(master, col_id, 0.0)
+        # end
+        nb_added_cols += 1
+    end
+
+    # And we reactivate the deactivated columns already generated.
+    for col_id in col_ids_to_activate
+        activate!(master, col_id)
+        # if phase == 1 (TODO: dispatch)
+        #     setcurcost!(master, col_id, 0.0)
+        # end
+        nb_reactivated_cols += 1
+    end
+
+    return nb_added_cols + nb_reactivated_cols
 end
 
 #############################################################################
@@ -319,3 +371,19 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val,
     #@show master_lp_obj_val, convexity_contrib, sp_contrib
     return master_lp_obj_val - convexity_contrib + sp_contrib
 end
+
+#############################################################################
+# Column generation loop
+#############################################################################
+function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env,  colgen_iter_output, colgen_iteration, cutsep_iteration)
+    println("\e[34m -------------------- \e[00m")
+    @show colgen_iter_output
+    println("\e[34m -------------------- \e[00m")
+    if colgen_iteration >= 10
+        return true
+    end
+    return false
+end
+
+ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
+ColGen.after_colgen_iteration(ctx::ColGenContext, phase, colgen_iter_output) = nothing
