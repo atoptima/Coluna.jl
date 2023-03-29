@@ -1,9 +1,8 @@
 
-struct TestColGenContext <: ColGen.AbstractColGenContext
-    has_art_vars 
+struct TestColGenOutput <: ColGen.AbstractColGenPhaseOutput
+    has_art_vars::Bool
 end
-ClA.colgen_mast_lp_sol_has_art_vars(ctx::TestColGenContext) = ctx.has_art_vars
-
+ClA.colgen_mast_lp_sol_has_art_vars(ctx::TestColGenOutput) = ctx.has_art_vars
 
 # The two following tests are pretty straightforward.
 # They are just here to make sure nobody changes the behavior of the phases.
@@ -15,12 +14,12 @@ register!(unit_tests, "colgen_phase", initial_phase_colgen_test)
 
 function next_phase_colgen_test()
     it = ClA.ColunaColGenPhaseIterator()
-    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenContext(true)) isa ClA.ColGenPhase1
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenContext(false)))
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenContext(true)))
-    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenContext(false)) isa ClA.ColGenPhase2
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenContext(true)))
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenContext(false)))
+    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(true)) isa ClA.ColGenPhase1
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(false)))
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(true)))
+    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(false)) isa ClA.ColGenPhase2
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(true)))
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(false)))
 end
 register!(unit_tests, "colgen_phase", next_phase_colgen_test)
         
@@ -63,6 +62,11 @@ function setup_reformulation_colgen_test()
     @test ClMP.getcurcost(master, vars_by_name["x2"]) == 0
     @test ClMP.getcurcost(master, vars_by_name["z"]) == 1000
     @test ClMP.iscuractive(master, vars_by_name["z"])
+
+    # To make sure that reduced costs will be well calculated:
+    helper = ClA.ReducedCostsCalculationHelper(master)
+    @test helper.master_c[ClMP.getid(vars_by_name["x1"])] == 0
+    @test helper.master_c[ClMP.getid(vars_by_name["x2"])] == 0
 
     reform, master, vars_by_name = get_reform_master_and_vars()
     ColGen.setup_reformulation!(reform, ClA.ColGenPhase2())
@@ -107,7 +111,7 @@ function stop_colgen_phase_if_colgen_converged_eq()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         false,
         99.9998,
         99.9999,
@@ -116,7 +120,9 @@ function stop_colgen_phase_if_colgen_converged_eq()
         false,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -130,7 +136,7 @@ function stop_colgen_phase_if_colgen_converged_min()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true, # min sense
         99.9998, # mlp
         100.12, # greater than mlp means colgen has converged
@@ -139,7 +145,9 @@ function stop_colgen_phase_if_colgen_converged_min()
         false,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -153,7 +161,7 @@ function stop_colgen_phase_if_colgen_converged_max()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         false, # max sense
         99.9998, # mlp
         99.9, # lower than mlp means colgen has converged
@@ -162,7 +170,9 @@ function stop_colgen_phase_if_colgen_converged_max()
         false,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -176,7 +186,7 @@ function stop_colgen_phase_if_iterations_limit()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         65.87759,
         29.869,
@@ -185,7 +195,9 @@ function stop_colgen_phase_if_iterations_limit()
         false,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -199,7 +211,7 @@ function stop_colgen_phase_if_time_limit()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         65.87759,
         29.869,
@@ -208,7 +220,9 @@ function stop_colgen_phase_if_time_limit()
         false,
         false,
         false,
-        true
+        true,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -222,7 +236,7 @@ function stop_colgen_phase_if_subproblem_infeasible()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         87859,
         890,
@@ -231,7 +245,9 @@ function stop_colgen_phase_if_subproblem_infeasible()
         false,
         true,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -245,7 +261,7 @@ function stop_colgen_phase_if_subproblem_unbounded()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         87859,
         890,
@@ -254,7 +270,9 @@ function stop_colgen_phase_if_subproblem_unbounded()
         false,
         false,
         true,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -268,7 +286,7 @@ function stop_colgen_phase_if_master_unbounded()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         87859,
         890,
@@ -277,7 +295,9 @@ function stop_colgen_phase_if_master_unbounded()
         true,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
 
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -291,7 +311,7 @@ function stop_colgen_phase_if_no_new_column()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         87859,
         890,
@@ -300,7 +320,9 @@ function stop_colgen_phase_if_no_new_column()
         false,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
 end
@@ -313,7 +335,7 @@ function continue_colgen_phase_otherwise()
     cutsep_iteration = 1
     env = nothing
 
-    colgen_iter_output = ColGen.ColGenIterationOutput(
+    colgen_iter_output = ClA.ColGenIterationOutput(
         true,
         87859,
         890,
@@ -322,7 +344,9 @@ function continue_colgen_phase_otherwise()
         false,
         false,
         false,
-        false
+        false,
+        nothing,
+        nothing
     )
     @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
 end
