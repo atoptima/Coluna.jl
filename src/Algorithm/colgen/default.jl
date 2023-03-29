@@ -336,8 +336,8 @@ function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
     return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
 end
 
-ColGen.get_primal_sols(pricing_res) = pricing_res.columns
-ColGen.get_dual_bound(pricing_res) = get_lp_dual_bound(pricing_res.result)
+ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns
+ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_lp_dual_bound(pricing_res.result)
 
 is_improving_red_cost(red_cost) = red_cost > 0
 is_improving_red_cost_min_sense(red_cost) = red_cost < 0
@@ -349,7 +349,7 @@ function has_improving_red_cost(column::GeneratedColumn)
 end
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
-function ColGen.push_in_set!(pool, column)
+function ColGen.push_in_set!(pool::ColumnsSet, column::GeneratedColumn)
     # We keep only columns that improve reduced cost
     if has_improving_red_cost(column)
         push!(pool.columns, column)

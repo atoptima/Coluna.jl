@@ -26,6 +26,8 @@ Runs an iteration of column generation.
 # """
 # @mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
 
+
+# TODO; move
 # @mustimplement "ColGen" initial_primal_solution()
 
 # @mustimplement "ColGen" initial_dual_solution()
