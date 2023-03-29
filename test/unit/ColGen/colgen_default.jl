@@ -508,6 +508,7 @@ ColGen.get_reform(ctx::TestColGenIterationContext) = ColGen.get_reform(ctx.conte
 ColGen.get_master(ctx::TestColGenIterationContext) = ColGen.get_master(ctx.context)
 ColGen.is_minimization(ctx::TestColGenIterationContext) = ColGen.is_minimization(ctx.context)
 ColGen.get_pricing_subprobs(ctx::TestColGenIterationContext) = ColGen.get_pricing_subprobs(ctx.context)
+ColGen.colgen_iteration_output_type(::TestColGenIterationContext) = ClA.ColGenIterationOutput
 
 function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationContext, env)
     output = ColGen.optimize_master_lp_problem!(master, ctx.context, env)
@@ -1098,27 +1099,110 @@ function test_colgen_loop()
     output = ColGen.run_colgen_phase!(ctx, phase, env)
 
     # EXPECTED:
-   """
-   Version 0.5.3 | https://github.com/atoptima/Coluna.jl
-***************************************************************************************
-**** B&B tree root node
-**** Local DB = 0.0000, global bounds: [ 0.0000 , 100.0000 ], time = 4.31 sec.
-***************************************************************************************
-  <it=  1> <et=19.57> <mst= 3.03> <sp= 3.30> <cols= 2> <al= 0.00> <DB=    0.0000> <mlp=  700.0000> <PB=100.0000>
-  <it=  2> <et=19.91> <mst= 0.06> <sp= 0.00> <cols= 2> <al= 0.00> <DB=    0.0000> <mlp=   89.0000> <PB=89.0000>
-  <it=  3> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 2> <al= 0.00> <DB=    0.0000> <mlp=   89.0000> <PB=89.0000>
-  <it=  4> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 2> <al= 0.00> <DB=    6.0000> <mlp=   89.0000> <PB=89.0000>
-  <it=  5> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 2> <al= 0.00> <DB=   21.3333> <mlp=   79.6667> <PB=89.0000>
-  <it=  6> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 2> <al= 0.00> <DB=   33.5000> <mlp=   76.5000> <PB=89.0000>
-  <it=  7> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 2> <al= 0.00> <DB=   52.0000> <mlp=   70.6000> <PB=89.0000>
-  <it=  8> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 1> <al= 0.00> <DB=   69.8000> <mlp=   70.6000> <PB=89.0000>
-  <it=  9> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 1> <al= 0.00> <DB=   69.8000> <mlp=   70.3333> <PB=89.0000>
-  <it= 10> <et=19.91> <mst= 0.00> <sp= 0.00> <cols= 1> <al= 0.00> <DB=   69.8000> <mlp=   70.3333> <PB=89.0000>
-  <it= 11> <et=19.92> <mst= 0.00> <sp= 0.00> <cols= 0> <al= 0.00> <DB=   70.3333> <mlp=   70.3333> <PB=89.0000>
-[ Info: Column generation algorithm has converged.
-"""
+    #    """
+    #   <it= 11> <et=19.92> <mst= 0.00> <sp= 0.00> <cols= 0> <al= 0.00> <DB=   70.3333> <mlp=   70.3333> <PB=89.0000>
+    # [ Info: Column generation algorithm has converged.
+    # """
 
-
-    @show output
+    @test output.mlp ≈ 70.33333333
+    @test output.db ≈ 70.33333333
+    #@test output.pb ≈ 89.0
 end
 register!(unit_tests, "colgen_default", test_colgen_loop)
+
+
+function min_toy_gap_for_colgen()
+    # We use very large costs to go through phase 1.
+    form = """
+    master
+        min
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 800.0 x_11 + 500.0 x_12 + 1100.0 x_13 + 2100.0 x_14 + 600.0 x_15 + 500.0 x_16 + 1900.0 x_17 + 100.0 x_21 + 1200.0 x_22 + 1100.0 x_23 + 1200.0 x_24 + 1400.0 x_25 + 800.0 x_26 + 500.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        800.0 x_11 + 500.0 x_12 + 1100.0 x_13 + 2100.0 x_14 + 600.0 x_15 + 500.0 x_16 + 1900.0 x_17 + 0.0 PricingSetupVar_sp_5 
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        100.0 x_21 + 1200.0 x_22 + 1100.0 x_23 + 1200.0 x_24 + 1400.0 x_25 + 800.0 x_26 + 500.0 x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function test_colgen()
+    env, master, sps, reform = min_toy_gap_for_colgen()
+        # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+
+    output = ColGen.run!(ctx, env)
+    @test output.mlp ≈ 7033.3333333
+    @test output.db ≈ 7033.3333333
+end
+register!(unit_tests, "colgen", test_colgen)

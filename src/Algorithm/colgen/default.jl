@@ -1,4 +1,4 @@
-struct ColGenContext <: ColGen.AbstractColGenContext
+mutable struct ColGenContext <: ColGen.AbstractColGenContext
     reform::Reformulation
     optim_sense
     current_ip_primal_bound
@@ -26,7 +26,7 @@ struct ColGenContext <: ColGen.AbstractColGenContext
         return new(
             reform, 
             getobjsense(reform), 
-            0.0, 
+            0.0,
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
             alg.pricing_prob_solve_alg,
@@ -43,10 +43,37 @@ ColGen.get_master(ctx::ColGenContext) = getmaster(ctx.reform)
 ColGen.is_minimization(ctx::ColGenContext) = getobjsense(ctx.reform) == MinSense
 ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
 
+struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
+    master_lp_primal_sol::Union{Nothing,PrimalSolution}
+    master_ip_primal_sol::Union{Nothing,PrimalSolution}
+    mlp::Float64
+    db::Float64
+end
+
+struct ColGenOutput <: ColGen.AbstractColGenOutput
+    master_lp_primal_sol::Union{Nothing,PrimalSolution}
+    master_ip_primal_sol::Union{Nothing,PrimalSolution}
+    mlp::Float64
+    db::Float64
+end
+
+function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
+    return ColGenOutput(
+        output.master_lp_primal_sol, 
+        output.master_ip_primal_sol, 
+        output.mlp, 
+        output.db
+    )
+end
+
+ColGen.colgen_output_type(::ColGenContext) = ColGenOutput
+
 ###############################################################################
 # Sequence of phases
 ###############################################################################
 struct ColunaColGenPhaseIterator <: ColGen.AbstractColGenPhaseIterator end
+
+ColGen.new_phase_iterator(::ColGenContext) = ColunaColGenPhaseIterator()
 
 """
 Phase 1 sets the cost of variables to 0 except for artifical variables.
@@ -74,28 +101,31 @@ struct ColGenPhase3 <: ColGen.AbstractColGenPhase end
 ## Implementation of `initial_phase`.
 ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
 
-colgen_mast_lp_sol_has_art_vars(ctx) = false
+function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
+    master_lp_primal_sol = output.master_lp_primal_sol
+    return contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
+end
 
 ## Implementation of `next_phase`.
-function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, ctx)
+function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, output::ColGen.AbstractColGenPhaseOutput)
     # If master LP solution has no artificial vars, it means that the phase 1 has succeeded.
     # We have a set of columns that forms a feasible solution to the LP master and we can 
     # thus start phase 2.
-    if !colgen_mast_lp_sol_has_art_vars(ctx)
+    if !colgen_mast_lp_sol_has_art_vars(output)
         return ColGenPhase2()
     end
     return nothing
 end
 
-function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, ctx)
+function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::ColGen.AbstractColGenPhaseOutput)
     # The phase 2 is always the last phase of the column generation algorithm.
     # It means the algorithm converged or hit a user limit.
     return nothing
 end
 
-function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, ctx)
+function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::ColGen.AbstractColGenPhaseOutput)
     # Master LP solution has artificial vars.
-    if colgen_mast_lp_sol_has_art_vars(ctx)
+    if colgen_mast_lp_sol_has_art_vars(output)
         return ColGenPhase1()
     end
     return nothing
@@ -139,7 +169,10 @@ function ColGen.setup_reformulation!(reform, ::ColGenPhase3)
     return
 end
 
-
+function ColGen.setup_context!(ctx::ColGenContext, phase::ColGen.AbstractColGenPhase)
+    ctx.reduced_cost_helper = ReducedCostsCalculationHelper(ColGen.get_master(ctx))
+    return
+end
 
 # Master resolution
 
@@ -158,7 +191,6 @@ end
 function ColGen.optimize_master_lp_problem!(master, ctx::ColGenContext, env)
     rm_input = OptimizationState(master, ip_primal_bound=ctx.current_ip_primal_bound)
     opt_state = run!(ctx.restr_master_solve_alg, env, master, rm_input, ctx.restr_master_optimizer_id)
-    @show opt_state
     return ColGenMasterResult(opt_state)
 end
 
@@ -196,13 +228,14 @@ function ColGen.update_sp_vars_red_costs!(ctx::ColGenContext, sp::Formulation{Dw
 end
 
 # Columns insertion
+_set_column_cost!(master, col_id, phase) = nothing
+_set_column_cost!(master, col_id, ::ColGenPhase1) = setcurcost!(master, col_id, 0.0)
+
 function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
     col_ids_to_activate = Set{VarId}()
     master = ColGen.get_master(ctx)
     for column in columns
-        println("*****")
-        @show column
         col_id = get_column_from_pool(column.column)
         if !isnothing(col_id)
             if haskey(master, col_id) && !iscuractive(master, col_id)
@@ -231,18 +264,14 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     # Then, we add the new columns (i.e. not in the pool).
     for sol in primal_sols_to_insert
         col_id = insert_column!(master, sol, "MC")
-        # if phase == 1 (TODO: dispatch)
-        #     setcurcost!(master, col_id, 0.0)
-        # end
+        _set_column_cost!(master, col_id, phase)
         nb_added_cols += 1
     end
 
     # And we reactivate the deactivated columns already generated.
     for col_id in col_ids_to_activate
         activate!(master, col_id)
-        # if phase == 1 (TODO: dispatch)
-        #     setcurcost!(master, col_id, 0.0)
-        # end
+        _set_column_cost!(master, col_id, phase)
         nb_reactivated_cols += 1
     end
 
@@ -371,8 +400,53 @@ end
 function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
     sp_contrib = mapreduce(((id, val),) -> val, +, sp_dbs)
     convexity_contrib = _convexity_contrib(ctx, master_dual_sol)
-    #@show master_lp_obj_val, convexity_contrib, sp_contrib
     return master_lp_obj_val - convexity_contrib + sp_contrib
+end
+
+# Iteration output
+
+struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
+    min_sense::Bool
+    mlp::Union{Nothing, Float64}
+    db::Union{Nothing, Float64}
+    nb_new_cols::Int
+    infeasible_master::Bool
+    unbounded_master::Bool
+    infeasible_subproblem::Bool
+    unbounded_subproblem::Bool
+    time_limit_reached::Bool
+    master_lp_primal_sol::Union{Nothing, PrimalSolution}
+    master_ip_primal_sol::Union{Nothing, PrimalSolution}
+end
+
+ColGen.colgen_iteration_output_type(::ColGenContext) = ColGenIterationOutput
+
+function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput}, 
+    min_sense,
+    mlp,
+    db,
+    nb_new_cols,
+    infeasible_master,
+    unbounded_master,
+    infeasible_subproblem,
+    unbounded_subproblem,
+    time_limit_reached,
+    master_lp_primal_sol,
+    master_ip_primal_sol
+)
+    return ColGenIterationOutput(
+        min_sense,
+        mlp,
+        db,
+        nb_new_cols,
+        infeasible_master,
+        unbounded_master,
+        infeasible_subproblem,
+        unbounded_subproblem,
+        time_limit_reached,
+        master_lp_primal_sol,
+        master_ip_primal_sol
+    )
 end
 
 #############################################################################
@@ -384,7 +458,7 @@ _gap(mlp, db) = (mlp - db) / abs(db)
 _colgen_gap_closed(mlp, db, atol, rtol) = _gap(mlp, db) < 0 || isapprox(mlp, db, atol = atol, rtol = rtol)
 
 ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, colgen_iteration, cutsep_iteration) = false
-function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGen.ColGenIterationOutput, colgen_iteration, cutsep_iteration)
+function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, colgen_iteration, cutsep_iteration)
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
     sc = colgen_iter_output.min_sense ? 1 : -1
@@ -400,3 +474,19 @@ end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
 ColGen.after_colgen_iteration(ctx::ColGenContext, phase, colgen_iter_output) = nothing
+
+ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
+
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output::ColGenIterationOutput)
+    return ColGenPhaseOutput(
+        colgen_iter_output.master_lp_primal_sol,
+        colgen_iter_output.master_ip_primal_sol,
+        colgen_iter_output.mlp,
+        colgen_iter_output.db
+    )
+end
+
+ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
+ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol
+ColGen.get_final_db(output::ColGenPhaseOutput) = output.db
+
