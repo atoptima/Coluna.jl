@@ -25,7 +25,7 @@ struct MyCustomCutData <: BlockDecomposition.AbstractCustomData
     min_items::Int
 end
 
-# Compute the coefficient of the column taking into account the custom variables and cuts. 
+# Compute the coefficient of the added column. 
 
 function Coluna.MathProg.computecoeff(
     ::Coluna.MathProg.Variable, var_custom_data::MyCustomVarData,
@@ -72,7 +72,7 @@ model, x, y, dec = build_toy_model(coluna)
 BlockDecomposition.customvars!(model, MyCustomVarData)
 BlockDecomposition.customconstrs!(model, MyCustomCutData)
 
-# Adapt the pricing callback to take into account the changes on the reduced cost caused by the custom cuts. 
+# Adapt the pricing callback to take into account the changes on the computation of the reduced cost induced by the custom cut. 
 
 function my_pricing_callback(cbdata)
     # Get the reduced costs of the original variables
@@ -154,4 +154,64 @@ end
 MOI.set(model, MOI.UserCutCallback(), custom_cut_sep)
 JuMP.optimize!(model)
 
-@test JuMP.termination_status(model) == MOI.OPTIMAL
+""" Output:
+
+valid_lagr_bound = -29997.0
+  <it=  1> <et=13.22> <mst= 2.30> <sp= 2.00> <cols= 1> <al= 0.00> <DB=-29997.0000> <mlp=30000.0000> <PB=Inf>
+*********************
+*********************
+valid_lagr_bound = -49996.0
+  <it=  2> <et=13.55> <mst= 0.08> <sp= 0.00> <cols= 1> <al= 0.00> <DB=-29997.0000> <mlp=10001.0000> <PB=Inf>
+*********************
+*********************
+valid_lagr_bound = -49996.0
+  <it=  3> <et=13.55> <mst= 0.00> <sp= 0.00> <cols= 1> <al= 0.00> <DB=-29997.0000> <mlp=10001.0000> <PB=Inf>
+*********************
+*********************
+valid_lagr_bound = 1.5
+  <it=  4> <et=13.55> <mst= 0.00> <sp= 0.00> <cols= 0> <al= 0.00> <DB=    1.5000> <mlp=    1.5000> <PB=Inf>
+[ Info: Column generation algorithm has converged.
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.00, max. viol. = 0.00, zero viol. = 1.
+*********************
+*********************
+valid_lagr_bound = -9997.0
+  <it=  1> <et=14.26> <mst= 0.01> <sp= 0.01> <cols= 1> <al= 0.00> <DB=    1.5000> <mlp= 5001.5000> <PB=Inf>
+Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+*********************
+*********************
+valid_lagr_bound = -29995.0
+  <it=  2> <et=14.26> <mst= 0.00> <sp= 0.00> <cols= 1> <al= 0.00> <DB=    1.5000> <mlp=    2.0000> <PB=2.0000>
+*********************
+*********************
+valid_lagr_bound = -29995.0
+  <it=  3> <et=14.26> <mst= 0.00> <sp= 0.00> <cols= 1> <al= 0.00> <DB=    1.5000> <mlp=    2.0000> <PB=2.0000>
+*********************
+*********************
+valid_lagr_bound = 2.0
+  <it=  4> <et=14.26> <mst= 0.00> <sp= 0.00> <cols= 0> <al= 0.00> <DB=    2.0000> <mlp=    2.0000> <PB=2.0000>
+[ Info: Dual bound reached primal bound.
+ ──────────────────────────────────────────────────────────────────────────────────────
+                                              Time                    Allocations      
+                                     ───────────────────────   ────────────────────────
+          Tot / % measured:                209s /   6.9%           4.02GiB /  43.5%    
+
+ Section                     ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────────────────
+ Coluna                           1    14.5s  100.0%   14.5s   1.75GiB  100.0%  1.75GiB
+   SolveLpForm                    8    1.82s   12.6%   228ms   48.6MiB    2.7%  6.07MiB
+   Update reduced costs           8    173ms    1.2%  21.6ms   2.78MiB    0.2%   356KiB
+   Cleanup columns                8    157ms    1.1%  19.6ms   3.66MiB    0.2%   469KiB
+   Update Lagrangian bound        8    128ms    0.9%  16.0ms   4.83MiB    0.3%   618KiB
+   Smoothing update               8   93.8ms    0.6%  11.7ms   10.5MiB    0.6%  1.31MiB
+ ──────────────────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 2.0
+[ Info: Dual bound: 2.0
+
+"""
+
+# We see on the output that the algorithm has converged a first time before a cut is added. Coluna then starts a new iteration taking into account the cut. 
+# We notice here an improvement of the value of the dual bound: before the cut, we converge towards 1.5. After the cut, we reach 2.0. 
+
+
