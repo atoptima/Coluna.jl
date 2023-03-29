@@ -18,22 +18,23 @@ Runs an iteration of column generation.
 """
 @mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform)
 
-"""
-Placeholder method called after the column generation iteration.
-Does nothing by default but can be redefined to print some informations for instance.
-We strongly advise users against the use of this method to modify the context or the reformulation.
-"""
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
+# TODO: move
+# """
+# Placeholder method called after the column generation iteration.
+# Does nothing by default but can be redefined to print some informations for instance.
+# We strongly advise users against the use of this method to modify the context or the reformulation.
+# """
+# @mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
 
-@mustimplement "ColGen" initial_primal_solution()
+# @mustimplement "ColGen" initial_primal_solution()
 
-@mustimplement "ColGen" initial_dual_solution()
+# @mustimplement "ColGen" initial_dual_solution()
 
-@mustimplement "ColGen" before_cut_separation()
+# @mustimplement "ColGen" before_cut_separation()
 
-@mustimplement "ColGen" run_cut_separation!()
+# @mustimplement "ColGen" run_cut_separation!()
 
-@mustimplement "ColGen" after_cut_separation()
+# @mustimplement "ColGen" after_cut_separation()
 
 abstract type AbstractColGenPhaseOutput end
 
@@ -61,6 +62,7 @@ function run_colgen_phase!(context, phase, env)
         colgen_iter_output = run_colgen_iteration!(context, phase, env)
         after_colgen_iteration(context, phase, colgen_iter_output)
         colgen_iteration += 1
+        # note part of column generation !!!!
         # if separate_cuts()
         #     before_cut_separation()
         #     run_cut_separation!(context, phase, reform)

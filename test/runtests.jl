@@ -28,6 +28,8 @@ using .TestRegistry
 unit_tests = Registry()
 include("parser.jl")
 
+e2e_tests = Registry()
+
 const MODULES = [
     Coluna,
     Coluna.ColunaBase,
@@ -44,7 +46,9 @@ if !isempty(ARGS)
     include("revise.jl")
 else
     include("unit/run.jl")
+    include("e2e/run.jl")
     run_unit_tests()
+    run_e2e_tests()
 end
 
 
