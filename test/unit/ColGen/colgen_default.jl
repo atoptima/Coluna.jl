@@ -506,6 +506,7 @@ end
 
 ColGen.get_reform(ctx::TestColGenIterationContext) = ColGen.get_reform(ctx.context)
 ColGen.get_master(ctx::TestColGenIterationContext) = ColGen.get_master(ctx.context)
+ColGen.is_minimization(ctx::TestColGenIterationContext) = ColGen.is_minimization(ctx.context)
 ColGen.get_pricing_subprobs(ctx::TestColGenIterationContext) = ColGen.get_pricing_subprobs(ctx.context)
 
 function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationContext, env)

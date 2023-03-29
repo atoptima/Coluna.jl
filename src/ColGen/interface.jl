@@ -73,6 +73,9 @@ end
 "Returns master formulation."
 @mustimplement "ColGen" get_master(ctx)
 
+"Returns `true` if the objective sense is minimization; `false` otherwise."
+@mustimplement "ColGen" is_minimization(ctx)
+
 """
     get_pricing_subprobs(ctx) -> Vector{Tuple{SuproblemId, SpFormulation}}
 
@@ -187,6 +190,7 @@ end
 
 
 struct ColGenIterationOutput
+    min_sense::Bool
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     nb_new_cols::Int
@@ -194,6 +198,7 @@ struct ColGenIterationOutput
     unbounded_master::Bool
     infeasible_subproblem::Bool
     unbounded_subproblem::Bool
+    time_limit_reached::Bool
 end
 
 """
@@ -201,14 +206,15 @@ end
 """
 function run_colgen_iteration!(context, phase, env)
     master = get_master(context)
+    is_min_sense = is_minimization(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
 
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
     if is_infeasible(mast_result)
-        return ColGenIterationOutput(nothing, Inf, 0, true, false, false, false)
+        return ColGenIterationOutput(is_min_sense, nothing, Inf, 0, true, false, false, false, false)
     elseif is_unbounded(mast_result)
-        return ColGenIterationOutput(-Inf, nothing, 0, false, true, false, false)
+        return ColGenIterationOutput(is_min_sense, -Inf, nothing, 0, false, true, false, false, false)
     end
 
     check_master_termination_status(mast_result)
@@ -278,9 +284,9 @@ function run_colgen_iteration!(context, phase, env)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
-            return ColGenIterationOutput(nothing, Inf, 0, false, false, true, false)
+            return ColGenIterationOutput(is_min_sense, nothing, Inf, 0, false, false, true, false, false)
         elseif is_unbounded(pricing_result)
-            return ColGenIterationOutput(nothing, nothing, 0, false, false, false, true)
+            return ColGenIterationOutput(is_min_sense, nothing, nothing, 0, false, false, false, true, false)
         end
 
         check_pricing_termination_status(pricing_result)
@@ -317,6 +323,6 @@ function run_colgen_iteration!(context, phase, env)
 
     # check gap
 
-    return ColGenIterationOutput(master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false)
+    return ColGenIterationOutput(is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false)
 end
 

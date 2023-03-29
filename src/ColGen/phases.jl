@@ -22,4 +22,4 @@ Returns `nothing` if the algorithm must stop.
 @mustimplement "ColGenPhase" setup_reformulation!(reform, ::AbstractColGenPhase)
 
 "Returns `true` if the column generation phase must stop."
-@mustimplement "ColGenPhase" stop_colgen_phase(ctx, phase, reform)
+@mustimplement "ColGenPhase" stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
