@@ -155,6 +155,7 @@ end
 function ColGen.optimize_master_lp_problem!(master, ctx::ColGenContext, env)
     rm_input = OptimizationState(master, ip_primal_bound=ctx.current_ip_primal_bound)
     opt_state = run!(ctx.restr_master_solve_alg, env, master, rm_input, ctx.restr_master_optimizer_id)
+    @show opt_state
     return ColGenMasterResult(opt_state)
 end
 
@@ -197,6 +198,8 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     col_ids_to_activate = Set{VarId}()
     master = ColGen.get_master(ctx)
     for column in columns
+        println("*****")
+        @show column
         col_id = get_column_from_pool(column.column)
         if !isnothing(col_id)
             if haskey(master, col_id) && !iscuractive(master, col_id)
@@ -225,18 +228,18 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     # Then, we add the new columns (i.e. not in the pool).
     for sol in primal_sols_to_insert
         col_id = insert_column!(master, sol, "MC")
-        if phase == 1
-            setcurcost!(master, col_id, 0.0)
-        end
+        # if phase == 1 (TODO: dispatch)
+        #     setcurcost!(master, col_id, 0.0)
+        # end
         nb_added_cols += 1
     end
 
     # And we reactivate the deactivated columns already generated.
     for col_id in col_ids_to_activate
         activate!(master, col_id)
-        if phase == 1
-            setcurcost!(master, col_id, 0.0)
-        end
+        # if phase == 1 (TODO: dispatch)
+        #     setcurcost!(master, col_id, 0.0)
+        # end
         nb_reactivated_cols += 1
     end
 

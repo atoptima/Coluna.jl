@@ -79,3 +79,4 @@ function setup_reformulation_colgen_test()
     @test ClMP.iscuractive(master, vars_by_name["z"])
 end
 register!(unit_tests, "colgen_phase", setup_reformulation_colgen_test)
+
