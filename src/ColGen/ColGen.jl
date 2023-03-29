@@ -5,10 +5,8 @@ using ..MustImplement
 
 abstract type AbstractColGenContext end 
 
-
 include("phases.jl")
 include("pricing.jl")
-
 include("interface.jl")
 
 end

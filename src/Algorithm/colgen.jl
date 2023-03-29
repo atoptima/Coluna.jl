@@ -120,28 +120,47 @@ include("colgen/utils.jl")
 ############################################################################################
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+    ctx = ColGenContext(reform, algo)
+    result = ColGen.run!(ctx, env)
+
     master = getmaster(reform)
     optstate = OptimizationState(master, input, false, false)
+    @show result
 
-    stop = false
-
-    set_ph3!(master) # mixed ph1 & ph2
-    stop, _ = cg_main_loop!(algo, env, 3, optstate, reform)
-
-    restart = true
-    while should_do_ph_1(optstate) && restart && !stop
-        set_ph1!(master, optstate)
-        stop, _ = cg_main_loop!(algo, env, 1, optstate, reform)
-        if !stop
-            set_ph2!(master, optstate) # pure ph2
-            stop, restart = cg_main_loop!(algo, env, 2, optstate, reform)
-        end
+    if !isnothing(result.master_lp_primal_sol)
+        set_lp_primal_sol!(optstate, result.master_lp_primal_sol)
     end
 
-    @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getterminationstatus(optstate))
-
+    if !isnothing(result.master_ip_primal_sol)
+        add_ip_primal_sols!(optstate, result.master_ip_primal_sol)
+    end
+   
     return optstate
 end
+
+# function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+#     master = getmaster(reform)
+#     optstate = OptimizationState(master, input, false, false)
+
+#     stop = false
+
+#     set_ph3!(master) # mixed ph1 & ph2
+#     stop, _ = cg_main_loop!(algo, env, 3, optstate, reform)
+
+#     restart = true
+#     while should_do_ph_1(optstate) && restart && !stop
+#         set_ph1!(master, optstate)
+#         stop, _ = cg_main_loop!(algo, env, 1, optstate, reform)
+#         if !stop
+#             set_ph2!(master, optstate) # pure ph2
+#             stop, restart = cg_main_loop!(algo, env, 2, optstate, reform)
+#         end
+#     end
+
+#     @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getterminationstatus(optstate))
+
+#     return optstate
+# end
 
 function should_do_ph_1(optstate::OptimizationState)
     primal_lp_sol = get_lp_primal_sols(optstate)[1]
