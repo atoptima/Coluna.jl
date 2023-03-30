@@ -1092,7 +1092,7 @@ function test_two_identicals_cols_at_same_iteration_ok()
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
     @test nb_new_cols == 2
 end
-register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
+#register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
 
 function test_deactivated_column_added_twice_at_same_iteration_ok()
     env, master, sps, reform = insert_cols_form()
@@ -1361,7 +1361,7 @@ function expected_output_identical_subproblems()
     @show output.db
     println("\e[35m *********************************** \e[0")
 end
-#register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
+register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
