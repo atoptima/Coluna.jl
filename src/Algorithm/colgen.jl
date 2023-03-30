@@ -112,8 +112,6 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     return units_usage
 end
 
-#####
-include("colgen/utils.jl")
 
 ############################################################################################
 # Column generation algorithm.

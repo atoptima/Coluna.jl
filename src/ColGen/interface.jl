@@ -18,13 +18,12 @@ Runs an iteration of column generation.
 """
 @mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform)
 
-# TODO: move
-# """
-# Placeholder method called after the column generation iteration.
-# Does nothing by default but can be redefined to print some informations for instance.
-# We strongly advise users against the use of this method to modify the context or the reformulation.
-# """
-# @mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
+"""
+Placeholder method called after the column generation iteration.
+Does nothing by default but can be redefined to print some informations for instance.
+We strongly advise users against the use of this method to modify the context or the reformulation.
+"""
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
 
 
 # TODO; move

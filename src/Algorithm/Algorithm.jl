@@ -45,9 +45,10 @@ include("colgenstabilization.jl")
 # Column generation
 include("colgen/utils.jl")
 include("colgen/default.jl")
-
-
+include("colgen/printer.jl")
 include("colgen.jl")
+
+
 include("benders.jl")
 
 # Presolve
