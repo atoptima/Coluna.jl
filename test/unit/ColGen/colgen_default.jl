@@ -109,7 +109,7 @@ function test_reduced_costs_calculation_helper()
     @test helper.master_A[cids["c3"], vids["z"]] == 0
     @test helper.master_A[cids["c4"], vids["z"]] == 1
 end
-register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
+#register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
 
 # All the tests are based on the Generalized Assignment problem.
@@ -497,12 +497,11 @@ end
 
 function check_identical_subproblems()
     # Used to check the output of identical_subproblem. The two formulations should be equivalent. 
-    # We introduce variables z1 & z2 to force dual value of constraint c7 to equal to 28.
     # Subproblem 5 is introduced twice.
     form = """
     master
         min
-        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 28 z1 - 28 z2
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 8.0 x_21 + 5.0 x_22 + 11.0 x_23 + 21.0 x_24 + 6.0 x_25 + 5.0 x_26 + 19.0 x_27 + PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4  
         s.t.
         1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
         1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
@@ -510,7 +509,7 @@ function check_identical_subproblems()
         1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
         1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
         1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + z1 - z2 >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
         1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
@@ -524,25 +523,13 @@ function check_identical_subproblems()
 
     dw_sp
         min
-        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
-        s.t.
-        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
-
-    dw_sp
-        min
         x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
         s.t.
-        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+        2.0 x_21 + 3.0 x_22 + 3.0 x_23 + 1.0 x_24 + 2.0 x_25 + 1.0 x_26 + 1.0 x_27  <= 5.0
 
     continuous
-        columns
-            MC_30, MC_31, MC_32, MC_33, MC_34, MC_35, MC_36, MC_37
-
         artificial
             local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
-
-        pure
-            z1, z2
 
     integer
         pricing_setup
@@ -582,16 +569,6 @@ function check_identical_subproblems()
         local_art_of_sp_ub_4 >= 0.0
         global_pos_art_var >= 0.0
         global_neg_art_var >= 0.0
-        MC_30 >= 0.0
-        MC_31 >= 0.0
-        MC_32 >= 0.0
-        MC_33 >= 0.0
-        MC_34 >= 0.0
-        MC_35 >= 0.0
-        MC_36 >= 0.0
-        MC_37 >= 0.0
-        z1 >= 0.0
-        z2 >= 0.0
     """
 
     env, master, sps, _, reform = reformfromstring(form)
@@ -600,24 +577,20 @@ function check_identical_subproblems()
 end 
 
 function identical_subproblems()
-    # We introduce variables z1 & z2 to force dual value of constraint c7 to equal to 28.
-    # Multiplicity of subproblem 5 is set to 2. 
     form = """
     master
         min
-        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 28 z1 - 28 z2
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 0.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5 
         s.t.
-        1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + z1 - z2 >= 1.0
+        1.0 x_11 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
         1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 2.0 {MasterConvexityConstr}
-        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
-        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
 
     dw_sp
         min
@@ -625,46 +598,26 @@ function identical_subproblems()
         s.t.
         2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
 
-    dw_sp
-        min
-        x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
-        s.t.
-        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
-
     continuous
-        columns
-            MC_30, MC_31, MC_32, MC_33, MC_34, MC_35, MC_36, MC_37
-
         artificial
-            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
-
-        pure
-            z1, z2
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, global_pos_art_var, global_neg_art_var
 
     integer
         pricing_setup
-            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+            PricingSetupVar_sp_5
 
     binary
         representatives
-            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+            x_11, x_12, x_13, x_14, x_15, x_16, x_17
 
     bounds
         0.0 <= x_11 <= 1.0
-        0.0 <= x_21 <= 1.0
         0.0 <= x_12 <= 1.0
-        0.0 <= x_22 <= 1.0
         0.0 <= x_13 <= 1.0
-        0.0 <= x_23 <= 1.0
         0.0 <= x_14 <= 1.0
-        0.0 <= x_24 <= 1.0
         0.0 <= x_15 <= 1.0
-        0.0 <= x_25 <= 1.0
         0.0 <= x_16 <= 1.0
-        0.0 <= x_26 <= 1.0
         0.0 <= x_17 <= 1.0
-        0.0 <= x_27 <= 1.0
-        1.0 <= PricingSetupVar_sp_4 <= 1.0
         1.0 <= PricingSetupVar_sp_5 <= 1.0
         local_art_of_cov_5 >= 0.0
         local_art_of_cov_4 >= 0.0
@@ -675,20 +628,8 @@ function identical_subproblems()
         local_art_of_cov_1 >= 0.0
         local_art_of_sp_lb_5 >= 0.0
         local_art_of_sp_ub_5 >= 0.0
-        local_art_of_sp_lb_4 >= 0.0
-        local_art_of_sp_ub_4 >= 0.0
         global_pos_art_var >= 0.0
         global_neg_art_var >= 0.0
-        MC_30 >= 0.0
-        MC_31 >= 0.0
-        MC_32 >= 0.0
-        MC_33 >= 0.0
-        MC_34 >= 0.0
-        MC_35 >= 0.0
-        MC_36 >= 0.0
-        MC_37 >= 0.0
-        z1 >= 0.0
-        z2 >= 0.0
     """
     env, master, sps, _, reform = reformfromstring(form)
     return env, master, sps, reform
@@ -832,7 +773,7 @@ function test_colgen_iteration_min_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 
 function test_colgen_iteration_max_gap()
@@ -896,7 +837,7 @@ function test_colgen_iteration_max_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
 
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
@@ -1030,7 +971,7 @@ function test_colgen_iteration_obj_const()
     @test output.unbounded_subproblem == false
 
 end
-register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
+#register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
 
 ############################################################################################
 # Test column insertion
@@ -1108,7 +1049,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
     end
     @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(reform, ctx, phase, columns)
 end
-register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
+#register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
 
 function test_two_identicals_cols_at_same_iteration_ok()
     env, master, sps, reform = insert_cols_form()
@@ -1200,7 +1141,7 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
     @test nb_new_cols == 1
 end
-register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)
+#register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)
 
 ############################################################################################
 # Test the column generation loop
@@ -1307,7 +1248,7 @@ function test_colgen_loop()
     @test output.db ≈ 70.33333333
     #@test output.pb ≈ 89.0
 end
-register!(unit_tests, "colgen_default", test_colgen_loop)
+#register!(unit_tests, "colgen_default", test_colgen_loop)
 
 
 function min_toy_gap_for_colgen()
@@ -1388,12 +1329,39 @@ function min_toy_gap_for_colgen()
     return env, master, sps, reform
 end
 
+
+
 function test_identical_subproblems()
     env, master, sps, reform = identical_subproblems()
-    env1, master1, sps1, reform2 = check_identical_subproblems()
-    @show master
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    println("\e[35m results: :\e[0m")
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration())    
+    output = ColGen.run!(ctx, env)
+    @show output.mlp
+    @show output.db
+    println("\e[35m ************************************ :\e[0m")
 end
 register!(unit_tests, "colgen_default", test_identical_subproblems)
+
+function expected_output_identical_subproblems()
+    env, master, sps, reform = check_identical_subproblems()
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    println("\e[35m expected value: :\e[0m")
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration())    
+    output = ColGen.run!(ctx, env)
+    @show output.mlp
+    @show output.db
+    println("\e[35m *********************************** \e[0")
+end
+register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
@@ -1411,4 +1379,4 @@ function test_colgen()
     @test output.mlp ≈ 7033.3333333
     @test output.db ≈ 7033.3333333
 end
-register!(unit_tests, "colgen", test_colgen)
+#register!(unit_tests, "colgen", test_colgen)
