@@ -30,7 +30,7 @@ specify!.(sp, lower_multiplicity = 0);</code></pre><p>We optimize:</p><pre><code
 Version 0.5.3 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.43 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.42 sec.
 ***************************************************************************************
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=100000.0000&gt;
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-129067.4700&gt; &lt;mlp=30340.5500&gt; &lt;PB=100000.0000&gt;
@@ -128,7 +128,7 @@ Version 0.5.3 | https://github.com/atoptima/Coluna.jl
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=100000.0000&gt;
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.70 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.61 sec.
 **** Branching constraint: x[4,5]&lt;=0.0
 ***************************************************************************************
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  395.0825&gt; &lt;mlp=  397.2325&gt; &lt;PB=100000.0000&gt;
@@ -175,12 +175,12 @@ Version 0.5.3 | https://github.com/atoptima/Coluna.jl
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         4.05s /  21.8%            319MiB /  29.6%
+    Tot / % measured:         3.48s /  22.0%            319MiB /  29.7%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1    881ms  100.0%   881ms   94.4MiB  100.0%  94.4MiB
-   SolveLpForm       21   6.62ms    0.8%   315μs   1.88MiB    2.0%  91.6KiB
+ Coluna               1    765ms  100.0%   765ms   94.5MiB  100.0%  94.5MiB
+   SolveLpForm       21   5.85ms    0.8%   279μs   1.88MiB    2.0%  91.6KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -535,7 +535,7 @@ Robust cut separation callback adds 0 new essential cuts and 0 new facultative c
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = -Inf, global bounds: [ -Inf , 444.4000 ], time = 1.70 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , 444.4000 ], time = 1.47 sec.
 **** Branching constraint: x[3,1]&lt;=0.0
 ***************************************************************************************
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  437.7967&gt; &lt;mlp=  442.9617&gt; &lt;PB=100000.0000&gt;
@@ -626,16 +626,16 @@ Robust cut separation callback adds 0 new essential cuts and 0 new facultative c
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         3.67s /  46.6%            317MiB /  52.1%
+    Tot / % measured:         3.20s /  46.3%            317MiB /  52.1%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1    1.71s  100.0%   1.71s    165MiB  100.0%   165MiB
-   SolveLpForm       40   16.8ms    1.0%   419μs   5.21MiB    3.2%   133KiB
+ Coluna               1    1.48s  100.0%   1.48s    165MiB  100.0%   165MiB
+   SolveLpForm       40   14.7ms    1.0%   367μs   5.21MiB    3.2%   133KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 440.55
 [ Info: Dual bound: -Inf</code></pre><p>Valid inequalities significantly improve the previous dual bound:</p><pre><code class="language-julia hljs">db2 = objective_bound(model)
 
 
-db2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-Inf</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 30 March 2023 14:46">Thursday 30 March 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+db2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-Inf</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 30 March 2023 14:49">Thursday 30 March 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
