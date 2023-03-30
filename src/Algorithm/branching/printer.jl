@@ -38,7 +38,7 @@ function perform_branching_phase!(candidates, phase::PhasePrinter, sb_state, env
         @printf " (lhs=%.4f) : [" get_lhs(candidate)
         for (node_index, node) in enumerate(get_children(candidate))
             node_index > 1 && print(",")            
-            @printf "%10.4f" getvalue(get_lp_primal_bound(get_opt_state(node)))
+            @printf "%10.4f" getvalue(get_lp_primal_bound(TreeSearch.get_opt_state(node)))
         end
         @printf "], score = %10.4f\n" score
     end
@@ -48,6 +48,6 @@ end
 function eval_child_of_candidate!(child, phase::PhasePrinter, sb_state, env, reform)
     _eval_child_of_candidate!(child, phase.inner, sb_state, env, reform)
     @printf "**** SB Phase %i evaluation of candidate %+10s" phase.phase_index get_var_name(child)
-    @printf " (branch %+20s), value = %6.2f\n" get_branch_description(child) getvalue(get_lp_primal_bound(get_opt_state(child)))
+    @printf " (branch %+20s), value = %6.2f\n" get_branch_description(child) getvalue(get_lp_primal_bound(TreeSearch.get_opt_state(child)))
     return
 end

@@ -4,7 +4,7 @@ using DataStructures
 import MathOptInterface
 import TimerOutputs
 
-using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen
+using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen, ..APITMP, ..TreeSearch
 
 using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics, SparseArrays, LinearAlgebra
 
@@ -26,10 +26,6 @@ include("data.jl")
 # Algorithm interface
 include("interface.jl")
 
-# Tree search interface
-include("treesearch/interface.jl")
-include("treesearch/explore.jl")
-
 # Storage units & records implementation
 include("formstorages.jl")
 
@@ -45,9 +41,10 @@ include("colgenstabilization.jl")
 # Column generation
 include("colgen/utils.jl")
 include("colgen/default.jl")
-
-
+include("colgen/printer.jl")
 include("colgen.jl")
+
+
 include("benders.jl")
 
 # Presolve
@@ -68,8 +65,8 @@ include("branching/branchingalgo.jl")
 include("treesearch.jl")
 include("treesearch/printer.jl")
 include("treesearch/branch_and_bound.jl")
-include("branchcutprice.jl")
 
+include("branchcutprice.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.
