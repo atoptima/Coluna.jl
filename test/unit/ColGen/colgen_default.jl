@@ -109,7 +109,7 @@ function test_reduced_costs_calculation_helper()
     @test helper.master_A[cids["c3"], vids["z"]] == 0
     @test helper.master_A[cids["c4"], vids["z"]] == 1
 end
-#register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
+register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
 
 # All the tests are based on the Generalized Assignment problem.
@@ -773,7 +773,7 @@ function test_colgen_iteration_min_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
+register!(unit_tests, "colgen_default", test_colgen_iteration_min_gap)
 
 
 function test_colgen_iteration_max_gap()
@@ -837,7 +837,7 @@ function test_colgen_iteration_max_gap()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
+register!(unit_tests, "colgen_default", test_colgen_iteration_max_gap)
 
 function test_colgen_iteration_pure_master_vars()
     env, master, sps, reform = toy_gap_with_penalties()
@@ -905,7 +905,7 @@ function test_colgen_iteration_pure_master_vars()
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
+register!(unit_tests, "colgen_default", test_colgen_iteration_pure_master_vars)
 
 function test_colgen_iteration_obj_const()
     env, master, sps, reform = toy_gap_with_obj_const()
@@ -971,7 +971,7 @@ function test_colgen_iteration_obj_const()
     @test output.unbounded_subproblem == false
 
 end
-#register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
+register!(unit_tests, "colgen_default", test_colgen_iteration_obj_const)
 
 ############################################################################################
 # Test column insertion
@@ -1049,7 +1049,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
     end
     @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(reform, ctx, phase, columns)
 end
-#register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
+register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
 
 function test_two_identicals_cols_at_same_iteration_ok()
     env, master, sps, reform = insert_cols_form()
@@ -1092,7 +1092,7 @@ function test_two_identicals_cols_at_same_iteration_ok()
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
     @test nb_new_cols == 2
 end
-#register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
+register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
 
 function test_deactivated_column_added_twice_at_same_iteration_ok()
     env, master, sps, reform = insert_cols_form()
@@ -1141,7 +1141,7 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
     @test nb_new_cols == 1
 end
-#register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)
+register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)
 
 ############################################################################################
 # Test the column generation loop
@@ -1248,7 +1248,7 @@ function test_colgen_loop()
     @test output.db ≈ 70.33333333
     #@test output.pb ≈ 89.0
 end
-#register!(unit_tests, "colgen_default", test_colgen_loop)
+register!(unit_tests, "colgen_default", test_colgen_loop)
 
 
 function min_toy_gap_for_colgen()
@@ -1379,4 +1379,4 @@ function test_colgen()
     @test output.mlp ≈ 7033.3333333
     @test output.db ≈ 7033.3333333
 end
-#register!(unit_tests, "colgen", test_colgen)
+register!(unit_tests, "colgen", test_colgen)

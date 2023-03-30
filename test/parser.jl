@@ -290,7 +290,7 @@ function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, c
                     if isnothing(spform)
                         spform = ClMP.create_formulation!(
                             env,
-                            ClMP.DwSp(nothing, nothing, nothing, var.kind);
+                            ClMP.DwSp(nothing, nothing, nothing, ClMP.Integ);
                             obj_sense = sp.sense
                         )
                     end
