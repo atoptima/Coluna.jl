@@ -69,7 +69,7 @@ ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
 function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, colgen_iter_output)
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
-    pb = 666
+    pb = 100000
 
     phase_string = "  "
     if ctx.phase == 1

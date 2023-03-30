@@ -83,6 +83,7 @@ Here are their meanings :
     smoothing_stabilization::Float64 = 0.0 # should be in [0, 1]
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
+    print::Bool = true
 end
 
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
@@ -112,18 +113,26 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     return units_usage
 end
 
-
 ############################################################################################
 # Column generation algorithm.
 ############################################################################################
 
+function _colgen_context(algo::ColumnGeneration)
+    algo.print && return ColGenPrinterContext
+    return ColGenContext
+end
+
+function _new_context(C::Type{<:ColGen.AbstractColGenContext}, reform, algo)
+    return C(reform, algo)
+end
+
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
-    ctx = ColGenContext(reform, algo)
+    C = _colgen_context(algo)
+    ctx = _new_context(C, reform, algo)
     result = ColGen.run!(ctx, env)
 
     master = getmaster(reform)
     optstate = OptimizationState(master, input, false, false)
-    @show result
 
     if !isnothing(result.master_lp_primal_sol)
         set_lp_primal_sol!(optstate, result.master_lp_primal_sol)
@@ -132,9 +141,10 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     if !isnothing(result.master_ip_primal_sol)
         add_ip_primal_sols!(optstate, result.master_ip_primal_sol)
     end
-   
     return optstate
 end
+
+### BELOW: delete before v0.6
 
 # function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
 #     master = getmaster(reform)
