@@ -580,7 +580,7 @@ function identical_subproblems()
     form = """
     master
         min
-        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 0.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5 
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5 
         s.t.
         1.0 x_11 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
         1.0 x_12 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
@@ -1361,7 +1361,7 @@ function expected_output_identical_subproblems()
     @show output.db
     println("\e[35m *********************************** \e[0")
 end
-register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
+#register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
