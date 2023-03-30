@@ -187,7 +187,7 @@ function new_context(
 end
 
 function _eval_child_of_candidate!(child, phase::AbstractStrongBrPhaseContext, sb_state, env, reform)
-    child_state = get_opt_state(child)
+    child_state = TreeSearch.get_opt_state(child)
     update_ip_primal_bound!(child_state, get_ip_primal_bound(sb_state))
 
     # TODO: We consider that all branching algorithms don't exploit the primal solution 
@@ -197,11 +197,11 @@ function _eval_child_of_candidate!(child, phase::AbstractStrongBrPhaseContext, s
     #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
     # end
     
-    child_state = get_opt_state(child)
+    child_state = TreeSearch.get_opt_state(child)
     if !ip_gap_closed(child_state)
         input = ConquerInputFromSb(child, get_units_to_restore_for_conquer(phase))
         run!(get_conquer(phase), env, reform, input)
-        set_records!(child, create_records(reform))
+        TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true 
     add_ip_primal_sols!(sb_state, get_ip_primal_sols(child_state)...)
@@ -222,7 +222,7 @@ function _perform_branching_phase!(
     candidates::Vector{C}, phase::AbstractStrongBrPhaseContext, sb_state, env, reform
 ) where {C<:AbstractBranchingCandidate}
     return map(candidates) do candidate
-        children = sort(get_children(candidate), by = child -> get_lp_primal_bound(get_opt_state(child)))
+        children = sort(get_children(candidate), by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child)))
         eval_children_of_candidate!(children, phase, sb_state, env, reform)
         return compute_score(get_score(phase), candidate)
     end

@@ -1,8 +1,6 @@
 ############################################################################################
 # Algorithm API
 ############################################################################################
-
-"Supertype for algorithms parameters."
 abstract type AbstractAlgorithm end
 
 """
@@ -89,7 +87,7 @@ Contains the parent node in the search tree for which children should be generat
 abstract type AbstractDivideInput end
 
 @mustimplement "DivideInput" get_parent(i::AbstractDivideInput)
-@mustimplement "DivideInput"  get_opt_state(i::AbstractDivideInput)
+@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput)
 
 """
 Output of a divide algorithm used by the tree search algorithm.

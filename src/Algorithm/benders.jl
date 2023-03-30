@@ -40,7 +40,7 @@ function BendersCutGenRuntimeData(form::Reformulation, init_optstate::Optimizati
     return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
 end
 
-get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
+TreeSearch.get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
 
 function run!(
     algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationState
@@ -403,7 +403,7 @@ function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reform
     lagran_bnd = PrimalBound(master, 0.0)
     lagran_bnd += compute_master_pb_contrib(algdata, master, restricted_master_sol_value)
     lagran_bnd += benders_sp_sp_primal_bound_contrib
-    set_lp_primal_bound!(get_opt_state(algdata), lagran_bnd)
+    set_lp_primal_bound!(TreeSearch.get_opt_state(algdata), lagran_bnd)
     return lagran_bnd
 end
 
@@ -455,7 +455,7 @@ function bend_cutting_plane_main_loop!(
     masterform = getmaster(reform)
     one_spsol_is_a_relaxed_sol = false
     master_primal_sol = nothing
-    bnd_optstate = get_opt_state(algdata)
+    bnd_optstate = TreeSearch.get_opt_state(algdata)
     primal_bound = PrimalBound(masterform)
     
     for (spuid, spform) in get_benders_sep_sps(reform)

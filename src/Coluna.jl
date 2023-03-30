@@ -47,14 +47,20 @@ export Env
 include("MustImplement/MustImplement.jl")
 using .MustImplement
 
-include("ColGen/ColGen.jl")
-using .ColGen
-
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
 
 include("MathProg/MathProg.jl")
 using .MathProg
+
+include("interface.jl")
+using .APITMP
+
+include("TreeSearch/TreeSearch.jl")
+using .TreeSearch
+
+include("ColGen/ColGen.jl")
+using .ColGen
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
