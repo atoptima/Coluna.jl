@@ -64,9 +64,9 @@ end
 
 function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
-    restore_from_records!(get_units_to_restore(input), get_records(node))
+    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
     node = getnode(input)    
-    node_state = get_opt_state(node)
+    node_state = TreeSearch.get_opt_state(node)
     output = run!(algo.benders, env, reform, node_state)
     update!(node_state, output)
     return
@@ -245,7 +245,7 @@ function get_heuristics_to_run(ctx::ColCutGenContext, node)
             h -> getdepth(node) <= h.max_depth #= & frequency () TODO define a function here =#,
             ctx.params.primal_heuristics
         ),
-        by = h -> isroot(node) ? h.root_priority : h.nonroot_priority,
+        by = h -> TreeSearch.isroot(node) ? h.root_priority : h.nonroot_priority,
         rev = true
     )
 end
@@ -350,8 +350,8 @@ end
 
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     node = get_node(input)
-    restore_from_records!(get_units_to_restore(input), get_records(node))
-    node_state = get_opt_state(node)
+    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
+    node_state = TreeSearch.get_opt_state(node)
 
     time_limit_reached!(node_state, env) && return
 
@@ -416,9 +416,9 @@ function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input
     !run_conquer(input) && return
 
     node = get_node(input)
-    restore_from_records!(get_units_to_restore(input), get_records(node))
+    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
 
-    node_state = get_opt_state(node)
+    node_state = TreeSearch.get_opt_state(node)
     masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), node_state)
     update!(node_state, masterlp_state)
     if ip_gap_closed(masterlp_state)

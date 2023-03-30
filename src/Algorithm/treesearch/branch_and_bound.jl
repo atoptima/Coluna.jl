@@ -2,7 +2,7 @@
 # Node
 ############################################################################################
 "Branch-and-bound node."
-mutable struct Node <: AbstractNode
+mutable struct Node <: APITMP.AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
@@ -13,19 +13,19 @@ end
 
 getdepth(n::Node) = n.depth
 
-get_parent(n::Node) = n.parent # divide
-get_opt_state(n::Node) = n.optstate # conquer, divide
+TreeSearch.get_parent(n::Node) = n.parent # divide
+TreeSearch.get_opt_state(n::Node) = n.optstate # conquer, divide
 
-isroot(n::Node) = n.depth == 0
-get_records(n::Node) = n.records # conquer
-set_records!(n::Node, records) = n.records = records
+TreeSearch.isroot(n::Node) = n.depth == 0
+TreeSearch.get_records(n::Node) = n.records # conquer
+TreeSearch.set_records!(n::Node, records) = n.records = records
 
-get_branch_description(n::Node) = n.branchdescription # printer
+TreeSearch.get_branch_description(n::Node) = n.branchdescription # printer
 
 # Priority of nodes depends on the explore strategy.
-get_priority(::AbstractExploreStrategy, ::Node) = error("todo")
-get_priority(::DepthFirstStrategy, n::Node) = -n.depth
-get_priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
+TreeSearch.get_priority(::TreeSearch.AbstractExploreStrategy, ::Node) = error("todo")
+TreeSearch.get_priority(::TreeSearch.DepthFirstStrategy, n::Node) = -n.depth
+TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
 # TODO move
 function Node(node::SbNode)
@@ -92,11 +92,11 @@ set_previous!(sp::BaBSearchSpace, previous::Node) = sp.previous = previous
 ############################################################################################
 # Tree search implementation
 ############################################################################################
-function stop(space::BaBSearchSpace, untreated_nodes)
+function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
     return space.nb_nodes_treated > space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
 end
 
-function search_space_type(alg::TreeSearchAlgorithm)
+function TreeSearch.search_space_type(alg::TreeSearchAlgorithm)
     return if !iszero(length(alg.branchingtreefile)) && alg.print_node_info
         PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DotFilePrinter}
     elseif !iszero(length(alg.branchingtreefile))
@@ -108,7 +108,7 @@ function search_space_type(alg::TreeSearchAlgorithm)
     end
 end
 
-function new_space(
+function TreeSearch.new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
 )
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)
@@ -132,7 +132,7 @@ function new_space(
     )
 end
 
-function new_root(sp::BaBSearchSpace, input)
+function TreeSearch.new_root(sp::BaBSearchSpace, input)
     nodestate = OptimizationState(getmaster(sp.reformulation), input, false, false)
     return Node(
         0, nothing, nodestate, "", create_records(sp.reformulation), false
@@ -151,12 +151,12 @@ function after_conquer!(space::BaBSearchSpace, current, output)
 
     # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node.
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
-    if isroot(current) && !isnothing(best_lp_primal_sol)
+    if TreeSearch.isroot(current) && !isnothing(best_lp_primal_sol)
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end
 
     best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
-    if isroot(current) && !isnothing(best_lp_dual_sol)
+    if TreeSearch.isroot(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
     return
@@ -205,7 +205,7 @@ function _updatedualbound!(space, reform::Reformulation, untreated_nodes)
     treestate = space.optstate
 
     worst_bound = mapreduce(
-        node -> get_ip_dual_bound(get_opt_state(node)),
+        node -> get_ip_dual_bound(TreeSearch.get_opt_state(node)),
         worst,
         untreated_nodes;
         init = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
@@ -219,13 +219,13 @@ function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untr
     _updatedualbound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
 
     # we delete solutions from the node optimization state, as they are not needed anymore
-    nodestate = get_opt_state(previous)
+    nodestate = TreeSearch.get_opt_state(previous)
     empty_ip_primal_sols!(nodestate)
     empty_lp_primal_sols!(nodestate)
     empty_lp_dual_sols!(nodestate)
 end
 
-function tree_search_output(space::BaBSearchSpace, untreated_nodes)
+function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
     _updatedualbound!(space, space.reformulation, untreated_nodes)
 
     if isempty(untreated_nodes) # it means that the BB tree has been fully explored

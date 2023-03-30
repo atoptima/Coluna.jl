@@ -62,7 +62,7 @@ end
 # The third concept is the explore strategy and implemented in Coluna (see explore.jl).
 # We start by defining the search space of the binary tree and the diving algorithms.
 
-mutable struct BtSearchSpaceAti1 <: ClA.AbstractColunaSearchSpace
+mutable struct BtSearchSpaceAti1 <: AbstractColunaSearchSpace
     formulation::FormulationAti1
     cost_of_best_solution::Float64
     conquer_alg
@@ -76,9 +76,9 @@ ClA.get_conquer(sp::BtSearchSpaceAti1) = sp.conquer_alg
 ClA.get_divide(sp::BtSearchSpaceAti1) = sp.divide_alg
 ClA.get_previous(sp::BtSearchSpaceAti1) = sp.previous
 ClA.set_previous!(sp::BtSearchSpaceAti1, previous) = sp.previous = previous
-ClA.stop(sp::BtSearchSpaceAti1, _) = false
+TreeSearch.stop(sp::BtSearchSpaceAti1, _) = false
 
-mutable struct DivingSearchSpaceAti1 <: ClA.AbstractColunaSearchSpace
+mutable struct DivingSearchSpaceAti1 <: AbstractColunaSearchSpace
     formulation::FormulationAti1
     starting_node_in_bt::ClA.AbstractNode # change node
     cost_of_best_solution::Float64
@@ -93,7 +93,7 @@ ClA.get_conquer(sp::DivingSearchSpaceAti1) = sp.conquer_alg
 ClA.get_divide(sp::DivingSearchSpaceAti1) = sp.divide_alg
 ClA.get_previous(sp::DivingSearchSpaceAti1) = sp.previous
 ClA.set_previous!(sp::DivingSearchSpaceAti1, previous) = sp.previous = previous
-ClA.stop(sp::DivingSearchSpaceAti1, _) = false
+TreeSearch.stop(sp::DivingSearchSpaceAti1, _) = false
 
 # At last, we define the data contained in a node.
 struct NodeAti1 <: ClA.AbstractNode
@@ -136,8 +136,8 @@ struct NodeAti1 <: ClA.AbstractNode
     end
 end
 
-ClA.get_root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.get_parent(node::NodeAti1) = node.parent
+TreeSearch.get_root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
+TreeSearch.get_parent(node::NodeAti1) = node.parent
 
 # ## Algorithms
 
@@ -209,7 +209,7 @@ struct DivingInputAti1
 end
 
 function ClA.run!(algo::DivingAti1, env, model::FormulationAti1, input::DivingInputAti1)
-    diving_space = ClA.new_space(ClA.search_space_type(algo), algo, model, input)
+    diving_space = TreeSearch.new_space(TreeSearch.search_space_type(algo), algo, model, input)
     output = ClA.tree_search(algo.explore, diving_space, env, input)
     return output
 end
@@ -241,7 +241,7 @@ end
 end
 
 function ClA.run!(algo::TreeSearchAlgorithmAti1, env, reform, input)
-    search_space = ClA.new_space(ClA.search_space_type(algo), algo, reform, input)
+    search_space = TreeSearch.new_space(TreeSearch.search_space_type(algo), algo, reform, input)
     return ClA.tree_search(algo.explorestrategy, search_space, env, input)
 end
 
@@ -251,20 +251,20 @@ end
 # First, we must indicate the type of search space used by our algorithms.
 # We need such a method because the type may depends from the algorithms called by the
 # tree-search algorithm.
-ClA.search_space_type(::TreeSearchAlgorithmAti1) = BtSearchSpaceAti1
-ClA.search_space_type(::DivingAti1) = DivingSearchSpaceAti1 
+TreeSearch.search_space_type(::TreeSearchAlgorithmAti1) = BtSearchSpaceAti1
+TreeSearch.search_space_type(::DivingAti1) = DivingSearchSpaceAti1 
 
 # The type of the search space is known from above method.
 # A search space may receive information from the tree-search algorithm. 
 # The `model`, and `input` arguments are those received by the tree search algorithm.
-ClA.new_space(::Type{BtSearchSpaceAti1}, alg, model, input) =
+TreeSearch.new_space(::Type{BtSearchSpaceAti1}, alg, model, input) =
     BtSearchSpaceAti1(model, alg.conqueralg, alg.dividealg)
-ClA.new_space(::Type{DivingSearchSpaceAti1}, alg, model, input) =
+TreeSearch.new_space(::Type{DivingSearchSpaceAti1}, alg, model, input) =
     DivingSearchSpaceAti1(model, input.starting_node_in_parent_algorithm, alg.conqueralg, alg.dividealg)
 
 # The definition of the root node depends on the search space.
-ClA.new_root(::BtSearchSpaceAti1, input) = NodeAti1()
-ClA.new_root(space::DivingSearchSpaceAti1, input) = 
+TreeSearch.new_root(::BtSearchSpaceAti1, input) = NodeAti1()
+TreeSearch.new_root(space::DivingSearchSpaceAti1, input) = 
     NodeAti1(space.starting_node_in_bt)
 
 # Then, we implement the method that converts the branching rules into nodes for the tree 
@@ -282,7 +282,7 @@ struct CustomBestFirstSearchAti1 <: ClA.AbstractBestFirstSearch end
 
 # We implement the priority method for the `CustomBestFirstSearchAti1` strategy.
 # The tree search algorithm will evaluate the node with highest priority.
-ClA.get_priority(::CustomBestFirstSearchAti1, node::NodeAti1) = -node.depth
+TreeSearch.get_priority(::CustomBestFirstSearchAti1, node::NodeAti1) = -node.depth
 
 # We implement the `node_change` method to update the search space when the tree search
 # just after the algorithm finishes to evaluate a node and chooses the next one.
@@ -326,8 +326,8 @@ ClA.get_input(::DivideAti1, space::DivingSearchSpaceAti1, node::NodeAti1) =
 
 # At last, we implement methods that will return the output of the tree search algorithms.
 # One method for each search space.
-ClA.tree_search_output(space::BtSearchSpaceAti1, _) = space.cost_of_best_solution
-ClA.tree_search_output(space::DivingSearchSpaceAti1, _) = space.cost_of_best_solution
+TreeSearch.tree_search_output(space::BtSearchSpaceAti1, _) = space.cost_of_best_solution
+TreeSearch.tree_search_output(space::DivingSearchSpaceAti1, _) = space.cost_of_best_solution
 
 @testset "Algorithm - treesearch interface" begin
     env = nothing
