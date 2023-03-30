@@ -495,6 +495,205 @@ function toy_gap_with_obj_const()
     return env, master, sps, reform
 end
 
+function check_identical_subproblems()
+    # Used to check the output of identical_subproblem. The two formulations should be equivalent. 
+    # We introduce variables z1 & z2 to force dual value of constraint c7 to equal to 28.
+    # Subproblem 5 is introduced twice.
+    form = """
+    master
+        min
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 28 z1 - 28 z2
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + z1 - z2 >= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        columns
+            MC_30, MC_31, MC_32, MC_33, MC_34, MC_35, MC_36, MC_37
+
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+        pure
+            z1, z2
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+        MC_30 >= 0.0
+        MC_31 >= 0.0
+        MC_32 >= 0.0
+        MC_33 >= 0.0
+        MC_34 >= 0.0
+        MC_35 >= 0.0
+        MC_36 >= 0.0
+        MC_37 >= 0.0
+        z1 >= 0.0
+        z2 >= 0.0
+    """
+
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+
+end 
+
+function identical_subproblems()
+    # We introduce variables z1 & z2 to force dual value of constraint c7 to equal to 28.
+    # Multiplicity of subproblem 5 is set to 2. 
+    form = """
+    master
+        min
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 + 28 z1 - 28 z2
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + z1 - z2 >= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 2.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        columns
+            MC_30, MC_31, MC_32, MC_33, MC_34, MC_35, MC_36, MC_37
+
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+        pure
+            z1, z2
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+        MC_30 >= 0.0
+        MC_31 >= 0.0
+        MC_32 >= 0.0
+        MC_33 >= 0.0
+        MC_34 >= 0.0
+        MC_35 >= 0.0
+        MC_36 >= 0.0
+        MC_37 >= 0.0
+        z1 >= 0.0
+        z2 >= 0.0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
 ### Implementation of ColGen API to test and call the default implementation
 struct TestColGenIterationContext <: ColGen.AbstractColGenContext
     context::ClA.ColGenContext
@@ -1188,6 +1387,13 @@ function min_toy_gap_for_colgen()
     env, master, sps, _, reform = reformfromstring(form)
     return env, master, sps, reform
 end
+
+function test_identical_subproblems()
+    env, master, sps, reform = identical_subproblems()
+    env1, master1, sps1, reform2 = check_identical_subproblems()
+    @show master
+end
+register!(unit_tests, "colgen_default", test_identical_subproblems)
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
