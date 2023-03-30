@@ -105,7 +105,7 @@ function _get_costs_and_coeffs(master, var_duty_func, constr_duty_func)
     for var_id in Iterators.keys(getvars(master))
         if iscuractive(master, var_id) && var_duty_func(var_id)
             push!(var_ids, var_id)
-            push!(peren_costs, getperencost(master, var_id))
+            push!(peren_costs, getcurcost(master, var_id))
         end
     end
 

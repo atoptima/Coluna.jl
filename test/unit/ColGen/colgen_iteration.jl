@@ -75,7 +75,10 @@ Base.@kwdef struct ColGenIterationTestContext <: ColGen.AbstractColGenContext
 end
 ColGen.get_master(ctx::ColGenIterationTestContext) = ctx.master
 ColGen.get_reform(ctx::ColGenIterationTestContext) = ctx.reform
+ColGen.is_minimization(ctx::ColGenIterationTestContext) = true
 ColGen.get_pricing_subprobs(context) = [(1, context.pricing)]
+ColGen.colgen_iteration_output_type(::ColGenIterationTestContext) = ClA.ColGenIterationOutput
+ColGen.colgen_phase_output_type(::ColGenIterationTestContext) = ClA.ColGenPhaseOutput
 
 # Pricing strategy
 struct ColGenIterationTestPricingStrategy <: ColGen.AbstractPricingStrategy
@@ -180,6 +183,50 @@ function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterati
     return 22.5 - 23/4
 end
 
+struct TestColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
+    min_sense::Bool
+    mlp::Union{Nothing, Float64}
+    db::Union{Nothing, Float64}
+    nb_new_cols::Int
+    infeasible_master::Bool
+    unbounded_master::Bool
+    infeasible_subproblem::Bool
+    unbounded_subproblem::Bool
+    time_limit_reached::Bool
+    master_lp_primal_sol::Union{Nothing, Vector{Float64}}
+    master_ip_primal_sol::Union{Nothing, Vector{Float64}}
+end
+
+ColGen.colgen_iteration_output_type(::ColGenIterationTestContext) = TestColGenIterationOutput
+
+function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput}, 
+    min_sense,
+    mlp,
+    db,
+    nb_new_cols,
+    infeasible_master,
+    unbounded_master,
+    infeasible_subproblem,
+    unbounded_subproblem,
+    time_limit_reached,
+    master_lp_primal_sol,
+    master_ip_primal_sol
+)
+    return TestColGenIterationOutput(
+        min_sense,
+        mlp,
+        db,
+        nb_new_cols,
+        infeasible_master,
+        unbounded_master,
+        infeasible_subproblem,
+        unbounded_subproblem,
+        time_limit_reached,
+        master_lp_primal_sol,
+        master_ip_primal_sol
+    )
+end
+
 function colgen_iteration_master_ok_pricing_ok()
     ctx = ColGenIterationTestContext()
     output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
@@ -260,3 +307,4 @@ function colgen_iteration_pricing_unbounded()
     @test output.unbounded_subproblem == true
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
+

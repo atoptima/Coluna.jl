@@ -268,6 +268,12 @@ function run!(algo::AbstractDivideAlgorithm, env::Env, reform::Reformulation, in
     max_nb_candidates = get_selection_nb_candidates(algo)
     candidates = _candidates_selection(ctx, max_nb_candidates, reform, env, parent)
 
+    # We stop branching if no candidate generated.
+    if length(candidates) == 0
+        @warn "No candidate generated. No children will be generated. However, the node is not conquered."
+        return DivideOutput(SbNode[], optstate)
+    end
+
     return advanced_select!(ctx, candidates, env, reform, input)
 end
 

@@ -18,49 +18,76 @@ Runs an iteration of column generation.
 """
 @mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform)
 
-"""
-Placeholder method called after the column generation iteration.
-Does nothing by default but can be redefined to print some informations for instance.
-We strongly advise users against the use of this method to modify the context or the reformulation.
-"""
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
+# TODO: move
+# """
+# Placeholder method called after the column generation iteration.
+# Does nothing by default but can be redefined to print some informations for instance.
+# We strongly advise users against the use of this method to modify the context or the reformulation.
+# """
+# @mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
 
-@mustimplement "ColGen" initial_primal_solution()
 
-@mustimplement "ColGen" initial_dual_solution()
+# TODO; move
+# @mustimplement "ColGen" initial_primal_solution()
 
-@mustimplement "ColGen" before_cut_separation()
+# @mustimplement "ColGen" initial_dual_solution()
 
-@mustimplement "ColGen" run_cut_separation!()
+# @mustimplement "ColGen" before_cut_separation()
 
-@mustimplement "ColGen" after_cut_separation()
+# @mustimplement "ColGen" run_cut_separation!()
 
-function run_colgen_phase!(context, phase, reform)
+# @mustimplement "ColGen" after_cut_separation()
+
+abstract type AbstractColGenPhaseOutput end
+
+@mustimplement "ColGenPhase" colgen_phase_output_type(::AbstractColGenContext)
+
+@mustimplement "ColGenPhase" get_best_ip_primal_master_sol_found(colgen_phase_output)
+
+@mustimplement "ColGenPhase" get_final_lp_primal_master_sol_found(colgen_phase_output)
+
+@mustimplement "ColGenPhase" get_final_db(colgen_phase_output)
+
+abstract type AbstractColGenOutput end
+
+@mustimplement "ColGen" colgen_output_type(::AbstractColGenContext)
+
+@mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput)
+
+function run_colgen_phase!(context, phase, env)
     colgen_iteration = 0
     cutsep_iteration = 0
-    while !stop_colgen_phase(context, phase, reform)
+    colgen_iter_output = nothing
+    while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
         # cleanup ?
-        before_colgen_iteration(context, phase, reform)
-        colgen_iter_output = run_colgen_iteration!(context, phase, reform)
-        after_colgen_iteration(context, phase, reform, colgen_iter_output)
+        before_colgen_iteration(context, phase)
+        colgen_iter_output = run_colgen_iteration!(context, phase, env)
+        after_colgen_iteration(context, phase, colgen_iter_output)
         colgen_iteration += 1
-        if separate_cuts()
-            before_cut_separation()
-            run_cut_separation!(context, phase, reform)
-            after_cut_separation()
-            cutsep_iteration += 1
-        end
+        # note part of column generation !!!!
+        # if separate_cuts()
+        #     before_cut_separation()
+        #     run_cut_separation!(context, phase, reform)
+        #     after_cut_separation()
+        #     cutsep_iteration += 1
+        # end
     end
+    O = colgen_phase_output_type(context)
+    return new_phase_output(O, colgen_iter_output)
 end
 
-function run!()
-    phase = initial_phase(context)
+function run!(context, env)
+    it = new_phase_iterator(context)
+    phase = initial_phase(it)
+    phase_output = nothing
     while !isnothing(phase)
-        setup_reformulation(reform, phase, context)
-        run_colgen_phase!(context, phase, reform)
-        phase = next_phase(context, phase, reform)
+        setup_reformulation!(get_reform(context), phase)
+        setup_context!(context, phase)
+        phase_output = run_colgen_phase!(context, phase, env)
+        phase = next_phase(it, phase, phase_output)
     end
-    return
+    O = colgen_output_type(context)
+    return new_output(O, phase_output)
 end
 
 ############################################################################################
@@ -71,6 +98,9 @@ end
 
 "Returns master formulation."
 @mustimplement "ColGen" get_master(ctx)
+
+"Returns `true` if the objective sense is minimization; `false` otherwise."
+@mustimplement "ColGen" is_minimization(ctx)
 
 """
     get_pricing_subprobs(ctx) -> Vector{Tuple{SuproblemId, SpFormulation}}
@@ -185,35 +215,49 @@ end
 @mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol)
 
 
-struct ColGenIterationOutput
-    mlp::Union{Nothing, Float64}
-    db::Union{Nothing, Float64}
-    nb_new_cols::Int
-    infeasible_master::Bool
-    unbounded_master::Bool
-    infeasible_subproblem::Bool
-    unbounded_subproblem::Bool
-end
+abstract type AbstractColGenIterationOutput end
+
+@mustimplement "ColGenIterationOutput" colgen_iteration_output_type(::AbstractColGenContext)
+
+@mustimplement "ColGenIterationOutput" new_iteration_output(
+    ::Type{<:AbstractColGenIterationOutput},
+    min_sense,
+    mlp,
+    db,
+    nb_new_cols,
+    infeasible_master,
+    unbounded_master,
+    infeasible_subproblem,
+    unbounded_subproblem,
+    time_limit_reached,
+    master_primal_sol,
+    ip_primal_sol
+)
+
+@mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput)
 
 """
-    run_colgen_iteration!(context, phase, reform) -> ColGenIterationOutput
+    run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
 """
 function run_colgen_iteration!(context, phase, env)
     master = get_master(context)
+    is_min_sense = is_minimization(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
+    O = colgen_iteration_output_type(context)
 
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
     if is_infeasible(mast_result)
-        return ColGenIterationOutput(nothing, Inf, 0, true, false, false, false)
+        return new_iteration_output(O, is_min_sense, nothing, Inf, 0, true, false, false, false, false, nothing, nothing)
     elseif is_unbounded(mast_result)
-        return ColGenIterationOutput(-Inf, nothing, 0, false, true, false, false)
+        return new_iteration_output(O, is_min_sense, -Inf, nothing, 0, false, true, false, false, false, nothing, nothing)
     end
 
     check_master_termination_status(mast_result)
 
     # Master primal solution
     mast_primal_sol = get_primal_sol(mast_result)
+    ip_primal_sol = nothing
     if !isnothing(mast_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
@@ -277,9 +321,9 @@ function run_colgen_iteration!(context, phase, env)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
-            return ColGenIterationOutput(nothing, Inf, 0, false, false, true, false)
+            return new_iteration_output(O, is_min_sense, nothing, Inf, 0, false, false, true, false, false, mast_primal_sol, ip_primal_sol)
         elseif is_unbounded(pricing_result)
-            return ColGenIterationOutput(nothing, nothing, 0, false, false, false, true)
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, false, false, false, true, false, mast_primal_sol, ip_primal_sol)
         end
 
         check_pricing_termination_status(pricing_result)
@@ -316,6 +360,6 @@ function run_colgen_iteration!(context, phase, env)
 
     # check gap
 
-    return ColGenIterationOutput(master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false)
+    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, mast_primal_sol, ip_primal_sol)
 end
 
