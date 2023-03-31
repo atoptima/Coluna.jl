@@ -1,6 +1,7 @@
 module ColunaBase
 
-using ..Coluna, ..MustImplement
+include("../MustImplement/MustImplement.jl")
+using .MustImplement
 
 using DynamicSparseArrays, MathOptInterface, TimerOutputs, RandomNumbers, Random, SparseArrays
 
@@ -44,6 +45,8 @@ include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
 include("hashtable.jl")
+
+# TODO: extract storage
 include("recordmanager.jl")
 include("storage.jl")
 

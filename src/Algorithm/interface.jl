@@ -1,13 +1,6 @@
 ############################################################################################
 # Algorithm API
 ############################################################################################
-abstract type AbstractAlgorithm end
-
-"""
-    run!(algo::AbstractAlgorithm, env, model, input)
-Runs an algorithm. 
-"""
-@mustimplement "Algorithm" run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input) = nothing
 
 # TODO: remove this method.
 # We currently need it because we give to the parent algorithm the responsability of recording
@@ -16,7 +9,7 @@ Runs an algorithm.
 # child execution.
 # If we give the responsability of recording/restoring to the child, we won't need this method
 # anymore and we'll get rid of the concept of manager & worker algorithm.
-ismanager(algo::AbstractAlgorithm) = false
+ismanager(algo::APITMP.AbstractAlgorithm) = false
 
 
 """
@@ -25,7 +18,7 @@ ismanager(algo::AbstractAlgorithm) = false
 Every algorithm should communicate its child algorithms and the model to which 
 each child algorithm is applied. 
 """
-get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
+get_child_algorithms(::APITMP.AbstractAlgorithm, ::AbstractModel) = Tuple{APITMP.AbstractAlgorithm, AbstractModel}[]
 
 """
     get_units_usage(algo, model) -> Tuple{AbstractModel, UnitType, UnitPermission}[]
@@ -34,7 +27,7 @@ Every algorithm should communicate the storage units it uses (so that these unit
 are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
 in order to restore units before running a worker algorithm.
 """
-get_units_usage(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractModel, UnitType, UnitPermission}[] 
+get_units_usage(::APITMP.AbstractAlgorithm, ::AbstractModel) = Tuple{APITMP.AbstractModel, UnitType, UnitPermission}[] 
 
 ############################################################################################
 # Conquer Algorithm API
@@ -73,46 +66,8 @@ ismanager(algo::AbstractConquerAlgorithm) = true
 # this function is needed in strong branching (to have a better screen logging)
 isverbose(algo::AbstractConquerAlgorithm) = false
 
-# this function is needed to check whether the best primal solution should be copied to the node optimization state
-exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
-############################################################################################
-# Divide Algorithm API
-############################################################################################
 
-"""
-Input of a divide algorithm used by the tree search algorithm.
-Contains the parent node in the search tree for which children should be generated.
-"""
-abstract type AbstractDivideInput end
-
-@mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
-@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
-
-"""
-Output of a divide algorithm used by the tree search algorithm.
-Should contain the vector of generated nodes.
-"""
-struct DivideOutput{N}
-    children::Vector{N}
-    optstate::OptimizationState
-end
-
-get_children(output::DivideOutput) = output.children
-get_opt_state(output::DivideOutput) = output.optstate
-
-"""
-This algorithm type is used by the tree search algorithm to generate nodes.
-"""
-abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
-
-# divide algorithms are always manager algorithms (they manage storing and restoring units)
-ismanager(algo::AbstractDivideAlgorithm) = true
-
-@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, ::Env, ::AbstractModel, ::AbstractDivideInput)  = nothing
-
-# this function is needed to check whether the best primal solution should be copied to the node optimization state
-exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false
 
 ############################################################################################
 # Optimization Algorithm API
@@ -126,14 +81,13 @@ exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false
     The input of such algorithm should be of type Incumbents.    
     The output of such algorithm should be of type OptimizationState.    
 """
-abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
+abstract type AbstractOptimizationAlgorithm <: APITMP.AbstractAlgorithm end
 
-exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 
 # this function collects storage units to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore units themselves
 function _collect_units_to_restore!(
-    global_units_usage::UnitsUsage, algo::AbstractAlgorithm, model::AbstractModel
+    global_units_usage::UnitsUsage, algo::APITMP.AbstractAlgorithm, model::AbstractModel
 )
     for (unit_model, unit_type, unit_usage) in get_units_usage(algo, model)
         push!(global_units_usage.units_used, (unit_model, unit_type))
@@ -146,7 +100,7 @@ function _collect_units_to_restore!(
     end
 end
 
-function collect_units_to_restore!(algo::AbstractAlgorithm, model::AbstractModel)
+function collect_units_to_restore!(algo::APITMP.AbstractAlgorithm, model::AbstractModel)
     global_units_usage = UnitsUsage()
     _collect_units_to_restore!(global_units_usage, algo, model)
     return global_units_usage
@@ -155,7 +109,7 @@ end
 # this function collects units to create for an algorithm and all its child algorithms
 # this function is used only the function initialize_storage_units! below
 function collect_units_to_create!(
-    units_to_create::Dict{AbstractModel,Set{UnitType}}, algo::AbstractAlgorithm, model::AbstractModel
+    units_to_create::Dict{AbstractModel,Set{UnitType}}, algo::APITMP.AbstractAlgorithm, model::AbstractModel
 )
     units_usage = get_units_usage(algo, model)
     for (unit_model, unit_pair, _) in units_usage

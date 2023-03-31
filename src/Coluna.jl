@@ -59,6 +59,9 @@ using .APITMP
 include("TreeSearch/TreeSearch.jl")
 using .TreeSearch
 
+include("Branching/Branching.jl")
+using .Branching
+
 include("ColGen/ColGen.jl")
 using .ColGen
 

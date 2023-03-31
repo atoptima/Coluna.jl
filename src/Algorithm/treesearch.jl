@@ -28,8 +28,8 @@ Options :
 """
 @with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
-    dividealg::AbstractDivideAlgorithm = Branching()
-    explorestrategy::AbstractExploreStrategy = TreeSearch.DepthFirstStrategy()
+    dividealg::APITMP.AbstractDivideAlgorithm = ClassicBranching()
+    explorestrategy::TreeSearch.AbstractExploreStrategy = TreeSearch.DepthFirstStrategy()
     maxnumnodes::Int64 = 100000
     opennodeslimit::Int64 = 100
     timelimit::Int64 = -1 # means no time limit
