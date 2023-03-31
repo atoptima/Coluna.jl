@@ -9,21 +9,21 @@ An iterator that indicates how a set of phases follow each other.
 """
 abstract type AbstractColGenPhaseIterator end
 
-@mustimplement "ColGenPhase" new_phase_iterator(::AbstractColGenContext)
+@mustimplement "ColGenPhase" new_phase_iterator(::AbstractColGenContext) = nothing
 
 "Returns the phase with which the column generation algorithm must start." 
-@mustimplement "ColGenPhase" initial_phase(::AbstractColGenPhaseIterator)
+@mustimplement "ColGenPhase" initial_phase(::AbstractColGenPhaseIterator) = nothing
 
 """
 Returns the next phase of the column generation algorithm.
 Returns `nothing` if the algorithm must stop.
 """
-@mustimplement "ColGenPhase" next_phase(::AbstractColGenPhaseIterator, ::AbstractColGenPhase, output)
+@mustimplement "ColGenPhase" next_phase(::AbstractColGenPhaseIterator, ::AbstractColGenPhase, output) = nothing
 
 "Setup the reformulation for the given phase."
-@mustimplement "ColGenPhase" setup_reformulation!(reform, ::AbstractColGenPhase)
+@mustimplement "ColGenPhase" setup_reformulation!(reform, ::AbstractColGenPhase) = nothing
 
-@mustimplement "ColGenPhase" setup_context!(context, ::AbstractColGenPhase)
+@mustimplement "ColGenPhase" setup_context!(context, ::AbstractColGenPhase) = nothing
 
 "Returns `true` if the column generation phase must stop."
-@mustimplement "ColGenPhase" stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+@mustimplement "ColGenPhase" stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration) = nothing

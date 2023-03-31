@@ -121,25 +121,25 @@ abstract type AbstractStrongBrContext <: AbstractDivideContext end
 abstract type AbstractStrongBrPhaseContext end
 
 "Creates a context for the branching phase."
-@mustimplement "StrongBranching" new_phase_context(::Type{<:AbstractDivideContext}, phase, reform, phase_index)
+@mustimplement "StrongBranching" new_phase_context(::Type{<:AbstractDivideContext}, phase, reform, phase_index) = nothing
 
 """
 Returns the storage units that must be restored by the conquer algorithm called by the
 strong branching phase.
 """
-@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext) = nothing
 
 "Returns all phases context of the strong branching algorithm."
-@mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext)
+@mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext) = nothing
 
 "Returns the type of score used to rank the candidates at a given strong branching phase."
-@mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext) = nothing
 
 "Returns the conquer algorithm used to evaluate the candidate's children at a given strong branching phase."
-@mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext) = nothing
 
 "Returns the maximum number of candidates kept at the end of a given strong branching phase."
-@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext) = nothing
 
 # Following methods are part of the strong branching API but we advise to not redefine them.
 # They depends on each other:

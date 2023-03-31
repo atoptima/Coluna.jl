@@ -1,9 +1,9 @@
 abstract type AbstractModel end
 
-@mustimplement "Model" getuid(m::AbstractModel)
+@mustimplement "Model" getuid(m::AbstractModel) = nothing
 
 "Return the storage of a model."
-@mustimplement "Model" getstorage(m::AbstractModel)
+@mustimplement "Model" getstorage(m::AbstractModel) = nothing
 
 abstract type AbstractProblem end
 
