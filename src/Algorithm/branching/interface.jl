@@ -188,14 +188,14 @@ end
 # - stopping criterion
 # - what happens when original_solution or extended_solution are nothing
 function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, reform, env, parent)
-    extended_sol, original_sol = _get_extended_and_original_sols(reform, get_opt_state(parent))
+    extended_sol, original_sol = _get_extended_and_original_sols(reform, TreeSearch.get_opt_state(parent))
 
     if isnothing(extended_sol)
         error("Error") #TODO (talk with Ruslan.)
     end
     
     # We sort branching rules by their root/non-root priority.
-    sorted_rules = sort(get_rules(ctx), rev = true, by = x -> getpriority(x, isroot(parent)))
+    sorted_rules = sort(get_rules(ctx), rev = true, by = x -> getpriority(x, TreeSearch.isroot(parent)))
     
     kept_branch_candidates = AbstractBranchingCandidate[]
 
@@ -206,7 +206,7 @@ function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, re
         rule = prioritised_rule.rule
 
         # Priority of the current branching rule.
-        priority = getpriority(prioritised_rule, isroot(parent))
+        priority = getpriority(prioritised_rule, TreeSearch.isroot(parent))
     
         nb_candidates_found = length(kept_branch_candidates)
 
@@ -256,7 +256,7 @@ function run!(algo::AbstractDivideAlgorithm, env::Env, reform::Reformulation, in
     ctx = new_context(branching_context_type(algo), algo, reform)
 
     parent = get_parent(input)
-    optstate = get_opt_state(parent)
+    optstate = TreeSearch.get_opt_state(parent)
     nodestatus = getterminationstatus(optstate)
 
     # We don't run the branching algorithm if the node is already conquered
