@@ -71,40 +71,40 @@ abstract type AbstractColunaSearchSpace <: TreeSearch.AbstractSearchSpace end
 # Additional methods to implement to use the tree search algorithms together with Coluna's
 # algorithms.
 "Returns the previous node explored by the tree search algorithm."
-@mustimplement "ColunaSearchSpace" get_previous(s::AbstractColunaSearchSpace)
+@mustimplement "ColunaSearchSpace" get_previous(s::AbstractColunaSearchSpace) = nothing
 
 "Sets the previous node explored by the tree search algorithm."
-@mustimplement "ColunaSearchSpace" set_previous!(s::AbstractColunaSearchSpace, previous)
+@mustimplement "ColunaSearchSpace" set_previous!(s::AbstractColunaSearchSpace, previous) = nothing
 
 "Returns the conquer algorithm."
-@mustimplement "ColunaSearchSpace" get_conquer(sp::AbstractColunaSearchSpace)
+@mustimplement "ColunaSearchSpace" get_conquer(sp::AbstractColunaSearchSpace) = nothing
 
 "Returns the divide algorithm."
-@mustimplement "ColunaSearchSpace" get_divide(sp::AbstractColunaSearchSpace)
+@mustimplement "ColunaSearchSpace" get_divide(sp::AbstractColunaSearchSpace) = nothing
 
 "Returns the reformulation that will be passed to an algorithm."
-@mustimplement "ColunaSearchSpace" get_reformulation(s::AbstractColunaSearchSpace)
+@mustimplement "ColunaSearchSpace" get_reformulation(s::AbstractColunaSearchSpace) = nothing
 
 """
 Returns the input that will be passed to an algorithm.
 The input can be built from information contained in a search space and a node.
 """
-@mustimplement "ColunaSearchSpace" get_input(a::AbstractAlgorithm, s::AbstractColunaSearchSpace, n::AbstractNode)
+@mustimplement "ColunaSearchSpace" get_input(a::AbstractAlgorithm, s::AbstractColunaSearchSpace, n::AbstractNode) = nothing
 
 """
 Methods to perform operations before the tree search algorithm evaluates a node (`current`).
 This is useful to restore the state of the formulation for instance.
 """
-@mustimplement "ColunaSearchSpace" node_change!(previous::AbstractNode, current::AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes)
+@mustimplement "ColunaSearchSpace" node_change!(previous::AbstractNode, current::AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes) = nothing
 
 """
 Methods to perform operations after the conquer algorithms.
 It receives the output of the conquer algorithm.
 """
-@mustimplement "ColunaSearchSpace" after_conquer!(::AbstractColunaSearchSpace, current, output)
+@mustimplement "ColunaSearchSpace" after_conquer!(::AbstractColunaSearchSpace, current, output) = nothing
 
 "Creates and returns the children of a node associated to a search space."
-@mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::AbstractNode)
+@mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::AbstractNode) = nothing
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
 function TreeSearch.children(space::AbstractColunaSearchSpace, current::AbstractNode, env, untreated_nodes)

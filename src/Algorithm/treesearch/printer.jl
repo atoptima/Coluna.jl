@@ -5,11 +5,11 @@
 "Super type to dispatch on file printer methods."
 abstract type AbstractFilePrinter end
 
-@mustimplement "FilePrinter" new_file_printer(::Type{<:AbstractFilePrinter}, alg)
-@mustimplement "FilePrinter" filename(::AbstractFilePrinter)
-@mustimplement "FilePrinter" init_tree_search_file!(::AbstractFilePrinter)
-@mustimplement "FilePrinter" print_node_in_tree_search_file!(::AbstractFilePrinter, node, space, env)
-@mustimplement "FilePrinter" close_tree_search_file!(::AbstractFilePrinter)
+@mustimplement "FilePrinter" new_file_printer(::Type{<:AbstractFilePrinter}, alg) = nothing
+@mustimplement "FilePrinter" filename(::AbstractFilePrinter) = nothing
+@mustimplement "FilePrinter" init_tree_search_file!(::AbstractFilePrinter) = nothing
+@mustimplement "FilePrinter" print_node_in_tree_search_file!(::AbstractFilePrinter, node, space, env) = nothing
+@mustimplement "FilePrinter" close_tree_search_file!(::AbstractFilePrinter) = nothing
 
 ############################################################################################
 # Log printer API (on stdin)
@@ -18,8 +18,8 @@ abstract type AbstractFilePrinter end
 "Super type to dispatch on log printer method."
 abstract type AbstractLogPrinter end
 
-@mustimplement "LogPrinter" new_log_printer(::Type{<:AbstractLogPrinter})
-@mustimplement "LogPrinter" print_log(::AbstractLogPrinter, space, node, env, nb_untreated_nodes)
+@mustimplement "LogPrinter" new_log_printer(::Type{<:AbstractLogPrinter}) = nothing
+@mustimplement "LogPrinter" print_log(::AbstractLogPrinter, space, node, env, nb_untreated_nodes) = nothing
 
 ############################################################################################
 # File & log printer search space.

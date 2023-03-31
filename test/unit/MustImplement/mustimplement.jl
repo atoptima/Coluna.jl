@@ -1,5 +1,5 @@
-Coluna.MustImplement.@mustimplement "API" mi_f1()
-Coluna.MustImplement.@mustimplement "API" mi_f2(a, b)
+Coluna.MustImplement.@mustimplement "API" mi_f1() = nothing
+Coluna.MustImplement.@mustimplement "API" mi_f2(a, b) = nothing
 mi_f2(a::Int, b::Int) = a+b
 
 function must_implement()

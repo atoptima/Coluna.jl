@@ -5,16 +5,16 @@ abstract type AbstractNewRecord end
 
 
 # Interface to implement
-@mustimplement "Storage" get_id(r::AbstractNewRecord)
+@mustimplement "Storage" get_id(r::AbstractNewRecord) = nothing
 
 "Creates a record of information from the model or a storage unit."
-@mustimplement "Storage" new_record(::Type{<:AbstractNewRecord}, id::Int, model, su::AbstractNewStorageUnit)
+@mustimplement "Storage" new_record(::Type{<:AbstractNewRecord}, id::Int, model, su::AbstractNewStorageUnit) = nothing
 
 "Restore information from the model or the storage unit that is recorded in a record."
-@mustimplement "Storage" restore_from_record!(model, su::AbstractNewStorageUnit, r::AbstractNewRecord)
+@mustimplement "Storage" restore_from_record!(model, su::AbstractNewStorageUnit, r::AbstractNewRecord) = nothing
 
 "Returns a storage unit from a given type."
-@mustimplement "Storage" new_storage_unit(::Type{<:AbstractNewStorageUnit}, model)
+@mustimplement "Storage" new_storage_unit(::Type{<:AbstractNewStorageUnit}, model) = nothing
 
 mutable struct NewStorageUnitManager{Model,RecordType<:AbstractNewRecord,StorageUnitType<:AbstractNewStorageUnit}
     model::Model
@@ -29,10 +29,10 @@ end
 
 # Interface
 "Returns the type of record stored in a type of storage unit."
-@mustimplement "Storage" record_type(::Type{<:AbstractNewStorageUnit})
+@mustimplement "Storage" record_type(::Type{<:AbstractNewStorageUnit}) = nothing
 
 "Returns the type of storage unit that stores a type of record."
-@mustimplement "Storage" storage_unit_type(::Type{<:AbstractNewRecord})
+@mustimplement "Storage" storage_unit_type(::Type{<:AbstractNewRecord}) = nothing
 
 struct NewStorage{ModelType}
     model::ModelType

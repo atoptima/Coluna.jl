@@ -7,7 +7,7 @@ abstract type AbstractAlgorithm end
     run!(algo::AbstractAlgorithm, env, model, input)
 Runs an algorithm. 
 """
-@mustimplement "Algorithm" run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input)
+@mustimplement "Algorithm" run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input) = nothing
 
 # TODO: remove this method.
 # We currently need it because we give to the parent algorithm the responsability of recording
@@ -50,9 +50,9 @@ in the input so that it is not obtained each time the conquer algorithm runs.
 """
 abstract type AbstractConquerInput end
 
-@mustimplement "ConquerInput" get_node(i::AbstractConquerInput)
-@mustimplement "ConquerInput" get_units_to_restore(i::AbstractConquerInput)
-@mustimplement "ConquerInput" run_conquer(i::AbstractConquerInput)
+@mustimplement "ConquerInput" get_node(i::AbstractConquerInput) = nothing
+@mustimplement "ConquerInput" get_units_to_restore(i::AbstractConquerInput) = nothing
+@mustimplement "ConquerInput" run_conquer(i::AbstractConquerInput) = nothing
 
 """
     AbstractConquerAlgorithm
@@ -68,7 +68,7 @@ abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 # conquer algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractConquerAlgorithm) = true
 
-@mustimplement "ConquerAlgorithm" run!(::AbstractConquerAlgorithm, ::Env, ::Reformulation, ::AbstractConquerInput)
+@mustimplement "ConquerAlgorithm" run!(::AbstractConquerAlgorithm, ::Env, ::Reformulation, ::AbstractConquerInput) = nothing
 
 # this function is needed in strong branching (to have a better screen logging)
 isverbose(algo::AbstractConquerAlgorithm) = false
@@ -86,8 +86,8 @@ Contains the parent node in the search tree for which children should be generat
 """
 abstract type AbstractDivideInput end
 
-@mustimplement "DivideInput" get_parent(i::AbstractDivideInput)
-@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput)
+@mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
 
 """
 Output of a divide algorithm used by the tree search algorithm.
@@ -109,7 +109,7 @@ abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 # divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
-@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, ::Env, ::AbstractModel, ::AbstractDivideInput) 
+@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, ::Env, ::AbstractModel, ::AbstractDivideInput)  = nothing
 
 # this function is needed to check whether the best primal solution should be copied to the node optimization state
 exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false

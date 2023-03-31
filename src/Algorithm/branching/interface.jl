@@ -19,19 +19,19 @@ getdescription(candidate::AbstractBranchingCandidate) =
 ## a generic constructor.
 
 "Returns the left-hand side of the candidate."
-@mustimplement "BranchingCandidate" get_lhs(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_lhs(c::AbstractBranchingCandidate) = nothing
 
 "Returns the generation id of the candidiate."
-@mustimplement "BranchingCandidate" get_local_id(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_local_id(c::AbstractBranchingCandidate) = nothing
 
 "Returns the children of the candidate."
-@mustimplement "BranchingCandidate" get_children(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_children(c::AbstractBranchingCandidate) = nothing
 
 "Set the children of the candidate."
-@mustimplement "BranchingCandidate" set_children!(c::AbstractBranchingCandidate, children)
+@mustimplement "BranchingCandidate" set_children!(c::AbstractBranchingCandidate, children) = nothing
 
 "Returns the parent node of the candidate's children."
-@mustimplement "BranchingCandidate" get_parent(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_parent(c::AbstractBranchingCandidate) = nothing
 
 # TODO: this method should not generate the children of the tree search algorithm.
 # However, AbstractBranchingCandidate should implement an interface to retrieve data to
@@ -43,10 +43,10 @@ This method generates the children of a node described by `branching_candidate`.
 Make sure that this method returns an object the same type as the second argument of
 `set_children!(candiate, children)`.
 """
-@mustimplement "BranchingCandidate" generate_children!(c::AbstractBranchingCandidate, env, reform, parent)
+@mustimplement "BranchingCandidate" generate_children!(c::AbstractBranchingCandidate, env, reform, parent) = nothing
 
 "List of storage units to restore before evaluating the node."
-@mustimplement "BranchingCandidate" get_branching_candidate_units_usage(::AbstractBranchingCandidate, reform)
+@mustimplement "BranchingCandidate" get_branching_candidate_units_usage(::AbstractBranchingCandidate, reform) = nothing
 
 ############################################################################################
 # Selection Criteria of branching candidates
@@ -61,7 +61,7 @@ candidates. To create a new selection criterion, one needs to create a subtype o
 abstract type AbstractSelectionCriterion end
 
 "Sort branching candidates according to the selection criterion and remove excess ones."
-@mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int)
+@mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int) = nothing
 
 ############################################################################################
 # Branching rules
@@ -114,7 +114,7 @@ end
 ismanager(algo::AbstractBranchingRule) = true
 
 "Returns all candidates that satisfy a given branching rule."
-@mustimplement "BranchingRule" apply_branching_rule(rule, env, reform, input)
+@mustimplement "BranchingRule" apply_branching_rule(rule, env, reform, input) = nothing
 
 "Candidates selection for branching algorithms."
 function select!(rule::AbstractBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
@@ -138,7 +138,7 @@ Supertype of branching scores.
 abstract type AbstractBranchingScore end
 
 "Returns the score of a candidate."
-@mustimplement "BranchingScore" compute_score(::AbstractBranchingScore, candidate)
+@mustimplement "BranchingScore" compute_score(::AbstractBranchingScore, candidate) = nothing
 
 ############################################################################################
 # Branching API
@@ -148,25 +148,25 @@ abstract type AbstractBranchingScore end
 abstract type AbstractDivideContext end
 
 "Returns the number of candidates that the candidates selection step must return."
-@mustimplement "Branching" get_selection_nb_candidates(::AbstractDivideAlgorithm)
+@mustimplement "Branching" get_selection_nb_candidates(::AbstractDivideAlgorithm) = nothing
 
 "Returns the type of context required by the algorithm parameters."
-@mustimplement "Branching" branching_context_type(::AbstractDivideAlgorithm)
+@mustimplement "Branching" branching_context_type(::AbstractDivideAlgorithm) = nothing
 
 "Creates a context."
-@mustimplement "Branching" new_context(::Type{<:AbstractDivideContext}, algo::AbstractDivideAlgorithm, reform)
+@mustimplement "Branching" new_context(::Type{<:AbstractDivideContext}, algo::AbstractDivideAlgorithm, reform) = nothing
 
 "Advanced candidates selection that selects candidates by evaluating their children."
-@mustimplement "Branching" advanced_select!(::AbstractDivideContext, candidates, env, reform, input::AbstractDivideInput)
+@mustimplement "Branching" advanced_select!(::AbstractDivideContext, candidates, env, reform, input::AbstractDivideInput) = nothing
 
 "Returns integer tolerance."
-@mustimplement "Branching" get_int_tol(::AbstractDivideContext)
+@mustimplement "Branching" get_int_tol(::AbstractDivideContext) = nothing
 
 "Returns branching rules."
-@mustimplement "Branching" get_rules(::AbstractDivideContext)
+@mustimplement "Branching" get_rules(::AbstractDivideContext) = nothing
 
 "Returns the selection criterion."
-@mustimplement "Branching" get_selection_criterion(::AbstractDivideContext)
+@mustimplement "Branching" get_selection_criterion(::AbstractDivideContext) = nothing
 
 
 function _get_extended_and_original_sols(reform, opt_state)
@@ -289,25 +289,25 @@ abstract type AbstractStrongBrContext <: AbstractDivideContext end
 abstract type AbstractStrongBrPhaseContext end
 
 "Creates a context for the branching phase."
-@mustimplement "StrongBranching" new_phase_context(::Type{<:AbstractDivideContext}, phase, reform, phase_index)
+@mustimplement "StrongBranching" new_phase_context(::Type{<:AbstractDivideContext}, phase, reform, phase_index) = nothing
 
 """
 Returns the storage units that must be restored by the conquer algorithm called by the
 strong branching phase.
 """
-@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext) = nothing
 
 "Returns all phases context of the strong branching algorithm."
-@mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext)
+@mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext) = nothing
 
 "Returns the type of score used to rank the candidates at a given strong branching phase."
-@mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext) = nothing
 
 "Returns the conquer algorithm used to evaluate the candidate's children at a given strong branching phase."
-@mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext) = nothing
 
 "Returns the maximum number of candidates kept at the end of a given strong branching phase."
-@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext)
+@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext) = nothing
 
 # Following methods are part of the strong branching API but we advise to not redefine them.
 # They depends on each other:
