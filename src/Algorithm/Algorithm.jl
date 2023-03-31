@@ -82,11 +82,11 @@ export getterminationstatus, setterminationstatus!,
     get_ip_primal_bound, get_lp_primal_bound, get_lp_dual_bound, get_ip_dual_bound, 
     set_ip_primal_bound!, set_lp_primal_bound!, set_lp_dual_bound!, set_ip_dual_bound!,
     update_ip_primal_bound!, update_lp_primal_bound!, update_lp_dual_bound!, update_ip_dual_bound!,
-    get_opt_state, run!
+    run!
 
 # Algorithms
 export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterIPHeuristic,
-    SolveLpForm, NoBranching, Branching, StrongBranching, AbstractSelectionCriterion,
+    SolveLpForm, NoBranching, Branching, StrongBranching,
     FirstFoundCriterion, MostFractionalCriterion, SingleVarBranchingRule
 
 # Algorithm's types

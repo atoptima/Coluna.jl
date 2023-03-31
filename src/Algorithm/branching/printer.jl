@@ -2,19 +2,19 @@ struct BranchingPrinter{StrongBrContext<:Branching.AbstractStrongBrContext} <: B
     inner::StrongBrContext
 end
 
-get_rules(ctx::BranchingPrinter) = get_rules(ctx.inner)
-get_int_tol(ctx::BranchingPrinter) = get_int_tol(ctx.inner)
-get_selection_criterion(ctx::BranchingPrinter) = get_selection_criterion(ctx.inner)
-get_selection_nb_candidates(ctx::BranchingPrinter) = get_selection_nb_candidates(ctx.inner)
-get_phases(ctx::BranchingPrinter) = get_phases(ctx.inner)
+Branching.get_rules(ctx::BranchingPrinter) = Branching.get_rules(ctx.inner)
+Branching.get_int_tol(ctx::BranchingPrinter) = Branching.get_int_tol(ctx.inner)
+Branching.get_selection_criterion(ctx::BranchingPrinter) = Branching.get_selection_criterion(ctx.inner)
+Branching.get_selection_nb_candidates(ctx::BranchingPrinter) = Branching.get_selection_nb_candidates(ctx.inner)
+Branching.get_phases(ctx::BranchingPrinter) = Branching.get_phases(ctx.inner)
 
 struct PhasePrinter{PhaseContext<:Branching.AbstractStrongBrPhaseContext} <: Branching.AbstractStrongBrPhaseContext
     inner::PhaseContext
     phase_index::Int
 end
 
-get_max_nb_candidates(ctx::PhasePrinter) = get_max_nb_candidates(ctx.inner)
-get_score(ctx::PhasePrinter) = get_score(ctx.inner)
+Branching.get_max_nb_candidates(ctx::PhasePrinter) = Branching.get_max_nb_candidates(ctx.inner)
+Branching.get_score(ctx::PhasePrinter) = Branching.get_score(ctx.inner)
 
 function new_context(
     ::Type{BranchingPrinter{StrongBrContext}}, algo::APITMP.AbstractDivideAlgorithm, reform

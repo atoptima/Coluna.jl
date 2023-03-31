@@ -6,8 +6,18 @@ module APITMP
 include("MustImplement/MustImplement.jl")
 using .MustImplement
 
+include("ColunaBase/ColunaBase.jl")
+using .ColunaBase
+
 "Supertype for algorithms parameters."
 abstract type AbstractAlgorithm end
+
+"""
+    run!(algo::AbstractAlgorithm, env, model, input)
+Runs an algorithm. 
+"""
+@mustimplement "Algorithm" run!(algo::AbstractAlgorithm, env, model, input) = nothing
+
 
 """
 Contains the definition of the problem tackled by the tree search algorithm and how the
@@ -55,8 +65,6 @@ ismanager(algo::AbstractDivideAlgorithm) = true
 
 @mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, env, model, ::AbstractDivideInput)  = nothing
 
-# this function is needed to check whether the best primal solution should be copied to the node optimization state
-exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false
 
 
 export AbstractAlgorithm, AbstractSearchSpace, AbstractExploreStrategy, AbstractNode

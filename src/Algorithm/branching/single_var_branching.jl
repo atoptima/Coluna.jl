@@ -28,8 +28,8 @@ Branching.getdescription(candidate::SingleVarBranchingCandidate) = candidate.var
 Branching.get_lhs(candidate::SingleVarBranchingCandidate) = candidate.lhs
 Branching.get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
 Branching.get_children(candidate::SingleVarBranchingCandidate) = candidate.children
-Branchingset_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
-get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
+Branching.set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
+Branching.get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
 function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, reform)
     units_to_restore = UnitsUsage()
@@ -38,9 +38,9 @@ function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, refo
     return units_to_restore
 end
 
-function generate_children!(
+function Branching.generate_children!(
     candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
-    parent::AbstractNode
+    parent::APITMP.AbstractNode
 )
     master = getmaster(reform)
     lhs = Branching.get_lhs(candidate)

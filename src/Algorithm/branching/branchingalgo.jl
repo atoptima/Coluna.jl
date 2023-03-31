@@ -25,7 +25,7 @@ Divide algorithm that does nothing. It does not generate any child.
 struct NoBranching <: APITMP.AbstractDivideAlgorithm end
 
 function run!(::NoBranching, ::Env, reform::Reformulation, ::APITMP.AbstractDivideInput)
-    return APITMP.DivideOutput([], OptimizationState(getmaster(reform)))
+    return DivideOutput([], OptimizationState(getmaster(reform)))
 end
 
 ############################################################################################
@@ -35,7 +35,7 @@ end
 """
     ClassicBranching(
         selection_criterion = MostFractionalCriterion()
-        rules = [PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+        rules = [Branching.PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
     )
 
 Chooses the best candidate according to a selection criterion and generates the two children.
@@ -71,7 +71,7 @@ Branching.get_rules(ctx::BranchingContext) = ctx.rules
 
 function advanced_select!(::BranchingContext, candidates, _, reform, _::APITMP.AbstractDivideInput)
     children = Branching.get_children(first(candidates))
-    return APITMP.DivideOutput(children, OptimizationState(getmaster(reform)))
+    return DivideOutput(children, OptimizationState(getmaster(reform)))
 end
 
 ############################################################################################
@@ -147,10 +147,10 @@ struct StrongBranchingPhaseContext <: Branching.AbstractStrongBrPhaseContext
     units_to_restore_for_conquer::UnitsUsage
 end
 
-get_score(ph::StrongBranchingPhaseContext) = ph.phase_params.score
-get_conquer(ph::StrongBranchingPhaseContext) = ph.phase_params.conquer_algo
-get_units_to_restore_for_conquer(ph::StrongBranchingPhaseContext) = ph.units_to_restore_for_conquer
-get_max_nb_candidates(ph::StrongBranchingPhaseContext) = ph.phase_params.max_nb_candidates
+Branching.get_score(ph::StrongBranchingPhaseContext) = ph.phase_params.score
+Branching.get_conquer(ph::StrongBranchingPhaseContext) = ph.phase_params.conquer_algo
+Branching.get_units_to_restore_for_conquer(ph::StrongBranchingPhaseContext) = ph.units_to_restore_for_conquer
+Branching.get_max_nb_candidates(ph::StrongBranchingPhaseContext) = ph.phase_params.max_nb_candidates
 
 function new_phase_context(::Type{StrongBranchingPhaseContext}, phase::BranchingPhase, reform, _)
     units_to_restore_for_conquer = collect_units_to_restore!(phase.conquer_algo, reform)
@@ -167,11 +167,11 @@ struct StrongBranchingContext{
     int_tol::Float64
 end
 
-get_selection_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
-get_rules(ctx::StrongBranchingContext) = ctx.rules
-get_selection_criterion(ctx::StrongBranchingContext) = ctx.selection_criterion
-get_int_tol(ctx::StrongBranchingContext) = ctx.int_tol
-get_phases(ctx::StrongBranchingContext) = ctx.phases
+Branching.get_selection_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
+Branching.get_rules(ctx::StrongBranchingContext) = ctx.rules
+Branching.get_selection_criterion(ctx::StrongBranchingContext) = ctx.selection_criterion
+Branching.get_int_tol(ctx::StrongBranchingContext) = ctx.int_tol
+Branching.get_phases(ctx::StrongBranchingContext) = ctx.phases
 
 function branching_context_type(algo::StrongBranching)
     select_crit_type = typeof(algo.selection_criterion)
@@ -246,7 +246,7 @@ function _perform_strong_branching!(
     # TODO: We consider that conquer algorithms in the branching algo don't exploit the
     # primal solution at the moment (3rd arg).
     sb_state = OptimizationState(
-        getmaster(reform), get_opt_state(input), false, false
+        getmaster(reform), APITMP.get_opt_state(input), false, false
     )
 
     phases = get_phases(ctx)
@@ -283,5 +283,5 @@ end
 function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput)
     sb_state = _perform_strong_branching!(ctx, env, reform, input, candidates)
     children = Branching.get_children(first(candidates))
-    return Branching.DivideOutput(children, sb_state)
+    return DivideOutput(children, sb_state)
 end

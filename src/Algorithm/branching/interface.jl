@@ -32,7 +32,7 @@ function _candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_cand
     end
     
     # We sort branching rules by their root/non-root priority.
-    sorted_rules = sort(get_rules(ctx), rev = true, by = x -> getpriority(x, TreeSearch.isroot(parent)))
+    sorted_rules = sort(Branching.get_rules(ctx), rev = true, by = x -> Branching.getpriority(x, TreeSearch.isroot(parent)))
     
     kept_branch_candidates = Branching.AbstractBranchingCandidate[]
 
@@ -43,7 +43,7 @@ function _candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_cand
         rule = prioritised_rule.rule
 
         # Priority of the current branching rule.
-        priority = getpriority(prioritised_rule, TreeSearch.isroot(parent))
+        priority = Branching.getpriority(prioritised_rule, TreeSearch.isroot(parent))
     
         nb_candidates_found = length(kept_branch_candidates)
 
@@ -66,8 +66,8 @@ function _candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_cand
         # Generate candidates.
         output = Branching.select!(
             rule, env, reform, Branching.BranchingRuleInput(
-                original_sol, true, max_nb_candidates, get_selection_criterion(ctx),
-                local_id, get_int_tol(ctx), priority, parent
+                original_sol, true, max_nb_candidates, Branching.get_selection_criterion(ctx),
+                local_id, Branching.get_int_tol(ctx), priority, parent
             )
         )
         append!(kept_branch_candidates, output.candidates)
@@ -76,14 +76,14 @@ function _candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_cand
         if projection_is_possible(getmaster(reform)) && !isnothing(extended_sol)
             output = Branching.select!(
                 rule, env, reform, Branching.BranchingRuleInput(
-                    extended_sol, false, max_nb_candidates, get_selection_criterion(ctx),
-                    local_id, get_int_tol(ctx), priority, parent
+                    extended_sol, false, max_nb_candidates, Branching.get_selection_criterion(ctx),
+                    local_id, Branching.get_int_tol(ctx), priority, parent
                 )
             )
             append!(kept_branch_candidates, output.candidates)
             local_id = output.local_id
         end
-        select_candidates!(kept_branch_candidates, get_selection_criterion(ctx), max_nb_candidates)
+        Branching.select_candidates!(kept_branch_candidates, Branching.get_selection_criterion(ctx), max_nb_candidates)
         priority_of_last_gen_candidates = priority
     end
     return kept_branch_candidates
@@ -92,7 +92,7 @@ end
 function run!(algo::APITMP.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput)
     ctx = new_context(branching_context_type(algo), algo, reform)
 
-    parent = get_parent(input)
+    parent = APITMP.get_parent(input)
     optstate = TreeSearch.get_opt_state(parent)
     nodestatus = getterminationstatus(optstate)
 
@@ -102,7 +102,7 @@ function run!(algo::APITMP.AbstractDivideAlgorithm, env::Env, reform::Reformulat
         return DivideOutput(SbNode[], optstate)
     end
 
-    max_nb_candidates = get_selection_nb_candidates(algo)
+    max_nb_candidates = Branching.get_selection_nb_candidates(algo)
     candidates = _candidates_selection(ctx, max_nb_candidates, reform, env, parent)
 
     # We stop branching if no candidate generated.

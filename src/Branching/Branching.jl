@@ -1,10 +1,10 @@
 module Branching
 
-include("../MustImplement/MustImplement.jl")
-using .MustImplement
+!true && include("../MustImplement/MustImplement.jl") # linter
+using ..MustImplement
 
-include("../interface.jl")
-using .APITMP
+!true && include("../interface.jl") # linter
+using ..APITMP
 
 include("candidate.jl")
 include("criteria.jl")

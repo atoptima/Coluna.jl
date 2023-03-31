@@ -77,7 +77,6 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     opt_rtol::Float64
     previous::Union{Nothing,Node}
     optstate::OptimizationState # from TreeSearchRuntimeData
-    exploitsprimalsolutions::Bool # from TreeSearchRuntimeData
     conquer_units_to_restore::UnitsUsage # from TreeSearchRuntimeData
     nb_nodes_treated::Int
     current_ip_dual_bound_from_conquer
@@ -111,8 +110,7 @@ end
 function TreeSearch.new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
 )
-    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)
-    optstate = OptimizationState(getmaster(reform), input, exploitsprimalsols, false)
+    optstate = OptimizationState(getmaster(reform), input, false, false)
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
@@ -125,7 +123,6 @@ function TreeSearch.new_space(
         algo.opt_rtol,
         nothing,
         optstate,
-        exploitsprimalsols,
         conquer_units_to_restore,
         0,
         nothing
@@ -192,10 +189,11 @@ function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node
 end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(get_opt_state(candidates))...)
+    @show typeof(candidates)
+    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(APITMP.get_opt_state(candidates))...)
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
-    children = map(get_children(candidates)) do child
+    children = map(APITMP.get_children(candidates)) do child
         return Node(child)
     end
     return children

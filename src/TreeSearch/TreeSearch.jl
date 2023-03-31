@@ -4,11 +4,11 @@ module TreeSearch
 
 using DataStructures
 
-include("../MustImplement/MustImplement.jl")
-using .MustImplement
+!true && include("../MustImplement/MustImplement.jl") # linter
+using ..MustImplement
 
-include("../interface.jl")
-using .APITMP
+!true && include("../interface.jl") # linter
+using ..APITMP
 
 # Interface to implement a tree search algorithm.
 
