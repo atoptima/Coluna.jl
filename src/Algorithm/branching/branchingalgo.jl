@@ -116,7 +116,7 @@ struct StrongBranching <: APITMP.AbstractDivideAlgorithm
     selection_criterion::Branching.AbstractSelectionCriterion
     verbose::Bool
     int_tol::Float64
-    StrongBranching(
+    StrongBranching(;
         phases = [],
         rules = [],
         selection_criterion = MostFractionalCriterion(),
@@ -211,8 +211,8 @@ function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhase
     
     child_state = TreeSearch.get_opt_state(child)
     if !ip_gap_closed(child_state)
-        input = ConquerInputFromSb(child, get_units_to_restore_for_conquer(phase))
-        run!(get_conquer(phase), env, reform, input)
+        input = ConquerInputFromSb(child, Branching.get_units_to_restore_for_conquer(phase))
+        run!(Branching.get_conquer(phase), env, reform, input)
         TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true 
@@ -236,7 +236,7 @@ function _perform_branching_phase!(
     return map(candidates) do candidate
         children = sort(Branching.get_children(candidate), by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child)))
         eval_children_of_candidate!(children, phase, sb_state, env, reform)
-        return compute_score(get_score(phase), candidate)
+        return compute_score(Branching.get_score(phase), candidate)
     end
 end
 
@@ -249,11 +249,11 @@ function _perform_strong_branching!(
         getmaster(reform), APITMP.get_opt_state(input), false, false
     )
 
-    phases = get_phases(ctx)
+    phases = Branching.get_phases(ctx)
     for (phase_index, current_phase) in enumerate(phases)
         nb_candidates_for_next_phase = 1
         if phase_index < length(phases)
-            nb_candidates_for_next_phase = get_max_nb_candidates(phases[phase_index + 1])
+            nb_candidates_for_next_phase = Branching.get_max_nb_candidates(phases[phase_index + 1])
             if length(candidates) <= nb_candidates_for_next_phase
                 # If at the current phase, we have less candidates than the number of candidates
                 # we want to evaluate at the next phase, we skip the current phase.
