@@ -328,16 +328,22 @@ function run_colgen_iteration!(context, phase, env)
         check_pricing_termination_status(pricing_result)
 
         primal_sols = get_primal_sols(pricing_result)
+        nb_cols_pushed = 0
         for primal_sol in primal_sols # multi column generation support.
             # The implementation  is reponsible for checking if the column is a candidate
             # for insertion into the master.
-            push_in_set!(generated_columns, primal_sol)
+            if push_in_set!(generated_columns, primal_sol)
+                nb_cols_pushed += 1
+            end
         end
 
         # Updates the initial bound if the pricing subproblem result has a dual bound.
         sp_db = get_dual_bound(pricing_result)
         if !isnothing(sp_db)
             sps_db[sp_id] = sp_db
+            # else
+            #     sps_db[sp_id] = 0
+            # end
         end
 
         sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
