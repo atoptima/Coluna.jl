@@ -353,8 +353,9 @@ function ColGen.push_in_set!(pool::ColumnsSet, column::GeneratedColumn)
     # We keep only columns that improve reduced cost
     if has_improving_red_cost(column)
         push!(pool.columns, column)
+        return true
     end
-    return
+    return false
 end
 
 function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, master_dual_sol)
@@ -364,11 +365,8 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     # Reduced cost of a column is composed of
     # (A) the cost of the subproblem variables
     # (B) the contribution of the master convexity constraints.
-    # (C) the contribution of the pure master variables.
 
     # Master convexity constraints contribution.
-    # TODO: talk with fv & Ruslan because this way to take into account convexity constraints has
-    # drawbacks (numerical stability).
     lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
     ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
 
@@ -391,8 +389,8 @@ function _convexity_contrib(ctx, master_dual_sol)
         _, sp = it
         lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
         ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
-        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
-        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        lb =  1 #getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = 1 #getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
         return lb_dual * lb + ub_dual * ub
     end
 end
@@ -403,7 +401,7 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val,
     return master_lp_obj_val - convexity_contrib + sp_contrib
 end
 
-# Iteration output
+# Iteration output 
 
 struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool

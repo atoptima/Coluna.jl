@@ -79,6 +79,7 @@ dual bound.
 Push the column in the set of columns generated at a given iteration of the column
 generation algorithm.
 Columns stored in the set will then be considered for insertion in the master problem.
+Returns `true` if column was inserted in the set, `false` otherwise.
 """
 @mustimplement "ColGenPricing" push_in_set!(pool, column)
 
