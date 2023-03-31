@@ -11,4 +11,4 @@ candidates. To create a new selection criterion, one needs to create a subtype o
 abstract type AbstractSelectionCriterion end
 
 "Sort branching candidates according to the selection criterion and remove excess ones."
-@mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int)
+@mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int) = nothing

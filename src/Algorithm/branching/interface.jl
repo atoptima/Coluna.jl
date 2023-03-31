@@ -1,5 +1,10 @@
+struct DivideOutput{N} <: APITMP.AbstractDivideOutput
+    children::Vector{N}
+    optstate::OptimizationState
+end
 
-
+APITMP.get_children(output::DivideOutput) = output.children
+APITMP.get_opt_state(output::DivideOutput) = output.optstate
 
 function _get_extended_and_original_sols(reform, opt_state)
     master = getmaster(reform)
@@ -19,7 +24,7 @@ end
 # - fractional priorities
 # - stopping criterion
 # - what happens when original_solution or extended_solution are nothing
-function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, reform, env, parent)
+function _candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candidates, reform, env, parent)
     extended_sol, original_sol = _get_extended_and_original_sols(reform, TreeSearch.get_opt_state(parent))
 
     if isnothing(extended_sol)
@@ -29,7 +34,7 @@ function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, re
     # We sort branching rules by their root/non-root priority.
     sorted_rules = sort(get_rules(ctx), rev = true, by = x -> getpriority(x, TreeSearch.isroot(parent)))
     
-    kept_branch_candidates = AbstractBranchingCandidate[]
+    kept_branch_candidates = Branching.AbstractBranchingCandidate[]
 
     local_id = 0 # TODO: this variable needs an explicit name.
     priority_of_last_gen_candidates = nothing
@@ -59,8 +64,8 @@ function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, re
         end
 
         # Generate candidates.
-        output = select!(
-            rule, env, reform, BranchingRuleInput(
+        output = Branching.select!(
+            rule, env, reform, Branching.BranchingRuleInput(
                 original_sol, true, max_nb_candidates, get_selection_criterion(ctx),
                 local_id, get_int_tol(ctx), priority, parent
             )
@@ -69,8 +74,8 @@ function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, re
         local_id = output.local_id
 
         if projection_is_possible(getmaster(reform)) && !isnothing(extended_sol)
-            output = select!(
-                rule, env, reform, BranchingRuleInput(
+            output = Branching.select!(
+                rule, env, reform, Branching.BranchingRuleInput(
                     extended_sol, false, max_nb_candidates, get_selection_criterion(ctx),
                     local_id, get_int_tol(ctx), priority, parent
                 )
@@ -84,7 +89,7 @@ function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, re
     return kept_branch_candidates
 end
 
-function run!(algo::AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::AbstractDivideInput)
+function run!(algo::APITMP.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput)
     ctx = new_context(branching_context_type(algo), algo, reform)
 
     parent = get_parent(input)
@@ -108,38 +113,6 @@ function run!(algo::AbstractDivideAlgorithm, env::Env, reform::Reformulation, in
 
     return advanced_select!(ctx, candidates, env, reform, input)
 end
-
-############################################################################################
-# Strong branching API
-############################################################################################
-
-# Implementation
-"Supertype for the branching contexts."
-abstract type AbstractStrongBrContext <: AbstractDivideContext end
-
-"Supertype for the branching phase contexts."
-abstract type AbstractStrongBrPhaseContext end
-
-"Creates a context for the branching phase."
-@mustimplement "StrongBranching" new_phase_context(::Type{<:AbstractDivideContext}, phase, reform, phase_index) = nothing
-
-"""
-Returns the storage units that must be restored by the conquer algorithm called by the
-strong branching phase.
-"""
-@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext) = nothing
-
-"Returns all phases context of the strong branching algorithm."
-@mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext) = nothing
-
-"Returns the type of score used to rank the candidates at a given strong branching phase."
-@mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext) = nothing
-
-"Returns the conquer algorithm used to evaluate the candidate's children at a given strong branching phase."
-@mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext) = nothing
-
-"Returns the maximum number of candidates kept at the end of a given strong branching phase."
-@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext) = nothing
 
 # Following methods are part of the strong branching API but we advise to not redefine them.
 # They depends on each other:

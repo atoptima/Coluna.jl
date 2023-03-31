@@ -25,8 +25,8 @@ end
 Input of a branching rule (branching separation algorithm)
 Contains current solution, max number of candidates and local candidate id.
 """
-struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node<:AbstractNode}
-    solution::PrimalSolution 
+struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node<:AbstractNode,Solution}
+    solution::Solution 
     isoriginalsol::Bool
     max_nb_candidates::Int64
     criterion::SelectionCriterion
@@ -49,17 +49,4 @@ end
 ismanager(algo::AbstractBranchingRule) = true
 
 "Returns all candidates that satisfy a given branching rule."
-@mustimplement "BranchingRule" apply_branching_rule(rule, env, reform, input)
-
-"Candidates selection for branching algorithms."
-function select!(rule::AbstractBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
-    candidates = apply_branching_rule(rule, env, reform, input)
-    local_id = input.local_id + length(candidates)
-    select_candidates!(candidates, input.criterion, input.max_nb_candidates)
-
-    for candidate in candidates
-        children = generate_children!(candidate, env, reform, input.parent)
-        set_children!(candidate, children)
-    end
-    return BranchingRuleOutput(local_id, candidates)
-end
+@mustimplement "BranchingRule" apply_branching_rule(rule, env, reform, input) = nothing

@@ -53,13 +53,13 @@ run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
-struct DivideInputFromBaB <: AbstractDivideInput
+struct DivideInputFromBaB <: APITMP.AbstractDivideInput
     parent::Node
     opt_state::OptimizationState
 end
 
-get_parent(i::DivideInputFromBaB) = i.parent
-get_opt_state(i::DivideInputFromBaB) = i.opt_state
+APITMP.get_parent(i::DivideInputFromBaB) = i.parent
+APITMP.get_opt_state(i::DivideInputFromBaB) = i.opt_state
 
 ############################################################################################
 # SearchSpace
@@ -69,7 +69,7 @@ get_opt_state(i::DivideInputFromBaB) = i.opt_state
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     reformulation::Reformulation
     conquer::AbstractConquerAlgorithm
-    divide::AbstractDivideAlgorithm
+    divide::APITMP.AbstractDivideAlgorithm
     max_num_nodes::Int64
     open_nodes_limit::Int64
     time_limit::Int64
@@ -187,7 +187,7 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
 end
 
-function get_input(::AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
+function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
     return DivideInputFromBaB(node, space.optstate)
 end
 

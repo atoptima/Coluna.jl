@@ -4,10 +4,7 @@ abstract type AbstractBestFirstSearch <: AbstractExploreStrategy end
 struct BestDualBoundStrategy <: AbstractBestFirstSearch end
 
 "Generic implementation of the tree search algorithm for a given explore strategy."
-function tree_search(s::AbstractExploreStrategy, space, env, input)
-    @warn "tree_search(::$(typeof(s)), ::$(typeof(space)), ::$(typeof(env)), ::$(typeof(input))) not implemented."
-    return nothing
-end
+@mustimplement "TreeSearch" tree_search(s::AbstractExploreStrategy, space, env, input) = nothing
 
 function tree_search(::DepthFirstStrategy, space, env, input)
     root_node = new_root(space, input)

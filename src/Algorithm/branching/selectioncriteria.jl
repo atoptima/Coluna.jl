@@ -3,12 +3,12 @@
 """
 Select the branching candidates that have been generated first (sort by `local_id`).
 """
-struct FirstFoundCriterion <: AbstractSelectionCriterion end
+struct FirstFoundCriterion <: Branching.AbstractSelectionCriterion end
 
-function select_candidates!(
+function Branching.select_candidates!(
     candidates::Vector{C}, ::FirstFoundCriterion, max_nb_candidates::Int
-) where {C <: AbstractBranchingCandidate}
-    sort!(candidates, by = c -> get_local_id(c))
+) where {C <: Branching.AbstractBranchingCandidate}
+    sort!(candidates, by = c -> Branching.get_local_id(c))
     if length(candidates) > max_nb_candidates
         resize!(candidates, max_nb_candidates)
     end
@@ -19,12 +19,12 @@ end
 """
 Select the most fractional branching candidates.
 """
-struct MostFractionalCriterion <: AbstractSelectionCriterion end
+struct MostFractionalCriterion <: Branching.AbstractSelectionCriterion end
 
-function select_candidates!(
+function Branching.select_candidates!(
     candidates::Vector{C}, ::MostFractionalCriterion, max_nb_candidates::Int
-) where {C <: AbstractBranchingCandidate}
-    sort!(candidates, rev = true, by = c -> dist_to_int(get_lhs(c)))
+) where {C <: Branching.AbstractBranchingCandidate}
+    sort!(candidates, rev = true, by = c -> dist_to_int(Branching.get_lhs(c)))
     if length(candidates) > max_nb_candidates
         resize!(candidates, max_nb_candidates)
     end
