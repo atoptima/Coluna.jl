@@ -220,23 +220,13 @@ function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhase
     return
 end
 
-function _eval_children_of_candidate!(
-    children::Vector{SbNode}, phase::Branching.AbstractStrongBrPhaseContext,
-    sb_state, env, reform
-)
-    for child in children
-        eval_child_of_candidate!(child, phase, sb_state, env, reform)
-    end
-    return
-end
-
 function _perform_branching_phase!(
     candidates::Vector{C}, phase::Branching.AbstractStrongBrPhaseContext, sb_state, env, reform
 ) where {C<:Branching.AbstractBranchingCandidate}
     return map(candidates) do candidate
         children = sort(Branching.get_children(candidate), by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child)))
-        eval_children_of_candidate!(children, phase, sb_state, env, reform)
-        return compute_score(Branching.get_score(phase), candidate)
+        Branching.eval_children_of_candidate!(children, phase, sb_state, env, reform)
+        return Branching.compute_score(Branching.get_score(phase), candidate)
     end
 end
 
@@ -245,7 +235,7 @@ function _perform_strong_branching!(
 )::OptimizationState where {C<:Branching.AbstractBranchingCandidate}
     # TODO: We consider that conquer algorithms in the branching algo don't exploit the
     # primal solution at the moment (3rd arg).
-    sb_state = OptimizationState(
+    sb_state = OptimizationState( # TODO: remove explicit use of OptimizationState
         getmaster(reform), APITMP.get_opt_state(input), false, false
     )
 
@@ -264,7 +254,7 @@ function _perform_strong_branching!(
             nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
-        scores = perform_branching_phase!(candidates, current_phase, sb_state, env, reform)
+        scores = Branching.perform_branching_phase!(candidates, current_phase, sb_state, env, reform)
 
         perm = sortperm(scores, rev=true)
         permute!(candidates, perm)
@@ -280,6 +270,7 @@ function _perform_strong_branching!(
     return sb_state
 end
 
+# TODO: make generic.
 function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput)
     sb_state = _perform_strong_branching!(ctx, env, reform, input, candidates)
     children = Branching.get_children(first(candidates))

@@ -30,7 +30,7 @@ function new_phase_context(
     return PhasePrinter(inner_ctx, phase_index)
 end
 
-function perform_branching_phase!(candidates, phase::PhasePrinter, sb_state, env, reform)
+function Branching.perform_branching_phase!(candidates, phase::PhasePrinter, sb_state, env, reform)
     println("**** Strong branching phase ", phase.phase_index, " is started *****");
     scores = _perform_branching_phase!(candidates, phase, sb_state, env, reform)
     for (candidate, score) in Iterators.zip(candidates, scores)
@@ -45,7 +45,7 @@ function perform_branching_phase!(candidates, phase::PhasePrinter, sb_state, env
     return scores
 end
 
-function eval_child_of_candidate!(child, phase::PhasePrinter, sb_state, env, reform)
+function Branching.eval_child_of_candidate!(child, phase::PhasePrinter, sb_state, env, reform)
     _eval_child_of_candidate!(child, phase.inner, sb_state, env, reform)
     @printf "**** SB Phase %i evaluation of candidate %+10s" phase.phase_index get_var_name(child)
     @printf " (branch %+20s), value = %6.2f\n" TreeSearch.get_branch_description(child) getvalue(get_lp_primal_bound(TreeSearch.get_opt_state(child)))

@@ -120,14 +120,8 @@ end
 # - default implementation of second method calls the third.
 
 # TODO: needs a better description.
-"Performs a branching phase."
-perform_branching_phase!(candidates, phase, sb_state, env, reform) =
+Branching.perform_branching_phase!(candidates, phase, sb_state, env, reform) =
     _perform_branching_phase!(candidates, phase, sb_state, env, reform)
 
-"Evaluates a candidate."
-eval_children_of_candidate!(children, phase, sb_state, env, reform) =
-    _eval_children_of_candidate!(children, phase, sb_state, env, reform)
-
-"Evaluate children of a candidate."
-eval_child_of_candidate!(child, phase, sb_state, env, reform) =
+Branching.eval_child_of_candidate!(child, phase, sb_state, env, reform) =
     _eval_child_of_candidate!(child, phase, sb_state, env, reform)
