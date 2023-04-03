@@ -23,6 +23,44 @@ function gap_toy_instance()
 end
 register!(e2e_tests, "gap", gap_toy_instance)
 
+function gap_strong_branching()
+    data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+
+    coluna = JuMP.optimizer_with_attributes(
+        CL.Optimizer,
+        "params" => CL.Params(
+            solver = ClA.BranchCutAndPriceAlgorithm(
+                maxnumnodes = 300,
+                colgen_stabilization = 1.0,
+                colgen_cleanup_threshold = 150,
+                stbranch_phases_num_candidates = [10, 3, 1],
+                stbranch_intrmphase_stages = [(userstage=1, solverid=1, maxiters=2)]
+            )
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
+
+    # we increase the branching priority of variables which assign jobs to the first two machines
+    for machine in 1:2
+        for job in data.jobs
+            BD.branchingpriority!(x[machine,job], 2)
+        end
+    end  
+
+    BD.objectiveprimalbound!(model, 2000.0)
+    BD.objectivedualbound!(model, 0.0)
+
+    JuMP.optimize!(model)
+
+    @test JuMP.objective_value(model) ≈ 1553.0
+    @test JuMP.termination_status(model) == MOI.OPTIMAL
+    @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+end
+register!(e2e_tests, "gap", gap_strong_branching; x = true)
+
+
 # @testset "Generalized Assignment" begin
 #     @testset "small instance" begin
 #         data = ClD.GeneralizedAssignment.data("smallgap3.txt")
@@ -43,41 +81,6 @@ register!(e2e_tests, "gap", gap_toy_instance)
 #         @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 #     end
     
-#     @testset "strong branching" begin
-#         data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
-
-#         coluna = JuMP.optimizer_with_attributes(
-#             CL.Optimizer,
-#             "params" => CL.Params(
-#                 solver = ClA.BranchCutAndPriceAlgorithm(
-#                     maxnumnodes = 300,
-#                     colgen_stabilization = 1.0,
-#                     colgen_cleanup_threshold = 150,
-#                     stbranch_phases_num_candidates = [10, 3, 1],
-#                     stbranch_intrmphase_stages = [(userstage=1, solverid=1, maxiters=2)]
-#                 )
-#             ),
-#             "default_optimizer" => GLPK.Optimizer
-#         )
-
-#         model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
-
-#         # we increase the branching priority of variables which assign jobs to the first two machines
-#         for machine in 1:2
-#             for job in data.jobs
-#                 BD.branchingpriority!(x[machine,job], 2)
-#             end
-#         end  
-
-#         BD.objectiveprimalbound!(model, 2000.0)
-#         BD.objectivedualbound!(model, 0.0)
-
-#         JuMP.optimize!(model)
-
-#         @test JuMP.objective_value(model) ≈ 1553.0
-#         @test JuMP.termination_status(model) == MOI.OPTIMAL
-#         @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
-#     end
 
 #     @testset "node limit" begin # TODO -> replace by unit test for tree search algorithm
 #         data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")

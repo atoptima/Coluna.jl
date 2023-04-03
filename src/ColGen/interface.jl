@@ -10,48 +10,48 @@ Placeholder method called before the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" before_colgen_iteration(ctx::AbstractColGenContext, phase, reform)
+@mustimplement "ColGen" before_colgen_iteration(ctx::AbstractColGenContext, phase, reform) = nothing
 
 
 """
 Runs an iteration of column generation.
 """
-@mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform)
+@mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform) = nothing
 
 """
 Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output)
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output) = nothing
 
 
 # TODO; move
-# @mustimplement "ColGen" initial_primal_solution()
+# @mustimplement "ColGen" initial_primal_solution() = nothing
 
-# @mustimplement "ColGen" initial_dual_solution()
+# @mustimplement "ColGen" initial_dual_solution() = nothing
 
-# @mustimplement "ColGen" before_cut_separation()
+# @mustimplement "ColGen" before_cut_separation() = nothing
 
-# @mustimplement "ColGen" run_cut_separation!()
+# @mustimplement "ColGen" run_cut_separation!() = nothing
 
-# @mustimplement "ColGen" after_cut_separation()
+# @mustimplement "ColGen" after_cut_separation() = nothing
 
 abstract type AbstractColGenPhaseOutput end
 
-@mustimplement "ColGenPhase" colgen_phase_output_type(::AbstractColGenContext)
+@mustimplement "ColGenPhase" colgen_phase_output_type(::AbstractColGenContext) = nothing
 
-@mustimplement "ColGenPhase" get_best_ip_primal_master_sol_found(colgen_phase_output)
+@mustimplement "ColGenPhase" get_best_ip_primal_master_sol_found(colgen_phase_output) = nothing
 
-@mustimplement "ColGenPhase" get_final_lp_primal_master_sol_found(colgen_phase_output)
+@mustimplement "ColGenPhase" get_final_lp_primal_master_sol_found(colgen_phase_output) = nothing
 
-@mustimplement "ColGenPhase" get_final_db(colgen_phase_output)
+@mustimplement "ColGenPhase" get_final_db(colgen_phase_output) = nothing
 
 abstract type AbstractColGenOutput end
 
-@mustimplement "ColGen" colgen_output_type(::AbstractColGenContext)
+@mustimplement "ColGen" colgen_output_type(::AbstractColGenContext) = nothing
 
-@mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput)
+@mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput) = nothing
 
 function run_colgen_phase!(context, phase, env)
     colgen_iteration = 0
@@ -93,32 +93,32 @@ end
 # Reformulation getters
 ############################################################################################
 "Returns Dantzig-Wolfe reformulation."
-@mustimplement "ColGen" get_reform(ctx)
+@mustimplement "ColGen" get_reform(ctx) = nothing
 
 "Returns master formulation."
-@mustimplement "ColGen" get_master(ctx)
+@mustimplement "ColGen" get_master(ctx) = nothing
 
 "Returns `true` if the objective sense is minimization; `false` otherwise."
-@mustimplement "ColGen" is_minimization(ctx)
+@mustimplement "ColGen" is_minimization(ctx) = nothing
 
 """
     get_pricing_subprobs(ctx) -> Vector{Tuple{SuproblemId, SpFormulation}}
 
 Returns subproblem formulations.
 """
-@mustimplement "ColGen" get_pricing_subprobs(ctx)
+@mustimplement "ColGen" get_pricing_subprobs(ctx) = nothing
 
 ############################################################################################
 # Solution status getters
 ############################################################################################
 "Returns true if a master or pricing problem result is infeasible; false otherwise."
-@mustimplement "ColGen" is_infeasible(res)
+@mustimplement "ColGen" is_infeasible(res) = nothing
 
 "Returns true if a master or pricing problem result is unbounded; false otherwise."
-@mustimplement "ColGen" is_unbounded(res)
+@mustimplement "ColGen" is_unbounded(res) = nothing
 
 "Returns true if a master or pricing problem result is optimal; false otherwise."
-@mustimplement "ColGen" is_optimal(res)
+@mustimplement "ColGen" is_optimal(res) = nothing
 
 ############################################################################################
 # Master resolution.
@@ -135,25 +135,25 @@ Returns an instance of a custom object `MasterResult` that implements following 
 It should at least return a dual solution (obtained with LP optimization or subgradient) 
 otherwise column generation cannot continue.
 """
-@mustimplement "ColGenMaster" optimize_master_lp_problem!(master, context, env)
+@mustimplement "ColGenMaster" optimize_master_lp_problem!(master, context, env) = nothing
 
 """
 Returns the optimal objective value of the master LP problem."
 See `optimize_master_lp_problem!`.
 """
-@mustimplement "ColGenMaster" get_obj_val(master_res)
+@mustimplement "ColGenMaster" get_obj_val(master_res) = nothing
 
 """
 Returns primal solution to the master LP problem. 
 See `optimize_master_lp_problem!`.
 """
-@mustimplement "ColGenMaster" get_primal_sol(master_res)
+@mustimplement "ColGenMaster" get_primal_sol(master_res) = nothing
 
 """
 Returns dual solution to the master optimization problem. 
 See `optimize_master_lp_problem!`.
 """
-@mustimplement "ColGenMaster" get_dual_sol(master_res)
+@mustimplement "ColGenMaster" get_dual_sol(master_res) = nothing
 
 """
 Updates dual value of the master constraints.
@@ -163,13 +163,13 @@ Dual values of the constraints can be used when the pricing solver supports non-
 is to provide the master LP dual solution to the pricing solver instead of storing the same
 information at two different places.
 """
-@mustimplement "ColGenMaster" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol)
+@mustimplement "ColGenMaster" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
 
 """
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, phase, reform)
+@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, phase, reform) = nothing
 
 ############################################################################################
 # Reduced costs calculation.
@@ -178,16 +178,16 @@ LP solution is integer feasible; `nothing` otherwise.
 Returns the original cost `c` of subproblems variables.
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
-@mustimplement "ColGenReducedCosts " get_subprob_var_orig_costs(ctx::AbstractColGenContext)
+@mustimplement "ColGenReducedCosts " get_subprob_var_orig_costs(ctx::AbstractColGenContext) = nothing
 
 """
 Returns the coefficient matrix `A` of subproblem variables in the master
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
-@mustimplement "ColGenReducedCosts" get_subprob_var_coef_matrix(ctx::AbstractColGenContext)
+@mustimplement "ColGenReducedCosts" get_subprob_var_coef_matrix(ctx::AbstractColGenContext) = nothing
 
 "Updates reduced costs of variables of a given subproblem."
-@mustimplement "ColGenReducedCosts" update_sp_vars_red_costs!(ctx::AbstractColGenContext, sp, red_costs)
+@mustimplement "ColGenReducedCosts" update_sp_vars_red_costs!(ctx::AbstractColGenContext, sp, red_costs) = nothing
 
 ############################################################################################
 # Columns insertion.
@@ -198,7 +198,7 @@ Inserts columns into the master. Returns the number of columns inserted.
 Implementation is responsible for checking if the column must be inserted and warn the user
 if something unexpected happens.
 """
-@mustimplement "ColGen" insert_columns!(reform, ctx, phase, columns)
+@mustimplement "ColGen" insert_columns!(reform, ctx, phase, columns) = nothing
 
 
 function check_master_termination_status(mast_result)
@@ -211,12 +211,12 @@ function check_pricing_termination_status(pricing_result)
     # TODO
 end
 
-@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol)
+@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) = nothing
 
 
 abstract type AbstractColGenIterationOutput end
 
-@mustimplement "ColGenIterationOutput" colgen_iteration_output_type(::AbstractColGenContext)
+@mustimplement "ColGenIterationOutput" colgen_iteration_output_type(::AbstractColGenContext) = nothing
 
 @mustimplement "ColGenIterationOutput" new_iteration_output(
     ::Type{<:AbstractColGenIterationOutput},
@@ -231,9 +231,9 @@ abstract type AbstractColGenIterationOutput end
     time_limit_reached,
     master_primal_sol,
     ip_primal_sol
-)
+) = nothing
 
-@mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput)
+@mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput) = nothing
 
 """
     run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
@@ -328,16 +328,22 @@ function run_colgen_iteration!(context, phase, env)
         check_pricing_termination_status(pricing_result)
 
         primal_sols = get_primal_sols(pricing_result)
+        nb_cols_pushed = 0
         for primal_sol in primal_sols # multi column generation support.
             # The implementation  is reponsible for checking if the column is a candidate
             # for insertion into the master.
-            push_in_set!(generated_columns, primal_sol)
+            if push_in_set!(generated_columns, primal_sol)
+                nb_cols_pushed += 1
+            end
         end
 
         # Updates the initial bound if the pricing subproblem result has a dual bound.
         sp_db = get_dual_bound(pricing_result)
         if !isnothing(sp_db)
             sps_db[sp_id] = sp_db
+            # else
+            #     sps_db[sp_id] = 0
+            # end
         end
 
         sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)

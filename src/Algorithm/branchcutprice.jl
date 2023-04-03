@@ -109,7 +109,7 @@ function BranchCutAndPriceAlgorithm(;
     )
 
     branching = NoBranching()
-    branching_rules = PrioritisedBranchingRule[PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+    branching_rules = Branching.PrioritisedBranchingRule[Branching.PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
 
     if !isempty(stbranch_phases_num_candidates)
         branching_phases = BranchingPhase[]
@@ -152,7 +152,7 @@ function BranchCutAndPriceAlgorithm(;
         push!(branching_phases, BranchingPhase(last(stbranch_phases_num_candidates), conquer, TreeDepthScore()))    
         branching = StrongBranching(rules = branching_rules, phases = branching_phases)
     else
-        branching = Branching(rules = branching_rules)
+        branching = ClassicBranching(rules = branching_rules)
     end
 
     return TreeSearchAlgorithm(

@@ -53,13 +53,13 @@ run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
-struct DivideInputFromBaB <: AbstractDivideInput
+struct DivideInputFromBaB <: APITMP.AbstractDivideInput
     parent::Node
     opt_state::OptimizationState
 end
 
-get_parent(i::DivideInputFromBaB) = i.parent
-get_opt_state(i::DivideInputFromBaB) = i.opt_state
+APITMP.get_parent(i::DivideInputFromBaB) = i.parent
+APITMP.get_opt_state(i::DivideInputFromBaB) = i.opt_state
 
 ############################################################################################
 # SearchSpace
@@ -69,7 +69,7 @@ get_opt_state(i::DivideInputFromBaB) = i.opt_state
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     reformulation::Reformulation
     conquer::AbstractConquerAlgorithm
-    divide::AbstractDivideAlgorithm
+    divide::APITMP.AbstractDivideAlgorithm
     max_num_nodes::Int64
     open_nodes_limit::Int64
     time_limit::Int64
@@ -77,7 +77,6 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     opt_rtol::Float64
     previous::Union{Nothing,Node}
     optstate::OptimizationState # from TreeSearchRuntimeData
-    exploitsprimalsolutions::Bool # from TreeSearchRuntimeData
     conquer_units_to_restore::UnitsUsage # from TreeSearchRuntimeData
     nb_nodes_treated::Int
     current_ip_dual_bound_from_conquer
@@ -111,8 +110,7 @@ end
 function TreeSearch.new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
 )
-    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)
-    optstate = OptimizationState(getmaster(reform), input, exploitsprimalsols, false)
+    optstate = OptimizationState(getmaster(reform), input, false, false)
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
@@ -125,7 +123,6 @@ function TreeSearch.new_space(
         algo.opt_rtol,
         nothing,
         optstate,
-        exploitsprimalsols,
         conquer_units_to_restore,
         0,
         nothing
@@ -187,15 +184,16 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
 end
 
-function get_input(::AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
+function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
     return DivideInputFromBaB(node, space.optstate)
 end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(get_opt_state(candidates))...)
+    @show typeof(candidates)
+    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(APITMP.get_opt_state(candidates))...)
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
-    children = map(get_children(candidates)) do child
+    children = map(APITMP.get_children(candidates)) do child
         return Node(child)
     end
     return children

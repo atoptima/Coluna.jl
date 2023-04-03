@@ -65,4 +65,7 @@ end
 include("unit/run.jl")
 include("e2e/run.jl")
 
-listen_to_tests([run_unit_tests, run_e2e_tests])
+listen_to_tests([
+    run_unit_tests,
+    #run_e2e_tests
+])

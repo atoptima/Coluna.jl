@@ -501,7 +501,7 @@ function check_identical_subproblems()
     form = """
     master
         min
-        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 8.0 x_21 + 5.0 x_22 + 11.0 x_23 + 21.0 x_24 + 6.0 x_25 + 5.0 x_26 + 19.0 x_27 + PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4  
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 8.0 x_21 + 5.0 x_22 + 11.0 x_23 + 21.0 x_24 + 6.0 x_25 + 5.0 x_26 + 19.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4  
         s.t.
         1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
         1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
@@ -517,15 +517,15 @@ function check_identical_subproblems()
 
     dw_sp
         min
-        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5  
         s.t.
-        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 8.0
 
     dw_sp
         min
-        x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
+        8.0 x_21 + 5.0 x_22 + 11.0 x_23 + 21.0 x_24 + 6.0 x_25 + 5.0 x_26 + 19.0 x_27 + 0.0 PricingSetupVar_sp_4
         s.t.
-        2.0 x_21 + 3.0 x_22 + 3.0 x_23 + 1.0 x_24 + 2.0 x_25 + 1.0 x_26 + 1.0 x_27  <= 5.0
+        2.0 x_21 + 3.0 x_22 + 3.0 x_23 + 1.0 x_24 + 2.0 x_25 + 1.0 x_26 + 1.0 x_27  <= 8.0
 
     continuous
         artificial
@@ -594,9 +594,9 @@ function identical_subproblems()
 
     dw_sp
         min
-        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5  
         s.t.
-        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 8.0
 
     continuous
         artificial
@@ -1329,8 +1329,6 @@ function min_toy_gap_for_colgen()
     return env, master, sps, reform
 end
 
-
-
 function test_identical_subproblems()
     env, master, sps, reform = identical_subproblems()
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
@@ -1338,15 +1336,14 @@ function test_identical_subproblems()
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
-    println("\e[35m results: :\e[0m")
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration())    
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())    
     output = ColGen.run!(ctx, env)
-    @show output.mlp
-    @show output.db
-    println("\e[35m ************************************ :\e[0m")
+    @test output.mlp ≈ 75
+    @test output.mlp ≈ 75
 end
 register!(unit_tests, "colgen_default", test_identical_subproblems)
 
+# Don't run this test because we use it to check the output of the previous test.
 function expected_output_identical_subproblems()
     env, master, sps, reform = check_identical_subproblems()
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
@@ -1354,14 +1351,12 @@ function expected_output_identical_subproblems()
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
-    println("\e[35m expected value: :\e[0m")
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration())    
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())    
     output = ColGen.run!(ctx, env)
-    @show output.mlp
-    @show output.db
-    println("\e[35m *********************************** \e[0")
+    @test output.mlp ≈ 75
+    @test output.db ≈ 75
 end
-register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
+register!(unit_tests, "colgen_default", expected_output_identical_subproblems; x = true)
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()

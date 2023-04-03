@@ -1,7 +1,8 @@
 "API and high-level implementation of the column generation algorithm in Julia."
 module ColGen
 
-using ..MustImplement
+include("../MustImplement/MustImplement.jl")
+using .MustImplement
 
 abstract type AbstractColGenContext end 
 
