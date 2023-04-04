@@ -337,7 +337,7 @@ function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
 end
 
 ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns
-ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_lp_dual_bound(pricing_res.result)
+ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_ip_dual_bound(pricing_res.result)
 
 is_improving_red_cost(red_cost) = red_cost > 0
 is_improving_red_cost_min_sense(red_cost) = red_cost < 0
