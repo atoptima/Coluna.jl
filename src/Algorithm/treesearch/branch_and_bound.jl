@@ -54,13 +54,13 @@ run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
-struct DivideInputFromBaB <: APITMP.AbstractDivideInput
+struct DivideInputFromBaB <: Branching.AbstractDivideInput
     parent::Node
     opt_state::OptimizationState
 end
 
-APITMP.get_parent(i::DivideInputFromBaB) = i.parent
-APITMP.get_opt_state(i::DivideInputFromBaB) = i.opt_state
+Branching.get_parent(i::DivideInputFromBaB) = i.parent
+Branching.get_opt_state(i::DivideInputFromBaB) = i.opt_state
 
 ############################################################################################
 # SearchSpace
@@ -190,11 +190,10 @@ function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node
 end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    @show typeof(candidates)
-    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(APITMP.get_opt_state(candidates))...)
+    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(Branching.get_opt_state(candidates))...)
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
-    children = map(APITMP.get_children(candidates)) do child
+    children = map(Branching.get_children(candidates)) do child
         return Node(child)
     end
     return children

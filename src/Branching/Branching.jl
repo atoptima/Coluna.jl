@@ -11,6 +11,27 @@ include("criteria.jl")
 include("rule.jl")
 include("score.jl")
 
+"""
+Input of a divide algorithm used by the tree search algorithm.
+Contains the parent node in the search tree for which children should be generated.
+"""
+abstract type AbstractDivideInput end
+
+@mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
+
+"""
+Output of a divide algorithm used by the tree search algorithm.
+Should contain the vector of generated nodes.
+"""
+abstract type AbstractDivideOutput end
+
+@mustimplement "DivideOutput" get_children(output::AbstractDivideOutput) = nothing
+
+# TODO: simplify this because we only retrieve ip primal sols found in branching candidates.
+@mustimplement "DivideOutput" get_opt_state(output::AbstractDivideOutput) = nothing
+
+
 ############################################################################################
 # Branching API
 ############################################################################################
@@ -29,7 +50,7 @@ abstract type AbstractDivideContext end
 
 # TODO: can have a default implemntation when strong branching will be generic.
 "Advanced candidates selection that selects candidates by evaluating their children."
-@mustimplement "Branching" advanced_select!(::AbstractDivideContext, candidates, env, reform, input::APITMP.AbstractDivideInput) = nothing
+@mustimplement "Branching" advanced_select!(::AbstractDivideContext, candidates, env, reform, input::AbstractDivideInput) = nothing
 
 "Returns integer tolerance."
 @mustimplement "Branching" get_int_tol(::AbstractDivideContext) = nothing
@@ -61,8 +82,7 @@ function select!(rule::AbstractBranchingRule, env, reform, input::Branching.Bran
     return BranchingRuleOutput(local_id, candidates)
 end
 
-# TODO: make generic.
-function advanced_select!(ctx::AbstractDivideContext, candidates, _, reform, input::APITMP.AbstractDivideInput)
+function advanced_select!(ctx::AbstractDivideContext, candidates, _, reform, input::AbstractDivideInput)
     children = get_children(first(candidates))
     return new_divide_output(children, new_optimization_state(ctx, reform, input))
 end
@@ -103,7 +123,7 @@ strong branching phase.
 @mustimplement "StrongBranchingOptState" new_optimization_state(ctx, reform, input) = nothing
 
 # TODO: make generic.
-function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, env, reform, input::APITMP.AbstractDivideInput)
+function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, env, reform, input::Branching.AbstractDivideInput)
     println("\e[34m ntm \e[0m")
     sb_state = perform_strong_branching!(ctx, env, reform, input, candidates)
     children = get_children(first(candidates))
@@ -111,14 +131,14 @@ function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, en
 end
 
 function perform_strong_branching!(
-    ctx::AbstractStrongBrContext, env, reform, input::APITMP.AbstractDivideInput, candidates::Vector{C}
+    ctx::AbstractStrongBrContext, env, reform, input::Branching.AbstractDivideInput, candidates::Vector{C}
 ) where {C<:AbstractBranchingCandidate}
     @show typeof(ctx)
     return perform_strong_branching_inner!(ctx, env, reform, input, candidates)
 end
 
 function perform_strong_branching_inner!(
-    ctx::AbstractStrongBrContext, env, model, input::APITMP.AbstractDivideInput, candidates::Vector{C}
+    ctx::AbstractStrongBrContext, env, model, input::Branching.AbstractDivideInput, candidates::Vector{C}
 ) where {C<:AbstractBranchingCandidate}    
     # More clarity is needed here.
     # Basically, the goal is to give to the nodes of the candidates the best bounds found so far.
@@ -271,8 +291,8 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
     return kept_branch_candidates
 end
 
-function run_branching!(ctx, env, reform, input::APITMP.AbstractDivideInput, extended_sol, original_sol)
-    parent = APITMP.get_parent(input)
+function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, extended_sol, original_sol)
+    parent = Branching.get_parent(input)
     max_nb_candidates = get_selection_nb_candidates(ctx)
     candidates = candidates_selection(ctx, max_nb_candidates, reform, env, parent, extended_sol, original_sol)
 

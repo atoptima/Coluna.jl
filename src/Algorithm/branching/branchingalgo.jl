@@ -24,7 +24,7 @@ Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: APITMP.AbstractDivideAlgorithm end
 
-function run!(::NoBranching, ::Env, reform::Reformulation, ::APITMP.AbstractDivideInput)
+function run!(::NoBranching, ::Env, reform::Reformulation, ::Branching.AbstractDivideInput)
     return DivideOutput([], OptimizationState(getmaster(reform)))
 end
 
@@ -71,6 +71,7 @@ Branching.get_selection_criterion(ctx::BranchingContext) = ctx.selection_criteri
 Branching.get_rules(ctx::BranchingContext) = ctx.rules
 
 function Branching.new_optimization_state(ctx::BranchingContext, reform::Reformulation, input)
+    # Optimization state with no information...
     return OptimizationState(getmaster(reform))
 end
 
@@ -228,7 +229,8 @@ function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhase
 end
 
 function Branching.new_optimization_state(ctx, reform, input)
+    # Optimization state with copy of bounds only (except lp_primal_bound).
     return OptimizationState( # TODO: remove explicit use of OptimizationState
-        getmaster(reform), APITMP.get_opt_state(input), false, false
+        getmaster(reform), Branching.get_opt_state(input), false, false
     )
 end

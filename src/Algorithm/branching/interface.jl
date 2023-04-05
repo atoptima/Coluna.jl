@@ -1,10 +1,10 @@
-struct DivideOutput{N} <: APITMP.AbstractDivideOutput
+struct DivideOutput{N} <: Branching.AbstractDivideOutput
     children::Vector{N}
     optstate::OptimizationState
 end
 
-APITMP.get_children(output::DivideOutput) = output.children
-APITMP.get_opt_state(output::DivideOutput) = output.optstate
+Branching.get_children(output::DivideOutput) = output.children
+Branching.get_opt_state(output::DivideOutput) = output.optstate
 
 function get_extended_sol(::Branching.AbstractDivideContext, reform, opt_state)
     return get_best_lp_primal_sol(opt_state)
@@ -28,10 +28,10 @@ function Branching.projection_is_possible(::Branching.AbstractDivideContext, ref
     return projection_is_possible(getmaster(reform))
 end
 
-function run!(algo::APITMP.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput)
+function run!(algo::APITMP.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::Branching.AbstractDivideInput)
     ctx = new_context(branching_context_type(algo), algo, reform)
 
-    parent = APITMP.get_parent(input)
+    parent = Branching.get_parent(input)
     optstate = TreeSearch.get_opt_state(parent)
     nodestatus = getterminationstatus(optstate)
 
