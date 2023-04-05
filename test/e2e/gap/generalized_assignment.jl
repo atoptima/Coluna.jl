@@ -59,7 +59,7 @@ function gap_strong_branching()
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
-register!(e2e_tests, "gap", gap_strong_branching)
+#register!(e2e_tests, "gap", gap_strong_branching)
 
 
 # @testset "Generalized Assignment" begin

@@ -1,5 +1,3 @@
-
-
 ############################################################################################
 # AbstractConquerInput implementation for the strong branching.
 ############################################################################################
@@ -70,17 +68,13 @@ Branching.get_int_tol(ctx::BranchingContext) = ctx.int_tol
 Branching.get_selection_criterion(ctx::BranchingContext) = ctx.selection_criterion
 Branching.get_rules(ctx::BranchingContext) = ctx.rules
 
-function Branching.new_optimization_state(ctx::BranchingContext, reform::Reformulation, input)
-    # Optimization state with no information...
+function Branching.new_ip_primal_sols_pool(ctx::BranchingContext, reform::Reformulation, input)
+    # Optimization state with no information.
     return OptimizationState(getmaster(reform))
 end
 
-Branching.new_divide_output(children::Vector{SbNode}, sb_state) = DivideOutput(children, sb_state)
-
-# function advanced_select!(::BranchingContext, candidates, _, reform, _::APITMP.AbstractDivideInput)
-#     children = Branching.get_children(first(candidates))
-#     return DivideOutput(children, OptimizationState(getmaster(reform)))
-# end
+Branching.new_divide_output(children::Vector{SbNode}, optimization_state) = DivideOutput(children, optimization_state)
+Branching.new_divide_output(::Nothing, optimization_state) = DivideOutput(SbNode[], optimization_state)
 
 ############################################################################################
 # Branching API implementation for the strong branching
@@ -206,9 +200,12 @@ function new_context(
     )
 end
 
-function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, sb_state, env, reform)
+function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
     child_state = TreeSearch.get_opt_state(child)
-    update_ip_primal_bound!(child_state, get_ip_primal_bound(sb_state))
+
+    # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
+    # strong branching procedure but also the best primal bound found so far (in the whole optimization).
+    update_ip_primal_bound!(child_state, get_ip_primal_bound(ip_primal_sols_found))
 
     # TODO: We consider that all branching algorithms don't exploit the primal solution 
     # at the moment.
@@ -223,14 +220,21 @@ function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhase
         run!(Branching.get_conquer(phase), env, reform, input)
         TreeSearch.set_records!(child, create_records(reform))
     end
-    child.conquerwasrun = true 
-    add_ip_primal_sols!(sb_state, get_ip_primal_sols(child_state)...)
+    child.conquerwasrun = true
+
+    # Store new primal solutions found during the evaluation of the child.
+    add_ip_primal_sols!(ip_primal_sols_found, get_ip_primal_sols(child_state)...)
     return
 end
 
-function Branching.new_optimization_state(ctx, reform, input)
+function Branching.new_ip_primal_sols_pool(ctx::StrongBranchingContext, reform, input)
     # Optimization state with copy of bounds only (except lp_primal_bound).
-    return OptimizationState( # TODO: remove explicit use of OptimizationState
-        getmaster(reform), Branching.get_opt_state(input), false, false
+    # Only the ip primal bound is used to avoid inserting integer solutions that are not
+    # better than the incumbent.
+    # We also use the primal bound to init candidate nodes in the strong branching procedure.
+    input_opt_state = Branching.get_opt_state(input)
+    return OptimizationState(
+        getmaster(reform);
+        ip_primal_bound = get_ip_primal_bound(input_opt_state),
     )
 end

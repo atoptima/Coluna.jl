@@ -1,6 +1,6 @@
 struct DivideOutput{N} <: Branching.AbstractDivideOutput
     children::Vector{N}
-    optstate::OptimizationState
+    optstate::Union{Nothing,OptimizationState}
 end
 
 Branching.get_children(output::DivideOutput) = output.children

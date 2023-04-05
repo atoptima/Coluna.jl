@@ -190,7 +190,10 @@ function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node
 end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(Branching.get_opt_state(candidates))...)
+    candidates_opt_state = Branching.get_opt_state(candidates)
+    if !isnothing(candidates_opt_state)
+        add_ip_primal_sols!(space.optstate, get_ip_primal_sols(candidates_opt_state)...)
+    end
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
     children = map(Branching.get_children(candidates)) do child
