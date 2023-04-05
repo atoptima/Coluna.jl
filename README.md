@@ -33,6 +33,8 @@ or the [dev documentation](https://atoptima.github.io/Coluna.jl/latest) if you a
 
 ## Features
 
+### v0.5.3
+
 We aim to integrate to Coluna the state-of-the-art techniques used for
 branch-and-cut-and-price algorithms. We look for beta users as Coluna is under
 active development.
@@ -52,6 +54,30 @@ active development.
   - Benders algorithm
   - Non-robust cuts
   - Clean up of large scale formulations
+- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, foundations have been laid:
+  - Nested/Recursive decomposition
+  - Parallelisation of the Branch-and-Bound Tree Search
+- ![Future](https://img.shields.io/badge/-future-red) Future features:
+  - Mixed Dantzig-Benders decomposition
+  - Preprocessing specific to reformulated problems
+  
+### master (0.6.0 coming soon)
+
+We are currently working on the correctness of the algorithms.
+
+- ![Stable](https://img.shields.io/badge/-stable-brightgreen) No stable feature at the moment
+- ![Beta](https://img.shields.io/badge/-beta-green) Features that work but still in development:
+  - Dantzig-Wolfe decomposition
+  - TreeSearch API & default implementation of the branch-and-bound
+  - Branching API & default implementation of the branching / strong branching
+  - Column generation API & default implementation of the column generation
+  - Pricing callback
+  - Robust cut generation callback
+  - Non-robust cut generation callback
+- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but these features may have bugs and be not performant:
+  - Benders decomposition
+  - ~~Benders algorithm~~ (it will be reimplemented to extract an API for a generic implementation)
+  - ~~Clean up of large scale formulations~~ (broken on  master)
 - ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, foundations have been laid:
   - Nested/Recursive decomposition
   - Parallelisation of the Branch-and-Bound Tree Search
