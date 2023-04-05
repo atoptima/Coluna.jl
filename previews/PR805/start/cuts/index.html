@@ -30,7 +30,7 @@ specify!.(sp, lower_multiplicity = 0);</code></pre><p>We optimize:</p><pre><code
 Version 0.5.3 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.24 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.21 sec.
 ***************************************************************************************
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=100000.0000&gt;
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-129067.4700&gt; &lt;mlp=30340.5500&gt; &lt;PB=100000.0000&gt;
@@ -126,10 +126,9 @@ Version 0.5.3 | https://github.com/atoptima/Coluna.jl
 │
 └ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=100000.0000&gt;
-typeof(parent) = Coluna.Algorithm.Node
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.50 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.39 sec.
 **** Branching constraint: x[4,5]&lt;=0.0
 ***************************************************************************************
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  395.0825&gt; &lt;mlp=  397.2325&gt; &lt;PB=100000.0000&gt;
@@ -173,16 +172,15 @@ typeof(parent) = Coluna.Algorithm.Node
 │
 └ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
   &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=100000.0000&gt;
-typeof(parent) = Coluna.Algorithm.Node
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:          105s /  17.7%           5.64GiB /  24.1%
+    Tot / % measured:         3.18s /  17.0%            261MiB /   9.6%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               2    18.7s  100.0%   9.33s   1.36GiB  100.0%   696MiB
-   SolveLpForm       62    2.56s   13.7%  41.2ms   52.0MiB    3.7%   859KiB
+ Coluna               1    541ms  100.0%   541ms   25.0MiB  100.0%  25.0MiB
+   SolveLpForm       21   5.30ms    1.0%   253μs   1.88MiB    7.5%  91.6KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -222,7 +220,422 @@ MathOptInterface.set(fc_sep_m, MathOptInterface.Silent(), true)</code></pre><p>T
     end
 end
 
-MathOptInterface.set(model, MathOptInterface.UserCutCallback(), fenchel_cuts_separation);</code></pre><p>We optimize:</p><pre><code class="language- hljs">optimize!(model)</code></pre><p>Valid inequalities significantly improve the previous dual bound:</p><pre><code class="language-julia hljs">db2 = objective_bound(model)
+MathOptInterface.set(model, MathOptInterface.UserCutCallback(), fenchel_cuts_separation);</code></pre><p>We optimize:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.5.3 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-139067.4700&gt; &lt;mlp=30340.5500&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-129034.6900&gt; &lt;mlp=10387.9067&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-119543.8600&gt; &lt;mlp=  418.5400&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  225.8271&gt; &lt;mlp=  418.5400&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  353.2117&gt; &lt;mlp=  409.0543&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  310.9300&gt; &lt;mlp=  405.7200&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  367.9871&gt; &lt;mlp=  402.2214&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  379.2250&gt; &lt;mlp=  400.4725&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu197.
+│ Reduced cost of the column: -1.0000004380117389e-8.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  385.0771&gt; &lt;mlp=  398.5957&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  382.2778&gt; &lt;mlp=  398.4844&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  386.0031&gt; &lt;mlp=  397.4904&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  387.6100&gt; &lt;mlp=  397.2000&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  395.5096&gt; &lt;mlp=  396.7196&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  395.5096&gt; &lt;mlp=  396.7196&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  394.8988&gt; &lt;mlp=  396.6188&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu244.
+│ Reduced cost of the column: -1.000000171558213e-8.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  395.4817&gt; &lt;mlp=  396.4117&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu221.
+│ Reduced cost of the column: -1.000000260376055e-8.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu249.
+│ Reduced cost of the column: -1.0000013261901586e-8.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.54, max. viol. = 0.54, zero viol. = 0.
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.7078&gt; &lt;mlp=  399.1622&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu238.
+│ Reduced cost of the column: -1.0000005268295808e-8.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.8715&gt; &lt;mlp=  398.9385&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.50, max. viol. = 0.50, zero viol. = 0.
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.0863&gt; &lt;mlp=  399.6563&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.26, max. viol. = 0.26, zero viol. = 0.
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu232.
+│ Reduced cost of the column: -5.000006186861583e-9.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu233.
+│ Reduced cost of the column: -4.999989755560819e-9.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.42, max. viol. = 0.42, zero viol. = 0.
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu244.
+│ Reduced cost of the column: -4.999997971211201e-9.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu229.
+│ Reduced cost of the column: -7.105427357601002e-15.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.24, max. viol. = 0.24, zero viol. = 0.
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu195.
+│ Reduced cost of the column: -5.000000413701855e-9.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu257.
+│ Reduced cost of the column: -4.999993308274497e-9.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.21, max. viol. = 0.21, zero viol. = 0.
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.5009&gt; &lt;mlp=  407.3509&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
+avg. viol. = 0.15, max. viol. = 0.15, zero viol. = 0.
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=-15881.1952&gt; &lt;mlp=  902.5056&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  434.7300&gt; &lt;mlp=  444.3994&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  427.1045&gt; &lt;mlp=  441.8645&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  428.0825&gt; &lt;mlp=  440.3950&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  435.6250&gt; &lt;mlp=  440.3950&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  437.9400&gt; &lt;mlp=  440.3950&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu274.
+│ Reduced cost of the column: -2.7977620220553945e-14.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.1175&gt; &lt;mlp=  440.3950&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu201.
+│ Reduced cost of the column: -3.108624468950438e-14.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+***************************************************************************************
+**** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
+**** Local DB = -Inf, global bounds: [ -Inf , 444.4000 ], time = 1.42 sec.
+**** Branching constraint: x[3,1]&lt;=0.0
+***************************************************************************************
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  437.7967&gt; &lt;mlp=  442.9617&gt; &lt;PB=100000.0000&gt;
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  436.4400&gt; &lt;mlp=  441.0000&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu274.
+│ Reduced cost of the column: -2.55351295663786e-14.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.4500&gt; &lt;mlp=  440.5500&gt; &lt;PB=100000.0000&gt;
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu299.
+│ Reduced cost of the column: -2.275957200481571e-14.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu274.
+│ Reduced cost of the column: -2.842170943040401e-14.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+┌ Warning: Unexpected variable state during column insertion.
+│ ======
+│ Column id: Coluna.MathProg.Variableu280.
+│ Reduced cost of the column: -1.7763568394002505e-15.
+│ The column is in the master ? true.
+│ The column is active ? true.
+│ ======
+│ If the column is in the master and active, it means a subproblem found a solution with
+│ negative (minimization) / positive (maximization) reduced cost that is already active in
+│ the master. This should not happen.
+│ ======
+│ If you are using a pricing callback, make sure there is no bug in your code.
+│ If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance
+│ `redcost_tol` parameter of `ColumnGeneration`.
+│ If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+│ that reproduces the bug.
+│ ======
+│
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/colgen/default.jl:250
+  &lt;it=  0&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.5500&gt; &lt;mlp=  440.5500&gt; &lt;PB=100000.0000&gt;
+Fenchel cuts separation callback...
+Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:298
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         3.07s /  46.4%            334MiB /  53.0%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    1.42s  100.0%   1.42s    177MiB  100.0%   177MiB
+   SolveLpForm       40   13.8ms    1.0%   345μs   5.21MiB    2.9%   133KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 440.55
+[ Info: Dual bound: -Inf</code></pre><p>Valid inequalities significantly improve the previous dual bound:</p><pre><code class="language-julia hljs">db2 = objective_bound(model)
 
 
-db2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-Inf</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 5 April 2023 04:41">Wednesday 5 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+db2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-Inf</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 5 April 2023 08:41">Wednesday 5 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
