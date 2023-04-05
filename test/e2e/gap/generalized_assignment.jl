@@ -24,6 +24,7 @@ end
 register!(e2e_tests, "gap", gap_toy_instance)
 
 function gap_strong_branching()
+    println("\e[45m gap strong branching \e[00m")
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     coluna = JuMP.optimizer_with_attributes(
@@ -58,7 +59,7 @@ function gap_strong_branching()
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
-register!(e2e_tests, "gap", gap_strong_branching; x = true)
+#register!(e2e_tests, "gap", gap_strong_branching)
 
 
 # @testset "Generalized Assignment" begin

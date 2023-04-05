@@ -36,3 +36,4 @@ TreeSearch.get_parent(n::SbNode) = n.parent
 TreeSearch.get_branch_description(n::SbNode) = n.branchdescription
 get_var_name(n::SbNode) = n.var_name
 TreeSearch.isroot(n::SbNode) = false
+Branching.isroot(n::SbNode) = TreeSearch.isroot(n)

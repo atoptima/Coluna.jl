@@ -1,5 +1,3 @@
-
-
 ############################################################################################
 # AbstractConquerInput implementation for the strong branching.
 ############################################################################################
@@ -24,7 +22,7 @@ Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: APITMP.AbstractDivideAlgorithm end
 
-function run!(::NoBranching, ::Env, reform::Reformulation, ::APITMP.AbstractDivideInput)
+function run!(::NoBranching, ::Env, reform::Reformulation, ::Branching.AbstractDivideInput)
     return DivideOutput([], OptimizationState(getmaster(reform)))
 end
 
@@ -51,28 +49,32 @@ struct ClassicBranching <: APITMP.AbstractDivideAlgorithm
     ) = new(selection_criterion, rules, int_tol)
 end
 
-Branching.get_selection_nb_candidates(::ClassicBranching) = 1
 
 struct BranchingContext{SelectionCriterion<:Branching.AbstractSelectionCriterion} <: Branching.AbstractDivideContext
     selection_criterion::SelectionCriterion
     rules::Vector{Branching.PrioritisedBranchingRule}
+    max_nb_candidates::Int
     int_tol::Float64
 end
 
 branching_context_type(::ClassicBranching) = BranchingContext
+Branching.get_selection_nb_candidates(ctx::BranchingContext) = ctx.max_nb_candidates
 
 function new_context(::Type{<:BranchingContext}, algo::ClassicBranching, _)
-    return BranchingContext(algo.selection_criterion, algo.rules, algo.int_tol)
+    return BranchingContext(algo.selection_criterion, algo.rules, 1, algo.int_tol)
 end
 
 Branching.get_int_tol(ctx::BranchingContext) = ctx.int_tol
 Branching.get_selection_criterion(ctx::BranchingContext) = ctx.selection_criterion
 Branching.get_rules(ctx::BranchingContext) = ctx.rules
 
-function advanced_select!(::BranchingContext, candidates, _, reform, _::APITMP.AbstractDivideInput)
-    children = Branching.get_children(first(candidates))
-    return DivideOutput(children, OptimizationState(getmaster(reform)))
+function Branching.new_ip_primal_sols_pool(ctx::BranchingContext, reform::Reformulation, input)
+    # Optimization state with no information.
+    return OptimizationState(getmaster(reform))
 end
+
+Branching.new_divide_output(children::Vector{SbNode}, optimization_state) = DivideOutput(children, optimization_state)
+Branching.new_divide_output(::Nothing, optimization_state) = DivideOutput(SbNode[], optimization_state)
 
 ############################################################################################
 # Branching API implementation for the strong branching
@@ -167,7 +169,7 @@ struct StrongBranchingContext{
     int_tol::Float64
 end
 
-Branching.get_selection_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
+Branching.get_selection_nb_candidates(ctx::StrongBranchingContext) = Branching.get_max_nb_candidates(first(ctx.phases))
 Branching.get_rules(ctx::StrongBranchingContext) = ctx.rules
 Branching.get_selection_criterion(ctx::StrongBranchingContext) = ctx.selection_criterion
 Branching.get_int_tol(ctx::StrongBranchingContext) = ctx.int_tol
@@ -198,9 +200,12 @@ function new_context(
     )
 end
 
-function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, sb_state, env, reform)
+function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
     child_state = TreeSearch.get_opt_state(child)
-    update_ip_primal_bound!(child_state, get_ip_primal_bound(sb_state))
+
+    # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
+    # strong branching procedure but also the best primal bound found so far (in the whole optimization).
+    update_ip_primal_bound!(child_state, get_ip_primal_bound(ip_primal_sols_found))
 
     # TODO: We consider that all branching algorithms don't exploit the primal solution 
     # at the moment.
@@ -215,73 +220,21 @@ function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhase
         run!(Branching.get_conquer(phase), env, reform, input)
         TreeSearch.set_records!(child, create_records(reform))
     end
-    child.conquerwasrun = true 
-    add_ip_primal_sols!(sb_state, get_ip_primal_sols(child_state)...)
+    child.conquerwasrun = true
+
+    # Store new primal solutions found during the evaluation of the child.
+    add_ip_primal_sols!(ip_primal_sols_found, get_ip_primal_sols(child_state)...)
     return
 end
 
-function _eval_children_of_candidate!(
-    children::Vector{SbNode}, phase::Branching.AbstractStrongBrPhaseContext,
-    sb_state, env, reform
-)
-    for child in children
-        eval_child_of_candidate!(child, phase, sb_state, env, reform)
-    end
-    return
-end
-
-function _perform_branching_phase!(
-    candidates::Vector{C}, phase::Branching.AbstractStrongBrPhaseContext, sb_state, env, reform
-) where {C<:Branching.AbstractBranchingCandidate}
-    return map(candidates) do candidate
-        children = sort(Branching.get_children(candidate), by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child)))
-        eval_children_of_candidate!(children, phase, sb_state, env, reform)
-        return compute_score(Branching.get_score(phase), candidate)
-    end
-end
-
-function _perform_strong_branching!(
-    ctx::Branching.AbstractStrongBrContext, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput, candidates::Vector{C}
-)::OptimizationState where {C<:Branching.AbstractBranchingCandidate}
-    # TODO: We consider that conquer algorithms in the branching algo don't exploit the
-    # primal solution at the moment (3rd arg).
-    sb_state = OptimizationState(
-        getmaster(reform), APITMP.get_opt_state(input), false, false
+function Branching.new_ip_primal_sols_pool(ctx::StrongBranchingContext, reform, input)
+    # Optimization state with copy of bounds only (except lp_primal_bound).
+    # Only the ip primal bound is used to avoid inserting integer solutions that are not
+    # better than the incumbent.
+    # We also use the primal bound to init candidate nodes in the strong branching procedure.
+    input_opt_state = Branching.get_opt_state(input)
+    return OptimizationState(
+        getmaster(reform);
+        ip_primal_bound = get_ip_primal_bound(input_opt_state),
     )
-
-    phases = Branching.get_phases(ctx)
-    for (phase_index, current_phase) in enumerate(phases)
-        nb_candidates_for_next_phase = 1
-        if phase_index < length(phases)
-            nb_candidates_for_next_phase = Branching.get_max_nb_candidates(phases[phase_index + 1])
-            if length(candidates) <= nb_candidates_for_next_phase
-                # If at the current phase, we have less candidates than the number of candidates
-                # we want to evaluate at the next phase, we skip the current phase.
-                continue
-            end
-            # In phase 1, we make sure that the number of candidates for the next phase is 
-            # at least equal to the number of initial candidates.
-            nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
-        end
-
-        scores = perform_branching_phase!(candidates, current_phase, sb_state, env, reform)
-
-        perm = sortperm(scores, rev=true)
-        permute!(candidates, perm)
-
-        # The case where one/many candidate is conquered is not supported yet.
-        # In this case, the number of candidates for next phase is one.
-    
-        # before deleting branching candidates which are not kept for the next phase
-        # we need to remove record kept in these nodes
-
-        resize!(candidates, nb_candidates_for_next_phase)
-    end
-    return sb_state
-end
-
-function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, env::Env, reform::Reformulation, input::APITMP.AbstractDivideInput)
-    sb_state = _perform_strong_branching!(ctx, env, reform, input, candidates)
-    children = Branching.get_children(first(candidates))
-    return DivideOutput(children, sb_state)
 end

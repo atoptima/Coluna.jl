@@ -37,25 +37,6 @@ abstract type AbstractNode end
 ############################################################################################
 
 """
-Input of a divide algorithm used by the tree search algorithm.
-Contains the parent node in the search tree for which children should be generated.
-"""
-abstract type AbstractDivideInput end
-
-@mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
-@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
-
-"""
-Output of a divide algorithm used by the tree search algorithm.
-Should contain the vector of generated nodes.
-"""
-abstract type AbstractDivideOutput end
-
-@mustimplement "DivideOutput" get_children(output::AbstractDivideOutput) = nothing
-@mustimplement "DivideOutput" get_opt_state(output::AbstractDivideOutput) = nothing
-
-
-"""
 This algorithm type is used by the tree search algorithm to generate nodes.
 """
 abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
@@ -63,9 +44,7 @@ abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 # divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
-@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, env, model, ::AbstractDivideInput)  = nothing
-
-
+@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, env, model, input)  = nothing
 
 export AbstractAlgorithm, AbstractSearchSpace, AbstractExploreStrategy, AbstractNode
 
