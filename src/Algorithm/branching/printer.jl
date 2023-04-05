@@ -32,7 +32,7 @@ end
 
 function Branching.perform_branching_phase!(candidates, phase::PhasePrinter, sb_state, env, reform)
     println("**** Strong branching phase ", phase.phase_index, " is started *****");
-    scores = _perform_branching_phase!(candidates, phase, sb_state, env, reform)
+    scores = Branching.perform_branching_phase_inner!(candidates, phase, sb_state, env, reform)
     for (candidate, score) in Iterators.zip(candidates, scores)
         @printf "SB phase %i branch on %+10s" phase.phase_index  Branching.getdescription(candidate)
         @printf " (lhs=%.4f) : [" Branching.get_lhs(candidate)

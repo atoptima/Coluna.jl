@@ -17,6 +17,7 @@ TreeSearch.get_parent(n::Node) = n.parent # divide
 TreeSearch.get_opt_state(n::Node) = n.optstate # conquer, divide
 
 TreeSearch.isroot(n::Node) = n.depth == 0
+Branching.isroot(n::Node) = TreeSearch.isroot(n)
 TreeSearch.get_records(n::Node) = n.records # conquer
 TreeSearch.set_records!(n::Node, records) = n.records = records
 
