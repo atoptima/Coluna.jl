@@ -14,6 +14,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     throw_column_already_inserted_warning::Bool
 
     nb_colgen_iteration_limit::Int
+    opt_rtol::Float64
+    opt_atol::Float64
 
     # # Information to solve the master
     # master_solve_alg
@@ -33,7 +35,9 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             rch,
             alg.show_column_already_inserted_warning,
             alg.throw_column_already_inserted_warning,
-            alg.max_nb_iterations
+            alg.max_nb_iterations,
+            alg.opt_rtol,
+            alg.opt_atol
         )
     end
 end
@@ -339,8 +343,8 @@ end
 ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns
 ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_ip_dual_bound(pricing_res.result)
 
-is_improving_red_cost(red_cost) = red_cost > 0
-is_improving_red_cost_min_sense(red_cost) = red_cost < 0
+is_improving_red_cost(ctx::ColGenContext, red_cost) = red_cost > 0 + ctx.opt_atol
+is_improving_red_cost_min_sense(ctx::ColGenContext, red_cost) = red_cost < 0 - ctx.opt_atol
 function has_improving_red_cost(column::GeneratedColumn)
     if column.min_obj
         return is_improving_red_cost_min_sense(column.red_cost)

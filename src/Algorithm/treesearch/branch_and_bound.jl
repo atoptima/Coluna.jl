@@ -2,7 +2,7 @@
 # Node
 ############################################################################################
 "Branch-and-bound node."
-mutable struct Node <: APITMP.AbstractNode
+mutable struct Node <: TreeSearch.AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
@@ -70,7 +70,7 @@ Branching.get_opt_state(i::DivideInputFromBaB) = i.opt_state
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     reformulation::Reformulation
     conquer::AbstractConquerAlgorithm
-    divide::APITMP.AbstractDivideAlgorithm
+    divide::AlgoAPI.AbstractDivideAlgorithm
     max_num_nodes::Int64
     open_nodes_limit::Int64
     time_limit::Int64
@@ -185,7 +185,7 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
 end
 
-function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
+function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
     return DivideInputFromBaB(node, space.optstate)
 end
 
