@@ -9,7 +9,7 @@
 # child execution.
 # If we give the responsability of recording/restoring to the child, we won't need this method
 # anymore and we'll get rid of the concept of manager & worker algorithm.
-ismanager(algo::APITMP.AbstractAlgorithm) = false
+ismanager(algo::AlgoAPI.AbstractAlgorithm) = false
 
 
 """
@@ -18,7 +18,7 @@ ismanager(algo::APITMP.AbstractAlgorithm) = false
 Every algorithm should communicate its child algorithms and the model to which 
 each child algorithm is applied. 
 """
-get_child_algorithms(::APITMP.AbstractAlgorithm, ::AbstractModel) = Tuple{APITMP.AbstractAlgorithm, AbstractModel}[]
+get_child_algorithms(::AlgoAPI.AbstractAlgorithm, ::AbstractModel) = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
 
 """
     get_units_usage(algo, model) -> Tuple{AbstractModel, UnitType, UnitPermission}[]
@@ -27,7 +27,7 @@ Every algorithm should communicate the storage units it uses (so that these unit
 are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
 in order to restore units before running a worker algorithm.
 """
-get_units_usage(::APITMP.AbstractAlgorithm, ::AbstractModel) = Tuple{APITMP.AbstractModel, UnitType, UnitPermission}[] 
+get_units_usage(::AlgoAPI.AbstractAlgorithm, ::AbstractModel) = Tuple{AlgoAPI.AbstractModel, UnitType, UnitPermission}[] 
 
 ############################################################################################
 # Conquer Algorithm API
@@ -81,14 +81,15 @@ isverbose(algo::AbstractConquerAlgorithm) = false
     The input of such algorithm should be of type Incumbents.    
     The output of such algorithm should be of type OptimizationState.    
 """
-abstract type AbstractOptimizationAlgorithm <: APITMP.AbstractAlgorithm end
+abstract type AbstractOptimizationAlgorithm <: AlgoAPI.AbstractAlgorithm end
 
 
 # this function collects storage units to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore units themselves
 function _collect_units_to_restore!(
-    global_units_usage::UnitsUsage, algo::APITMP.AbstractAlgorithm, model::AbstractModel
+    global_units_usage::UnitsUsage, algo::AlgoAPI.AbstractAlgorithm, model::AbstractModel
 )
+    println("\e[44m ---- ]")
     for (unit_model, unit_type, unit_usage) in get_units_usage(algo, model)
         push!(global_units_usage.units_used, (unit_model, unit_type))
     end
@@ -100,7 +101,7 @@ function _collect_units_to_restore!(
     end
 end
 
-function collect_units_to_restore!(algo::APITMP.AbstractAlgorithm, model::AbstractModel)
+function collect_units_to_restore!(algo::AlgoAPI.AbstractAlgorithm, model::AbstractModel)
     global_units_usage = UnitsUsage()
     _collect_units_to_restore!(global_units_usage, algo, model)
     return global_units_usage
@@ -109,7 +110,7 @@ end
 # this function collects units to create for an algorithm and all its child algorithms
 # this function is used only the function initialize_storage_units! below
 function collect_units_to_create!(
-    units_to_create::Dict{AbstractModel,Set{UnitType}}, algo::APITMP.AbstractAlgorithm, model::AbstractModel
+    units_to_create::Dict{AbstractModel,Set{UnitType}}, algo::AlgoAPI.AbstractAlgorithm, model::AbstractModel
 )
     units_usage = get_units_usage(algo, model)
     for (unit_model, unit_pair, _) in units_usage

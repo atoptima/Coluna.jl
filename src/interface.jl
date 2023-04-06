@@ -1,7 +1,7 @@
 ############################################################################################
 # Algorithm API
 ############################################################################################
-module APITMP 
+module AlgoAPI
 
 include("MustImplement/MustImplement.jl")
 using .MustImplement
@@ -9,28 +9,36 @@ using .MustImplement
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
 
-"Supertype for algorithms parameters."
+"
+Supertype for algorithms parameters.
+Data structures that inherit from this type are intented for the users.
+The convention is to define the data structure together with a constructor that contains
+only kw args.
+
+For instance:
+    
+        struct MyAlgorithmParams <: AbstractAlgorithmParams
+            param1::Int
+            param2::Int
+            MyAlgorithmParams(; param1::Int = 1, param2::Int = 2) = new(param1, param2)
+        end
+"
 abstract type AbstractAlgorithm end
 
 """
     run!(algo::AbstractAlgorithm, env, model, input)
-Runs an algorithm. 
+
+Default method to call an algorithm.
 """
 @mustimplement "Algorithm" run!(algo::AbstractAlgorithm, env, model, input) = nothing
 
+@mustimplement "Algorithm" ismanager(algo::AbstractAlgorithm) = false
 
 """
-Contains the definition of the problem tackled by the tree search algorithm and how the
-nodes and transitions of the tree search space will be explored.
+Returns `true` if the algorithm will perform changes on the formulation that must be 
+reverted at the end of the execution of the algorithm; `false` otherwise.
 """
-abstract type AbstractSearchSpace end
-
-"Algorithm that chooses next node to evaluated in the tree search algorithm."
-abstract type AbstractExploreStrategy end
-
-"A subspace obtained by successive divisions of the search space."
-abstract type AbstractNode end
-
+@mustimplement "Algorithm" change_model_state(algo::AbstractAlgorithm) = false
 
 ############################################################################################
 # Divide Algorithm API
@@ -44,9 +52,11 @@ abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 # divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
-@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, env, model, input)  = nothing
-
-export AbstractAlgorithm, AbstractSearchSpace, AbstractExploreStrategy, AbstractNode
+#####
+# Default tolerances
+###
+default_opt_atol() = 1e-6
+default_opt_rtol() = 1e-5
 
 end
 

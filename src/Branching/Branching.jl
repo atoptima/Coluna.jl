@@ -4,7 +4,7 @@ module Branching
 using ..MustImplement
 
 !true && include("../interface.jl") # linter
-using ..APITMP
+using ..AlgoAPI
 
 include("candidate.jl")
 include("criteria.jl")
@@ -40,13 +40,13 @@ abstract type AbstractDivideOutput end
 abstract type AbstractDivideContext end
 
 "Returns the number of candidates that the candidates selection step must return."
-@mustimplement "Branching" get_selection_nb_candidates(::APITMP.AbstractDivideAlgorithm) = nothing
+@mustimplement "Branching" get_selection_nb_candidates(::AlgoAPI.AbstractDivideAlgorithm) = nothing
 
 "Returns the type of context required by the algorithm parameters."
-@mustimplement "Branching" branching_context_type(::APITMP.AbstractDivideAlgorithm) = nothing
+@mustimplement "Branching" branching_context_type(::AlgoAPI.AbstractDivideAlgorithm) = nothing
 
 "Creates a context."
-@mustimplement "Branching" new_context(::Type{<:AbstractDivideContext}, algo::APITMP.AbstractDivideAlgorithm, reform) = nothing
+@mustimplement "Branching" new_context(::Type{<:AbstractDivideContext}, algo::AlgoAPI.AbstractDivideAlgorithm, reform) = nothing
 
 # TODO: can have a default implemntation when strong branching will be generic.
 "Advanced candidates selection that selects candidates by evaluating their children."

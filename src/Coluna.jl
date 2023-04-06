@@ -54,7 +54,7 @@ include("MathProg/MathProg.jl")
 using .MathProg
 
 include("interface.jl")
-using .APITMP
+using .AlgoAPI
 
 include("TreeSearch/TreeSearch.jl")
 using .TreeSearch

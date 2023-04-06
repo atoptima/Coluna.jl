@@ -18,7 +18,7 @@ Branching.get_max_nb_candidates(ctx::PhasePrinter) = Branching.get_max_nb_candid
 Branching.get_score(ctx::PhasePrinter) = Branching.get_score(ctx.inner)
 
 function new_context(
-    ::Type{BranchingPrinter{StrongBrContext}}, algo::APITMP.AbstractDivideAlgorithm, reform
+    ::Type{BranchingPrinter{StrongBrContext}}, algo::AlgoAPI.AbstractDivideAlgorithm, reform
 ) where {StrongBrContext<:Branching.AbstractStrongBrContext}
     inner_ctx = new_context(StrongBrContext, algo, reform)
     return BranchingPrinter(inner_ctx)

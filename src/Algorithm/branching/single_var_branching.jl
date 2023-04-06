@@ -8,7 +8,7 @@ It is an implementation of AbstractBranchingCandidate.
 This is the type of branching candidates produced by the branching rule 
 `SingleVarBranchingRule`.
 """
-mutable struct SingleVarBranchingCandidate{Node<:APITMP.AbstractNode} <: Branching.AbstractBranchingCandidate
+mutable struct SingleVarBranchingCandidate{Node<:TreeSearch.AbstractNode} <: Branching.AbstractBranchingCandidate
     varname::String
     varid::VarId
     local_id::Int64
@@ -19,7 +19,7 @@ mutable struct SingleVarBranchingCandidate{Node<:APITMP.AbstractNode} <: Branchi
     parent::Union{Nothing,Node}
     function SingleVarBranchingCandidate(
         varname::String, varid::VarId, local_id::Int64, lhs::Float64, parent::N
-    ) where {N<:APITMP.AbstractNode}
+    ) where {N<:TreeSearch.AbstractNode}
         return new{N}(varname, varid, local_id, lhs, 0.0, SbNode[], false, parent)
     end
 end
@@ -40,7 +40,7 @@ end
 
 function Branching.generate_children!(
     candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
-    parent::APITMP.AbstractNode
+    parent::TreeSearch.AbstractNode
 )
     master = getmaster(reform)
     lhs = Branching.get_lhs(candidate)
