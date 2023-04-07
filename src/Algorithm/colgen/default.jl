@@ -213,7 +213,7 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, refo
 end
 
 function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, phase, reform)
-
+    
 end
 
 # Reduced costs calculation

@@ -39,9 +39,9 @@ _new_set_of_rolls(::Type{Vector{E}}) where {E} = Vector{Float64}[]
 _new_roll(::Type{Vector{E}}, col_len) where {E} = zeros(Float64, col_len)
 
 _new_set_of_rolls(::Type{DynamicMatrixColView{VarId, VarId, Float64}}) = Dict{VarId, Float64}[]
-_new_roll(::Type{DynamicMatrixColView{VarId, VarId, Float64}}, col_len) = Dict{VarId, Float64}()
+_new_roll(::Type{DynamicMatrixColView{VarId, VarId, Float64}}, _) = Dict{VarId, Float64}()
 
-function _mapping(columns::Vector{A}, values::Vector{B}, col_len::Int) where {A,B}
+function _mapping(columns::Vector{A}, values::Vector{B}; col_len::Int = 10) where {A,B}
     p = sortperm(columns, rev=true)
     columns = columns[p]
     values = values[p]
@@ -68,30 +68,32 @@ function _mapping(columns::Vector{A}, values::Vector{B}, col_len::Int) where {A,
     return rolls
 end
 
-
+function _mapping_by_subproblem(columns::Dict{Int, Vector{A}}, values::Dict{Int, Vector{B}}) where {A,B}
+    return Dict(
+        uid =>  _mapping(cols, values[uid]) for (uid, cols) in columns
+    )
+end
 
 function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
-    columns = DynamicMatrixColView{VarId, VarId, Float64}[]
-    values = Float64[]
+    columns = Dict{Int, Vector{DynamicMatrixColView{VarId, VarId, Float64}}}()
+    values = Dict{Int, Vector{Float64}}()
     master = getmodel(sol)
+
     for (varid, val) in sol
         duty = getduty(varid)
         if duty <= MasterCol
             origin_form_uid = getoriginformuid(varid)
             spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
             column = @view get_primal_sol_pool(spform)[varid,:]
-            push!(columns, column)
-            push!(values, val)
+            if !haskey(columns, origin_form_uid)
+                columns[origin_form_uid] = DynamicMatrixColView{VarId, VarId, Float64}[]
+                values[origin_form_uid] = Float64[]
+            end
+            push!(columns[origin_form_uid], column)
+            push!(values[origin_form_uid], val)
         end
     end
-
-    col_len = 0
-    for (var_id, _) in getvars(master)
-        if getduty(var_id) <= DwSpPricingVar || getduty(var_id) <= DwSpSetupVar
-           col_len += 1
-        end
-    end
-    return columns, values, col_len
+    return columns, values
 end
 
 function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted_cols, extracted_vals)
@@ -107,12 +109,16 @@ function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted
     end
 
     master = getmodel(sol)
-    for (column, val) in Iterators.zip(extracted_cols, extracted_vals)
-        for (repid, repval) in column
-            if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
-                mastrepid = getid(getvar(master, repid))
-                push!(projected_sol_vars, mastrepid)
-                push!(projected_sol_vals, repval * val)
+    for spid in keys(extracted_cols)
+        for (column, val) in Iterators.zip(extracted_cols[spid], extracted_vals[spid])
+            @show column, val
+            for (repid, repval) in column
+                @show getduty(repid) <= DwSpPricingVar
+                if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
+                    mastrepid = getid(getvar(master, repid))
+                    push!(projected_sol_vars, mastrepid)
+                    push!(projected_sol_vals, repval * val)
+                end
             end
         end
     end
@@ -120,12 +126,16 @@ function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted
 end
 
 function proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}})
-    columns, values, col_len = _extract_data_for_mapping(sol)
+    columns, values = _extract_data_for_mapping(sol)
     projected_sol = _proj_cols_on_rep(sol, columns, values)
-    println("\e[34m ~~~~~world starts here ~~~~~~~ \e[00m]")
-    rolls = _mapping(columns, values, col_len)
-    @show rolls
     return projected_sol
+end
+
+function proj_cols_is_integer(sol::PrimalSolution{Formulation{DwMaster}})
+    columns, values = _extract_data_for_mapping(sol)
+    projected_sol = _proj_cols_on_rep(sol, columns, values)
+    rolls = _mapping_by_subproblem(columns, values)
+    return isinteger(projected_sol) && all(isinteger, rolls)
 end
 
 ############################################################################################

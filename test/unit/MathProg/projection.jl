@@ -8,7 +8,7 @@ function test_mapping_operator_1()
 
     v = Float64[3, 2, 0, 0]
 
-    result = Coluna.MathProg._mapping(G, v, 7)#, 6)
+    result = Coluna.MathProg._mapping(G, v; col_len = 7)#, 6)
     @test result == [
         [1, 0, 0, 1, 1, 0, 1],
         [1, 0, 0, 1, 1, 0, 1],
@@ -50,24 +50,38 @@ function test_mapping_operator_2()
 
     v = Float64[0, 1/2, 1, 1/2, 0, 0, 1, 1, 0, 0, 1/2, 0, 1/2, 0, 0]
 
-    result = Coluna.MathProg._mapping(G, v, 4)#, 5)
-    @test result == [
-        [1, 1, 0, 1/2],
-        [1, 1/2, 1/2, 1/2],
-        [1, 0, 0, 0],
-        [0, 1, 1, 1],
-        [0, 1/2, 1/2, 0]
-    ]
+    result = Coluna.MathProg._mapping(G, v; col_len = 4)
 end
 register!(unit_tests, "projection", test_mapping_operator_2; f=true)
+
+# function test_mapping_operator_3()
+#     G = Vector{Float64}[
+#         #x_12, x_13, x_14, x_15, x_23, x_24, x_25, x_34, x_35, x_45
+#         [1,    0,    1,    0,    0,    1,    0,    0,   0,    0],
+#         [1,    0,    0,    1,    1,    0,    0,    0,   1,    0],
+#         [0,    1,    1,    0,    0,    0,    0,    1,   0,    0],
+#         [0,    0,    0,    2,    0,    0,    0,    0,   0,    0],
+#         [1,    0,    1,    0,    1,    0,    0,    1,   0,    0],
+#         [0,    1,    0,    1,    0,    0,    0,    0,   1,    0]
+#     ]
+
+#     v = Float64[2/3, 1/3, 1/3, 2/3, 1/3, 1/3]
+
+#     result = Coluna.MathProg._mapping(G, v, 10)
+#     @show result
+
+# end
+# register!(unit_tests, "projection", test_mapping_operator_3; f= true)
 
 function identical_subproblems_vrp()
     # We consider a vrp problem (with fake subproblem) where routes are:
     # - MC1 : 1 -> 2 -> 3  
     # - MC2 : 2 -> 3 -> 4  
     # - MC4 : 3 -> 4 -> 1  
-    # - MC3 : 4 -> 1 -> 3 
-    # At three vehicles are available to visit all customers.
+    # - MC3 : 4 -> 1 -> 2
+    # At most, three vehicles are available to visit all customers.
+    # We can visit a customer multiple times.
+    # Fractional solution is 1/2 for all columns
     form = """
     master
         min
@@ -152,15 +166,27 @@ function projection_from_dw_reform_to_master_1()
         ClB.FEASIBLE_SOL
     )
 
-    @show mastervarids["MC1"].uid
-    @show mastervarids["MC1"].origin_form_uid
-    @show mastervarids["MC1"].assigned_form_uid
+    # Test integration
+    columns, values = Coluna.MathProg._extract_data_for_mapping(solution)
+    rolls = Coluna.MathProg._mapping_by_subproblem(columns, values)
 
-    proj_cols_on_rep(solution)
+    # Expected:
+    # | 1/2 of [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+    # | 1/2 of [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+    # ----->   [1.0, 0.0, 0.5, 0.5, 0.0, 0.0]
+    # | 1/2 of [0.0, 0.0, 1.0, 0.0, 0.0, 1.0]
+    # | 1/2 of [0.0, 0.0, 0.0, 1.0, 0.0, 1.0]
+    # ----->   [0.0, 0.0, 0.5, 0.5, 0.0, 1.0]
+    @test rolls == Dict(2 => [
+        Dict(mastervarids["x_14"] => 0.5, mastervarids["x_23"] => 0.5, mastervarids["x_34"] => 1.0)
+        Dict(mastervarids["x_12"] => 1.0, mastervarids["x_14"] => 0.5, mastervarids["x_23"] => 0.5)
+    ])
+
+    proj = Coluna.MathProg.proj_cols_on_rep(solution)
+    @test proj[mastervarids["x_12"]] == 1.0
+    @test proj[mastervarids["x_14"]] == 1.0
+    @test proj[mastervarids["x_23"]] == 1.0
+    @test proj[mastervarids["x_34"]] == 1.0
+
 end
 register!(unit_tests, "projection", projection_from_dw_reform_to_master_1; f = true)
-
-function projection_from_dw_reform_to_master_2()
-
-end
-register!(unit_tests, "projection", projection_from_dw_reform_to_master_2)
