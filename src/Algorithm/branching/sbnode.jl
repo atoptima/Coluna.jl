@@ -3,7 +3,7 @@
 ### Node for the strong branching (Goal: decouple strong branching from tree search)
 ### TODO: transform into a very light node dedicated to the strong branching algorithm.
 ### This light node will contain information to generate the real node of the tree search.
-mutable struct SbNode{Node<:AbstractNode} <: AbstractNode
+mutable struct SbNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
@@ -13,7 +13,7 @@ mutable struct SbNode{Node<:AbstractNode} <: AbstractNode
     conquerwasrun::Bool
     function SbNode(
         form::AbstractFormulation, parent::N, var_name::String, branch_description::String, records::Records
-    ) where {N <: AbstractNode}
+    ) where {N <: TreeSearch.AbstractNode}
         depth = getdepth(parent) + 1
         node_state = OptimizationState(form, TreeSearch.get_opt_state(parent), false, false)
         return new{N}(depth, parent, node_state, var_name, branch_description, records, false)

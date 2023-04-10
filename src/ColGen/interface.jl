@@ -23,7 +23,7 @@ Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, reform, colgen_iter_output) = nothing
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, env, colgen_iteration, colgen_iter_output) = nothing
 
 
 # TODO; move
@@ -54,14 +54,14 @@ abstract type AbstractColGenOutput end
 @mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput) = nothing
 
 function run_colgen_phase!(context, phase, env)
-    colgen_iteration = 0
-    cutsep_iteration = 0
+    colgen_iteration = 1
+    cutsep_iteration = 1
     colgen_iter_output = nothing
     while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
         # cleanup ?
         before_colgen_iteration(context, phase)
         colgen_iter_output = run_colgen_iteration!(context, phase, env)
-        after_colgen_iteration(context, phase, colgen_iter_output)
+        after_colgen_iteration(context, phase, env, colgen_iteration, colgen_iter_output)
         colgen_iteration += 1
         # note part of column generation !!!!
         # if separate_cuts()
@@ -233,6 +233,8 @@ abstract type AbstractColGenIterationOutput end
     ip_primal_sol
 ) = nothing
 
+@mustimplement "ColGenIterationOutput" get_nb_new_cols(::AbstractColGenIterationOutput) = nothing
+
 @mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput) = nothing
 
 """
@@ -332,7 +334,7 @@ function run_colgen_iteration!(context, phase, env)
         for primal_sol in primal_sols # multi column generation support.
             # The implementation  is reponsible for checking if the column is a candidate
             # for insertion into the master.
-            if push_in_set!(generated_columns, primal_sol)
+            if push_in_set!(context, generated_columns, primal_sol)
                 nb_cols_pushed += 1
             end
         end

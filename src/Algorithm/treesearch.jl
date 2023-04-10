@@ -26,17 +26,29 @@ Parameters :
 Options :
 - `branchingtreefile` : name of the file in which the algorithm writes an overview of the branching tree
 """
-@with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
-    conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
-    dividealg::APITMP.AbstractDivideAlgorithm = ClassicBranching()
-    explorestrategy::TreeSearch.AbstractExploreStrategy = TreeSearch.DepthFirstStrategy()
-    maxnumnodes::Int64 = 100000
-    opennodeslimit::Int64 = 100
-    timelimit::Int64 = -1 # means no time limit
-    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-    opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
-    branchingtreefile::String = ""
-    print_node_info = true
+struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
+    conqueralg::AbstractConquerAlgorithm
+    dividealg::AlgoAPI.AbstractDivideAlgorithm
+    explorestrategy::TreeSearch.AbstractExploreStrategy
+    maxnumnodes::Int64
+    opennodeslimit::Int64
+    timelimit::Int64
+    opt_atol::Float64
+    opt_rtol::Float64
+    branchingtreefile::String
+    print_node_info::Bool
+    TreeSearchAlgorithm(;
+        conqueralg = ColCutGenConquer(),
+        dividealg = ClassicBranching(),
+        explorestrategy = TreeSearch.DepthFirstStrategy(),
+        maxnumnodes = 100000,
+        opennodeslimit = 100,
+        timelimit = -1, # means no time limit
+        opt_atol = AlgoAPI.default_opt_atol(),
+        opt_rtol = AlgoAPI.default_opt_rtol(),
+        branchingtreefile = "",
+        print_node_info = true
+    ) = new(conqueralg, dividealg, explorestrategy, maxnumnodes, opennodeslimit, timelimit, opt_atol, opt_rtol, branchingtreefile, print_node_info)
 end
 
 # TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storage units)
@@ -59,8 +71,6 @@ function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input:
     search_space = TreeSearch.new_space(TreeSearch.search_space_type(algo), algo, reform, input)
     return TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 end
-
-
 
 ############################################################################################
 # Tree search interface for Coluna algorithms
@@ -89,13 +99,13 @@ abstract type AbstractColunaSearchSpace <: TreeSearch.AbstractSearchSpace end
 Returns the input that will be passed to an algorithm.
 The input can be built from information contained in a search space and a node.
 """
-@mustimplement "ColunaSearchSpace" get_input(a::AbstractAlgorithm, s::AbstractColunaSearchSpace, n::AbstractNode) = nothing
+@mustimplement "ColunaSearchSpace" get_input(a::AlgoAPI.AbstractAlgorithm, s::AbstractColunaSearchSpace, n::TreeSearch.AbstractNode) = nothing
 
 """
 Methods to perform operations before the tree search algorithm evaluates a node (`current`).
 This is useful to restore the state of the formulation for instance.
 """
-@mustimplement "ColunaSearchSpace" node_change!(previous::AbstractNode, current::AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes) = nothing
+@mustimplement "ColunaSearchSpace" node_change!(previous::TreeSearch.AbstractNode, current::TreeSearch.AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes) = nothing
 
 """
 Methods to perform operations after the conquer algorithms.
@@ -104,10 +114,10 @@ It receives the output of the conquer algorithm.
 @mustimplement "ColunaSearchSpace" after_conquer!(::AbstractColunaSearchSpace, current, output) = nothing
 
 "Creates and returns the children of a node associated to a search space."
-@mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::AbstractNode) = nothing
+@mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::TreeSearch.AbstractNode) = nothing
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
-function TreeSearch.children(space::AbstractColunaSearchSpace, current::AbstractNode, env, untreated_nodes)
+function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSearch.AbstractNode, env, untreated_nodes)
     # restore state of the formulation for the current node.
     previous = get_previous(space)
     if !isnothing(previous)

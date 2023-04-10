@@ -20,7 +20,7 @@ run_conquer(::ConquerInputFromSb) = true
 
 Divide algorithm that does nothing. It does not generate any child.
 """
-struct NoBranching <: APITMP.AbstractDivideAlgorithm end
+struct NoBranching <: AlgoAPI.AbstractDivideAlgorithm end
 
 function run!(::NoBranching, ::Env, reform::Reformulation, ::Branching.AbstractDivideInput)
     return DivideOutput([], OptimizationState(getmaster(reform)))
@@ -38,7 +38,7 @@ end
 
 Chooses the best candidate according to a selection criterion and generates the two children.
 """
-struct ClassicBranching <: APITMP.AbstractDivideAlgorithm
+struct ClassicBranching <: AlgoAPI.AbstractDivideAlgorithm
     selection_criterion::Branching.AbstractSelectionCriterion
     rules::Vector{Branching.PrioritisedBranchingRule}
     int_tol::Float64
@@ -112,7 +112,7 @@ of candidates with a very fast conquer algorithm and retain a certain number of 
 Then, over the phases, it evaluates the improvement with a more precise conquer algorithm and
 restrict the number of retained candidates until only one is left.
 """
-struct StrongBranching <: APITMP.AbstractDivideAlgorithm
+struct StrongBranching <: AlgoAPI.AbstractDivideAlgorithm
     phases::Vector{BranchingPhase}
     rules::Vector{Branching.PrioritisedBranchingRule}
     selection_criterion::Branching.AbstractSelectionCriterion
@@ -133,7 +133,7 @@ end
 # therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
-    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+    child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
     for phase in algo.phases
         push!(child_algos, (phase.conquer_algo, reform))
     end

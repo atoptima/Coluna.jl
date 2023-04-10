@@ -28,7 +28,7 @@ function Branching.projection_is_possible(::Branching.AbstractDivideContext, ref
     return projection_is_possible(getmaster(reform))
 end
 
-function run!(algo::APITMP.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::Branching.AbstractDivideInput)
+function run!(algo::AlgoAPI.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::Branching.AbstractDivideInput)
     ctx = new_context(branching_context_type(algo), algo, reform)
 
     parent = Branching.get_parent(input)

@@ -101,17 +101,39 @@ Parameters :
 - `cutgen`: cut generation algorithm
 - `max_nb_cut_rounds` : number of cut generation done by the algorithm
 """
-@with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
-    stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-    primal_heuristics::Vector{ParameterizedHeuristic} = [ParamRestrictedMasterHeuristic()]
-    before_cutgen_user_algorithm::Union{Nothing, BeforeCutGenAlgo} = nothing
-    node_finalizer::Union{Nothing, NodeFinalizer} = nothing
-    preprocess = nothing
-    cutgen = CutCallbacks()
-    max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
-    opt_atol::Float64 = stages[1].opt_atol # TODO : force this value in an init() method
-    opt_rtol::Float64 = stages[1].opt_rtol # TODO : force this value in an init() method
+struct ColCutGenConquer <: AbstractConquerAlgorithm 
+    stages::Vector{ColumnGeneration}
+    primal_heuristics::Vector{ParameterizedHeuristic}
+    before_cutgen_user_algorithm::Union{Nothing, BeforeCutGenAlgo}
+    node_finalizer::Union{Nothing, NodeFinalizer}
+    preprocess
+    cutgen
+    max_nb_cut_rounds::Int # TODO : tailing-off ?
+    opt_atol::Float64# TODO : force this value in an init() method
+    opt_rtol::Float64 # TODO : force this value in an init() method
 end
+
+ColCutGenConquer(;
+        stages = [ColumnGeneration()],
+        primal_heuristics = [ParamRestrictedMasterHeuristic()],
+        before_cutgen_user_algorithm = nothing,
+        node_finalizer = nothing,
+        preprocess = nothing,
+        cutgen = CutCallbacks(),
+        max_nb_cut_rounds = 3,
+        opt_atol = AlgoAPI.default_opt_atol(),
+        opt_rtol = AlgoAPI.default_opt_rtol()
+) = ColCutGenConquer(
+    stages, 
+    primal_heuristics, 
+    before_cutgen_user_algorithm, 
+    node_finalizer, 
+    preprocess, 
+    cutgen, 
+    max_nb_cut_rounds, 
+    opt_atol, 
+    opt_rtol
+)
 
 function isverbose(algo::ColCutGenConquer) 
     for colgen in algo.stages
@@ -123,7 +145,7 @@ end
 # ColCutGenConquer does not use any storage unit for the moment, therefore 
 # get_units_usage() is not defined for i
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
-    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+    child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
     for colgen in algo.stages
         push!(child_algos, (colgen, reform))
     end
@@ -400,7 +422,7 @@ end
 #                      RestrMasterLPConquer
 ####################################################################
 
-@with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
+@with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm
     masterlpalgo::SolveLpForm = SolveLpForm(
         update_ip_primal_solution = true
     )
