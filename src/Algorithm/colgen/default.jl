@@ -345,17 +345,17 @@ ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_ip_dual_bound(pric
 
 is_improving_red_cost(ctx::ColGenContext, red_cost) = red_cost > 0 + ctx.opt_atol
 is_improving_red_cost_min_sense(ctx::ColGenContext, red_cost) = red_cost < 0 - ctx.opt_atol
-function has_improving_red_cost(column::GeneratedColumn)
+function has_improving_red_cost(ctx, column::GeneratedColumn)
     if column.min_obj
-        return is_improving_red_cost_min_sense(column.red_cost)
+        return is_improving_red_cost_min_sense(ctx, column.red_cost)
     end
-    return is_improving_red_cost(column.red_cost)
+    return is_improving_red_cost(ctx, column.red_cost)
 end
 # In our implementation of `push_in_set!`, we keep only columns that have improving reduced 
 # cost.
-function ColGen.push_in_set!(pool::ColumnsSet, column::GeneratedColumn)
+function ColGen.push_in_set!(ctx::ColGenContext, pool::ColumnsSet, column::GeneratedColumn)
     # We keep only columns that improve reduced cost
-    if has_improving_red_cost(column)
+    if has_improving_red_cost(ctx, column)
         push!(pool.columns, column)
         return true
     end
@@ -451,6 +451,8 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
     )
 end
 
+ColGen.get_nb_new_cols(output::ColGenIterationOutput) = output.nb_new_cols
+
 #############################################################################
 # Column generation loop
 #############################################################################
@@ -475,7 +477,7 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
-ColGen.after_colgen_iteration(ctx::ColGenContext, phase, colgen_iter_output) = nothing
+ColGen.after_colgen_iteration(ctx::ColGenContext, phase, env, colgen_iteration, colgen_iter_output) = nothing
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 

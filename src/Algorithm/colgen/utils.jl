@@ -164,8 +164,8 @@ function SubgradientCalculationHelper(master)
     a = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
     A = _submatrix(
         master, 
-        constr_id -> <condition to keep constr_id>,
-        var_id -> Coluna.MathProg.getduty(var_id) <= MasterCol
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
+        var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
     )
     return SubgradientCalculationHelper(a, A)
 end

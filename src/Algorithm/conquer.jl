@@ -111,7 +111,9 @@ struct ColCutGenConquer <: AbstractConquerAlgorithm
     max_nb_cut_rounds::Int # TODO : tailing-off ?
     opt_atol::Float64# TODO : force this value in an init() method
     opt_rtol::Float64 # TODO : force this value in an init() method
-    ColCutGenConquer(;
+end
+
+ColCutGenConquer(;
         stages = [ColumnGeneration()],
         primal_heuristics = [ParamRestrictedMasterHeuristic()],
         before_cutgen_user_algorithm = nothing,
@@ -121,8 +123,17 @@ struct ColCutGenConquer <: AbstractConquerAlgorithm
         max_nb_cut_rounds = 3,
         opt_atol = AlgoAPI.default_opt_atol(),
         opt_rtol = AlgoAPI.default_opt_rtol()
-    )
-end
+) = ColCutGenConquer(
+    stages, 
+    primal_heuristics, 
+    before_cutgen_user_algorithm, 
+    node_finalizer, 
+    preprocess, 
+    cutgen, 
+    max_nb_cut_rounds, 
+    opt_atol, 
+    opt_rtol
+)
 
 function isverbose(algo::ColCutGenConquer) 
     for colgen in algo.stages
@@ -134,7 +145,7 @@ end
 # ColCutGenConquer does not use any storage unit for the moment, therefore 
 # get_units_usage() is not defined for i
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
-    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+    child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
     for colgen in algo.stages
         push!(child_algos, (colgen, reform))
     end

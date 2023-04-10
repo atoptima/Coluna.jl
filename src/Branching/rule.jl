@@ -25,7 +25,7 @@ end
 Input of a branching rule (branching separation algorithm)
 Contains current solution, max number of candidates and local candidate id.
 """
-struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node<:AlgoAPI.AbstractNode,Solution}
+struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node,Solution}
     solution::Solution 
     isoriginalsol::Bool
     max_nb_candidates::Int64

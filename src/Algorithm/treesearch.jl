@@ -26,7 +26,7 @@ Parameters :
 Options :
 - `branchingtreefile` : name of the file in which the algorithm writes an overview of the branching tree
 """
-@with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
+struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm
     dividealg::AlgoAPI.AbstractDivideAlgorithm
     explorestrategy::TreeSearch.AbstractExploreStrategy

@@ -93,7 +93,7 @@ stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabiliza
 ############################################################################################
 
 function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
+    child_algs = Tuple{AlgoAPI.AbstractAlgorithm,AbstractModel}[]
     push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
     push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
     for (id, spform) in get_dw_pricing_sps(reform)

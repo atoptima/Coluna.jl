@@ -56,7 +56,7 @@ A conquer algorithm should restore records of storage units using `restore_from_
 - each time it runs in the beginning
 - each time after calling a child manager algorithm
 """
-abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
+abstract type AbstractConquerAlgorithm <: AlgoAPI.AbstractAlgorithm end
 
 # conquer algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractConquerAlgorithm) = true
@@ -89,7 +89,6 @@ abstract type AbstractOptimizationAlgorithm <: AlgoAPI.AbstractAlgorithm end
 function _collect_units_to_restore!(
     global_units_usage::UnitsUsage, algo::AlgoAPI.AbstractAlgorithm, model::AbstractModel
 )
-    println("\e[44m ---- ]")
     for (unit_model, unit_type, unit_usage) in get_units_usage(algo, model)
         push!(global_units_usage.units_used, (unit_model, unit_type))
     end

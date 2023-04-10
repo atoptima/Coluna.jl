@@ -133,7 +133,7 @@ end
 # therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
-    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+    child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
     for phase in algo.phases
         push!(child_algos, (phase.conquer_algo, reform))
     end

@@ -1,10 +1,12 @@
 mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
     inner::ColGenContext
     phase::Int
+    mst_elapsed_time::Float64
+    sp_elapsed_time::Float64
 
     function ColGenPrinterContext(reform, alg)
         inner = ColGenContext(reform, alg)
-        new(inner, 3)
+        new(inner, 3, 0.0, 0.0)
     end
 end
 
@@ -24,7 +26,9 @@ function ColGen.setup_context!(ctx::ColGenPrinterContext, phase::ColGen.Abstract
 end
 
 function ColGen.optimize_master_lp_problem!(master, ctx::ColGenPrinterContext, env)
-    output = ColGen.optimize_master_lp_problem!(master, ctx.inner, env)
+    ctx.mst_elapsed_time = @elapsed begin
+        output = ColGen.optimize_master_lp_problem!(master, ctx.inner, env)
+    end
     return output
 end
 
@@ -46,9 +50,12 @@ end
 ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.inner, sp)
 
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
+ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col) = ColGen.push_in_set!(ctx.inner, set, col)
 
 function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formulation{DwSp}, env, master_dual_sol)
-    output = ColGen.optimize_pricing_problem!(ctx.inner, sp, env, master_dual_sol)
+    ctx.sp_elapsed_time = @elapsed begin
+        output = ColGen.optimize_pricing_problem!(ctx.inner, sp, env, master_dual_sol)
+    end
     return output
 end
 
@@ -66,7 +73,7 @@ end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
 
-function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, colgen_iter_output)
+function _iter_str(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colgen_iter_output::ColGen.AbstractColGenIterationOutput)
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
     pb = 100000
@@ -78,17 +85,21 @@ function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, colgen_
         phase_string = "##"
     end
 
-    smoothalpha = 0.0
-    nb_new_col = 0.0
-    sp_time = 0.0
-    mst_time = 0.0
-    iteration = 0.0
-    elapsed_optim_time = 0.0
-
-    @printf(
-        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
-        phase_string, iteration, elapsed_optim_time, mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
+    smoothalpha = 0.0 # not implemented yet.
+    nb_new_col = ColGen.get_nb_new_cols(colgen_iter_output)
+    sp_time = ctx.sp_elapsed_time
+    mst_time = ctx.mst_elapsed_time
+    iteration = colgen_iteration
+    optim_time = elapsed_optim_time(env)
+    
+    return @sprintf(
+        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>",
+        phase_string, iteration, optim_time, mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
     )
+end
+
+function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colgen_iter_output)
+    println(_iter_str(ctx, phase, env, colgen_iteration, colgen_iter_output))
     return
 end
 

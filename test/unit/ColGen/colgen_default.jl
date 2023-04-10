@@ -691,6 +691,7 @@ end
 
 ColGen.compute_sp_init_db(ctx::TestColGenIterationContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.context, sp)
 ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(ctx.context)
+ColGen.push_in_set!(ctx::TestColGenIterationContext, set, col) = ColGen.push_in_set!(ctx.context, set, col)
 
 # Columns insertion
 function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, columns)
@@ -1027,7 +1028,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
 
     columns = ColGen.set_of_columns(ctx)
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col1, col2])
-        ColGen.push_in_set!(columns, ClA.GeneratedColumn(sol, cost))
+        ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
@@ -1045,7 +1046,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
 
     columns = ColGen.set_of_columns(ctx)
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col3])
-        ColGen.push_in_set!(columns, ClA.GeneratedColumn(sol, cost))
+        ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
     @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(reform, ctx, phase, columns)
 end
@@ -1086,7 +1087,7 @@ function test_two_identicals_cols_at_same_iteration_ok()
 
     columns = ColGen.set_of_columns(ctx)
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col1, col2, col3])
-        ColGen.push_in_set!(columns, ClA.GeneratedColumn(sol, cost))
+        ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
@@ -1135,7 +1136,7 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
 
     columns = ColGen.set_of_columns(ctx)
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col2, col3])
-        ColGen.push_in_set!(columns, ClA.GeneratedColumn(sol, cost))
+        ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
     nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
