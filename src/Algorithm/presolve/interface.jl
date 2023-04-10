@@ -51,7 +51,7 @@ end
 """
 TODO
 """
-@with_kw struct PresolveAlgorithm <: AbstractAlgorithm
+@with_kw struct PresolveAlgorithm <: AlgoAPI.AbstractAlgorithm
     ϵ::Float64 = 1e-6
     steps = PresolveStep[RemovalOfFixedVariables]
 end

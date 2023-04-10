@@ -81,7 +81,7 @@ generation algorithm.
 Columns stored in the set will then be considered for insertion in the master problem.
 Returns `true` if column was inserted in the set, `false` otherwise.
 """
-@mustimplement "ColGenPricing" push_in_set!(pool, column) = nothing
+@mustimplement "ColGenPricing" push_in_set!(context, pool, column) = nothing
 
 
 
