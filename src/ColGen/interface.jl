@@ -169,7 +169,9 @@ information at two different places.
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, phase, reform) = nothing
+@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform) = nothing
+
+@mustimplement "ColGen" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
 
 ############################################################################################
 # Reduced costs calculation.
@@ -262,7 +264,7 @@ function run_colgen_iteration!(context, phase, env)
     if !isnothing(mast_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
-        ip_primal_sol = check_primal_ip_feasibility(phase, mast_primal_sol, get_reform(context))
+        ip_primal_sol = check_primal_ip_feasibility(mast_primal_sol, context, phase, get_reform(context))
         if !isnothing(ip_primal_sol)
             update_inc_primal_sol!(context, ip_primal_sol)
         end
