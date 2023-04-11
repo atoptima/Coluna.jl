@@ -111,10 +111,9 @@ function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted
     master = getmodel(sol)
     for spid in keys(extracted_cols)
         for (column, val) in Iterators.zip(extracted_cols[spid], extracted_vals[spid])
-            @show column, val
             for (repid, repval) in column
-                @show getduty(repid) <= DwSpPricingVar
-                if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
+                if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar || 
+                    getduty(repid) <= MasterRepPricingVar || getduty(repid) <= MasterRepPricingSetupVar
                     mastrepid = getid(getvar(master, repid))
                     push!(projected_sol_vars, mastrepid)
                     push!(projected_sol_vals, repval * val)
@@ -135,7 +134,7 @@ function proj_cols_is_integer(sol::PrimalSolution{Formulation{DwMaster}})
     columns, values = _extract_data_for_mapping(sol)
     projected_sol = _proj_cols_on_rep(sol, columns, values)
     rolls = _mapping_by_subproblem(columns, values)
-    return isinteger(projected_sol) && all(isinteger, rolls)
+    return isinteger(projected_sol) && all(isinteger, map(r -> values(r), rolls))
 end
 
 ############################################################################################

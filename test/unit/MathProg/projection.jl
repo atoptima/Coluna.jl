@@ -51,6 +51,13 @@ function test_mapping_operator_2()
     v = Float64[0, 1/2, 1, 1/2, 0, 0, 1, 1, 0, 0, 1/2, 0, 1/2, 0, 0]
 
     result = Coluna.MathProg._mapping(G, v; col_len = 4)
+    @test result == [
+        [1.0, 1.0, 0.0, 0.5],
+        [1.0, 0.5, 0.5, 0.5],
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [0.0, 0.5, 0.5, 0.0]
+    ]
 end
 register!(unit_tests, "projection", test_mapping_operator_2; f=true)
 
@@ -141,6 +148,7 @@ function projection_from_dw_reform_to_master_1()
     custom_pool = spform.duty_data.custom_primalsols_pool
 
     var_ids = map(n -> mastervarids[n], ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
+    # VarId[Variableu2, Variableu1, Variableu3, Variableu4, Variableu5, Variableu6]
     for (name, vals) in Iterators.zip(
             ["MC1", "MC2", "MC3", "MC4"],
             [
@@ -188,5 +196,6 @@ function projection_from_dw_reform_to_master_1()
     @test proj[mastervarids["x_23"]] == 1.0
     @test proj[mastervarids["x_34"]] == 1.0
 
+    @test Coluna.MathProg.proj_cols_is_integer(solution) == false
 end
 register!(unit_tests, "projection", projection_from_dw_reform_to_master_1; f = true)
