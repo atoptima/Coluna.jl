@@ -40,7 +40,7 @@ function run!(algo::CutCallbacks, env::Env, form::Formulation, input::CutCallbac
     if length(robust_generators) > 0 && (algo.call_robust_facultative || algo.call_robust_essential)
         !projection_is_possible(form) && error("Cannot do projection on original variables. Open an issue.")
 
-        projsol1 = proj_cols_on_rep(input.primalsol, form)
+        projsol1 = proj_cols_on_rep(input.primalsol)
         projsol2 = Dict{VarId, Float64}(varid => val for (varid, val) in projsol1)
         viol_vals = Float64[]
 

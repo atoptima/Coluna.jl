@@ -16,7 +16,7 @@ function get_original_sol(::Branching.AbstractDivideContext, reform, opt_state)
     original_sol = nothing
     if !isnothing(extended_sol)
         original_sol = if projection_is_possible(master)
-            proj_cols_on_rep(extended_sol, master)
+            proj_cols_on_rep(extended_sol)
         else
             get_best_lp_primal_sol(opt_state) # it means original_sol equals extended_sol(requires discussion)
         end
