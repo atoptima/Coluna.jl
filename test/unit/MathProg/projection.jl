@@ -16,8 +16,10 @@ function test_mapping_operator_1()
         [0, 0, 1, 1, 0, 0, 1],
         [0, 0, 1, 1, 0, 0, 1],
     ]
+    @test Coluna.MathProg._rolls_are_integer(result)
+    return
 end
-register!(unit_tests, "projection", test_mapping_operator_1; f= true)
+register!(unit_tests, "projection", test_mapping_operator_1)
 
 function test_mapping_operator_2()
     # Example from the paper:
@@ -58,8 +60,10 @@ function test_mapping_operator_2()
         [0.0, 1.0, 1.0, 1.0],
         [0.0, 0.5, 0.5, 0.0]
     ]
+    @test Coluna.MathProg._rolls_are_integer(result) == false
+    return
 end
-register!(unit_tests, "projection", test_mapping_operator_2; f=true)
+register!(unit_tests, "projection", test_mapping_operator_2)
 
 # function test_mapping_operator_3()
 #     G = Vector{Float64}[
@@ -198,4 +202,4 @@ function projection_from_dw_reform_to_master_1()
 
     @test Coluna.MathProg.proj_cols_is_integer(solution) == false
 end
-register!(unit_tests, "projection", projection_from_dw_reform_to_master_1; f = true)
+register!(unit_tests, "projection", projection_from_dw_reform_to_master_1)

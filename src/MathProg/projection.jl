@@ -37,9 +37,11 @@ end
 
 _new_set_of_rolls(::Type{Vector{E}}) where {E} = Vector{Float64}[]
 _new_roll(::Type{Vector{E}}, col_len) where {E} = zeros(Float64, col_len)
+_roll_is_integer(roll::Vector{Float64}) = all(isinteger.(roll))
 
 _new_set_of_rolls(::Type{DynamicMatrixColView{VarId, VarId, Float64}}) = Dict{VarId, Float64}[]
 _new_roll(::Type{DynamicMatrixColView{VarId, VarId, Float64}}, _) = Dict{VarId, Float64}()
+_roll_is_integer(roll::Dict{VarId, Float64}) = all(isinteger.(values(roll)))
 
 function _mapping(columns::Vector{A}, values::Vector{B}; col_len::Int = 10) where {A,B}
     p = sortperm(columns, rev=true)
@@ -73,6 +75,9 @@ function _mapping_by_subproblem(columns::Dict{Int, Vector{A}}, values::Dict{Int,
         uid =>  _mapping(cols, values[uid]) for (uid, cols) in columns
     )
 end
+
+_rolls_are_integer(rolls) = all(_roll_is_integer.(rolls))
+_subproblem_rolls_are_integer(rolls_by_sp::Dict) = all(_rolls_are_integer.(values(rolls_by_sp)))
 
 function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
     columns = Dict{Int, Vector{DynamicMatrixColView{VarId, VarId, Float64}}}()
@@ -134,7 +139,8 @@ function proj_cols_is_integer(sol::PrimalSolution{Formulation{DwMaster}})
     columns, values = _extract_data_for_mapping(sol)
     projected_sol = _proj_cols_on_rep(sol, columns, values)
     rolls = _mapping_by_subproblem(columns, values)
-    return isinteger(projected_sol) && all(isinteger, map(r -> values(r), rolls))
+    integer_rolls = _subproblem_rolls_are_integer(rolls)
+    return isinteger(projected_sol) && integer_rolls
 end
 
 ############################################################################################

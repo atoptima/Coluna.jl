@@ -17,6 +17,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     opt_rtol::Float64
     opt_atol::Float64
 
+    incumbent_primal_solution::PrimalSolution
+
     # # Information to solve the master
     # master_solve_alg
     # master_optimizer_id
@@ -216,8 +218,17 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, refo
 
 end
 
-function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, phase, reform)
-    
+function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, ::ColGenContext, phase, reform)
+    primal_sol_is_integer = MathProg.proj_cols_is_integer(master_lp_primal_sol)
+    if !primal_sol_is_integer
+        return nothing
+    end
+    return MathProg.proj_cols_on_rep(master_lp_primal_sol)
+end
+
+function ColGen.update_inc_primal_sol!(ctx::ColGenContext, ip_primal_sol)
+    ctx.incumbent_primal_solution = ip_primal_sol
+    return
 end
 
 # Reduced costs calculation
