@@ -183,7 +183,12 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
     return
 end
 
-# interface ==> move ?
+"""
+    computecoeff(var, var_custom_data, constr, constr_custom_data) -> Float64
+
+Dispatches on the type of custom data attached to the variable and the constraint to compute
+the coefficient of the variable in the constraint.
+"""
 function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_data)
     error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
 end
