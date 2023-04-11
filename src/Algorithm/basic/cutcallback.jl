@@ -1,7 +1,7 @@
 """
 todo
 """
-@with_kw struct CutCallbacks <: AbstractAlgorithm
+@with_kw struct CutCallbacks <: AlgoAPI.AbstractAlgorithm
     call_robust_facultative = true
     call_robust_essential = true
     tol = 1e-6

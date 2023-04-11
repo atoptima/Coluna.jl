@@ -133,7 +133,7 @@ ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status ==
 ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.DUAL_INFEASIBLE
 ColGen.is_optimal(res::ColGenIterationTestPricingResult) = res.term_status == ClB.OPTIMAL
 
-function ColGen.push_in_set!(set::Vector{Vector{Float64}}, col::Vector)
+function ColGen.push_in_set!(ctx::ColGenIterationTestContext, set::Vector{Vector{Float64}}, col::Vector)
     push!(set, col)
     return true 
 end

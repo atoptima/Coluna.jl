@@ -45,14 +45,14 @@ end
 Node that contains the node of the Coluna's tree search algorithm for which we want to
 print execution logs.
 """
-struct PrintedNode{Node<:AbstractNode} <: AbstractNode
+struct PrintedNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
     tree_order_id::Int
     parent::Union{Nothing,PrintedNode}
     inner::Node
 end
 
 TreeSearch.get_parent(n::PrintedNode) = n.parent
-TreeSearch.get_priority(explore::AbstractExploreStrategy, n::PrintedNode) = get_priority(explore, n.inner)
+TreeSearch.get_priority(explore::TreeSearch.AbstractExploreStrategy, n::PrintedNode) = get_priority(explore, n.inner)
 
 function TreeSearch.tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
     close_tree_search_file!(sp.file_printer)

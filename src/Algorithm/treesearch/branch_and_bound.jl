@@ -2,7 +2,7 @@
 # Node
 ############################################################################################
 "Branch-and-bound node."
-mutable struct Node <: APITMP.AbstractNode
+mutable struct Node <: TreeSearch.AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
@@ -17,6 +17,7 @@ TreeSearch.get_parent(n::Node) = n.parent # divide
 TreeSearch.get_opt_state(n::Node) = n.optstate # conquer, divide
 
 TreeSearch.isroot(n::Node) = n.depth == 0
+Branching.isroot(n::Node) = TreeSearch.isroot(n)
 TreeSearch.get_records(n::Node) = n.records # conquer
 TreeSearch.set_records!(n::Node, records) = n.records = records
 
@@ -53,13 +54,13 @@ run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
-struct DivideInputFromBaB <: APITMP.AbstractDivideInput
+struct DivideInputFromBaB <: Branching.AbstractDivideInput
     parent::Node
     opt_state::OptimizationState
 end
 
-APITMP.get_parent(i::DivideInputFromBaB) = i.parent
-APITMP.get_opt_state(i::DivideInputFromBaB) = i.opt_state
+Branching.get_parent(i::DivideInputFromBaB) = i.parent
+Branching.get_opt_state(i::DivideInputFromBaB) = i.opt_state
 
 ############################################################################################
 # SearchSpace
@@ -69,7 +70,7 @@ APITMP.get_opt_state(i::DivideInputFromBaB) = i.opt_state
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     reformulation::Reformulation
     conquer::AbstractConquerAlgorithm
-    divide::APITMP.AbstractDivideAlgorithm
+    divide::AlgoAPI.AbstractDivideAlgorithm
     max_num_nodes::Int64
     open_nodes_limit::Int64
     time_limit::Int64
@@ -184,16 +185,18 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
 end
 
-function get_input(::APITMP.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
+function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
     return DivideInputFromBaB(node, space.optstate)
 end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    @show typeof(candidates)
-    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(APITMP.get_opt_state(candidates))...)
+    candidates_opt_state = Branching.get_opt_state(candidates)
+    if !isnothing(candidates_opt_state)
+        add_ip_primal_sols!(space.optstate, get_ip_primal_sols(candidates_opt_state)...)
+    end
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
-    children = map(APITMP.get_children(candidates)) do child
+    children = map(Branching.get_children(candidates)) do child
         return Node(child)
     end
     return children

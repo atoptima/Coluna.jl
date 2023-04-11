@@ -8,13 +8,24 @@ using DataStructures
 using ..MustImplement
 
 !true && include("../interface.jl") # linter
-using ..APITMP
+using ..AlgoAPI
 
 # Interface to implement a tree search algorithm.
+"""
+Contains the definition of the problem tackled by the tree search algorithm and how the
+nodes and transitions of the tree search space will be explored.
+"""
+abstract type AbstractSearchSpace end
+
+"Algorithm that chooses next node to evaluated in the tree search algorithm."
+abstract type AbstractExploreStrategy end
+
+"A subspace obtained by successive divisions of the search space."
+abstract type AbstractNode end
 
 # The definition of a tree search algorithm is based on three concepts.
 "Returns the type of search space depending on the tree-search algorithm and its parameters."
-@mustimplement "TreeSearch" search_space_type(::AbstractAlgorithm) = nothing
+@mustimplement "TreeSearch" search_space_type(::AlgoAPI.AbstractAlgorithm) = nothing
 
 "Creates and returns the search space of a tree search algorithm, its model, and its input."
 @mustimplement "TreeSearch"  new_space(::Type{<:AbstractSearchSpace}, alg, model, input) = nothing
