@@ -704,6 +704,21 @@ Return the branching priority of a variable
 getbranchingpriority(form::Formulation, varid::VarId) = getvar(form, varid).branching_priority
 getbranchingpriority(::Formulation, var::Variable) = var.branching_priority
 
+
+"""
+    getcustomdata(formulation, var)
+    getcustomdata(formulation, varid)
+    getcustomdata(formulation, constr)
+    getcustomdata(formulation, constrid)
+
+Return the custom data of a variable or a constraint in a formulation.
+"""
+getcustomdata(form::Formulation, varid::VarId) = getcustomdata(form, getvar(form, varid))
+getcustomdata(::Formulation, var::Variable) = var.custom_data
+getcustomdata(form::Formulation, constrid::ConstrId) = getcustomdata(form, getconstr(form, constrid))
+getcustomdata(::Formulation, constr::Constraint) = constr.custom_data
+
+
 # Reset (this method is used only in tests... @guimarqu doesn't know if we should keep it)
 """
     reset!(form, var)

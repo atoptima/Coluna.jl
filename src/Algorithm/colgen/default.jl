@@ -17,6 +17,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     opt_rtol::Float64
     opt_atol::Float64
 
+    incumbent_primal_solution::Union{Nothing,PrimalSolution}
+
     # # Information to solve the master
     # master_solve_alg
     # master_optimizer_id
@@ -37,7 +39,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             alg.throw_column_already_inserted_warning,
             alg.max_nb_iterations,
             alg.opt_rtol,
-            alg.opt_atol
+            alg.opt_atol,
+            nothing
         )
     end
 end
@@ -213,11 +216,35 @@ ColGen.get_dual_sol(master_res::ColGenMasterResult) = get_best_lp_dual_sol(maste
 ColGen.get_obj_val(master_res::ColGenMasterResult) = get_lp_primal_bound(master_res.result)
 
 function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, reform, master_lp_dual_sol)
-
+    master = ColGen.get_master(ctx)
+    # Set all dual value of all constraints to 0.
+    for constr in Iterators.values(getconstrs(master))
+        setcurincval!(master, constr, 0.0)
+    end
+    # Update constraints that have non-zero dual values.
+    for (constr_id, val) in master_lp_dual_sol
+        setcurincval!(master, constr_id, val)
+    end
+    return
 end
 
-function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, phase, reform)
+function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, ::ColGenContext, phase, reform)
+    # Check if feasible.
+    if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
+        return nothing
+    end
+    # Check if integral.
+    primal_sol_is_integer = MathProg.proj_cols_is_integer(master_lp_primal_sol)
+    if !primal_sol_is_integer
+        return nothing
+    end
+    # Returns projection on original variables if feasible and integral.
+    return MathProg.proj_cols_on_rep(master_lp_primal_sol)
+end
 
+function ColGen.update_inc_primal_sol!(ctx::ColGenContext, ip_primal_sol)
+    ctx.incumbent_primal_solution = ip_primal_sol
+    return
 end
 
 # Reduced costs calculation

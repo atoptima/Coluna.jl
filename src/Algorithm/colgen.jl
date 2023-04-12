@@ -558,7 +558,7 @@ end
 
 function _is_feasible_and_integer(rm_lp_primal_sol)
     return !contains(rm_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid))) &&
-        isinteger(proj_cols_on_rep(rm_lp_primal_sol, getmodel(rm_lp_primal_sol)))
+        isinteger(proj_cols_on_rep(rm_lp_primal_sol))
 end
 
 function _assert_has_lp_dual_sol(rm_optstate, master, rm_optimizer_id)

@@ -36,6 +36,9 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, phas
     return ColGen.update_master_constrs_dual_vals!(ctx.inner, phase, reform, master_lp_dual_sol)
 end
 
+ColGen.check_primal_ip_feasibility(mast_primal_sol, ctx::ColGenPrinterContext, phase, reform) = ColGen.check_primal_ip_feasibility(mast_primal_sol, ctx.inner, phase, reform)
+ColGen.update_inc_primal_sol!(ctx::ColGenPrinterContext, ip_primal_sol) = ColGen.update_inc_primal_sol!(ctx.inner, ip_primal_sol)
+
 ColGen.get_subprob_var_orig_costs(ctx::ColGenPrinterContext) = ColGen.get_subprob_var_orig_costs(ctx.inner)
 ColGen.get_subprob_var_coef_matrix(ctx::ColGenPrinterContext) = ColGen.get_subprob_var_coef_matrix(ctx.inner)
 
@@ -73,10 +76,18 @@ end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
 
+function _get_inc_pb(ctx::ColGenPrinterContext)
+    sol = ctx.inner.incumbent_primal_solution
+    if isnothing(sol)
+        return Inf
+    end
+    return getvalue(sol)
+end
+
 function _iter_str(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colgen_iter_output::ColGen.AbstractColGenIterationOutput)
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
-    pb = 100000
+    pb = _get_inc_pb(ctx)
 
     phase_string = "  "
     if ctx.phase == 1
