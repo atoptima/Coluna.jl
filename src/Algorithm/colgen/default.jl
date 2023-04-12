@@ -216,7 +216,16 @@ ColGen.get_dual_sol(master_res::ColGenMasterResult) = get_best_lp_dual_sol(maste
 ColGen.get_obj_val(master_res::ColGenMasterResult) = get_lp_primal_bound(master_res.result)
 
 function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, reform, master_lp_dual_sol)
-
+    master = ColGen.get_master(ctx)
+    # Set all dual value of all constraints to 0.
+    for constr in Iterators.values(getconstrs(master))
+        setcurincval!(master, constr, 0.0)
+    end
+    # Update constraints that have non-zero dual values.
+    for (constr_id, val) in master_lp_dual_sol
+        setcurincval!(master, constr_id, val)
+    end
+    return
 end
 
 function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, ::ColGenContext, phase, reform)
