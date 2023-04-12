@@ -58,18 +58,10 @@ function run_colgen_phase!(context, phase, env)
     cutsep_iteration = 1
     colgen_iter_output = nothing
     while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
-        # cleanup ?
         before_colgen_iteration(context, phase)
         colgen_iter_output = run_colgen_iteration!(context, phase, env)
         after_colgen_iteration(context, phase, env, colgen_iteration, colgen_iter_output)
         colgen_iteration += 1
-        # note part of column generation !!!!
-        # if separate_cuts()
-        #     before_cut_separation()
-        #     run_cut_separation!(context, phase, reform)
-        #     after_cut_separation()
-        #     cutsep_iteration += 1
-        # end
     end
     O = colgen_phase_output_type(context)
     return new_phase_output(O, colgen_iter_output)
@@ -169,7 +161,7 @@ information at two different places.
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform) = nothing
+@mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform) = nothing
 
 @mustimplement "ColGen" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
 
@@ -237,6 +229,8 @@ abstract type AbstractColGenIterationOutput end
 
 @mustimplement "ColGenIterationOutput" get_nb_new_cols(::AbstractColGenIterationOutput) = nothing
 
+@mustimplement "ColGenIterationOutput" get_master_ip_primal_sol(::AbstractColGenIterationOutput) = nothing
+
 @mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput) = nothing
 
 """
@@ -264,7 +258,16 @@ function run_colgen_iteration!(context, phase, env)
     if !isnothing(mast_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
-        ip_primal_sol = check_primal_ip_feasibility(mast_primal_sol, context, phase, get_reform(context))
+        # If the model has essential cut callbacks and the master LP solution is integral, one
+        # needs to make sure that the master LP solution does not violate any essential cuts.
+        # If an essential cut is violated, we expect that the `check_primal_ip_feasibility!` method
+        # will add the violated cut to the master formulation.
+        # If the formulation changes, one needs to restart the column generation to update
+        # memoization to calculate reduced costs and stabilization.
+        ip_primal_sol, master_changed = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context))
+        if master_changed
+            # return 
+        end
         if !isnothing(ip_primal_sol)
             update_inc_primal_sol!(context, ip_primal_sol)
         end

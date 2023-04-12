@@ -36,7 +36,7 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, phas
     return ColGen.update_master_constrs_dual_vals!(ctx.inner, phase, reform, master_lp_dual_sol)
 end
 
-ColGen.check_primal_ip_feasibility(mast_primal_sol, ctx::ColGenPrinterContext, phase, reform) = ColGen.check_primal_ip_feasibility(mast_primal_sol, ctx.inner, phase, reform)
+ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx::ColGenPrinterContext, phase, reform) = ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx.inner, phase, reform)
 ColGen.update_inc_primal_sol!(ctx::ColGenPrinterContext, ip_primal_sol) = ColGen.update_inc_primal_sol!(ctx.inner, ip_primal_sol)
 
 ColGen.get_subprob_var_orig_costs(ctx::ColGenPrinterContext) = ColGen.get_subprob_var_orig_costs(ctx.inner)

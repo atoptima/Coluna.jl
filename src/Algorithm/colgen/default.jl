@@ -228,7 +228,7 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, refo
     return
 end
 
-function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, ::ColGenContext, phase, reform)
+function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::ColGenContext, phase, reform)
     # Check if feasible.
     if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
         return nothing

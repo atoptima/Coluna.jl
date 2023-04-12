@@ -174,7 +174,7 @@ function ColGen.update_sp_vars_red_costs!(::ColGenIterationTestContext, subprob,
     return
 end
 
-ColGen.check_primal_ip_feasibility(sol, ::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform) = nothing
+ColGen.check_primal_ip_feasibility!(sol, ::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform) = nothing
 ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, dual_mast_sol) = nothing
 
 function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, generated_columns)
