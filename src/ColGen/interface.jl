@@ -10,7 +10,7 @@ Placeholder method called before the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" before_colgen_iteration(ctx::AbstractColGenContext, phase, reform) = nothing
+@mustimplement "ColGen" before_colgen_iteration(ctx::AbstractColGenContext, phase) = nothing
 
 
 """
@@ -161,7 +161,7 @@ information at two different places.
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform) = nothing
+@mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform, env) = nothing
 
 @mustimplement "ColGen" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
 
@@ -218,6 +218,7 @@ abstract type AbstractColGenIterationOutput end
     mlp,
     db,
     nb_new_cols,
+    new_cut_in_master,
     infeasible_master,
     unbounded_master,
     infeasible_subproblem,
@@ -233,6 +234,8 @@ abstract type AbstractColGenIterationOutput end
 
 @mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput) = nothing
 
+_inf(is_min_sense) = is_min_sense ? Inf : -Inf
+
 """
     run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
 """
@@ -245,9 +248,9 @@ function run_colgen_iteration!(context, phase, env)
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
     if is_infeasible(mast_result)
-        return new_iteration_output(O, is_min_sense, nothing, Inf, 0, true, false, false, false, false, nothing, nothing)
+        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing)
     elseif is_unbounded(mast_result)
-        return new_iteration_output(O, is_min_sense, -Inf, nothing, 0, false, true, false, false, false, nothing, nothing)
+        return new_iteration_output(O, is_min_sense, -_inf(is_min_sense), nothing, 0, false, false, true, false, false, false, nothing, nothing)
     end
 
     check_master_termination_status(mast_result)
@@ -264,12 +267,13 @@ function run_colgen_iteration!(context, phase, env)
         # will add the violated cut to the master formulation.
         # If the formulation changes, one needs to restart the column generation to update
         # memoization to calculate reduced costs and stabilization.
-        ip_primal_sol, master_changed = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context))
-        if master_changed
-            # return 
+        new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context), env)
+        if new_cut_in_master
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, ip_primal_sol)
         end
-        if !isnothing(ip_primal_sol)
-            update_inc_primal_sol!(context, ip_primal_sol)
+        if !isnothing(new_ip_primal_sol)
+            ip_primal_sol = new_ip_primal_sol
+            update_inc_primal_sol!(context, ip_primal_sol) # TODO: change method name because the incumbent is maintained by colgen
         end
     end
 
@@ -327,9 +331,9 @@ function run_colgen_iteration!(context, phase, env)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
-            return new_iteration_output(O, is_min_sense, nothing, Inf, 0, false, false, true, false, false, mast_primal_sol, ip_primal_sol)
+            return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, false, false, true, false, false, mast_primal_sol, ip_primal_sol)
         elseif is_unbounded(pricing_result)
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, false, false, false, true, false, mast_primal_sol, ip_primal_sol)
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, false, false, false, false, true, false, mast_primal_sol, ip_primal_sol)
         end
 
         check_pricing_termination_status(pricing_result)
@@ -370,8 +374,6 @@ function run_colgen_iteration!(context, phase, env)
 
     # update_stab_after_gencols!
 
-    # check gap
-
-    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, mast_primal_sol, ip_primal_sol)
+    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol)
 end
 

@@ -55,6 +55,7 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
     mlp::Float64
     db::Float64
+    new_cut_in_master::Bool
 end
 
 struct ColGenOutput <: ColGen.AbstractColGenOutput
@@ -113,8 +114,14 @@ function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
     return contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
 end
 
+colgen_master_has_new_cuts(output::ColGenPhaseOutput) = output.new_cut_in_master
+
 ## Implementation of `next_phase`.
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, output::ColGen.AbstractColGenPhaseOutput)
+    # If there is a new essential cut in the master, we restart the phase.
+    if colgen_master_has_new_cuts(output)
+        return ColGenPhase1()
+    end
     # If master LP solution has no artificial vars, it means that the phase 1 has succeeded.
     # We have a set of columns that forms a feasible solution to the LP master and we can 
     # thus start phase 2.
@@ -125,12 +132,20 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, output::
 end
 
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::ColGen.AbstractColGenPhaseOutput)
+    # If there is a new essential cut in the master, we restart the phase.
+    if colgen_master_has_new_cuts(output)
+        return ColGenPhase2()
+    end
     # The phase 2 is always the last phase of the column generation algorithm.
     # It means the algorithm converged or hit a user limit.
     return nothing
 end
 
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::ColGen.AbstractColGenPhaseOutput)
+    # If there is a new essential cut in the master, we restart the phase.
+    if colgen_master_has_new_cuts(output)
+        return ColGenPhase3()
+    end
     # Master LP solution has artificial vars.
     if colgen_mast_lp_sol_has_art_vars(output)
         return ColGenPhase1()
@@ -228,18 +243,29 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, refo
     return
 end
 
-function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::ColGenContext, phase, reform)
+function _violates_essential_cuts!(master, master_lp_primal_sol, env)
+    cutcb_input = CutCallbacksInput(master_lp_primal_sol)
+    cutcb_output = run!(
+        CutCallbacks(call_robust_facultative=false),
+        env, master, cutcb_input
+    )
+    return cutcb_output.nb_cuts_added > 0
+end
+
+function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, reform, env)
     # Check if feasible.
     if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
-        return nothing
+        return nothing, false
     end
     # Check if integral.
     primal_sol_is_integer = MathProg.proj_cols_is_integer(master_lp_primal_sol)
     if !primal_sol_is_integer
-        return nothing
+        return nothing, false
     end
+    # Check if violated essential cuts
+    new_cut_in_master = _violates_essential_cuts!(ColGen.get_master(ctx), master_lp_primal_sol, env)
     # Returns projection on original variables if feasible and integral.
-    return MathProg.proj_cols_on_rep(master_lp_primal_sol)
+    return MathProg.proj_cols_on_rep(master_lp_primal_sol), new_cut_in_master
 end
 
 function ColGen.update_inc_primal_sol!(ctx::ColGenContext, ip_primal_sol)
@@ -439,6 +465,7 @@ struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     nb_new_cols::Int
+    new_cut_in_master::Bool
     infeasible_master::Bool
     unbounded_master::Bool
     infeasible_subproblem::Bool
@@ -455,6 +482,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
     mlp,
     db,
     nb_new_cols,
+    new_cut_in_master,
     infeasible_master,
     unbounded_master,
     infeasible_subproblem,
@@ -468,6 +496,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
         mlp,
         db,
         nb_new_cols,
+        new_cut_in_master,
         infeasible_master,
         unbounded_master,
         infeasible_subproblem,
@@ -500,7 +529,8 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
         colgen_iter_output.unbounded_master ||
         colgen_iter_output.infeasible_subproblem ||
         colgen_iter_output.unbounded_subproblem ||
-        colgen_iter_output.nb_new_cols <= 0
+        colgen_iter_output.nb_new_cols <= 0 ||
+        colgen_iter_output.new_cut_in_master
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
@@ -513,7 +543,8 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
         colgen_iter_output.mlp,
-        colgen_iter_output.db
+        colgen_iter_output.db,
+        colgen_iter_output.new_cut_in_master
     )
 end
 

@@ -69,6 +69,8 @@ Base.@kwdef struct ColGenIterationTestContext <: ColGen.AbstractColGenContext
     pricing_has_incorrect_dual_bound::Bool = false  
     pricing_has_no_dual_bound::Bool = false 
     pricing_solver_has_no_solution::Bool = false
+    new_ip_primal_sol::Bool = false
+    master_has_new_cuts::Bool = false
     reform = ColGenIterationTestReform()
     master = ColGenIterationTestMaster()
     pricing = ColGenIterationTestPricing()
@@ -174,7 +176,22 @@ function ColGen.update_sp_vars_red_costs!(::ColGenIterationTestContext, subprob,
     return
 end
 
-ColGen.check_primal_ip_feasibility!(sol, ::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform) = nothing
+function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, env)
+    if ctx.new_ip_primal_sol
+        @assert !ctx.master_has_new_cuts
+        return [7.0, 7.0, 7.0], false
+    end
+    if ctx.master_has_new_cuts
+        @assert !ctx.new_ip_primal_sol
+        return nothing, true
+    end
+    return nothing, false
+end
+
+function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector{Float64})
+    @test sol == [7.0, 7.0, 7.0]
+end
+
 ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, dual_mast_sol) = nothing
 
 function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, generated_columns)
@@ -192,6 +209,7 @@ struct TestColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     nb_new_cols::Int
+    new_cut_in_master::Bool
     infeasible_master::Bool
     unbounded_master::Bool
     infeasible_subproblem::Bool
@@ -208,6 +226,7 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
     mlp,
     db,
     nb_new_cols,
+    new_cut_in_master,
     infeasible_master,
     unbounded_master,
     infeasible_subproblem,
@@ -221,6 +240,7 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
         mlp,
         db,
         nb_new_cols,
+        new_cut_in_master,
         infeasible_master,
         unbounded_master,
         infeasible_subproblem,
@@ -237,10 +257,12 @@ function colgen_iteration_master_ok_pricing_ok()
     @test output.mlp == 22.5
     @test output.db == 22.5 - 23/4
     @test output.nb_new_cols == 1
+    @test output.new_cut_in_master == false
     @test output.infeasible_master == false
     @test output.unbounded_master == false
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
+    @test isnothing(output.master_ip_primal_sol)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_master_ok_pricing_ok)
 
@@ -254,10 +276,12 @@ function colgen_iteration_master_infeasible()
     @test isnothing(output.mlp)
     @test output.db == Inf 
     @test output.nb_new_cols == 0
+    @test output.new_cut_in_master == false
     @test output.infeasible_master == true
     @test output.unbounded_master == false
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
+    @test isnothing(output.master_ip_primal_sol)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_master_infeasible)
 
@@ -271,10 +295,12 @@ function colgen_iteration_pricing_infeasible()
     @test isnothing(output.mlp)
     @test output.db == Inf
     @test output.nb_new_cols == 0
+    @test output.new_cut_in_master == false
     @test output.infeasible_master == false
     @test output.unbounded_master == false
     @test output.infeasible_subproblem == true
     @test output.unbounded_subproblem == false
+    @test isnothing(output.master_ip_primal_sol)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_infeasible)
 
@@ -288,10 +314,12 @@ function colgen_iteration_master_unbounded()
     @test output.mlp == -Inf
     @test isnothing(output.db)
     @test output.nb_new_cols == 0
+    @test output.new_cut_in_master == false
     @test output.infeasible_master == false
     @test output.unbounded_master == true
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == false
+    @test isnothing(output.master_ip_primal_sol)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_master_unbounded)
 
@@ -305,10 +333,46 @@ function colgen_iteration_pricing_unbounded()
     @test isnothing(output.mlp)
     @test isnothing(output.db)
     @test output.nb_new_cols == 0
+    @test output.new_cut_in_master == false
     @test output.infeasible_master == false
     @test output.unbounded_master == false
     @test output.infeasible_subproblem == false
     @test output.unbounded_subproblem == true
+    @test isnothing(output.master_ip_primal_sol)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
+
+function colgen_finds_ip_primal_sol()
+    ctx = ColGenIterationTestContext(
+        new_ip_primal_sol = true
+    )
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    @test output.mlp == 22.5
+    @test output.db == 22.5 - 23/4
+    @test output.nb_new_cols == 1
+    @test output.new_cut_in_master == false
+    @test output.infeasible_master == false
+    @test output.unbounded_master == false
+    @test output.infeasible_subproblem == false
+    @test output.unbounded_subproblem == false
+    @test output.master_ip_primal_sol == [7.0, 7.0, 7.0]
+end
+register!(unit_tests, "colgen_iteration", colgen_finds_ip_primal_sol)
+
+function colgen_new_cuts_in_master()
+    ctx = ColGenIterationTestContext(
+        master_has_new_cuts = true
+    )
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    @test isnothing(output.mlp)
+    @test isnothing(output.db)
+    @test output.nb_new_cols == 0
+    @test output.new_cut_in_master == true
+    @test output.infeasible_master == false
+    @test output.unbounded_master == false
+    @test output.infeasible_subproblem == false
+    @test output.unbounded_subproblem == false
+    @test isnothing(output.master_ip_primal_sol)
+end
+register!(unit_tests, "colgen_iteration", colgen_new_cuts_in_master)
 
