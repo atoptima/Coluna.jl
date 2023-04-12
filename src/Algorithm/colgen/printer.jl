@@ -76,10 +76,18 @@ end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
 
+function _get_inc_pb(ctx::ColGenPrinterContext)
+    sol = ctx.inner.incumbent_primal_solution
+    if isnothing(sol)
+        return Inf
+    end
+    return getvalue(sol)
+end
+
 function _iter_str(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colgen_iter_output::ColGen.AbstractColGenIterationOutput)
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
-    pb = 100000
+    pb = _get_inc_pb(ctx)
 
     phase_string = "  "
     if ctx.phase == 1

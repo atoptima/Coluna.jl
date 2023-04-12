@@ -17,7 +17,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     opt_rtol::Float64
     opt_atol::Float64
 
-    incumbent_primal_solution::PrimalSolution
+    incumbent_primal_solution::Union{Nothing,PrimalSolution}
 
     # # Information to solve the master
     # master_solve_alg
@@ -39,7 +39,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             alg.throw_column_already_inserted_warning,
             alg.max_nb_iterations,
             alg.opt_rtol,
-            alg.opt_atol
+            alg.opt_atol,
+            nothing
         )
     end
 end
@@ -219,10 +220,16 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, refo
 end
 
 function ColGen.check_primal_ip_feasibility(master_lp_primal_sol, ::ColGenContext, phase, reform)
+    # Check if feasible.
+    if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
+        return nothing
+    end
+    # Check if integral.
     primal_sol_is_integer = MathProg.proj_cols_is_integer(master_lp_primal_sol)
     if !primal_sol_is_integer
         return nothing
     end
+    # Returns projection on original variables if feasible and integral.
     return MathProg.proj_cols_on_rep(master_lp_primal_sol)
 end
 
