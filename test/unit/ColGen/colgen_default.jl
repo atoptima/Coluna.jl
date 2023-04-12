@@ -674,7 +674,7 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
     return output
 end
 
-ColGen.check_primal_ip_feasibility(master_lp_primal_sol, ::TestColGenIterationContext, phase, reform) = nothing
+ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::TestColGenIterationContext, phase, reform, env) = nothing, false
 ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
 ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
 ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)

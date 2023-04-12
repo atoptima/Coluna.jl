@@ -1,7 +1,9 @@
 
 struct TestColGenOutput <: ColGen.AbstractColGenPhaseOutput
     has_art_vars::Bool
+    new_cuts_in_master::Bool
 end
+ClA.colgen_master_has_new_cuts(ctx::TestColGenOutput) = ctx.new_cuts_in_master
 ClA.colgen_mast_lp_sol_has_art_vars(ctx::TestColGenOutput) = ctx.has_art_vars
 
 # The two following tests are pretty straightforward.
@@ -14,15 +16,19 @@ register!(unit_tests, "colgen_phase", initial_phase_colgen_test)
 
 function next_phase_colgen_test()
     it = ClA.ColunaColGenPhaseIterator()
-    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(true)) isa ClA.ColGenPhase1
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(false)))
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(true)))
-    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(false)) isa ClA.ColGenPhase2
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(true)))
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(false)))
+    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(true, false)) isa ClA.ColGenPhase1
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(false, false)))
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(true, false)))
+    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(false, false)) isa ClA.ColGenPhase2
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(true, false)))
+    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(false, false)))
+
+    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(false, true)) isa ClA.ColGenPhase1
+    @test ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(false, true)) isa ClA.ColGenPhase2
+    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(false, true)) isa ClA.ColGenPhase3
 end
 register!(unit_tests, "colgen_phase", next_phase_colgen_test)
-        
+
 function get_reform_master_and_vars()
     form_string1 = """
         master
@@ -121,6 +127,7 @@ function stop_colgen_phase_if_colgen_converged_eq()
         false,
         false,
         false,
+        false,
         nothing,
         nothing
     )
@@ -141,6 +148,7 @@ function stop_colgen_phase_if_colgen_converged_min()
         99.9998, # mlp
         100.12, # greater than mlp means colgen has converged
         0,
+        false,
         false,
         false,
         false,
@@ -171,6 +179,7 @@ function stop_colgen_phase_if_colgen_converged_max()
         false,
         false,
         false,
+        false,
         nothing,
         nothing
     )
@@ -191,6 +200,7 @@ function stop_colgen_phase_if_iterations_limit()
         65.87759,
         29.869,
         6,
+        false,
         false,
         false,
         false,
@@ -220,6 +230,7 @@ function stop_colgen_phase_if_time_limit()
         false,
         false,
         false,
+        false,
         true,
         nothing,
         nothing
@@ -241,6 +252,7 @@ function stop_colgen_phase_if_subproblem_infeasible()
         87859,
         890,
         1,
+        false,
         false,
         false,
         true,
@@ -269,6 +281,7 @@ function stop_colgen_phase_if_subproblem_unbounded()
         false,
         false,
         false,
+        false,
         true,
         false,
         nothing,
@@ -291,6 +304,7 @@ function stop_colgen_phase_if_master_unbounded()
         87859,
         890,
         1,
+        false,
         false,
         true,
         false,
@@ -321,12 +335,38 @@ function stop_colgen_phase_if_no_new_column()
         false,
         false,
         false,
+        false,
         nothing,
         nothing
     )
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_no_new_column)
+
+function stop_colgen_phase_if_new_cut_in_master()
+    reform, _, _ = get_reform_master_and_vars()
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+    colgen_iteration = 1
+    cutsep_iteration = 1
+    env = nothing
+
+    colgen_iter_output = ClA.ColGenIterationOutput(
+        true,
+        87859,
+        890,
+        1,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        nothing,
+        nothing
+    )
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase3(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+end
+register!(unit_tests, "colgen_phase", stop_colgen_phase_if_new_cut_in_master)
 
 function continue_colgen_phase_otherwise()
     reform, _, _ = get_reform_master_and_vars()
@@ -345,9 +385,11 @@ function continue_colgen_phase_otherwise()
         false,
         false,
         false,
+        false,
         nothing,
         nothing
     )
     @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
 end
 register!(unit_tests, "colgen_phase", continue_colgen_phase_otherwise)
+
