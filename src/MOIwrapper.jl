@@ -14,15 +14,17 @@ mutable struct _VarInfo
     index::MOI.VariableIndex
     name::String
     var::Variable
+    data::Union{Nothing, BlockDecomposition.AbstractCustomData}
 end
-_VarInfo(var::Variable) = _VarInfo(_NONE, _NONE, _CONT, MOI.VariableIndex(0), "", var)
+_VarInfo(var::Variable) = _VarInfo(_NONE, _NONE, _CONT, MOI.VariableIndex(0), "", var, nothing)
 
 mutable struct _ConstrInfo
     name::String
     index::Union{Nothing, MOI.ConstraintIndex}
     constr::Constraint
+    data::Union{Nothing, BlockDecomposition.AbstractCustomData}
 end
-_ConstrInfo(constr::Constraint) = _ConstrInfo("", nothing, constr)
+_ConstrInfo(constr::Constraint) = _ConstrInfo("", nothing, constr, nothing)
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     env::Env
@@ -166,6 +168,8 @@ MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 MOI.supports(::Optimizer, ::BlockDecomposition.ConstraintDecomposition) = true
 MOI.supports(::Optimizer, ::BlockDecomposition.VariableDecomposition) = true
 MOI.supports(::Optimizer, ::BlockDecomposition.RepresentativeVar) = true
+MOI.supports(::Optimizer, ::BlockDecomposition.CustomVarValue) = true   
+MOI.supports(::Optimizer, ::BlockDecomposition.CustomConstrValue) = true
 
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, val)
@@ -856,6 +860,15 @@ function MOI.set(
     return
 end
 
+function MOI.set(
+    model::Optimizer, ::BD.CustomVarValue, varid::MOI.VariableIndex, custom_data
+)
+    MOI.throw_if_not_valid(model, varid)
+    var = _info(model, varid).var
+    var.custom_data = custom_data
+    return
+end
+
 function MOI.get(model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex)
     var = _info(model, varid).var
     return var.branching_priority
@@ -906,6 +919,16 @@ function MOI.set(
 )
     MOI.throw_if_not_valid(model, constrid)
     store!(model.annotations, annotation, _info(model, constrid).constr)
+    return
+end
+
+function MOI.set(
+    model::Optimizer, ::BlockDecomposition.CustomConstrValue, constrid::MOI.ConstraintIndex,
+    custom_data
+)
+    MOI.throw_if_not_valid(model, constrid)
+    constr = _info(model, constrid).constr
+    constr.custom_data = custom_data
     return
 end
 
