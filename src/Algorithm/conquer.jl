@@ -193,7 +193,6 @@ Returns `false` if the node is infeasible, subsolver time limit is reached, or n
 function run_colgen!(ctx::ColCutGenContext, colgen, env, reform, node_state)
     colgen_output = run!(colgen, env, reform, node_state)
     update!(node_state, colgen_output)
-
     if getterminationstatus(node_state) == INFEASIBLE ||
        getterminationstatus(node_state) == TIME_LIMIT ||
        ip_gap_closed(node_state, atol = ctx.params.opt_atol, rtol = ctx.params.opt_rtol)

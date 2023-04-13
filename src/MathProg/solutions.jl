@@ -83,7 +83,10 @@ function Base.:(==)(a::PrimalSolution, b::PrimalSolution)
     return a.solution == b.solution && a.custom_data == b.custom_data
 end
 
-Base.copy(s::P) where {P<:PrimalSolution}= P(copy(s.solution), copy(s.custom_data))
+function Base.copy(s::P) where {P<:PrimalSolution}
+    custom_data = isnothing(s.custom_data) ? nothing : copy(s.custom_data)
+    return P(copy(s.solution), custom_data)
+end
 
 function Base.isinteger(sol::PrimalSolution)
     for (vc_id, val) in sol

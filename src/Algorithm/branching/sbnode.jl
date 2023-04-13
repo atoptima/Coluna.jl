@@ -15,7 +15,7 @@ mutable struct SbNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
         form::AbstractFormulation, parent::N, var_name::String, branch_description::String, records::Records
     ) where {N <: TreeSearch.AbstractNode}
         depth = getdepth(parent) + 1
-        node_state = OptimizationState(form, TreeSearch.get_opt_state(parent), false, false)
+        node_state = OptimizationState(form, TreeSearch.get_opt_state(parent), true, true)
         return new{N}(depth, parent, node_state, var_name, branch_description, records, false)
     end
 end

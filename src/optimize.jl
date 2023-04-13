@@ -102,7 +102,7 @@ function optimize!(
     ip_primal_sols = get_ip_primal_sols(algstate)
     if !isnothing(ip_primal_sols)
         for sol in ip_primal_sols
-            add_ip_primal_sol!(outstate, proj_cols_on_rep(sol))
+            add_ip_primal_sol!(outstate, sol)
         end
     end
 
@@ -122,6 +122,7 @@ function optimize!(
     # The first one contains the solutions projected on the original formulation.
     # The second one contains the solutions to the master formulation so the user can
     # retrieve the disagreggated solution.
+
     return outstate, algstate
 end
 

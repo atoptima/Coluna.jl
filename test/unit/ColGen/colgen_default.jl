@@ -766,7 +766,7 @@ function test_colgen_iteration_min_gap()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env, nothing)
     @test output.mlp ≈ 79.666666667
     @test output.db ≈ 21.3333333333
     @test output.nb_new_cols == 2
@@ -830,7 +830,7 @@ function test_colgen_iteration_max_gap()
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env, nothing)
     @test output.mlp ≈ 87.00
     @test output.db ≈ 110.00
     @test output.nb_new_cols == 2
@@ -898,7 +898,7 @@ function test_colgen_iteration_pure_master_vars()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env, nothing)
     @test output.mlp ≈ 52.9500
     @test output.db ≈ 51.5000
     @test output.nb_new_cols == 1
@@ -962,7 +962,7 @@ function test_colgen_iteration_obj_const()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), env, nothing)
    
     @test output.mlp ≈ 779.6666666666667 
     @test output.db ≈ 717.6666666766668
@@ -1238,7 +1238,8 @@ function test_colgen_loop()
     phase = ClA.ColGenPhase3()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     ColGen.setup_reformulation!(reform, phase)
-    output = ColGen.run_colgen_phase!(ctx, phase, env)
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run_colgen_phase!(ctx, phase, env, nothing)
 
     # EXPECTED:
     #    """
@@ -1248,7 +1249,8 @@ function test_colgen_loop()
 
     @test output.mlp ≈ 70.33333333
     @test output.db ≈ 70.33333333
-    #@test output.pb ≈ 89.0
+    @test Coluna.ColunaBase.getvalue(output.master_ip_primal_sol) ≈ 89.0
+    return
 end
 register!(unit_tests, "colgen_default", test_colgen_loop)
 
@@ -1339,7 +1341,7 @@ function test_identical_subproblems()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())    
-    output = ColGen.run!(ctx, env)
+    output = ColGen.run!(ctx, env, nothing)
     @test output.mlp ≈ 75
     @test output.mlp ≈ 75
 end
@@ -1354,7 +1356,7 @@ function expected_output_identical_subproblems()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())    
-    output = ColGen.run!(ctx, env)
+    output = ColGen.run!(ctx, env, nothing)
     @test output.mlp ≈ 75
     @test output.db ≈ 75
 end
@@ -1372,7 +1374,7 @@ function test_colgen()
 
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
 
-    output = ColGen.run!(ctx, env)
+    output = ColGen.run!(ctx, env, nothing)
     @test output.mlp ≈ 7033.3333333
     @test output.db ≈ 7033.3333333
 end

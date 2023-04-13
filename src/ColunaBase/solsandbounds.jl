@@ -370,7 +370,7 @@ function Base.show(io::IOContext, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
 end
 
 # Todo : revise method
-Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))
+Base.copy(s::S) where {S<:Solution} = S(s.model, s.bound, s.status, copy(s.sol))
 
 # Implementing comparison between solution & dynamic matrix col view for solution comparison
 function Base.:(==)(v1::DynamicMatrixColView, v2::Solution)
