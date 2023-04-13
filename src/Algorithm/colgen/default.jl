@@ -268,6 +268,11 @@ function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenCo
     return MathProg.proj_cols_on_rep(master_lp_primal_sol), new_cut_in_master
 end
 
+ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Nothing) = true
+function ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::PrimalSolution)
+    return ColunaBase.isbetter(ColunaBase.getbound(new_ip_primal_sol), ColunaBase.getbound(ip_primal_sol))
+end
+
 function ColGen.update_inc_primal_sol!(ctx::ColGenContext, ip_primal_sol)
     ctx.incumbent_primal_solution = ip_primal_sol
     return
@@ -539,6 +544,7 @@ ColGen.after_colgen_iteration(ctx::ColGenContext, phase, env, colgen_iteration, 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
 function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output::ColGenIterationOutput)
+    @show colgen_iter_output.master_ip_primal_sol
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,

@@ -53,13 +53,17 @@ abstract type AbstractColGenOutput end
 
 @mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput) = nothing
 
-function run_colgen_phase!(context, phase, env)
+function run_colgen_phase!(context, phase, env, ip_primal_sol)
     colgen_iteration = 1
     cutsep_iteration = 1
     colgen_iter_output = nothing
     while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
         before_colgen_iteration(context, phase)
-        colgen_iter_output = run_colgen_iteration!(context, phase, env)
+        colgen_iter_output = run_colgen_iteration!(context, phase, env, ip_primal_sol)
+        new_ip_primal_sol = get_master_ip_primal_sol(colgen_iter_output)
+        if !isnothing(new_ip_primal_sol)
+            ip_primal_sol = new_ip_primal_sol
+        end
         after_colgen_iteration(context, phase, env, colgen_iteration, colgen_iter_output)
         colgen_iteration += 1
     end
@@ -67,14 +71,14 @@ function run_colgen_phase!(context, phase, env)
     return new_phase_output(O, colgen_iter_output)
 end
 
-function run!(context, env)
+function run!(context, env, ip_primal_sol)
     it = new_phase_iterator(context)
     phase = initial_phase(it)
     phase_output = nothing
     while !isnothing(phase)
         setup_reformulation!(get_reform(context), phase)
         setup_context!(context, phase)
-        phase_output = run_colgen_phase!(context, phase, env)
+        phase_output = run_colgen_phase!(context, phase, env, ip_primal_sol)
         phase = next_phase(it, phase, phase_output)
     end
     O = colgen_output_type(context)
@@ -163,6 +167,8 @@ LP solution is integer feasible; `nothing` otherwise.
 """
 @mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform, env) = nothing
 
+@mustimplement "ColGen" isbetter(new_ip_primal_sol, ip_primal_sol) = nothing
+
 @mustimplement "ColGen" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
 
 ############################################################################################
@@ -239,7 +245,7 @@ _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 """
     run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
 """
-function run_colgen_iteration!(context, phase, env)
+function run_colgen_iteration!(context, phase, env, ip_primal_sol)
     master = get_master(context)
     is_min_sense = is_minimization(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
@@ -257,7 +263,6 @@ function run_colgen_iteration!(context, phase, env)
 
     # Master primal solution
     mast_primal_sol = get_primal_sol(mast_result)
-    ip_primal_sol = nothing
     if !isnothing(mast_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
@@ -271,7 +276,7 @@ function run_colgen_iteration!(context, phase, env)
         if new_cut_in_master
             return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, ip_primal_sol)
         end
-        if !isnothing(new_ip_primal_sol)
+        if !isnothing(new_ip_primal_sol) && isbetter(new_ip_primal_sol, ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
             update_inc_primal_sol!(context, ip_primal_sol) # TODO: change method name because the incumbent is maintained by colgen
         end

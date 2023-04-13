@@ -253,7 +253,7 @@ end
 
 function colgen_iteration_master_ok_pricing_ok()
     ctx = ColGenIterationTestContext()
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test output.mlp == 22.5
     @test output.db == 22.5 - 23/4
     @test output.nb_new_cols == 1
@@ -272,7 +272,7 @@ function colgen_iteration_master_infeasible()
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test isnothing(output.mlp)
     @test output.db == Inf 
     @test output.nb_new_cols == 0
@@ -291,7 +291,7 @@ function colgen_iteration_pricing_infeasible()
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test isnothing(output.mlp)
     @test output.db == Inf
     @test output.nb_new_cols == 0
@@ -310,7 +310,7 @@ function colgen_iteration_master_unbounded()
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test output.mlp == -Inf
     @test isnothing(output.db)
     @test output.nb_new_cols == 0
@@ -329,7 +329,7 @@ function colgen_iteration_pricing_unbounded()
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test isnothing(output.mlp)
     @test isnothing(output.db)
     @test output.nb_new_cols == 0
@@ -346,7 +346,7 @@ function colgen_finds_ip_primal_sol()
     ctx = ColGenIterationTestContext(
         new_ip_primal_sol = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test output.mlp == 22.5
     @test output.db == 22.5 - 23/4
     @test output.nb_new_cols == 1
@@ -363,7 +363,7 @@ function colgen_new_cuts_in_master()
     ctx = ColGenIterationTestContext(
         master_has_new_cuts = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
     @test isnothing(output.mlp)
     @test isnothing(output.db)
     @test output.nb_new_cols == 0
