@@ -188,6 +188,9 @@ function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContex
     return nothing, false
 end
 
+ColGen.isbetter(::Vector{Float64}, ::Nothing) = true
+ColGen.isbetter(::Vector{Float64}, ::Vector{Float64}) = false
+
 function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector{Float64})
     @test sol == [7.0, 7.0, 7.0]
 end

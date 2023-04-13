@@ -114,15 +114,16 @@ function OptimizationState(
         ip_dual_bound = get_ip_dual_bound(source_state),
         lp_dual_bound = get_lp_dual_bound(source_state)
     )
-
+ 
     best_ip_primal_sol = get_best_ip_primal_sol(source_state)
-    if copy_ip_primal_sol && best_ip_primal_sol !== nothing
-        set_ip_primal_sol!(state, copy(best_ip_primal_sol))
+
+    if best_ip_primal_sol !== nothing
+        set_ip_primal_sol!(state, best_ip_primal_sol)
     end
 
     best_lp_primal_sol = get_best_lp_primal_sol(source_state)
-    if copy_lp_primal_sol && best_lp_primal_sol !== nothing
-        set_lp_primal_sol!(state, copy(best_lp_primal_sol))
+    if best_lp_primal_sol !== nothing
+        set_lp_primal_sol!(state, best_lp_primal_sol)
     end
 
     return state

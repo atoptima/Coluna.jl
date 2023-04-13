@@ -25,18 +25,6 @@ We strongly advise users against the use of this method to modify the context or
 """
 @mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, env, colgen_iteration, colgen_iter_output) = nothing
 
-
-# TODO; move
-# @mustimplement "ColGen" initial_primal_solution() = nothing
-
-# @mustimplement "ColGen" initial_dual_solution() = nothing
-
-# @mustimplement "ColGen" before_cut_separation() = nothing
-
-# @mustimplement "ColGen" run_cut_separation!() = nothing
-
-# @mustimplement "ColGen" after_cut_separation() = nothing
-
 abstract type AbstractColGenPhaseOutput end
 
 @mustimplement "ColGenPhase" colgen_phase_output_type(::AbstractColGenContext) = nothing
@@ -79,6 +67,7 @@ function run!(context, env, ip_primal_sol)
         setup_reformulation!(get_reform(context), phase)
         setup_context!(context, phase)
         phase_output = run_colgen_phase!(context, phase, env, ip_primal_sol)
+        ip_primal_sol = ColGen.get_master_ip_primal_sol(phase_output)
         phase = next_phase(it, phase, phase_output)
     end
     O = colgen_output_type(context)
@@ -238,7 +227,9 @@ abstract type AbstractColGenIterationOutput end
 
 @mustimplement "ColGenIterationOutput" get_master_ip_primal_sol(::AbstractColGenIterationOutput) = nothing
 
-@mustimplement "ColGenPhase" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput) = nothing
+@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, ::AbstractColGenIterationOutput) = nothing
+
+@mustimplement "ColGenPhaseOutput" get_master_ip_primal_sol(::AbstractColGenPhaseOutput) = nothing
 
 _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 

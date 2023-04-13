@@ -270,7 +270,10 @@ end
 
 ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Nothing) = true
 function ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::PrimalSolution)
-    return ColunaBase.isbetter(ColunaBase.getbound(new_ip_primal_sol), ColunaBase.getbound(ip_primal_sol))
+    new_val = ColunaBase.getvalue(new_ip_primal_sol)
+    cur_val = ColunaBase.getvalue(ip_primal_sol)
+    sc = MathProg.getobjsense(ColunaBase.getmodel(new_ip_primal_sol)) == MinSense ? 1 : -1
+    return sc * new_val < sc * cur_val
 end
 
 function ColGen.update_inc_primal_sol!(ctx::ColGenContext, ip_primal_sol)
@@ -513,6 +516,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
 end
 
 ColGen.get_nb_new_cols(output::ColGenIterationOutput) = output.nb_new_cols
+ColGen.get_master_ip_primal_sol(output::ColGenIterationOutput) = output.master_ip_primal_sol
 
 #############################################################################
 # Column generation loop
@@ -544,7 +548,6 @@ ColGen.after_colgen_iteration(ctx::ColGenContext, phase, env, colgen_iteration, 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
 function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output::ColGenIterationOutput)
-    @show colgen_iter_output.master_ip_primal_sol
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -553,6 +556,8 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output
         colgen_iter_output.new_cut_in_master
     )
 end
+
+ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 
 ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
 ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol

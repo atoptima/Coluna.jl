@@ -1236,7 +1236,7 @@ function test_colgen_loop()
     end
 
     phase = ClA.ColGenPhase3()
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration())
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     ColGen.setup_reformulation!(reform, phase)
     Coluna.set_optim_start_time!(env)
     output = ColGen.run_colgen_phase!(ctx, phase, env, nothing)
@@ -1249,11 +1249,10 @@ function test_colgen_loop()
 
     @test output.mlp ≈ 70.33333333
     @test output.db ≈ 70.33333333
-    
-    @show output
-    #@test output.pb ≈ 89.0
+    @test Coluna.ColunaBase.getvalue(output.master_ip_primal_sol) ≈ 89.0
+    return
 end
-register!(unit_tests, "colgen_default", test_colgen_loop; f = true)
+register!(unit_tests, "colgen_default", test_colgen_loop)
 
 
 function min_toy_gap_for_colgen()
@@ -1342,7 +1341,7 @@ function test_identical_subproblems()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())    
-    output = ColGen.run!(ctx, env)
+    output = ColGen.run!(ctx, env, nothing)
     @test output.mlp ≈ 75
     @test output.mlp ≈ 75
 end
@@ -1357,7 +1356,7 @@ function expected_output_identical_subproblems()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())    
-    output = ColGen.run!(ctx, env)
+    output = ColGen.run!(ctx, env, nothing)
     @test output.mlp ≈ 75
     @test output.db ≈ 75
 end
@@ -1375,7 +1374,7 @@ function test_colgen()
 
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
 
-    output = ColGen.run!(ctx, env)
+    output = ColGen.run!(ctx, env, nothing)
     @test output.mlp ≈ 7033.3333333
     @test output.db ≈ 7033.3333333
 end

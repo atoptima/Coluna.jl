@@ -164,7 +164,11 @@ end
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
     node_state = current.optstate
-    update_ip_primal_bound!(node_state, get_ip_primal_bound(space_state))
+
+    best_ip_primal_sol = get_best_ip_primal_sol(space_state)
+    if !isnothing(best_ip_primal_sol)
+        update_ip_primal_sol!(node_state, best_ip_primal_sol)
+    end
 
     # TODO: improve ?
     # Condition 1: IP Gap is closed. Abort treatment.
@@ -176,12 +180,6 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     run_conquer = run_conquer || !current.conquerwasrun
     run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
 
-    # TODO: At the moment, we consider that there is no algorithm that exploits
-    # the ip primal solution.
-    # best_ip_primal_sol = get_best_ip_primal_sol(nodestate)
-    # if tsdata.exploitsprimalsolutions && best_ip_primal_sol !== nothing
-    #     set_ip_primal_sol!(treestate, best_ip_primal_sol)
-    # end
     return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
 end
 
