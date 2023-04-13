@@ -3,10 +3,14 @@ mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
     phase::Int
     mst_elapsed_time::Float64
     sp_elapsed_time::Float64
+    print_column_reduced_cost::Bool
 
-    function ColGenPrinterContext(reform, alg)
+    function ColGenPrinterContext(
+        reform, alg;
+        print_column_reduced_cost = true
+    )
         inner = ColGenContext(reform, alg)
-        new(inner, 3, 0.0, 0.0)
+        new(inner, 3, 0.0, 0.0, print_column_reduced_cost)
     end
 end
 
@@ -53,7 +57,19 @@ end
 ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.inner, sp)
 
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
-ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col) = ColGen.push_in_set!(ctx.inner, set, col)
+
+function _calculate_column_reduced_cost(reform, col)
+    @show typeof(reform)
+    @show col
+    error("Good luck")
+end
+
+function ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col)
+    if ctx.print_column_reduced_cost
+        _calculate_column_reduced_cost(ColGen.get_reform(ctx), col)
+    end
+    return ColGen.push_in_set!(ctx.inner, set, col)
+end
 
 function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formulation{DwSp}, env, master_dual_sol)
     ctx.sp_elapsed_time = @elapsed begin
