@@ -63,9 +63,20 @@ ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = Co
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
 
 function _calculate_column_reduced_cost(reform, col_ids)
-    @show typeof(reform)
+    master = reform.master
     @show col_ids
-    error("Good luck")
+    matrix = getcoefmatrix(master)
+    for col_id in col_ids
+        c = getcurcost(master, col_id)
+        tmp = 0
+        for (constrid, coef) in @view matrix[:, col_id] #retrieve the original cost
+            tmp += coef*getcurincval(master, constrid)
+        end
+        redcost = c - tmp
+        println("Column $(col_id) with reduced cost = $(redcost)")
+        #@show col_id
+        #@show c - tmp
+    end
 end
 
 function ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col)
