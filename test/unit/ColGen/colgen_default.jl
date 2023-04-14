@@ -1032,8 +1032,8 @@ function test_two_identicals_cols_at_two_iterations_failure()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
-    @test nb_new_cols == 1
+    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    @test length(new_cols) == 1
 
     ## Iteration 2
     redcosts_spsols = [-1.0]
@@ -1091,8 +1091,8 @@ function test_two_identicals_cols_at_same_iteration_ok()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
-    @test nb_new_cols == 2
+    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    @test length(new_cols) == 2
 end
 register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
 
@@ -1140,8 +1140,8 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    nb_new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
-    @test nb_new_cols == 1
+    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    @test length(new_cols) == 1
 end
 register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)
 

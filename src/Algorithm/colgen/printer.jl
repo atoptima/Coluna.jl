@@ -51,23 +51,24 @@ function ColGen.update_sp_vars_red_costs!(ctx::ColGenPrinterContext, sp::Formula
 end
 
 function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, columns)
-    return ColGen.insert_columns!(reform, ctx.inner, phase, columns)
+    col_ids = ColGen.insert_columns!(reform, ctx.inner, phase, columns)
+    if ctx.print_column_reduced_cost
+        _calculate_column_reduced_cost(ColGen.get_reform(ctx), col_ids)
+    end
+    return col_ids
 end
 
 ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.inner, sp)
 
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
 
-function _calculate_column_reduced_cost(reform, col)
+function _calculate_column_reduced_cost(reform, col_ids)
     @show typeof(reform)
-    @show col
+    @show col_ids
     error("Good luck")
 end
 
 function ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col)
-    if ctx.print_column_reduced_cost
-        _calculate_column_reduced_cost(ColGen.get_reform(ctx), col)
-    end
     return ColGen.push_in_set!(ctx.inner, set, col)
 end
 

@@ -1062,7 +1062,7 @@ function _customdata!(model::Optimizer, type::DataType)
 end
 
 function MOI.set(
-    model::Optimizer, ::BD.CustomVars, customvars::Vector{DataType}
+    model::Optimizer, ::BD.CustomVars, customvars
 )
     for customvar in customvars
         _customdata!(model, customvar)
@@ -1071,7 +1071,7 @@ function MOI.set(
 end
 
 function MOI.set(
-    model::Optimizer, ::BD.CustomConstrs, customconstrs::Vector{DataType}
+    model::Optimizer, ::BD.CustomConstrs, customconstrs
 )
     for customconstr in customconstrs
         _customdata!(model, customconstr)
