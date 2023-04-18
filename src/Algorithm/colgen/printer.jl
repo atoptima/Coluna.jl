@@ -70,7 +70,7 @@ function _calculate_column_reduced_cost(reform, col_ids)
         c = getcurcost(master, col_id)
         tmp = 0
         for (constrid, coef) in @view matrix[:, col_id] #retrieve the original cost
-            tmp += coef*getcurincval(master, constrid)
+            tmp += coef * getcurincval(master, constrid)
         end
         redcost = c - tmp
         println("Column $(col_id) with reduced cost = $(redcost)")
