@@ -358,7 +358,8 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
 
     # Insert columns into the master.
     # The implementation is responsible for checking if the column is "valid".
-    nb_cols_inserted = insert_columns!(get_reform(context), context, phase, generated_columns)
+    col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
+    nb_cols_inserted = length(col_ids)
 
     master_lp_obj_val = get_obj_val(mast_result)
 
