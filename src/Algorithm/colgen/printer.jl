@@ -53,7 +53,7 @@ end
 function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, columns)
     col_ids = ColGen.insert_columns!(reform, ctx.inner, phase, columns)
     if ctx.print_column_reduced_cost
-        _calculate_column_reduced_cost(ColGen.get_reform(ctx), col_ids)
+        _print_column_reduced_costs(ColGen.get_reform(ctx), col_ids)
     end
     return col_ids
 end
@@ -62,20 +62,21 @@ ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = Co
 
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
 
-function _calculate_column_reduced_cost(reform, col_ids)
+function _calculate_column_reduced_cost(reform, col_id)
     master = getmaster(reform)
-    @show col_ids
     matrix = getcoefmatrix(master)
+    c = getcurcost(master, col_id)
+    tmp = 0
+    for (constrid, coef) in @view matrix[:, col_id] #retrieve the original cost
+        tmp += coef * getcurincval(master, constrid)
+    end
+    return c - tmp
+end
+
+function _print_column_reduced_costs(reform, col_ids)
     for col_id in col_ids
-        c = getcurcost(master, col_id)
-        tmp = 0
-        for (constrid, coef) in @view matrix[:, col_id] #retrieve the original cost
-            tmp += coef * getcurincval(master, constrid)
-        end
-        redcost = c - tmp
-        println("Column $(col_id) with reduced cost = $(redcost)")
-        #@show col_id
-        #@show c - tmp
+        redcost = _calculate_column_reduced_cost(reform, col_id)
+        println("********** column $(col_id) with reduced cost = $(redcost) **********")
     end
 end
 
