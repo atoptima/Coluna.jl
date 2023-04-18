@@ -63,7 +63,7 @@ ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = Co
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
 
 function _calculate_column_reduced_cost(reform, col_ids)
-    master = reform.master
+    master = getmaster(reform)
     @show col_ids
     matrix = getcoefmatrix(master)
     for col_id in col_ids
