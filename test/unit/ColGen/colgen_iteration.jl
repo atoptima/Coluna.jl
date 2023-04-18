@@ -200,7 +200,7 @@ ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIt
 function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, generated_columns)
     @test length(generated_columns) == 1
     @test generated_columns[1] == [0, 1, 1, 0, 1, 1, 0, 0, 1, 0]
-    return 1
+    return [1]
 end
 
 function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, mast_lp_obj_val, sp_dbs, mast_dual_sol)

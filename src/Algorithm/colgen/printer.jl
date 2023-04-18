@@ -3,10 +3,14 @@ mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
     phase::Int
     mst_elapsed_time::Float64
     sp_elapsed_time::Float64
+    print_column_reduced_cost::Bool
 
-    function ColGenPrinterContext(reform, alg)
+    function ColGenPrinterContext(
+        reform, alg;
+        print_column_reduced_cost = true
+    )
         inner = ColGenContext(reform, alg)
-        new(inner, 3, 0.0, 0.0)
+        new(inner, 3, 0.0, 0.0, print_column_reduced_cost)
     end
 end
 
@@ -47,13 +51,38 @@ function ColGen.update_sp_vars_red_costs!(ctx::ColGenPrinterContext, sp::Formula
 end
 
 function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, columns)
-    return ColGen.insert_columns!(reform, ctx.inner, phase, columns)
+    col_ids = ColGen.insert_columns!(reform, ctx.inner, phase, columns)
+    if ctx.print_column_reduced_cost
+        _print_column_reduced_costs(ColGen.get_reform(ctx), col_ids)
+    end
+    return col_ids
 end
 
 ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.inner, sp)
 
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
-ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col) = ColGen.push_in_set!(ctx.inner, set, col)
+
+function _calculate_column_reduced_cost(reform, col_id)
+    master = getmaster(reform)
+    matrix = getcoefmatrix(master)
+    c = getcurcost(master, col_id)
+    tmp = 0
+    for (constrid, coef) in @view matrix[:, col_id] #retrieve the original cost
+        tmp += coef * getcurincval(master, constrid)
+    end
+    return c - tmp
+end
+
+function _print_column_reduced_costs(reform, col_ids)
+    for col_id in col_ids
+        redcost = _calculate_column_reduced_cost(reform, col_id)
+        println("********** column $(col_id) with reduced cost = $(redcost) **********")
+    end
+end
+
+function ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col)
+    return ColGen.push_in_set!(ctx.inner, set, col)
+end
 
 function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formulation{DwSp}, env, master_dual_sol)
     ctx.sp_elapsed_time = @elapsed begin

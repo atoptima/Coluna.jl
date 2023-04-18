@@ -327,9 +327,11 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     nb_reactivated_cols = 0
 
     # Then, we add the new columns (i.e. not in the pool).
+    col_ids = VarId[]
     for sol in primal_sols_to_insert
         col_id = insert_column!(master, sol, "MC")
         _set_column_cost!(master, col_id, phase)
+        push!(col_ids, col_id)
         nb_added_cols += 1
     end
 
@@ -337,10 +339,11 @@ function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
     for col_id in col_ids_to_activate
         activate!(master, col_id)
         _set_column_cost!(master, col_id, phase)
+        push!(col_ids, col_id)
         nb_reactivated_cols += 1
     end
 
-    return nb_added_cols + nb_reactivated_cols
+    return col_ids
 end
 
 #############################################################################
