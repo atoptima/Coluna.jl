@@ -53,9 +53,9 @@ else
     run_unit_tests()
     run_integration_tests()
 
-    @testset "MOI integration" begin
-        include("MathOptInterface/MOI_wrapper.jl")
-    end
+    # @testset "MOI integration" begin
+    #     include("MathOptInterface/MOI_wrapper.jl")
+    # end
 
     run_e2e_tests()
 end

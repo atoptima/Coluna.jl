@@ -68,6 +68,6 @@ include("e2e/run.jl")
 
 listen_to_tests([
     #run_unit_tests,
-    run_integration_tests,
-    #run_e2e_tests
+    #run_integration_tests,
+    run_e2e_tests
 ])
