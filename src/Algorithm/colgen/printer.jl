@@ -66,17 +66,24 @@ function _calculate_column_reduced_cost(reform, col_id)
     master = getmaster(reform)
     matrix = getcoefmatrix(master)
     c = getcurcost(master, col_id)
-    tmp = 0
+    convex_constr_redcost = 0
+    remainder = 0
     for (constrid, coef) in @view matrix[:, col_id] #retrieve the original cost
-        tmp += coef * getcurincval(master, constrid)
+        if getduty(constrid) <= MasterConvexityConstr
+            convex_constr_redcost += coef * getcurincval(master, constrid)
+        else 
+            remainder += coef * getcurincval(master, constrid)
+        end
     end
-    return c - tmp
+    convex_constr_redcost = c - convex_constr_redcost
+    remainder = c - remainder
+    return (convex_constr_redcost, remainder)
 end
 
 function _print_column_reduced_costs(reform, col_ids)
     for col_id in col_ids
-        redcost = _calculate_column_reduced_cost(reform, col_id)
-        println("********** column $(col_id) with reduced cost = $(redcost) **********")
+        (convex_constr_redcost, remainder) = _calculate_column_reduced_cost(reform, col_id)
+        println("********** column $(col_id) with convex constraints reduced cost = $(convex_constr_redcost) and reduced cost remainder = $(remainder) (total reduced cost =$(convex_constr_redcost + remainder)) **********")
     end
 end
 
