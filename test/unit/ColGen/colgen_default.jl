@@ -576,64 +576,6 @@ function check_identical_subproblems()
 
 end 
 
-function identical_subproblems()
-    form = """
-    master
-        min
-        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5 
-        s.t.
-        1.0 x_11 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_12 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_13 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_14 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_15 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_16 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
-        1.0 x_17 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
-        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
-        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 2.0 {MasterConvexityConstr}
-
-    dw_sp
-        min
-        8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5  
-        s.t.
-        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 8.0
-
-    continuous
-        artificial
-            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, global_pos_art_var, global_neg_art_var
-
-    integer
-        pricing_setup
-            PricingSetupVar_sp_5
-
-    binary
-        representatives
-            x_11, x_12, x_13, x_14, x_15, x_16, x_17
-
-    bounds
-        0.0 <= x_11 <= 1.0
-        0.0 <= x_12 <= 1.0
-        0.0 <= x_13 <= 1.0
-        0.0 <= x_14 <= 1.0
-        0.0 <= x_15 <= 1.0
-        0.0 <= x_16 <= 1.0
-        0.0 <= x_17 <= 1.0
-        1.0 <= PricingSetupVar_sp_5 <= 1.0
-        local_art_of_cov_5 >= 0.0
-        local_art_of_cov_4 >= 0.0
-        local_art_of_cov_6 >= 0.0
-        local_art_of_cov_7 >= 0.0
-        local_art_of_cov_2 >= 0.0
-        local_art_of_cov_3 >= 0.0
-        local_art_of_cov_1 >= 0.0
-        local_art_of_sp_lb_5 >= 0.0
-        local_art_of_sp_ub_5 >= 0.0
-        global_pos_art_var >= 0.0
-        global_neg_art_var >= 0.0
-    """
-    env, master, sps, _, reform = reformfromstring(form)
-    return env, master, sps, reform
-end
 
 ### Implementation of ColGen API to test and call the default implementation
 struct TestColGenIterationContext <: ColGen.AbstractColGenContext
@@ -1379,3 +1321,148 @@ function test_colgen()
     @test output.db ≈ 7033.3333333
 end
 register!(unit_tests, "colgen", test_colgen)
+
+
+function identical_subproblems()
+    form = """
+    master
+        min
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5 
+        s.t.
+        1.0 x_11 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 2.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 8.0
+
+    continuous
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, global_pos_art_var, global_neg_art_var
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_12, x_13, x_14, x_15, x_16, x_17
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_17 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+
+function r1c_form()
+
+    form = """
+    master
+        min
+        1.0 MC_1 + 1.0 MC_2 + 1.0 MC_3 + 1.0 MC_4 + 1.0 MC_5 + 8.0 x_1 + 1.0 x_2 + 3.0 x_3 + 11.0 x_4 + 7.0 x_5 
+        s.t.
+        1.0 MC_1 + 1.0 MC_2 + 1.0 MC_4 + 1.0 x_1 >= 1.0
+        1.0 MC_1 + 1.0 MC_2 + 1.0 MC_4 + 1.0 MC_5 + 1.0 x_2 >= 1.0
+        1.0 MC_2 + 1.0 MC_3 + 1.0 MC_5 + 1.0 x_3 >= 1.0
+        1.0 MC_3 + 1.0 MC_4 + 1.0 MC_5 + 1.0 x_4 >= 1.0
+        1.0 MC_3 + 1.0 MC_4 + 1.0 MC_5 + 1.0 x_5 >= 1.0
+        0.0 MC_1 + 1.0 MC_2 + 1.0 MC_3 + 1.0 MC_4 + 1.0 MC_5 <= 1.0
+
+    dw_sp
+        min
+        8.0 x_1 + 1.0 x_2 + 3.0 x_3 + 11.0 x_4 + 7.0 x_5 
+        s.t.
+        2.0 x_1 + 3.0 x_2 + 3.0 x_3 <= 8.0 
+
+    continuous
+        columns
+            MC_1, MC_2, MC_3, MC_4, MC_5
+    
+    binary
+        representatives
+            x_1, x_2, x_3, x_4, x_5
+
+    bounds
+        0.0 <= x_1 <= 1.0
+        0.0 <= x_2 <= 1.0
+        0.0 <= x_3 <= 1.0
+        0.0 <= x_4 <= 1.0
+        0.0 <= x_5 <= 1.0
+        MC_1 >= 0.0 
+        MC_2 >= 0.0
+        MC_3 >= 0.0
+        MC_4 >= 0.0
+        MC_5 >= 0.0
+    """
+
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+
+end
+
+
+function test_r1c()
+    env, master, sps, reform = r1c_form()
+    costs = [
+        8.0,
+        1.0,
+        3.0,
+        11.0,
+        7.0
+    ]
+
+    constrids = [id for (id,_) in ClA.getconstrs(master)]
+    @show typeof(constrids)
+
+    dual_sol = DynamicSparseArrays.sparsevec(
+        constrids, 
+        [2.0, 8.0, 1.0, 3.0, 9.0, 4.0]
+        )
+
+    A = [
+        1 0 0 0 0;
+        0 1 0 0 0;
+        0 0 1 0 0;
+        0 0 0 1 0;
+        0 0 0 0 1;
+        0 0 0 0 0 
+    ]
+
+
+    expected_redcosts = costs - transpose(A)*[2.0, 8.0, 1.0, 3.0, 9.0, 4.0]
+    @show expected_redcosts
+    helper = ClA.ReducedCostsCalculationHelper(master)
+
+    redcosts = helper.dw_subprob_c - transpose(helper.dw_subprob_A) * dual_sol
+    @show redcosts
+end
+register!(unit_tests, "colgen", test_r1c, f = true)
