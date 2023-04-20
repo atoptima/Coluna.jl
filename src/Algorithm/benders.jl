@@ -1,8 +1,11 @@
 @with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
+    restr_master_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
+    restr_master_optimizer_id = 1
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
     optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     max_nb_iterations::Int = 100
+    separation_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
 end
 
 # TO DO : BendersCutGeneration does not have yet the child algorithms
@@ -23,6 +26,10 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
     # end
     return units_usage
 end
+
+
+
+
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
@@ -31,24 +38,31 @@ mutable struct BendersCutGenRuntimeData
     #slack_cost_increase_applied::Bool
 end
 
-function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
-    optstate = OptimizationState(getmaster(form))
-    best_ip_primal_sol = get_best_ip_primal_sol(init_optstate)
-    if best_ip_primal_sol !== nothing
-        add_ip_primal_sol!(optstate, best_ip_primal_sol)
-    end
-    return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
-end
+# function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
+#     optstate = OptimizationState(getmaster(form))
+#     best_ip_primal_sol = get_best_ip_primal_sol(init_optstate)
+#     if best_ip_primal_sol !== nothing
+#         add_ip_primal_sol!(optstate, best_ip_primal_sol)
+#     end
+#     return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
+# end
 
-TreeSearch.get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
+# TreeSearch.get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
+
+function _new_context(C::Type{<:Benders.AbstractBendersContext}, reform, algo)
+    return C(reform, algo)
+end
 
 function run!(
     algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationState
 )
-    bndata = BendersCutGenRuntimeData(reform, input)
-    @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
-    return bndata.optstate
+    # ctx = _new_context(Benders.BendersCutGenContext, reform, algo)
+    # return Benders.run!(ctx, env, nothing)
+
+    # bndata = BendersCutGenRuntimeData(reform, input)
+    # @logmsg LogLevel(-1) "Run BendersCutGeneration."
+    # Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
+    # return bndata.optstate
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
