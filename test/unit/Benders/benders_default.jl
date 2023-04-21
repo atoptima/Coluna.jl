@@ -82,4 +82,4 @@ function benders_iteration_default()
     println("\e[42m --------------- n --4------------- \e[00m")
     Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
 end
-register!(unit_tests, "benders_default", benders_iteration_default)
+register!(unit_tests, "benders_default", benders_iteration_default; f = true)

@@ -12,6 +12,10 @@ typical_test_dirs = [
     joinpath("unit", "MathProg"),   
     joinpath("unit", "MustImplement"),
     joinpath("unit", "ColGen"),
+    joinpath("unit", "Benders"),
+    joinpath("unit", "Parser"),
+    joinpath("integration", "custom_data"),
+    joinpath("integration", "parser")
 ]
 tracked_dirs = filter(isdir, typical_test_dirs)
 
@@ -67,7 +71,7 @@ include("integration/run.jl")
 include("e2e/run.jl")
 
 listen_to_tests([
-    #run_unit_tests,
-    #run_integration_tests,
-    run_e2e_tests
+    run_unit_tests,
+    run_integration_tests,
+    #run_e2e_tests
 ])
