@@ -111,7 +111,7 @@ end
 # There is a tutorial about the tree search interface.
 
 # We define the node data structure.
-mutable struct Node <: ClA.AbstractNode
+mutable struct Node <: Coluna.TreeSearch.AbstractNode
     depth::Int
     id::Int
     branch_description::String
@@ -123,13 +123,13 @@ mutable struct Node <: ClA.AbstractNode
     end
 end
 
-ClA.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.get_parent(node::Node) = node.parent
+Coluna.TreeSearch.get_root(node::Node) = isnothing(node.parent) ? node : Coluna.Treesearch.root(node.parent)
+Coluna.TreeSearch.get_parent(node::Node) = node.parent
 
 # We define the search space data structure.
 # Note that we keep the storage in the search space because we have access to this
 # data structure throughout the whole tree search execution.
-mutable struct FullExplSearchSpace <: ClA.AbstractSearchSpace
+mutable struct FullExplSearchSpace <: Coluna.TreeSearch.AbstractSearchSpace
     nb_nodes_generated::Int
     formulation::Formulation
     solution::Tuple{Vector{Float64},Float64}
@@ -141,7 +141,7 @@ mutable struct FullExplSearchSpace <: ClA.AbstractSearchSpace
 end
 
 # We implement the method that returns the root node.
-function ClA.new_root(space::FullExplSearchSpace, _)
+function Coluna.TreeSearch.new_root(space::FullExplSearchSpace, _)
     space.nb_nodes_generated += 1
     return Node(nothing, 1, "", nothing)
 end
@@ -248,20 +248,20 @@ end;
 
 # We define the method `children` of the tree search API.
 # It evaluates the current node and then generates its children.
-function ClA.children(space::FullExplSearchSpace, current, _, _)
+function Coluna.TreeSearch.children(space::FullExplSearchSpace, current, _, _)
     evaluate_current_node(space, current)
     return create_children(space, current)
 end
 
 # We don't define specific stopping criterion.
-ClA.stop(::FullExplSearchSpace, _) = false
+Coluna.TreeSearch.stop(::FullExplSearchSpace, _) = false
 
 # We return the best solution and the record at each node to make sure the example worked.
-ClA.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution
+Coluna.TreeSearch.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution
 
 # We run the example.
 search_space = FullExplSearchSpace(formulation)
-ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
+Coluna.TreeSearch.tree_search(Coluna.TreeSearch.DepthFirstStrategy(), search_space, nothing, nothing)
 
 
 # ## API
