@@ -8,6 +8,7 @@ module Parser
     const _KW_HEADER = Val{:header}()
     const _KW_MASTER = Val{:master}()
     const _KW_SUBPROBLEM = Val{:subproblem}()
+    const _KW_SEPARATION = Val{:separation}()
     const _KW_BOUNDS = Val{:bounds}()
     const _KW_CONSTRAINTS = Val{:constraints}()
 
@@ -17,6 +18,8 @@ module Parser
         # _KW_SUBPROBLEM
         "dw_sp" => _KW_SUBPROBLEM,
         "sp" => _KW_SUBPROBLEM,
+        # _KW_SEPARATION
+        "benders_sp" => _KW_SEPARATION,
         # Integ
         "int" => ClMP.Integ,
         "integer" => ClMP.Integ,
@@ -63,11 +66,18 @@ module Parser
         # MasterColumns
         "columns" => ClMP.MasterCol,
         # MasterRepPricingSetupVar
-        "pricing_setup" => ClMP.MasterRepPricingSetupVar
+        "pricing_setup" => ClMP.MasterRepPricingSetupVar,
+        # Benders first stage variable
+        "first_stage" => ClMP.MasterBendFirstStageVar,
+        "second_stage_cost" => ClMP.MasterBendSecondStageCostVar,
+        # Benders second stage variable
+        "second_stage" => ClMP.BendSpSepVar,
+        "second_stage_artificial" => ClMP.BendSpSecondStageSlackVar
     )
 
     const _KW_CONSTR_DUTIES = Dict(
-        "MasterConvexityConstr" => ClMP.MasterConvexityConstr
+        "MasterConvexityConstr" => ClMP.MasterConvexityConstr,
+        "BendTechConstr" => ClMP.BendSpTechnologicalConstr,
     )
 
     const coeff_re = "\\d+(\\.\\d+)?"
@@ -106,6 +116,8 @@ module Parser
     end
 
     mutable struct ReadCache
+        benders_sp_type::Bool
+        dw_sp_type::Bool
         master::ProblemCache
         subproblems::Dict{Int64,ProblemCache}
         variables::Dict{String,VarCache}
@@ -123,6 +135,7 @@ module Parser
 
     function ReadCache()
         return ReadCache(
+            false, false,
             ProblemCache(
                 CL.MinSense,
                 ExprCache(
@@ -285,7 +298,7 @@ module Parser
 
     read_variables!(::Any, ::Any, ::ReadCache, ::AbstractString) = nothing
 
-    function create_subproblems!(env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
+    function create_subproblems!(::Val{:subproblem}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
         i = 1
         constraints = ClMP.Constraint[]
         subproblems = []
@@ -321,6 +334,56 @@ module Parser
             for constr in sp.constraints
                 members = Dict(ClMP.getid(all_spvars[varid][1]) => coeff for (varid, coeff) in constr.lhs.vars)
                 c = ClMP.setconstr!(spform, "sp_c$i", ClMP.DwSpPureConstr; rhs = constr.rhs, sense = constr.sense, members = members)
+                push!(constraints, c)
+                i += 1
+            end
+            push!(subproblems, spform)
+            ClMP.add_dw_pricing_sp!(reform, spform)
+        end
+        return subproblems, all_spvars, constraints
+    end
+
+    function create_subproblems!(::Val{:separation}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
+        i = 1
+        constraints = ClMP.Constraint[]
+        subproblems = []
+        all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.DwSp}}}()
+        for (_, sp) in cache.subproblems
+            spform = nothing
+            for (varid, cost) in sp.objective.vars
+                if haskey(cache.variables, varid)
+                    var = cache.variables[varid]
+                    if var.duty <= ClMP.BendSpSecondStageSlackVar || var.duty <= ClMP.BendSpSepVar || var.duty <=  ClMP.MasterBendFirstStageVar
+                        if isnothing(spform)
+                            spform = ClMP.create_formulation!(
+                                env,
+                                ClMP.DwSp(nothing, nothing, nothing, ClMP.Integ);
+                                obj_sense = sp.sense
+                            )
+                        end
+                        duty = var.duty
+                        if var.duty <= ClMP.MasterBendFirstStageVar
+                            duty = ClMP.BendSpFirstStageRepVar
+                        end
+                        v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind)
+                        # if var.duty <= ClMP.DwSpPricingVar
+                        #     spform.duty_data.setup_var = ClMP.getid(v)
+                        # end
+                        ClMP.setperencost!(spform, v, cost)
+                        all_spvars[varid] = (v, spform)
+                    end
+                else
+                    throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
+                end
+            end
+            for constr in sp.constraints
+                duty = ClMP.BendSpPureConstr
+                if !isnothing(constr.duty)
+                    duty = constr.duty
+                    @assert duty <= ClMP.BendSpTechnologicalConstr
+                end
+                members = Dict(ClMP.getid(all_spvars[varid][1]) => coeff for (varid, coeff) in constr.lhs.vars)
+                c = ClMP.setconstr!(spform, "sp_c$i", duty; rhs = constr.rhs, sense = constr.sense, members = members)
                 push!(constraints, c)
                 i += 1
             end
@@ -410,11 +473,12 @@ module Parser
         env = Env{ClMP.VarId}(CL.Params())
         reform = ClMP.Reformulation(env)
 
-        subproblems, all_spvars, constraints = create_subproblems!(env, reform, cache)
-
+        dec = cache.benders_sp_type ? Val(:separation) : Val(:subproblem)
+        master_duty = cache.benders_sp_type ? ClMP.BendersMaster() : ClMP.DwMaster()
+        subproblems, all_spvars, constraints = create_subproblems!(dec, env, reform, cache)
         master = ClMP.create_formulation!(
             env,
-            ClMP.DwMaster();
+            master_duty;
             obj_sense = cache.master.sense,
             parent_formulation = reform
         )
@@ -436,6 +500,7 @@ module Parser
         lines = split(s, "\n", keepempty=false)
         cache = ReadCache()
         nb_subproblems = 0
+        nb_separations = 0
         section = _KW_HEADER
         sub_section = _KW_HEADER
 
@@ -444,8 +509,16 @@ module Parser
             lower_line = lowercase(line)
             if haskey(_KW_SECTION, lower_line)
                 section = _KW_SECTION[lower_line]
-                if section == _KW_SUBPROBLEM
+                if section == _KW_SUBPROBLEM || section == _KW_SEPARATION
                     nb_subproblems += 1
+                end
+                if section == _KW_SUBPROBLEM
+                    cache.dw_sp_type = true
+                    @assert !cache.benders_sp_type
+                end
+                if section == _KW_SEPARATION
+                    cache.benders_sp_type = true
+                    @assert !cache.dw_sp_type
                 end
                 continue
             end
@@ -457,7 +530,7 @@ module Parser
                 read_master!(sub_section, cache, line)
                 continue
             end
-            if section == _KW_SUBPROBLEM
+            if section == _KW_SUBPROBLEM || section == _KW_SEPARATION
                 read_subproblem!(sub_section, cache, line, nb_subproblems)
                 continue
             end

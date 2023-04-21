@@ -38,8 +38,7 @@ const MODULES = [
     Coluna.MustImplement,
     Coluna.MathProg,
     Coluna.Algorithm,
-    Coluna.ColGen,
-    Parser
+    Coluna.ColGen
 ]
 
 rng = MersenneTwister(1234123)
