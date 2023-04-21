@@ -135,7 +135,7 @@ function benders_decomposition()
     ss_vars = Dict(getname(subprob, varid) => var for (varid, var) in Coluna.MathProg.getvars(subprob))
     ss_constrs = Dict(getname(subprob, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(subprob))
 
-    @test length(ss_vars) == 8
+    @test length(ss_vars) == 6
 
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["y1"])) <= Coluna.MathProg.BendSpSepVar
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["y2"])) <= Coluna.MathProg.BendSpSepVar
