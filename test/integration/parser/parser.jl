@@ -443,3 +443,100 @@ function minimize_test2()
     @test bounds == [(-Inf, Inf), (-Inf, Inf)]
 end
 register!(integration_tests, "parser", minimize_test2)
+
+function minimize_test3()
+    # Original formulation is the following:
+    # min
+    # x1 + 4x2 + 2y1 + 3y2
+    # s.t.
+    # x1 + x2 >= 0
+    # - x1 + 3x2 - y1 + 2y2 >= 2
+    # x1 + 3x2 + y1 + y2 >= 3
+    # y1 + y2 >= 0
+
+    s = """
+        master
+            min
+            x1 + 4x2 + z
+            s.t.
+            x1 + x2 >= 0
+
+        benders_sp
+            min
+            0x1 + 0x2 + 2y1 + 3y2 + 1000a11 + 1000a12 + 1000a21 + 1000a22
+            s.t.
+            -x1 + 3x2 + 2y1 + 3y2 + a11 - a12 >= 2 {BendTechConstr}
+            x1 + 3x2 + y1 + y2 + a21 - a22 >= 3 {BendTechConstr}
+            y1 + y2 >= 0
+
+        integers
+            first_stage
+                x1, x2
+      
+        continuous
+            second_stage_cost
+                z
+            second_stage
+                y1, y2
+            second_stage_artificial
+                a11, a12, a21, a22
+        
+        bounds
+            -Inf <= z <= Inf
+            x1 >= 0
+            x2 >= 0
+            y1 >= 0
+            y2 >= 0
+            a11 >= 0
+            a12 >= 0
+            a21 >= 0
+            a22 >= 0
+    """
+    env, master, subproblems, constraints, _ = reformfromstring(s)
+
+    @test CL.getobjsense(master) == CL.MinSense
+
+    names, kinds, duties, costs, bounds = get_vars_info(master)
+    @test names == ["z", "x2", "x1"]
+    @test kinds == [ClMP.Continuous, ClMP.Integ, ClMP.Integ]
+    @test duties == [ClMP.MasterBendSecondStageCostVar, ClMP.MasterBendFirstStageVar, ClMP.MasterBendFirstStageVar]
+    @test costs == [1.0, 4.0, 1.0]
+    @test bounds == [(-Inf, Inf), (0.0, Inf), (0.0, Inf)]
+
+    constrs = get_constrs_info(master)
+    c1 = constrs[1] # x1 + x2 >= 0
+    @test c1.coeffs == [("x1", 1.0), ("x2", 1.0)]
+    @test c1.duty == ClMP.MasterPureConstr
+    @test c1.sense == CL.Greater
+    @test c1.rhs == 0.0
+
+    sp1 = subproblems[1]
+    @test CL.getobjsense(sp1) == CL.MinSense
+
+    names, kinds, duties, costs, bounds = get_vars_info(sp1)
+    @test names == ["a21", "y1", "x2", "y2", "a12", "a22", "x1", "a11"]
+    @test kinds == [ClMP.Continuous, ClMP.Continuous, ClMP.Integ, ClMP.Continuous, ClMP.Continuous, ClMP.Continuous, ClMP.Integ, ClMP.Continuous]
+    @test duties == [ClMP.BendSpSecondStageSlackVar, ClMP.BendSpSepVar, ClMP.BendSpFirstStageRepVar, ClMP.BendSpSepVar, ClMP.BendSpSecondStageSlackVar, ClMP.BendSpSecondStageSlackVar, ClMP.BendSpFirstStageRepVar, ClMP.BendSpSecondStageSlackVar]
+    @test costs == [1000.0, 2.0, 0.0, 3.0, 1000.0, 1000.0, 0.0, 1000.0]
+    @test bounds == [(0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf)]
+
+    constrs = get_constrs_info(sp1)
+    c1 = constrs[1] # x1 + 3x2 + y1 + y2 + a21 - a22 >= 3
+    @test c1.coeffs == [("x1", 1.0), ("y1", 1.0), ("a21", 1.0), ("x2", 3.0), ("y2", 1.0), ("a22", -1.0)]
+    @test c1.duty == ClMP.BendSpTechnologicalConstr
+    @test c1.sense == CL.Greater
+    @test c1.rhs == 3.0
+
+    c2 = constrs[2] # y1 + y2 >= 0
+    @test c2.coeffs == [("y1", 1.0), ("y2", 1.0)]
+    @test c2.duty == ClMP.BendSpPureConstr
+    @test c2.sense == CL.Greater
+    @test c2.rhs == 0.0
+
+    c3 = constrs[3] # -x1 + 3x2 + 2y1 + 3y2 + a11 - a12 >= 2
+    @test c3.coeffs == [("a11", 1.0), ("a12", -1.0), ("x1", -1.0), ("y1", 2.0), ("x2", 3.0), ("y2", 3.0)]
+    @test c3.duty == ClMP.BendSpTechnologicalConstr
+    @test c3.sense == CL.Greater
+    @test c3.rhs == 2.0
+end
+register!(integration_tests, "parser", minimize_test3)

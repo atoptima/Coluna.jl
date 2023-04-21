@@ -1382,7 +1382,6 @@ function identical_subproblems()
     return env, master, sps, reform
 end
 
-
 function r1c_form()
 
     form = """
@@ -1429,7 +1428,6 @@ function r1c_form()
 
 end
 
-
 function test_red_cost_calc_with_non_robust_cuts()
     var_costs = [
         8.0,
@@ -1451,8 +1449,6 @@ function test_red_cost_calc_with_non_robust_cuts()
     constr_costs = [2.0, 8.0, 1.0, 3.0, 9.0, 4.0]
 
     expected_redcosts = var_costs - transpose(A) * constr_costs
-
-    @show expected_redcosts
 
     form = r1c_form()
     env, master, sps, reform = form
