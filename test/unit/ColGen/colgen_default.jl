@@ -1430,61 +1430,14 @@ function r1c_form()
 end
 
 
-function test_r1c()
-    form = r1c_form()
-    env, master, sps, reform = form
-    costs = [
+function test_red_cost_calc_with_non_robust_cuts()
+    var_costs = [
         8.0,
         1.0,
         3.0,
         11.0,
         7.0
     ]
-
-    constr_costs = [2.0, 8.0, 1.0, 3.0, 9.0, 4.0]
-
-
-    #constrids = Dict(getname(master, id) => id for (id,_) in ClA.getconstrs(master))
-    #varids = Dict(getname(master, id) => id for (id,_) in ClA.getvars(master))
-
-
-    #println("\e[36m matching between var/constr ids and names \e[00m")
-#
-    #for (key, value) in constrids
-    #    println("($(key), $(value))")
-    #end
-#
-    #for (key, value) in varids
-    #    println("($(key), $(value))")
-    #end
-
-    constrids = [id for (id,_) in ClA.getconstrs(master)]
-
-
-    dual_sol = ClA.DualSolution(
-        master,
-        constrids,
-        constr_costs,
-        [], 
-        [], 
-        [], 
-        0.0,
-        FEASIBLE_SOL
-    )
-
-    @show typeof(dual_sol)
-
-    #dual_sol = DynamicSparseArrays.sparsevec(
-    #    [
-    #        constrids["c1"],
-    #        constrids["c2"],
-    #        constrids["c3"],
-    #        constrids["c4"],
-    #        constrids["c5"],
-    #        constrids["c6"]
-    #    ], 
-    #    constr_costs
-    #    )
 
     A = [
         1 0 0 0 0;
@@ -1495,47 +1448,38 @@ function test_r1c()
         0 0 0 0 0
     ]
 
+    constr_costs = [2.0, 8.0, 1.0, 3.0, 9.0, 4.0]
 
-    expected_redcosts = costs - transpose(A)*constr_costs
-    helper = ClA.ReducedCostsCalculationHelper(master)
-    coeffs =  transpose(helper.dw_subprob_A) * dual_sol
-    @show typeof(coeffs)
-    redcosts = helper.dw_subprob_c - coeffs
-    @show typeof(helper.dw_subprob_c)
-    println("\e[36m expected vs computed redcosts \e[00m")
+    expected_redcosts = var_costs - transpose(A) * constr_costs
+
     @show expected_redcosts
-    @show typeof(redcosts)
-    @show redcosts
-    println("\e[36m ********************************* \e[00m")
 
-    #println("\e[36m show vectors redcosts and cost_duals \e[00m")
-    #for c in [ 
-    #    constrids["c1"],
-    #    constrids["c2"],
-    #    constrids["c3"],
-    #    constrids["c4"],
-    #    constrids["c5"]
-    #]
-    #    println("redcosts[$(c)] = $(redcosts[c])")
-    #end
+    form = r1c_form()
+    env, master, sps, reform = form
 
-    #for c in [ 
-    #    constrids["c1"],
-    #    constrids["c2"],
-    #    constrids["c3"],
-    #    constrids["c4"],
-    #    constrids["c5"]
-    #]
-    #    println("dual_sol[$(c)] = $(dual_sol[c])")
-    #end
+    constrids = Dict(getname(master, id) => id for (id,_) in ClA.getconstrs(master))
+    varids = Dict(getname(master, id) => id for (id,_) in ClA.getvars(master))
 
-    #for (varid, val) in zip(findnz(redcosts)...)
-    #    println("red_cost[$(getname(master, varid))]  = $val")
-    # end
+    dual_sol = ClA.DualSolution(
+        master,
+        map(name -> constrids[name], ["c1", "c2", "c3", "c4", "c5", "c6"]),
+        constr_costs,
+        [], 
+        [], 
+        [], 
+        0.0,
+        FEASIBLE_SOL
+    )
 
-    #println("\e[36m ********************************* \e[00m")
-    @show helper.dw_subprob_A
+    helper = ClA.ReducedCostsCalculationHelper(master)
 
-
+    coeffs =  transpose(helper.dw_subprob_A) * dual_sol
+    redcosts = helper.dw_subprob_c - coeffs
+    
+    @test redcosts[varids["x_1"]] == expected_redcosts[1]
+    @test redcosts[varids["x_2"]] == expected_redcosts[2]
+    @test redcosts[varids["x_3"]] == expected_redcosts[3]
+    @test redcosts[varids["x_4"]] == expected_redcosts[4]
+    @test redcosts[varids["x_5"]] == expected_redcosts[5]
 end
-register!(unit_tests, "colgen", test_r1c, f = true)
+register!(unit_tests, "colgen", test_red_cost_calc_with_non_robust_cuts)
