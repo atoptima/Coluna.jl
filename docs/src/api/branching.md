@@ -19,7 +19,7 @@ the children of the current node of the branch-and-bound tree.
 Coluna provides the following function for this step:
 
 ```@docs
-select!
+Branching.select!
 ```
 
 It works as follows.
@@ -41,39 +41,39 @@ At last, it returns the candidates kept.
 ### Branching rule
 
 ```@docs
-AbstractBranchingRule
-apply_branching_rule
+Branching.AbstractBranchingRule
+Branching.apply_branching_rule
 ```
 
 ### Candidate
 
 ```@docs
-AbstractBranchingCandidate
-getdescription
-get_lhs
-get_local_id
-get_children
-set_children!
-get_parent
-generate_children!
+Branching.AbstractBranchingCandidate
+Branching.getdescription
+Branching.get_lhs
+Branching.get_local_id
+Branching.get_children
+Branching.set_children!
+Branching.get_parent
+Branching.generate_children!
 ```
 
 ### Selection criterion
 
 ```@docs
-AbstractSelectionCriterion
-select_candidates!
+Branching.AbstractSelectionCriterion
+Branching.select_candidates!
 ```
 
 ### Branching API
 
 ```@docs
-get_selection_nb_candidates
-branching_context_type
-new_context
-get_int_tol
-get_rules
-get_selection_criterion
+Branching.get_selection_nb_candidates
+Branching.branching_context_type
+Branching.new_context
+Branching.get_int_tol
+Branching.get_rules
+Branching.get_selection_criterion
 ```
 
 Method `advanced_select!` is part of the API but presented just below.
@@ -88,7 +88,7 @@ additional kpis about each branching candidates.
 Coluna provides the following function for this step.
 
 ```@docs
-advanced_select!
+Branching.advanced_select!
 ```
 
 Coluna has two default implementation for this method:
@@ -118,25 +118,25 @@ restrict the number of retained candidates until only one is left.
 ### Strong Branching API
 
 ```@docs
-get_units_to_restore_for_conquer
-get_phases
-get_score
-get_conquer
-get_max_nb_candidates
+Branching.get_units_to_restore_for_conquer
+Branching.get_phases
+Branching.get_score
+Branching.get_conquer
+Branching.get_max_nb_candidates
 ```
 
 Following methods are part of the API but have default implementation.
 We advise to not change them.
 
 ```@docs
-perform_branching_phase!
-eval_children_of_candidate!
-eval_child_of_candidate!
+Branching.perform_branching_phase!
+Branching.eval_children_of_candidate!
+Branching.eval_child_of_candidate!
 ```
 
 #### Score
 
 ```@docs
-AbstractBranchingScore
-compute_score
+Branching.AbstractBranchingScore
+Branching.compute_score
 ```
