@@ -65,6 +65,9 @@ using .Branching
 include("ColGen/ColGen.jl")
 using .ColGen
 
+include("Benders/Benders.jl")
+using .Benders
+
 include("Algorithm/Algorithm.jl")
 using .Algorithm
 

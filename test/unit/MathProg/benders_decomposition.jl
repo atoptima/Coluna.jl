@@ -66,7 +66,6 @@ function benders_decomposition()
     sp_ann = BlockDecomposition.Annotation(tree, BlockDecomposition.BendersSepSp, BlockDecomposition.Benders, [])
     BlockDecomposition.create_leaf!(BlockDecomposition.getroot(tree), axis[1], sp_ann)
 
-
     # Benders annotations
     ann = Coluna.Annotations()
     ann.tree = tree

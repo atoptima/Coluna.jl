@@ -293,7 +293,7 @@ function create_side_vars_constrs!(
 )
     for (spid, spform) in get_benders_sep_sps(masterform.parent_formulation)
         name = "η[$(spid)]"
-        setvar!(
+        var = setvar!(
             masterform, name, MasterBendSecondStageCostVar;
             cost = 1.0,
             lb = -Inf,
@@ -301,6 +301,7 @@ function create_side_vars_constrs!(
             kind = Continuous,
             is_explicit = true
         )
+        spform.duty_data.second_stage_cost_var = getid(var)
     end
     return
 end
