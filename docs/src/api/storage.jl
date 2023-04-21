@@ -24,8 +24,8 @@
 # provides two methods to do both actions: 
 
 # ```@docs
-#     create_record
-#     restore_from_record!
+#     ColunaBase.create_record
+#     ColunaBase.restore_from_record!
 # ```
 
 # ## Example
@@ -282,9 +282,9 @@ Coluna.TreeSearch.tree_search(Coluna.TreeSearch.DepthFirstStrategy(), search_spa
 # Entities can be in the storage unit, the model, or in both of them.
 
 # ```@docs
-#     record_type
-#     storage_unit_type
-#     new_storage_unit
-#     new_record
-#     restore_from_record!
+#     ColunaBase.record_type
+#     ColunaBase.storage_unit_type
+#     ColunaBase.new_storage_unit
+#     ColunaBase.new_record
+#     ColunaBase.restore_from_record!
 # ```

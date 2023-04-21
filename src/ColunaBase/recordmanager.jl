@@ -67,11 +67,7 @@ function create_record(storage, ::Type{StorageUnitType}) where {StorageUnitType<
     )
 end
 
-"""
-    restore_from_record!(storage, record)
 
-Restores the state of the storage unit using the record that was previously generated.
-"""
 function restore_from_record!(storage::NewStorage, record::RecordType) where {RecordType} 
     storage_unit_manager = _get_storage_unit_manager!(storage, storage_unit_type(RecordType))
     restore_from_record!(storage.model, storage_unit_manager.storage_unit, record)
