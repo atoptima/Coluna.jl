@@ -26,7 +26,8 @@ include("TestRegistry/TestRegistry.jl")
 using .TestRegistry
 
 unit_tests = Registry()
-include("parser.jl")
+includet("parser.jl")
+using .Parser
 
 integration_tests = Registry()
 e2e_tests = Registry()
@@ -37,7 +38,8 @@ const MODULES = [
     Coluna.MustImplement,
     Coluna.MathProg,
     Coluna.Algorithm,
-    Coluna.ColGen
+    Coluna.ColGen,
+    Parser
 ]
 
 rng = MersenneTwister(1234123)
