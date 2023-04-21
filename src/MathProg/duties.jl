@@ -46,13 +46,13 @@ function DwSp(setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr
         Dict{VarId, BD.AbstractCustomData}()
     )
 end
-
-struct BendersSp <: AbstractSpDuty 
+mutable struct BendersSp <: AbstractSpDuty 
     slack_to_first_stage::Dict{VarId, VarId}
+    second_stage_cost_var::Union{VarId,Nothing}
 end
 
 "A Benders subproblem of a formulation decomposed using Benders."
-BendersSp() = BendersSp(Dict{VarId, VarId}())
+BendersSp() = BendersSp(Dict{VarId, VarId}(), nothing)
 
 ############################################################################################
 # Duties tree for a Variable
@@ -86,8 +86,6 @@ BendersSp() = BendersSp(Dict{VarId, VarId}())
                     BendSpNegSlackFirstStageVar <= BendSpSlackFirstStageVar
                 BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
             BendSpSepVar <= AbstractBendSpVar
-            #BendSpPureVar <= AbstractBendSpVar
-            BendSpPrimalSol <= AbstractBendSpVar
 end
 
 ############################################################################################
@@ -155,7 +153,6 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= DwSpPureConstr ||
     duty <= BendSpPureConstr ||
     duty <= BendSpDualSol ||
-    duty <= BendSpPrimalSol ||
     duty <= BendSpSecondStageCostConstr ||
     duty <= BendSpTechnologicalConstr
 end
