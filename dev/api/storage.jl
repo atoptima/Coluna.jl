@@ -1,11 +1,9 @@
+# # Storage API
+
 # ```@meta
-# CurrentModule = Coluna.Algorithm
-# DocTestSetup = quote
-#     using Coluna.Algorithm, Coluna.ColunaBase
-# end
+#       CurrentModule = Coluna 
 # ```
 
-# # Storage API
 
 # !!! warning
 #    Missing intro, missing finding best solution.
