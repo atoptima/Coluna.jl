@@ -121,8 +121,8 @@ function benders_decomposition()
 
     # Test second stage variables & Constraints
     # Coluna.MathProg.MinSense + 2.0 y1 + 3.0 y2 + 1.0 μ⁺[x1] + 1.0 μ⁻[x1] + 4.0 μ⁺[x2] + 4.0 μ⁻[x2]
-    # c1 : - 1.0 μ⁺[x1] + 4.0 μ⁺[x2] + 2.0 y1 + 3.0 y2 - 4.0 μ⁻[x2] + 1.0 μ⁻[x1]  >= 2.0 (BendSpTechnologicalConstrConstraintu1 | true)
-    # c2 : + 1.0 μ⁺[x1] + 3.0 μ⁺[x2] + 1.0 y1 + 1.0 y2 - 3.0 μ⁻[x2] - 1.0 μ⁻[x1]  >= 3.0 (BendSpTechnologicalConstrConstraintu2 | true)
+    # c1 : - 1.0 μ⁺[x1] + 1.0 μ⁻[x1] + 4.0 μ⁺[x2] - 4.0 μ⁻[x2] + 2.0 y1 + 3.0 y2  >= 2.0 (BendSpTechnologicalConstrConstraintu1 | true)
+    # c2 : + 1.0 μ⁺[x1] - 1.0 μ⁻[x1] + 3.0 μ⁺[x2] - 3.0 μ⁻[x2] + 1.0 y1 + 1.0 y2 >= 3.0 (BendSpTechnologicalConstrConstraintu2 | true)
     # c4 : + 1.0 y1 + 1.0 y2  >= 0.0 (BendSpPureConstrConstraintu4 | true)
     # 0.0 <= y1 <= Inf (Continuous | BendSpSepVar | true)
     # 0.0 <= y2 <= Inf (Continuous | BendSpSepVar | true)
