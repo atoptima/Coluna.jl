@@ -117,10 +117,10 @@ isunbounded(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == -Inf
 
 Return true is the primal bound or the dual bound is infeasible.
 """
-isinfeasible(b::Bound{<:Primal,<:MinSense}) = getvalue(b) == Inf
-isinfeasible(b::Bound{<:Dual,<:MinSense}) = getvalue(b) == -Inf
-isinfeasible(b::Bound{<:Primal,<:MaxSense}) = getvalue(b) == -Inf
-isinfeasible(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == Inf
+isinfeasible(b::Bound{<:Primal,<:MinSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound{<:Dual,<:MinSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound{<:Primal,<:MaxSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound{<:Dual,<:MaxSense}) = isnothing(getvalue(b))
 
 """
     printbounds(db, pb [, io])
@@ -224,6 +224,7 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
     moi_status == MOI.DUAL_INFEASIBLE && return DUAL_INFEASIBLE
+    # TODO: Happens in MIP presolve (cf JuMP doc), we treat this case as unbounded. 
     moi_status == MOI.INFEASIBLE_OR_UNBOUNDED && return INFEASIBLE_OR_UNBOUNDED
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
     moi_status == MOI.NODE_LIMIT && return NODE_LIMIT

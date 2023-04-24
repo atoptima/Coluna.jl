@@ -7,7 +7,7 @@ mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
 
     function ColGenPrinterContext(
         reform, alg;
-        print_column_reduced_cost = true
+        print_column_reduced_cost = false
     )
         inner = ColGenContext(reform, alg)
         new(inner, 3, 0.0, 0.0, print_column_reduced_cost)
@@ -116,24 +116,48 @@ function _get_inc_pb(sol)
     return isnothing(sol) ? Inf : getvalue(sol)
 end
 
-function _iter_str(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colgen_iter_output::ColGen.AbstractColGenIterationOutput)
-    mlp = colgen_iter_output.mlp
-    db = colgen_iter_output.db
-    pb = _get_inc_pb(colgen_iter_output.master_ip_primal_sol)
-
+function _colgen_iter_str(
+    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64
+)
     phase_string = "  "
-    if ctx.phase == 1
+    if phase == 1
         phase_string = "# "
-    elseif ctx.phase == 2
+    elseif phase == 2
         phase_string = "##"
     end
+    iteration::Int = colgen_iteration
+    
+    if colgen_iter_output.infeasible_master
+        return @sprintf(
+            "%s<it=%3i> <et=%5.2f> - infeasible master",
+            phase_string, iteration, optim_time
+        )
+    end
+    if colgen_iter_output.unbounded_master
+        return @sprintf(
+            "%s<it=%3i> <et=%5.2f> - unbounded master",
+            phase_string, iteration, optim_time
+        )
+    end
+    if colgen_iter_output.infeasible_subproblem
+        return @sprintf(
+            "%s<it=%3i> <et=%5.2f> - infeasible subproblem",
+            phase_string, iteration, optim_time
+        )
+    end
+    if colgen_iter_output.unbounded_subproblem
+        return @sprintf(
+            "%s<it=%3i> <et=%5.2f> - unbounded subproblem",
+            phase_string, iteration, optim_time
+        )
+    end
 
-    smoothalpha = 0.0 # not implemented yet.
-    nb_new_col = ColGen.get_nb_new_cols(colgen_iter_output)
-    sp_time = ctx.sp_elapsed_time
-    mst_time = ctx.mst_elapsed_time
-    iteration = colgen_iteration
-    optim_time = elapsed_optim_time(env)
+    mlp::Float64 = colgen_iter_output.mlp
+    db::Float64 = colgen_iter_output.db
+    pb::Float64 = _get_inc_pb(colgen_iter_output.master_ip_primal_sol)
+
+    smoothalpha::Float64 = 0.0 # not implemented yet.
+    nb_new_col::Int = ColGen.get_nb_new_cols(colgen_iter_output)
     
     return @sprintf(
         "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>",
@@ -142,7 +166,7 @@ function _iter_str(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colg
 end
 
 function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, env, colgen_iteration, colgen_iter_output)
-    println(_iter_str(ctx, phase, env, colgen_iteration, colgen_iter_output))
+    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env)))
     return
 end
 
