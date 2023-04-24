@@ -1,8 +1,5 @@
 ```@meta
-CurrentModule = Coluna.Algorithm
-DocTestSetup = quote
-    using Coluna.Algorithm
-end
+CurrentModule = Coluna
 ```
 
 # Branching API
