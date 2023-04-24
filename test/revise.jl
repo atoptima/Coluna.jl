@@ -15,7 +15,9 @@ typical_test_dirs = [
     joinpath("unit", "Benders"),
     joinpath("unit", "Parser"),
     joinpath("integration", "custom_data"),
-    joinpath("integration", "parser")
+    joinpath("integration", "parser"),
+    joinpath("integration", "pricing_callback"),
+    joinpath("e2e_extra", "advanced_colgen")
 ]
 tracked_dirs = filter(isdir, typical_test_dirs)
 
@@ -69,9 +71,11 @@ end
 include("unit/run.jl")
 include("integration/run.jl")
 include("e2e/run.jl")
+include("e2e_extra/run.jl")
 
 listen_to_tests([
     run_unit_tests,
     run_integration_tests,
-    #run_e2e_tests
+    run_e2e_tests,
+    run_e2e_extra_tests
 ])

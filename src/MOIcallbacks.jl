@@ -34,21 +34,25 @@ end
 function _submit_pricing_solution(env, cbdata, cost, variables, values, custom_data)
     form = cbdata.form
     solval = cost
-    colunavarids = [_get_varid_of_origvar_in_form(env, form, v) for v in variables]
+    colunavarids = Coluna.MathProg.VarId[
+        _get_varid_of_origvar_in_form(env, form, v) for v in variables
+    ]
 
     # setup variable
     setup_var_id = form.duty_data.setup_var
-    if setup_var_id !== nothing
+    if !isnothing(setup_var_id)
         push!(colunavarids, setup_var_id)
         push!(values, 1.0)
         solval += getcurcost(form, setup_var_id)
     end
 
-    sol = PrimalSolution(
-        form, colunavarids, values, solval, FEASIBLE_SOL; 
-        custom_data = custom_data
-    )
-    push!(cbdata.primal_solutions, sol)
+    if !isnothing(solval)
+        sol = PrimalSolution(
+            form, colunavarids, values, solval, FEASIBLE_SOL; 
+            custom_data = custom_data
+        )
+        push!(cbdata.primal_solutions, sol)
+    end
     return
 end
 
@@ -69,7 +73,13 @@ function _submit_dual_bound(cbdata, bound)
     else
         0
     end
-    cbdata.dual_bound = bound + setup_var_cur_cost
+
+    if !isnothing(bound)
+        cbdata.dual_bound = bound + setup_var_cur_cost
+    else
+        cbdata.dual_bound = nothing
+    end
+
     cbdata.nb_times_dual_bound_set += 1
     return
 end

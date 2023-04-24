@@ -53,16 +53,16 @@ ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
-    mlp::Float64
-    db::Float64
+    mlp::Union{Nothing, Float64}
+    db::Union{Nothing, Float64}
     new_cut_in_master::Bool
 end
 
 struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
-    mlp::Float64
-    db::Float64
+    mlp::Union{Nothing, Float64}
+    db::Union{Nothing, Float64}
 end
 
 function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
@@ -534,15 +534,15 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
     sc = colgen_iter_output.min_sense ? 1 : -1
-    return _colgen_gap_closed(sc * mlp, sc * db, 1e-8, 1e-5) ||
-        colgen_iteration >= ctx.nb_colgen_iteration_limit ||
+    return colgen_iteration >= ctx.nb_colgen_iteration_limit ||
         colgen_iter_output.time_limit_reached ||
         colgen_iter_output.infeasible_master ||
         colgen_iter_output.unbounded_master ||
         colgen_iter_output.infeasible_subproblem ||
         colgen_iter_output.unbounded_subproblem ||
         colgen_iter_output.nb_new_cols <= 0 ||
-        colgen_iter_output.new_cut_in_master
+        colgen_iter_output.new_cut_in_master ||
+        _colgen_gap_closed(sc * mlp, sc * db, 1e-8, 1e-5)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
