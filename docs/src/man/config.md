@@ -10,9 +10,6 @@ todo
 
 ```@meta
 CurrentModule = Coluna
-DocTestSetup = quote
-    using Coluna
-end
 ```
 
 ```@docs
@@ -21,7 +18,6 @@ Params
 
 ```@meta
 CurrentModule = nothing
-DocTestSetup = nothing
 ```
 
 ### `default_optimizer`
@@ -34,9 +30,6 @@ todo
 
 ```@meta
 CurrentModule = BlockDecomposition
-DocTestSetup = quote
-    using BlockDecomposition
-end
 ```
 
 ```@docs
@@ -45,8 +38,7 @@ objectivedualbound!
 ```
 
 ```@meta
-CurrentModule = nothing
-DocTestSetup = nothing
+CurrentModule = nothin
 ```
 
 ### From MathOptInterface

@@ -1,10 +1,3 @@
-# ```@meta
-# CurrentModule = Coluna.Algorithm
-# DocTestSetup = quote
-#     using Coluna.Algorithm
-# end
-# ```
-
 # # Tree search API
 # ## Introduction
 
@@ -402,13 +395,6 @@ output = ClA.run!(BinaryTree(), env, model, input)
 @show output
 
 # ## API
-
-# ```@meta
-# CurrentModule = Coluna.Algorithm
-# DocTestSetup = quote
-#     using Coluna.Algorithm
-# end
-# ```
 
 # ### Search space
 

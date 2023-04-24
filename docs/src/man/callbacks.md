@@ -26,12 +26,6 @@ i.e. an algorithm better than solving the subproblem with a MIP solver.
 See the example in the manual [Pricing callback](@ref).
 
 ### Errors and Warnings
-```@meta
-CurrentModule = Coluna.Algorithm
-DocTestSetup = quote
-    using Coluna.Algorithm
-end
-```
 
 ```@docs
 Algorithm.IncorrectPricingDualBound
@@ -39,10 +33,6 @@ Algorithm.MissingPricingDualBound
 Algorithm.MultiplePricingDualBounds
 ```
 
-```@meta
-CurrentModule = nothing
-DocTestSetup = nothing
-```
 
 # Separation callbacks
 

@@ -195,9 +195,6 @@ All these information are stored in the `ext` field of the JuMP model.
 
 ```@meta
 CurrentModule = BlockDecomposition
-DocTestSetup = quote
-    using BlockDecomposition
-end
 ```
 
 # Errors and warnings
@@ -236,6 +233,5 @@ annotation
 
 ```@meta
 CurrentModule = nothing
-DocTestSetup = nothing
 ```
 
