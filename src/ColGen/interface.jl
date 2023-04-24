@@ -327,8 +327,12 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
+            # TODO: if the lower multiplicity of the subproblem is zero, we can continue.
             return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, false, false, true, false, false, mast_primal_sol, ip_primal_sol)
         elseif is_unbounded(pricing_result)
+            # We do not support unbounded pricing (even if it's theorically possible).
+            # We must stop Coluna here by throwing an exception because we can't claim
+            # the problem is unbounded.
             return new_iteration_output(O, is_min_sense, nothing, nothing, 0, false, false, false, false, true, false, mast_primal_sol, ip_primal_sol)
         end
 

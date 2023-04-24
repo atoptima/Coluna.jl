@@ -25,12 +25,13 @@ using Coluna.ColunaBase, Coluna.MathProg, Coluna.ColGen
 include("TestRegistry/TestRegistry.jl")
 using .TestRegistry
 
-unit_tests = Registry()
 includet("parser.jl")
 using .Parser
 
+unit_tests = Registry()
 integration_tests = Registry()
 e2e_tests = Registry()
+e2e_extra_tests = Registry()
 
 const MODULES = [
     Coluna,
@@ -50,6 +51,7 @@ else
     include("unit/run.jl")
     include("integration/run.jl")
     include("e2e/run.jl")
+    include("e2e_extra/run.jl")
 
     run_unit_tests()
     run_integration_tests()

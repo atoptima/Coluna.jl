@@ -1,5 +1,7 @@
 dirs = [
-    "custom_data"
+    "custom_data",
+    "parser",
+    "pricing_callback"
 ]
 
 for dir in dirs
