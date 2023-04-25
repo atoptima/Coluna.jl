@@ -28,7 +28,6 @@ function ClA.run!(
     return result
 end
 
-
 function test_node_finalizer(heuristic_finalizer)
     function build_toy_model(optimizer)
         toy = BlockModel(optimizer, direct_model = true)
@@ -62,7 +61,7 @@ function test_node_finalizer(heuristic_finalizer)
                             0, "Enumerative"
                     )
                 ),
-                maxnumnodes = heuristic_finalizer ? 10000 : 1
+                maxnumnodes = heuristic_finalizer ? 15 : 1
             )
         )
     )
@@ -158,7 +157,8 @@ function test_node_finalizer(heuristic_finalizer)
     end
 end
 
-@testset "Old - node finalizer" begin
+function test_node_finalizer()
     test_node_finalizer(false) # exact
     test_node_finalizer(true)  # heuristic
 end
+register!(e2e_extra_tests, "node_finalizer", test_node_finalizer; f = true)
