@@ -157,7 +157,7 @@ function cb_returns_unbounded_primal() # case 2
     @test ClA.get_ip_primal_bound(state) == -Inf
     @test ClA.get_ip_dual_bound(state) === nothing
     @show state
-    @test ClA.getterminationstatus(state) == ClB.INFEASIBLE_OR_UNBOUNDED
+    @test ClA.getterminationstatus(state) == ClB.UNBOUNDED
     @test isnothing(ClA.get_best_lp_primal_sol(state))
 end
 register!(integration_tests, "pricing_callback", cb_returns_unbounded_primal)

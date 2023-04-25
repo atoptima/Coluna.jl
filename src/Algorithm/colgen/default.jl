@@ -218,12 +218,12 @@ end
 
 function ColGen.is_infeasible(master_res::ColGenMasterResult)
     status = getterminationstatus(master_res.result)
-    return status == ClB.INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.INFEASIBLE
 end
 
 function ColGen.is_unbounded(master_res::ColGenMasterResult)
     status = getterminationstatus(master_res.result)
-    return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.UNBOUNDED
 end
 
 ColGen.get_primal_sol(master_res::ColGenMasterResult) = get_best_lp_primal_sol(master_res.result)
@@ -396,12 +396,12 @@ end
 
 function ColGen.is_infeasible(pricing_res::ColGenPricingResult)
     status = getterminationstatus(pricing_res.result)
-    return status == ClB.INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.INFEASIBLE
 end
 
 function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
     status = getterminationstatus(pricing_res.result)
-    return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.UNBOUNDED
 end
 
 ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns

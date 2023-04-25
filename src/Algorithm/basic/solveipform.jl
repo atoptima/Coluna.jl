@@ -269,7 +269,7 @@ function run!(
         setterminationstatus!(result, INFEASIBLE)
         set_ip_primal_bound!(result, nothing)
     elseif isunbounded(pb) && dual_infeasible
-        setterminationstatus!(result, INFEASIBLE_OR_UNBOUNDED)
+        setterminationstatus!(result, UNBOUNDED)
         set_ip_dual_bound!(result, nothing)
     elseif abs(gap(pb, db)) <= 1e-4
         setterminationstatus!(result, OPTIMAL)

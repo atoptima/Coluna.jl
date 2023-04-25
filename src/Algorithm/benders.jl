@@ -277,7 +277,7 @@ function solve_sp_to_gencut!(
             )
         end
 
-        if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != DUAL_INFEASIBLE
+        if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != UNBOUNDED
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
             bd = PrimalBound(spform) 
