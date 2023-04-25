@@ -17,7 +17,8 @@ typical_test_dirs = [
     joinpath("integration", "custom_data"),
     joinpath("integration", "parser"),
     joinpath("integration", "pricing_callback"),
-    joinpath("e2e_extra", "advanced_colgen")
+    joinpath("e2e_extra", "advanced_colgen"),
+    joinpath("e2e_extra", "gap")
 ]
 tracked_dirs = filter(isdir, typical_test_dirs)
 
