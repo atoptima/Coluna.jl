@@ -104,7 +104,7 @@ ColGen.get_primal_sol(res::ColGenIterationTestMasterResult) = res.primal_sol
 ColGen.get_dual_sol(res::ColGenIterationTestMasterResult) = res.dual_sol
 ColGen.get_obj_val(res::ColGenIterationTestMasterResult) = res.obj_val
 ColGen.is_infeasible(res::ColGenIterationTestMasterResult) = res.term_status == ClB.INFEASIBLE
-ColGen.is_unbounded(res::ColGenIterationTestMasterResult) = res.term_status == ClB.DUAL_INFEASIBLE
+ColGen.is_unbounded(res::ColGenIterationTestMasterResult) = res.term_status == ClB.UNBOUNDED
 ColGen.is_optimal(res::ColGenIterationTestMasterResult) = res.term_status == ClB.OPTIMAL
 
 ## mock of the master lp solver
@@ -132,7 +132,7 @@ ColGen.get_dual_bound(res::ColGenIterationTestPricingResult) = res.dual_bound
 ColGen.compute_sp_init_db(::ColGenIterationTestContext, sp) = -Inf
 ColGen.set_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
 ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status == ClB.INFEASIBLE
-ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.DUAL_INFEASIBLE
+ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.UNBOUNDED
 ColGen.is_optimal(res::ColGenIterationTestPricingResult) = res.term_status == ClB.OPTIMAL
 
 function ColGen.push_in_set!(ctx::ColGenIterationTestContext, set::Vector{Vector{Float64}}, col::Vector)
@@ -309,7 +309,7 @@ register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_infeasible)
 
 function colgen_iteration_master_unbounded()
     ctx = ColGenIterationTestContext(
-        master_term_status = ClB.DUAL_INFEASIBLE,
+        master_term_status = ClB.UNBOUNDED,
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
@@ -328,7 +328,7 @@ register!(unit_tests, "colgen_iteration", colgen_iteration_master_unbounded)
 
 function colgen_iteration_pricing_unbounded()
     ctx = ColGenIterationTestContext(
-        pricing_term_status = ClB.DUAL_INFEASIBLE,
+        pricing_term_status = ClB.UNBOUNDED,
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )

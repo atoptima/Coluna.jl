@@ -31,7 +31,7 @@ end
 
 function Benders.is_unbounded(master_res::BendersMasterResult)
     status = getterminationstatus(master_res.result)
-    return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.UNBOUNDED
 end
 
 Benders.get_primal_sol(master_res::BendersMasterResult) = get_best_lp_primal_sol(master_res.result)
