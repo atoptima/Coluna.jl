@@ -140,7 +140,6 @@ function cb_returns_infinite_dual_bound() # case 4
 end
 register!(integration_tests, "pricing_callback", cb_returns_infinite_dual_bound)
 
-
 function cb_returns_unbounded_primal() # case 2
     env, form, vars, x = build_formulation(5)
 
