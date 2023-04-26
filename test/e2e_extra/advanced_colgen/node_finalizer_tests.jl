@@ -161,4 +161,4 @@ function test_node_finalizer()
     test_node_finalizer(false) # exact
     test_node_finalizer(true)  # heuristic
 end
-register!(e2e_extra_tests, "node_finalizer", test_node_finalizer; f = true)
+register!(e2e_extra_tests, "node_finalizer", test_node_finalizer)
