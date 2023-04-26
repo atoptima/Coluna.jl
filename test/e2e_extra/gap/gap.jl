@@ -263,7 +263,7 @@ function gap_with_best_dual_bound()
         CL.Optimizer,
         "params" => CL.Params(
             solver = Coluna.Algorithm.TreeSearchAlgorithm(
-                explorestrategy = Coluna.Algorithm.BestDualBoundStrategy()
+                explorestrategy = Coluna.TreeSearch.BestDualBoundStrategy()
             )
         ),
         "default_optimizer" => GLPK.Optimizer
@@ -275,7 +275,7 @@ function gap_with_best_dual_bound()
     @test JuMP.objective_value(model) ≈ 75.0
     @test JuMP.termination_status(model) == MOI.OPTIMAL
 end
-register!(e2e_extra_tests, "gap", gap_with_best_dual_bound; x = true)
+register!(e2e_extra_tests, "gap", gap_with_best_dual_bound)
 
 function gap_with_obj_const()
     M = 1:3;
