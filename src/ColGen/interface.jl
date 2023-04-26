@@ -356,9 +356,6 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
         sp_db = get_dual_bound(pricing_result)
         if !isnothing(sp_db)
             sps_db[sp_id] = sp_db
-            # else
-            #     sps_db[sp_id] = 0
-            # end
         end
 
         sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
