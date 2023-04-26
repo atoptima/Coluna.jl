@@ -53,6 +53,7 @@ ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
+    master_lp_dual_sol::Union{Nothing,DualSolution}
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     new_cut_in_master::Bool
@@ -61,6 +62,7 @@ end
 struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
+    master_lp_dual_sol::Union{Nothing,DualSolution}
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
 end
@@ -68,7 +70,8 @@ end
 function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
     return ColGenOutput(
         output.master_lp_primal_sol, 
-        output.master_ip_primal_sol, 
+        output.master_ip_primal_sol,
+        output.master_lp_dual_sol,
         output.mlp, 
         output.db
     )
@@ -486,6 +489,7 @@ struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     time_limit_reached::Bool
     master_lp_primal_sol::Union{Nothing, PrimalSolution}
     master_ip_primal_sol::Union{Nothing, PrimalSolution}
+    master_lp_dual_sol::Union{Nothing, DualSolution}
 end
 
 ColGen.colgen_iteration_output_type(::ColGenContext) = ColGenIterationOutput
@@ -502,7 +506,8 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
     unbounded_subproblem,
     time_limit_reached,
     master_lp_primal_sol,
-    master_ip_primal_sol
+    master_ip_primal_sol,
+    master_lp_dual_sol
 )
     return ColGenIterationOutput(
         min_sense,
@@ -516,7 +521,8 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
         unbounded_subproblem,
         time_limit_reached,
         master_lp_primal_sol,
-        master_ip_primal_sol
+        master_ip_primal_sol,
+        master_lp_dual_sol
     )
 end
 
@@ -556,6 +562,7 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
+        colgen_iter_output.master_lp_dual_sol,
         colgen_iter_output.mlp,
         colgen_iter_output.db,
         colgen_iter_output.new_cut_in_master
