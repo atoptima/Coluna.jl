@@ -98,7 +98,6 @@ struct BendersSeparationResult{F,S}
 end
 
 function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env)
-    @show sp
     spid = getuid(sp)
     input = OptimizationState(sp)
     opt_state = run!(ctx.separation_solve_alg, env, sp, input)
