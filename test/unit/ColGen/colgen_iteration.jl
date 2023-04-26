@@ -313,16 +313,7 @@ function colgen_iteration_master_unbounded()
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
-    @test output.mlp == -Inf
-    @test isnothing(output.db)
-    @test output.nb_new_cols == 0
-    @test output.new_cut_in_master == false
-    @test output.infeasible_master == false
-    @test output.unbounded_master == true
-    @test output.infeasible_subproblem == false
-    @test output.unbounded_subproblem == false
-    @test isnothing(output.master_ip_primal_sol)
+    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_master_unbounded)
 
@@ -332,16 +323,7 @@ function colgen_iteration_pricing_unbounded()
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
-    @test isnothing(output.mlp)
-    @test isnothing(output.db)
-    @test output.nb_new_cols == 0
-    @test output.new_cut_in_master == false
-    @test output.infeasible_master == false
-    @test output.unbounded_master == false
-    @test output.infeasible_subproblem == false
-    @test output.unbounded_subproblem == true
-    @test isnothing(output.master_ip_primal_sol)
+    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
 
