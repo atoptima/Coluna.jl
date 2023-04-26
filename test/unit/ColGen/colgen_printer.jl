@@ -134,9 +134,9 @@ register!(unit_tests, "colgen_printer", printer_colgen_iteration_pricing_unbound
 function printer_colgen_new_cuts_in_master()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
-        22.5,
-        22.5 - 23/4,
-        1,
+        nothing,
+        nothing,
+        0,
         true,
         false,
         false,
@@ -147,9 +147,8 @@ function printer_colgen_new_cuts_in_master()
         nothing,
         nothing
     )
-    expected_str = "  <it=  1> <et= 2.34> <mst= 1.23> <sp= 0.12> <cols= 1> <al= 0.00> <DB=   16.7500> <mlp=   22.5000> <PB=Inf>"
+    expected_str = "  <it=  1> <et= 2.34> - new essential cut in master"
     str = Coluna.Algorithm._colgen_iter_str(1, output, 3, 0.12, 1.23, 2.34)
     @test expected_str == str
 end
 register!(unit_tests, "colgen_printer", printer_colgen_new_cuts_in_master)
-

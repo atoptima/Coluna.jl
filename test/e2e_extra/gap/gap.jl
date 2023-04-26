@@ -254,7 +254,7 @@ function gap_with_lazy_cuts()
     @test JuMP.objective_value(model) ≈ 75.0
     @test JuMP.termination_status(model) == MOI.OPTIMAL
 end
-register!(e2e_extra_tests, "gap", gap_with_lazy_cuts; x = true)
+register!(e2e_extra_tests, "gap", gap_with_lazy_cuts)
 
 function gap_with_best_dual_bound()
     data = ClD.GeneralizedAssignment.data("play2.txt")
