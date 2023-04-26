@@ -134,6 +134,10 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     master = getmaster(reform)
     optstate = OptimizationState(master)
 
+    if result.infeasible
+        setterminationstatus!(optstate, INFEASIBLE)
+    end
+
     if !isnothing(result.master_lp_primal_sol)
         set_lp_primal_sol!(optstate, result.master_lp_primal_sol)
     end

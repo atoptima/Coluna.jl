@@ -57,6 +57,7 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     new_cut_in_master::Bool
+    infeasible::Bool
 end
 
 struct ColGenOutput <: ColGen.AbstractColGenOutput
@@ -65,6 +66,7 @@ struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_dual_sol::Union{Nothing,DualSolution}
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
+    infeasible::Bool
 end
 
 function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
@@ -73,7 +75,8 @@ function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
         output.master_ip_primal_sol,
         output.master_lp_dual_sol,
         output.mlp, 
-        output.db
+        output.db,
+        output.infeasible
     )
 end
 
@@ -558,14 +561,27 @@ ColGen.after_colgen_iteration(ctx::ColGenContext, phase, env, colgen_iteration, 
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output::ColGenIterationOutput)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, colgen_iter_output::ColGenIterationOutput)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
         colgen_iter_output.master_lp_dual_sol,
         colgen_iter_output.mlp,
         colgen_iter_output.db,
-        colgen_iter_output.new_cut_in_master
+        colgen_iter_output.new_cut_in_master,
+        colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem,
+    )
+end
+
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase1, colgen_iter_output::ColGenIterationOutput)
+    return ColGenPhaseOutput(
+        colgen_iter_output.master_lp_primal_sol,
+        colgen_iter_output.master_ip_primal_sol,
+        colgen_iter_output.master_lp_dual_sol,
+        colgen_iter_output.mlp,
+        colgen_iter_output.db,
+        colgen_iter_output.new_cut_in_master,
+        colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem || abs(colgen_iter_output.mlp) > 1e-5,
     )
 end
 
