@@ -93,6 +93,6 @@ function gap_with_pricing_callback_and_stages()
                                 # a little bit with versions due to numerical errors.
     @test JuMP.objective_value(model) ≈ 75.0
     @test JuMP.termination_status(model) == MOI.OPTIMAL
-    @test_broken ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
 register!(e2e_extra_tests, "pricing_callback", gap_with_pricing_callback_and_stages)
