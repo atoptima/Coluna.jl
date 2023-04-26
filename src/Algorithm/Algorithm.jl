@@ -4,7 +4,7 @@ using DataStructures
 import MathOptInterface
 import TimerOutputs
 
-using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen, ..Benders, ..AlgoAPI, ..TreeSearch, ..Branching
+using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen, ..Benders, ..AlgoAPI, ..TreeSearch, ..Branching, ..Heuristic
 
 using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics, SparseArrays, LinearAlgebra
 
@@ -64,6 +64,10 @@ include("branching/single_var_branching.jl")
 include("branching/printer.jl")
 include("branching/branchingalgo.jl")
 
+# Heuristics
+include("heuristic/restricted_master.jl")
+
+# Tree search
 include("treesearch.jl")
 include("treesearch/printer.jl")
 include("treesearch/branch_and_bound.jl")

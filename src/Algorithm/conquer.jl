@@ -2,15 +2,7 @@
 #                      ParameterizedHeuristic
 ####################################################################
 
-"""
-    Coluna.Algorithm.RestrictedMasterHeuristic()
-
-This algorithm enforces integrality of column variables in the master formulation and then
-solves the master formulation with its optimizer.
-"""
-RestrictedMasterIPHeuristic() = SolveIpForm(moi_params = MoiOptimize(get_dual_bound = false))
-
-struct ParameterizedHeuristic{OptimAlgorithm<:AbstractOptimizationAlgorithm}
+struct ParameterizedHeuristic{OptimAlgorithm}
     algorithm::OptimAlgorithm
     root_priority::Float64
     nonroot_priority::Float64
@@ -21,7 +13,7 @@ end
 
 ParamRestrictedMasterHeuristic() = 
     ParameterizedHeuristic(
-        RestrictedMasterIPHeuristic(), 
+        RestrictedMasterHeuristic(), 
         1.0, 1.0, 1, 1000, "Restricted Master IP"
     )
 
@@ -153,9 +145,9 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     if !isnothing(algo.preprocess)
         push!(child_algos, (algo.preprocess, reform))
     end
-    for heuristic in algo.primal_heuristics
-        push!(child_algos, (heuristic.algorithm, reform))
-    end
+    # for heuristic in algo.primal_heuristics
+    #     push!(child_algos, (heuristic.algorithm, reform))
+    # end
     if !isnothing(algo.before_cutgen_user_algorithm)
         push!(child_algos, (algo.before_cutgen_user_algorithm, reform))
     end
@@ -272,7 +264,7 @@ function get_heuristics_to_run(ctx::ColCutGenContext, node)
 end
 
 # run_heuristics!
-function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, node_state,)
+function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, node_state)
     for heuristic in heuristics
         # TODO: check time limit of Coluna
 
@@ -284,24 +276,9 @@ function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, node_st
             records = create_records(reform)
         end
 
-        heur_output = run!(heuristic.algorithm, env, reform, node_state)
-        if getterminationstatus(heur_output) == TIME_LIMIT
-            setterminationstatus!(node_state, TIME_LIMIT)
-        end
-
-        ip_primal_sols = get_ip_primal_sols(heur_output)
-        if !isnothing(ip_primal_sols) && length(ip_primal_sols) > 0
-            # we start with worst solution to add all improving solutions
-            for sol in sort(ip_primal_sols)
-                cutgen = CutCallbacks(call_robust_facultative = false)
-                # TODO (Ruslan): Heuristics should ensure themselves that the returned solution is feasible (Ruslan)
-                # NOTE (Guillaume): I don't know how we can do that because the heuristic should not have
-                # access to the cut callback algorithm.
-                cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
-                if cutcb_output.nb_cuts_added == 0
-                    update_ip_primal_sol!(node_state, sol)
-                end
-            end
+        output = AlgoAPI.run!(heuristic.algorithm, env, getmaster(reform), get_best_ip_primal_sol(node_state))
+        for sol in Heuristic.get_primal_sols(output)
+            update_ip_primal_sol!(node_state, sol)
         end
 
         if ismanager(heuristic.algorithm) 
