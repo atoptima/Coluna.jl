@@ -4,7 +4,7 @@
 # (three singletons and three pairs) which gives a fractional solution at the root node.
 # Then a relaxation improvement function "improve_relaxation" is called to remove two of
 # the pairs from the list of pricing solutions and from the master problem.
-CL.@with_kw struct ImproveRelaxationAlgo <: ClA.AbstractOptimizationAlgorithm
+CL.@with_kw mutable struct ImproveRelaxationAlgo <: ClA.AbstractOptimizationAlgorithm
     userfunc::Function
 end
 
@@ -31,10 +31,12 @@ ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
 ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
 
 function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
+    @info "In new_record $id = $(unit.value)"
     return ToyNodeInfo(unit.value)
 end
 
 function ClB.restore_from_record!(form::ClMP.Formulation, unit::ToyNodeInfoUnit, record::ToyNodeInfo)
+    @info "In restore_from_record! $(record.value)"
     unit.value = record.value
     return
 end
@@ -81,7 +83,8 @@ function test_improve_relaxation(; do_improve::Bool)
         @axis(B, [1])
         @variable(toy, y[b in B] >= 0, Int)
         @variable(toy, x[b in B, i in I], Bin)
-        @constraint(toy, sp[i in I], sum(x[b,i] for b in B) == 1)
+        @constraint(toy, lb[i in I], sum(4 * x[b,i] for b in B) >= 3)
+        @constraint(toy, ub[i in I], sum(x[b,i] for b in B) <= 1)
         @objective(toy, Min, sum(y[b] for b in B))
         @dantzig_wolfe_decomposition(toy, dec, B)
         customvars!(toy, VarData)
@@ -89,7 +92,10 @@ function test_improve_relaxation(; do_improve::Bool)
         return toy, x, y, dec, B
     end
 
-    call_improve_relaxation(masterform, cbdata) = improve_relaxation(masterform, cbdata)
+    dummyfunc() = nothing
+    improve_algo = ImproveRelaxationAlgo(
+        userfunc = dummyfunc
+    )
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
@@ -104,9 +110,7 @@ function test_improve_relaxation(; do_improve::Bool)
                                 ],
                     primal_heuristics = [],
                     before_cutgen_user_algorithm = ClA.BeforeCutGenAlgo(
-                            ImproveRelaxationAlgo(
-                                userfunc = call_improve_relaxation
-                            ), 
+                            improve_algo, 
                             "Improve relaxation"
                     )
                 ),
@@ -133,6 +137,7 @@ function test_improve_relaxation(; do_improve::Bool)
         storage = ClMP.getstorage(ClMP.getmaster(reform))
         unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
         info_val = unit.value
+        @info "Read unit.value = $info_val"
 
         max_info_val = max(max_info_val, info_val)
         if info_val == 9999
@@ -173,13 +178,30 @@ function test_improve_relaxation(; do_improve::Bool)
         end
         return
     end
+    function cutsep(cbdata)
+        I = [1, 2, 3]
+        for i in I
+            if sum(callback_value(cbdata, x[b, i]) for b in B) < 0.999
+                cut = @build_constraint(sum(x[b, i] for b in B) >= 1)
+                MOI.submit(model, MOI.UserCut(cbdata), cut)
+                @info "Adding cut for i = $i"
+            end
+        end
+    end
+
     subproblems = BD.getsubproblems(dec)
+    MOI.set(model, MOI.UserCutCallback(), cutsep)
     BD.specify!.(
         subproblems, lower_multiplicity = 0, upper_multiplicity = 3,
         solver = enumerative_pricing
     )
 
+    improve_count = 0
+
     function improve_relaxation(masterform, cbdata)
+        storage = ClMP.getstorage(masterform)
+        unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
+        improve_count += 1
         if do_improve
             # Get the reduced costs of the original variables
             I = [1, 2, 3]
@@ -196,34 +218,36 @@ function test_improve_relaxation(; do_improve::Bool)
                     if var.custom_data.items in [[1, 2], [1, 3]]
                         ClMP.deactivate!(masterform, vid)
                         changed = true
-
-                        storage = ClMP.getstorage(masterform)
-                        unit = storage.units[ToyNodeInfoUnit].storage_unit # TODO: to improve
                         unit.value = 9999
                     end
                 end
             end
 
+            @info "Update unit.value = $(unit.value)"
             @info "improve_relaxation $(changed ? "changed" : "did not change")"
             return changed
         else
+            @info "Update unit.value = $(unit.value)"
+            @info "improve_relaxation did nothing"
             return false
         end
     end
 
+    improve_algo.userfunc = improve_relaxation
     JuMP.optimize!(model)
     @test JuMP.objective_value(model) ≈ 2.0
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     for b in B
         sets = BD.getsolutions(model, b)
+        count = [0, 0]
         for s in sets
             @test BD.value(s) == 1.0 # value of the master column variable
-            @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 2]) # only x[1,1] in its set
-            @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 3]) # only x[1,1] in its set
-            @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
+            count[round(Int, sum(BD.value(s, x[b, i]) for i in 1:3))] += 1
         end
+        @test count == [1, 1]
     end
-    @test do_improve || max_info_val == 888
+    @test do_improve || max_info_val == 999
+    @test improve_count == (do_improve ? 1 : 2)
 end
 
 @testset "Improve relaxation callback" begin
