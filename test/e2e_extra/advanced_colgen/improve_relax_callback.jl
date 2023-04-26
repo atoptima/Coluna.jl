@@ -234,4 +234,4 @@ function improve_relaxation_callback()
     test_improve_relaxation(do_improve = true)
     test_improve_relaxation(do_improve = false)
 end
-register!(e2e_extra_tests, "improve_relax_callback", improve_relaxation_callback; f = true)
+register!(e2e_extra_tests, "improve_relax_callback", improve_relaxation_callback)
