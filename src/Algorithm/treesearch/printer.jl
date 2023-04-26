@@ -52,7 +52,7 @@ struct PrintedNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
 end
 
 TreeSearch.get_parent(n::PrintedNode) = n.parent
-TreeSearch.get_priority(explore::TreeSearch.AbstractExploreStrategy, n::PrintedNode) = get_priority(explore, n.inner)
+TreeSearch.get_priority(explore::TreeSearch.AbstractExploreStrategy, n::PrintedNode) = TreeSearch.get_priority(explore, n.inner)
 
 function TreeSearch.tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
     close_tree_search_file!(sp.file_printer)
@@ -81,11 +81,14 @@ function TreeSearch.new_root(sp::PrinterSearchSpace, input)
     return PrintedNode(sp.current_tree_order_id+=1, nothing, inner_root)
 end
 
+_inner_node(n::PrintedNode) = n.inner # `untreated_node` is a stack.
+_inner_node(n::Pair{<:PrintedNode, Float64}) = first(n).inner # `untreated_node` is a priority queue.
+
 function TreeSearch.children(sp::PrinterSearchSpace, current, env, untreated_nodes)
     print_log(sp.log_printer, sp, current, env, length(untreated_nodes))
     print_node_in_tree_search_file!(sp.file_printer, current, sp, env)
     return map(
-        TreeSearch.children(sp.inner, current.inner, env, Iterators.map(n -> n.inner, untreated_nodes))
+        TreeSearch.children(sp.inner, current.inner, env, Iterators.map(_inner_node, untreated_nodes))
     ) do child
         return PrintedNode(sp.current_tree_order_id += 1, current, child)
     end
