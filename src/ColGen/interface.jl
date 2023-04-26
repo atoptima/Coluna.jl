@@ -337,7 +337,7 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
             # We do not support unbounded pricing (even if it's theorically possible).
             # We must stop Coluna here by throwing an exception because we can't claim
             # the problem is unbounded.
-            throw(UnboundedProblemError("error: unbounded subproblem detected."))
+            throw(UnboundedProblemError("Unbounded subproblem."))
         end
 
         check_pricing_termination_status(pricing_result)
