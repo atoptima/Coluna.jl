@@ -464,7 +464,6 @@ end
 function bend_cutting_plane_main_loop!(
     algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, reform::Reformulation
 )
-
     nb_bc_iterations = 0
     masterform = getmaster(reform)
     one_spsol_is_a_relaxed_sol = false
