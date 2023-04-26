@@ -251,7 +251,7 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
     if is_infeasible(mast_result)
         return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing)
     elseif is_unbounded(mast_result)
-        throw(UnboundedProblemError("\e[31m error: master problem is unbounded"))
+        throw(UnboundedProblemError("Unbounded master problem."))
     end
 
     check_master_termination_status(mast_result)
