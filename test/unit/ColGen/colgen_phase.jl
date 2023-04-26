@@ -129,6 +129,7 @@ function stop_colgen_phase_if_colgen_converged_eq()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
 
@@ -154,6 +155,7 @@ function stop_colgen_phase_if_colgen_converged_min()
         false,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )
@@ -181,6 +183,7 @@ function stop_colgen_phase_if_colgen_converged_max()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
 
@@ -206,6 +209,7 @@ function stop_colgen_phase_if_iterations_limit()
         false,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )
@@ -233,6 +237,7 @@ function stop_colgen_phase_if_time_limit()
         false,
         true,
         nothing,
+        nothing,
         nothing
     )
 
@@ -258,6 +263,7 @@ function stop_colgen_phase_if_subproblem_infeasible()
         true,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )
@@ -285,6 +291,7 @@ function stop_colgen_phase_if_subproblem_unbounded()
         true,
         false,
         nothing,
+        nothing,
         nothing
     )
 
@@ -310,6 +317,7 @@ function stop_colgen_phase_if_master_unbounded()
         false,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )
@@ -337,6 +345,7 @@ function stop_colgen_phase_if_no_new_column()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -362,6 +371,7 @@ function stop_colgen_phase_if_new_cut_in_master()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
     @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase3(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
@@ -386,6 +396,7 @@ function continue_colgen_phase_otherwise()
         false,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )
