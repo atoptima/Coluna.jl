@@ -220,6 +220,7 @@ struct TestColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     time_limit_reached::Bool
     master_lp_primal_sol::Union{Nothing, Vector{Float64}}
     master_ip_primal_sol::Union{Nothing, Vector{Float64}}
+    master_lp_dual_sol::Union{Nothing, Vector{Float64}}
 end
 
 ColGen.colgen_iteration_output_type(::ColGenIterationTestContext) = TestColGenIterationOutput
@@ -236,7 +237,8 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
     unbounded_subproblem,
     time_limit_reached,
     master_lp_primal_sol,
-    master_ip_primal_sol
+    master_ip_primal_sol,
+    master_lp_dual_sol
 )
     return TestColGenIterationOutput(
         min_sense,
@@ -250,7 +252,8 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
         unbounded_subproblem,
         time_limit_reached,
         master_lp_primal_sol,
-        master_ip_primal_sol
+        master_ip_primal_sol,
+        master_lp_dual_sol
     )
 end
 

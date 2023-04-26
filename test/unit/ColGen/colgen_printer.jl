@@ -12,6 +12,7 @@ function printer_colgen_iteration_master_ok_pricing_ok()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
     expected_str = "  <it=  1> <et= 2.34> <mst= 1.23> <sp= 0.12> <cols= 1> <al= 0.00> <DB=   16.7500> <mlp=   22.5000> <PB=Inf>"
@@ -32,6 +33,7 @@ function printer_colgen_iteration_master_infeasible()
         false,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )
@@ -54,6 +56,7 @@ function printer_colgen_iteration_pricing_infeasible()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
     expected_str = "  <it=  1> <et= 2.34> - infeasible subproblem"
@@ -75,6 +78,7 @@ function printer_colgen_iteration_master_unbounded()
         false,
         false,
         nothing,
+        nothing,
         nothing
     )
     expected_str = ""
@@ -95,6 +99,7 @@ function printer_colgen_iteration_pricing_unbounded()
         false,
         true,
         false,
+        nothing,
         nothing,
         nothing
     )
@@ -138,6 +143,7 @@ function printer_colgen_new_cuts_in_master()
         false,
         false,
         false,
+        nothing,
         nothing,
         nothing
     )

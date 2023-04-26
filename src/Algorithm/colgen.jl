@@ -142,10 +142,14 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
         update_ip_primal_sol!(optstate, result.master_ip_primal_sol)
     end
 
+    if !isnothing(result.master_lp_dual_sol)
+        update_lp_dual_sol!(optstate, result.master_lp_dual_sol)
+    end
+
     if !isnothing(result.db)
         set_lp_dual_bound!(optstate, DualBound(master, result.db))
         set_ip_dual_bound!(optstate, DualBound(master, result.db))
-    end    
+    end
     return optstate
 end
 
