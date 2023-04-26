@@ -277,7 +277,7 @@ function solve_sp_to_gencut!(
             )
         end
 
-        if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != DUAL_INFEASIBLE
+        if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != UNBOUNDED
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
             bd = PrimalBound(spform) 
@@ -464,7 +464,6 @@ end
 function bend_cutting_plane_main_loop!(
     algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, reform::Reformulation
 )
-
     nb_bc_iterations = 0
     masterform = getmaster(reform)
     one_spsol_is_a_relaxed_sol = false

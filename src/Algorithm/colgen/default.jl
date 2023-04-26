@@ -53,6 +53,7 @@ ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
+    master_lp_dual_sol::Union{Nothing,DualSolution}
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     new_cut_in_master::Bool
@@ -61,6 +62,7 @@ end
 struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
+    master_lp_dual_sol::Union{Nothing,DualSolution}
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
 end
@@ -68,7 +70,8 @@ end
 function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
     return ColGenOutput(
         output.master_lp_primal_sol, 
-        output.master_ip_primal_sol, 
+        output.master_ip_primal_sol,
+        output.master_lp_dual_sol,
         output.mlp, 
         output.db
     )
@@ -218,12 +221,12 @@ end
 
 function ColGen.is_infeasible(master_res::ColGenMasterResult)
     status = getterminationstatus(master_res.result)
-    return status == ClB.INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.INFEASIBLE
 end
 
 function ColGen.is_unbounded(master_res::ColGenMasterResult)
     status = getterminationstatus(master_res.result)
-    return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.UNBOUNDED
 end
 
 ColGen.get_primal_sol(master_res::ColGenMasterResult) = get_best_lp_primal_sol(master_res.result)
@@ -252,6 +255,8 @@ function _violates_essential_cuts!(master, master_lp_primal_sol, env)
     return cutcb_output.nb_cuts_added > 0
 end
 
+ColGen.check_primal_ip_feasibility!(_, ctx::ColGenContext, ::ColGenPhase1, _, _) = nothing, false
+
 function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, reform, env)
     # Check if feasible.
     if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
@@ -264,8 +269,8 @@ function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenCo
     end
     # Check if violated essential cuts
     new_cut_in_master = _violates_essential_cuts!(ColGen.get_master(ctx), master_lp_primal_sol, env)
-    # Returns projection on original variables if feasible and integral.
-    return MathProg.proj_cols_on_rep(master_lp_primal_sol), new_cut_in_master
+    # Returns disaggregated solution if feasible and integral.
+    return master_lp_primal_sol, new_cut_in_master
 end
 
 ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Nothing) = true
@@ -396,12 +401,12 @@ end
 
 function ColGen.is_infeasible(pricing_res::ColGenPricingResult)
     status = getterminationstatus(pricing_res.result)
-    return status == ClB.INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.INFEASIBLE
 end
 
 function ColGen.is_unbounded(pricing_res::ColGenPricingResult)
     status = getterminationstatus(pricing_res.result)
-    return status == ClB.DUAL_INFEASIBLE || status == ClB.INFEASIBLE_OR_UNBOUNDED
+    return status == ClB.UNBOUNDED
 end
 
 ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns
@@ -484,6 +489,7 @@ struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     time_limit_reached::Bool
     master_lp_primal_sol::Union{Nothing, PrimalSolution}
     master_ip_primal_sol::Union{Nothing, PrimalSolution}
+    master_lp_dual_sol::Union{Nothing, DualSolution}
 end
 
 ColGen.colgen_iteration_output_type(::ColGenContext) = ColGenIterationOutput
@@ -500,7 +506,8 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
     unbounded_subproblem,
     time_limit_reached,
     master_lp_primal_sol,
-    master_ip_primal_sol
+    master_ip_primal_sol,
+    master_lp_dual_sol
 )
     return ColGenIterationOutput(
         min_sense,
@@ -514,7 +521,8 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
         unbounded_subproblem,
         time_limit_reached,
         master_lp_primal_sol,
-        master_ip_primal_sol
+        master_ip_primal_sol,
+        master_lp_dual_sol
     )
 end
 
@@ -554,6 +562,7 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, colgen_iter_output
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
+        colgen_iter_output.master_lp_dual_sol,
         colgen_iter_output.mlp,
         colgen_iter_output.db,
         colgen_iter_output.new_cut_in_master

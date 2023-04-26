@@ -4,6 +4,10 @@ We can use these kpis as a stopping criteria for instance.
 """
 abstract type AbstractColGenKpis end
 
+struct UnboundedProblemError <: Exception
+    message::String
+end
+
 
 """
 Placeholder method called before the column generation iteration.
@@ -220,7 +224,8 @@ abstract type AbstractColGenIterationOutput end
     unbounded_subproblem,
     time_limit_reached,
     master_primal_sol,
-    ip_primal_sol
+    ip_primal_sol,
+    dual_sol
 ) = nothing
 
 @mustimplement "ColGenIterationOutput" get_nb_new_cols(::AbstractColGenIterationOutput) = nothing
@@ -245,9 +250,9 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
     if is_infeasible(mast_result)
-        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing)
+        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing, nothing)
     elseif is_unbounded(mast_result)
-        return new_iteration_output(O, is_min_sense, -_inf(is_min_sense), nothing, 0, false, false, true, false, false, false, nothing, nothing)
+        throw(UnboundedProblemError("Unbounded master problem."))
     end
 
     check_master_termination_status(mast_result)
@@ -265,7 +270,7 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
         # memoization to calculate reduced costs and stabilization.
         new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context), env)
         if new_cut_in_master
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, ip_primal_sol)
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
         end
         if !isnothing(new_ip_primal_sol) && isbetter(new_ip_primal_sol, ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
@@ -328,12 +333,12 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)
             # TODO: if the lower multiplicity of the subproblem is zero, we can continue.
-            return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, false, false, true, false, false, mast_primal_sol, ip_primal_sol)
+            return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, false, false, true, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
         elseif is_unbounded(pricing_result)
             # We do not support unbounded pricing (even if it's theorically possible).
             # We must stop Coluna here by throwing an exception because we can't claim
             # the problem is unbounded.
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, false, false, false, false, true, false, mast_primal_sol, ip_primal_sol)
+            throw(UnboundedProblemError("Unbounded subproblem."))
         end
 
         check_pricing_termination_status(pricing_result)
@@ -352,9 +357,6 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
         sp_db = get_dual_bound(pricing_result)
         if !isnothing(sp_db)
             sps_db[sp_id] = sp_db
-            # else
-            #     sps_db[sp_id] = 0
-            # end
         end
 
         sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
@@ -375,6 +377,6 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
 
     # update_stab_after_gencols!
 
-    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol)
+    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
 end
 

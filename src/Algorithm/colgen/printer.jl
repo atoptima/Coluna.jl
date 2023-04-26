@@ -119,6 +119,7 @@ end
 function _colgen_iter_str(
     colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64
 )
+
     phase_string = "  "
     if phase == 1
         phase_string = "# "
@@ -126,7 +127,13 @@ function _colgen_iter_str(
         phase_string = "##"
     end
     iteration::Int = colgen_iteration
-    
+
+    if colgen_iter_output.new_cut_in_master
+        return @sprintf(
+            "%s<it=%3i> <et=%5.2f> - new essential cut in master",
+            phase_string, iteration, optim_time
+        )
+    end
     if colgen_iter_output.infeasible_master
         return @sprintf(
             "%s<it=%3i> <et=%5.2f> - infeasible master",

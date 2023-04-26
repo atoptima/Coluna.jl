@@ -104,7 +104,7 @@ ColGen.get_primal_sol(res::ColGenIterationTestMasterResult) = res.primal_sol
 ColGen.get_dual_sol(res::ColGenIterationTestMasterResult) = res.dual_sol
 ColGen.get_obj_val(res::ColGenIterationTestMasterResult) = res.obj_val
 ColGen.is_infeasible(res::ColGenIterationTestMasterResult) = res.term_status == ClB.INFEASIBLE
-ColGen.is_unbounded(res::ColGenIterationTestMasterResult) = res.term_status == ClB.DUAL_INFEASIBLE
+ColGen.is_unbounded(res::ColGenIterationTestMasterResult) = res.term_status == ClB.UNBOUNDED
 ColGen.is_optimal(res::ColGenIterationTestMasterResult) = res.term_status == ClB.OPTIMAL
 
 ## mock of the master lp solver
@@ -132,7 +132,7 @@ ColGen.get_dual_bound(res::ColGenIterationTestPricingResult) = res.dual_bound
 ColGen.compute_sp_init_db(::ColGenIterationTestContext, sp) = -Inf
 ColGen.set_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
 ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status == ClB.INFEASIBLE
-ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.DUAL_INFEASIBLE
+ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.UNBOUNDED
 ColGen.is_optimal(res::ColGenIterationTestPricingResult) = res.term_status == ClB.OPTIMAL
 
 function ColGen.push_in_set!(ctx::ColGenIterationTestContext, set::Vector{Vector{Float64}}, col::Vector)
@@ -220,6 +220,7 @@ struct TestColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     time_limit_reached::Bool
     master_lp_primal_sol::Union{Nothing, Vector{Float64}}
     master_ip_primal_sol::Union{Nothing, Vector{Float64}}
+    master_lp_dual_sol::Union{Nothing, Vector{Float64}}
 end
 
 ColGen.colgen_iteration_output_type(::ColGenIterationTestContext) = TestColGenIterationOutput
@@ -236,7 +237,8 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
     unbounded_subproblem,
     time_limit_reached,
     master_lp_primal_sol,
-    master_ip_primal_sol
+    master_ip_primal_sol,
+    master_lp_dual_sol
 )
     return TestColGenIterationOutput(
         min_sense,
@@ -250,7 +252,8 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
         unbounded_subproblem,
         time_limit_reached,
         master_lp_primal_sol,
-        master_ip_primal_sol
+        master_ip_primal_sol,
+        master_lp_dual_sol
     )
 end
 
@@ -309,39 +312,21 @@ register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_infeasible)
 
 function colgen_iteration_master_unbounded()
     ctx = ColGenIterationTestContext(
-        master_term_status = ClB.DUAL_INFEASIBLE,
+        master_term_status = ClB.UNBOUNDED,
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
-    @test output.mlp == -Inf
-    @test isnothing(output.db)
-    @test output.nb_new_cols == 0
-    @test output.new_cut_in_master == false
-    @test output.infeasible_master == false
-    @test output.unbounded_master == true
-    @test output.infeasible_subproblem == false
-    @test output.unbounded_subproblem == false
-    @test isnothing(output.master_ip_primal_sol)
+    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_master_unbounded)
 
 function colgen_iteration_pricing_unbounded()
     ctx = ColGenIterationTestContext(
-        pricing_term_status = ClB.DUAL_INFEASIBLE,
+        pricing_term_status = ClB.UNBOUNDED,
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
-    @test isnothing(output.mlp)
-    @test isnothing(output.db)
-    @test output.nb_new_cols == 0
-    @test output.new_cut_in_master == false
-    @test output.infeasible_master == false
-    @test output.unbounded_master == false
-    @test output.infeasible_subproblem == false
-    @test output.unbounded_subproblem == true
-    @test isnothing(output.master_ip_primal_sol)
+    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), nothing, nothing)
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
 
