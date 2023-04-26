@@ -252,6 +252,8 @@ function _violates_essential_cuts!(master, master_lp_primal_sol, env)
     return cutcb_output.nb_cuts_added > 0
 end
 
+ColGen.check_primal_ip_feasibility!(_, ctx::ColGenContext, ::ColGenPhase1, _, _) = nothing, false
+
 function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, reform, env)
     # Check if feasible.
     if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))

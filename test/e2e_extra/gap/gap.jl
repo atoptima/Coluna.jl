@@ -40,7 +40,7 @@ function gap_node_limit()
     @test JuMP.objective_bound(model) ≈ 1547.3889
     @test JuMP.termination_status(model) == MathOptInterface.OTHER_LIMIT
 end
-register!(e2e_extra_tests, "gap", gap_node_limit; x = true)
+register!(e2e_extra_tests, "gap", gap_node_limit)
 
 function gap_colgen_max_nb_iterations()
     data = ClD.GeneralizedAssignment.data("smallgap3.txt")
@@ -64,7 +64,7 @@ function gap_colgen_max_nb_iterations()
     @test JuMP.termination_status(problem) == MOI.OPTIMAL # Problem with final dual bound ?
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
-register!(e2e_extra_tests, "gap", gap_colgen_max_nb_iterations; x = true)
+register!(e2e_extra_tests, "gap", gap_colgen_max_nb_iterations)
 
 function gap_pure_master_variables()
     data = ClD.GeneralizedAssignment.data("smallgap3.txt")
@@ -96,7 +96,7 @@ function gap_maximisation_objective_function()
     @test JuMP.termination_status(problem) == MOI.OPTIMAL
     @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
 end
-register!(e2e_extra_tests, "gap", gap_maximisation_objective_function; x = true)
+register!(e2e_extra_tests, "gap", gap_maximisation_objective_function)
 
 function gap_infeasible_master()
     data = ClD.GeneralizedAssignment.data("master_infeas.txt")
@@ -167,7 +167,7 @@ function gap_with_all_phases_in_colgen()
     JuMP.optimize!(problem)
     @test abs(JuMP.objective_value(problem) - 31895.0) <= 0.00001
 end
-register!(e2e_extra_tests, "gap", gap_with_all_phases_in_colgen; x = true)
+register!(e2e_extra_tests, "gap", gap_with_all_phases_in_colgen)
 
 function gap_with_max_obj_pure_master_vars_and_stab()
     data = ClD.GeneralizedAssignment.data("gapC-5-100.txt")
@@ -190,7 +190,7 @@ function gap_with_max_obj_pure_master_vars_and_stab()
     @test JuMP.objective_value(model) ≈ 3520.1
     @test JuMP.termination_status(model) == MOI.OPTIMAL
 end
-register!(e2e_extra_tests, "gap", gap_with_max_obj_pure_master_vars_and_stab; x = true)
+register!(e2e_extra_tests, "gap", gap_with_max_obj_pure_master_vars_and_stab)
 
 function gap_with_no_solver()
     data = ClD.GeneralizedAssignment.data("play2.txt")
