@@ -70,10 +70,7 @@ function BranchCutAndPriceAlgorithm(;
     heuristics = ParameterizedHeuristic[]
     if restmastipheur_timelimit > 0
         heuristic = ParameterizedHeuristic(
-            SolveIpForm(moi_params = MoiOptimize(
-                get_dual_bound = false,
-                time_limit = restmastipheur_timelimit
-            )),
+            RestrictedMasterHeuristic(),
             1.0, 1.0, restmastipheur_frequency, 
             restmastipheur_maxdepth, "Restricted Master IP"
         )
