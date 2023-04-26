@@ -16,7 +16,7 @@ function gap_small_instance()
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
-register!(e2e_extra_tests, "gap", gap_small_instance; x = true)
+register!(e2e_extra_tests, "gap", gap_small_instance)
 
 function gap_node_limit()
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")

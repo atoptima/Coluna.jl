@@ -102,7 +102,7 @@ function optimize!(
     ip_primal_sols = get_ip_primal_sols(algstate)
     if !isnothing(ip_primal_sols)
         for sol in ip_primal_sols
-            add_ip_primal_sol!(outstate, sol)
+            add_ip_primal_sol!(outstate, proj_cols_on_rep(sol))
         end
     end
 

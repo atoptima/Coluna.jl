@@ -264,8 +264,8 @@ function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenCo
     end
     # Check if violated essential cuts
     new_cut_in_master = _violates_essential_cuts!(ColGen.get_master(ctx), master_lp_primal_sol, env)
-    # Returns projection on original variables if feasible and integral.
-    return MathProg.proj_cols_on_rep(master_lp_primal_sol), new_cut_in_master
+    # Returns disaggregated solution if feasible and integral.
+    return master_lp_primal_sol, new_cut_in_master
 end
 
 ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Nothing) = true
