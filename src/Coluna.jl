@@ -68,6 +68,9 @@ using .ColGen
 include("Benders/Benders.jl")
 using .Benders
 
+include("Heuristic/Heuristic.jl")
+using .Heuristic
+
 include("Algorithm/Algorithm.jl")
 using .Algorithm
 
