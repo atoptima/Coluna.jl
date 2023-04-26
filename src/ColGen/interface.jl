@@ -270,7 +270,7 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
         # memoization to calculate reduced costs and stabilization.
         new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context), env)
         if new_cut_in_master
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, ip_primal_sol, nothing)
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
         end
         if !isnothing(new_ip_primal_sol) && isbetter(new_ip_primal_sol, ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
