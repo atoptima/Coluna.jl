@@ -4,6 +4,10 @@ We can use these kpis as a stopping criteria for instance.
 """
 abstract type AbstractColGenKpis end
 
+struct UnboundedProblemError <: Exception
+    message::String
+end
+
 
 """
 Placeholder method called before the column generation iteration.
@@ -247,7 +251,7 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
     if is_infeasible(mast_result)
         return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing)
     elseif is_unbounded(mast_result)
-        return new_iteration_output(O, is_min_sense, -_inf(is_min_sense), nothing, 0, false, false, true, false, false, false, nothing, nothing)
+        throw(UnboundedProblemError("Unbounded master problem."))
     end
 
     check_master_termination_status(mast_result)
@@ -333,7 +337,7 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
             # We do not support unbounded pricing (even if it's theorically possible).
             # We must stop Coluna here by throwing an exception because we can't claim
             # the problem is unbounded.
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, false, false, false, false, true, false, mast_primal_sol, ip_primal_sol)
+            throw(UnboundedProblemError("Unbounded subproblem."))
         end
 
         check_pricing_termination_status(pricing_result)
