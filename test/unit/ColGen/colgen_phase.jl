@@ -2,9 +2,13 @@
 struct TestColGenOutput <: ColGen.AbstractColGenPhaseOutput
     has_art_vars::Bool
     new_cuts_in_master::Bool
+    exact_stage::Bool
+    has_converged::Bool
 end
 ClA.colgen_master_has_new_cuts(ctx::TestColGenOutput) = ctx.new_cuts_in_master
 ClA.colgen_mast_lp_sol_has_art_vars(ctx::TestColGenOutput) = ctx.has_art_vars
+ClA.colgen_uses_exact_stage(ctx::TestColGenOutput) = ctx.exact_stage
+ClA.colgen_has_converged(ctx::TestColGenOutput) = ctx.has_converged
 
 # The two following tests are pretty straightforward.
 # They are just here to make sure nobody changes the behavior of the phases.
@@ -15,17 +19,72 @@ end
 register!(unit_tests, "colgen_phase", initial_phase_colgen_test)
 
 function next_phase_colgen_test()
+    # Classic case where we use exact phase and the algorithm has converged.
     it = ClA.ColunaColGenPhaseIterator()
-    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(true, false)) isa ClA.ColGenPhase1
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(false, false)))
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(true, false)))
-    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(false, false)) isa ClA.ColGenPhase2
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(true, false)))
-    @test isnothing(ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(false, false)))
 
-    @test ColGen.next_phase(it, ClA.ColGenPhase1(), TestColGenOutput(false, true)) isa ClA.ColGenPhase1
-    @test ColGen.next_phase(it, ClA.ColGenPhase2(), TestColGenOutput(false, true)) isa ClA.ColGenPhase2
-    @test ColGen.next_phase(it, ClA.ColGenPhase3(), TestColGenOutput(false, true)) isa ClA.ColGenPhase3
+    table = [
+    # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
+    ( ClA.ColGenPhase1() , false    , false   , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , false   , false       , true      , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , false    , false   , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , false   , true        , true      , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , false    , true    , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , true    , false       , true      , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , false    , true    , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , true    , true        , true      , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , true     , false   , false       , false     , ClA.ColGenPhase1()  , false , nothing  ), # continue phase 1 with next stage
+    ( ClA.ColGenPhase1() , true     , false   , false       , true      , nothing             , false , nothing  ), # infeasible
+    ( ClA.ColGenPhase1() , true     , false   , true        , false     , nothing             , false , nothing ), # you should have converged but you hit another limit
+    ( ClA.ColGenPhase1() , true     , false   , true        , true      , nothing             , false , nothing  ), # infeasible
+    ( ClA.ColGenPhase1() , true     , true    , false       , false     , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , true     , true    , false       , true      , nothing             , false , nothing  ), # infeasible 
+    ( ClA.ColGenPhase1() , true     , true    , true        , false     , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , true     , true    , true        , true      , nothing             , false , nothing  ), # infeasible
+    # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
+    ( ClA.ColGenPhase2() , false    , false   , false       , false     , nothing             , false , nothing ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase2() , false    , false   , false       , true      , nothing             , false , nothing  ), # end of the column generation algorithm
+    ( ClA.ColGenPhase2() , false    , false   , true        , false     , nothing             , false , nothing ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase2() , false    , false   , true        , true      , nothing             , false , nothing  ), # end of the column generation algorithm
+    ( ClA.ColGenPhase2() , false    , true    , false       , false     , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , false       , true      , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , true        , false     , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , true        , true      , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , true     , false   , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , false   , false       , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , false   , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , false   , true        , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , true    , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , true    , false       , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , true    , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    ( ClA.ColGenPhase2() , true     , true    , true        , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
+    # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
+    ( ClA.ColGenPhase3() , false    , false   , false       , false     , ClA.ColGenPhase3()  , false , nothing  ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase3() , false    , false   , false       , true      , nothing             , false , nothing  ), # end of the column generation algorithm
+    ( ClA.ColGenPhase3() , false    , false   , true        , false     , nothing             , false , nothing  ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase3() , false    , false   , true        , true      , nothing             , false , nothing  ), # end of the column generation algorithm
+    ( ClA.ColGenPhase3() , false    , true    , false       , false     , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , false    , true    , false       , true      , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , false    , true    , true        , false     , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , false    , true    , true        , true      , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , false   , false       , false     , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , false   , false       , true      , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , false   , true        , false     , ClA.ColGenPhase1()  , false , nothing ), # you should have converged but you may have hit another limit. Let's try phase 1.
+    ( ClA.ColGenPhase3() , true     , false   , true        , true      , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , true    , false       , false     , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , true    , false       , true      , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , true    , true        , false     , ClA.ColGenPhase3()  , false , nothing  ),
+    ( ClA.ColGenPhase3() , true     , true    , true        , true      , ClA.ColGenPhase3()  , false , nothing  ),
+    ]
+
+    # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
+    for (cp, art, cut, exact, conv, exp, err, err_type) in table
+        @show (cp, art, cut, exact, conv, exp, err, err_type)
+        if !err
+            @test ColGen.next_phase(it, cp, TestColGenOutput(art, cut, exact, conv)) isa typeof(exp)
+        else
+            @test_throws err_type ColGen.next_phase(it, cp, TestColGenOutput(art, cut, exact, conv))
+        end
+    end
 end
 register!(unit_tests, "colgen_phase", next_phase_colgen_test)
 
@@ -403,4 +462,5 @@ function continue_colgen_phase_otherwise()
     @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
 end
 register!(unit_tests, "colgen_phase", continue_colgen_phase_otherwise)
+
 

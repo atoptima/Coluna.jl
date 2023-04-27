@@ -77,28 +77,23 @@ function BranchCutAndPriceAlgorithm(;
         push!(heuristics, heuristic)
     end
 
-    colgen_stages = ColumnGeneration[]
-
-    for solver_id in colgen_stages_pricing_solvers
-        colgen = ColumnGeneration(
-            pricing_prob_solve_alg = SolveIpForm(
-                optimizer_id = solver_id,
-                user_params = UserOptimize(), 
-                moi_params = MoiOptimize(
-                    deactivate_artificial_vars = false,
-                    enforce_integrality = false
-                )
-            ),
-            smoothing_stabilization = colgen_stabilization,
-            cleanup_threshold = colgen_cleanup_threshold,
-            opt_atol = opt_atol,
-            opt_rtol = opt_rtol
-        )
-        push!(colgen_stages, colgen)  
-    end
+    colgen = ColumnGeneration(
+        pricing_prob_solve_alg = SolveIpForm(
+            user_params = UserOptimize(), 
+            moi_params = MoiOptimize(
+                deactivate_artificial_vars = false,
+                enforce_integrality = false
+            )
+        ),
+        stages_pricing_solver_ids = colgen_stages_pricing_solvers,
+        smoothing_stabilization = colgen_stabilization,
+        cleanup_threshold = colgen_cleanup_threshold,
+        opt_atol = opt_atol,
+        opt_rtol = opt_rtol
+    )
 
     conquer = ColCutGenConquer(
-        stages = colgen_stages,
+        colgen = colgen,
         max_nb_cut_rounds = max_nb_cut_rounds,
         primal_heuristics = heuristics,
         opt_atol = opt_atol,
@@ -115,27 +110,28 @@ function BranchCutAndPriceAlgorithm(;
                 BranchingPhase(first(stbranch_phases_num_candidates), RestrMasterLPConquer(), ProductScore())
             )    
             if length(stbranch_phases_num_candidates) >= 3
-                intrmphase_stages = ColumnGeneration[]
-                for tuple in stbranch_intrmphase_stages
-                    colgen = ColumnGeneration(
-                        pricing_prob_solve_alg = SolveIpForm(
-                            optimizer_id = tuple.solverid,
-                            user_params = UserOptimize(), 
-                            moi_params = MoiOptimize(
-                                deactivate_artificial_vars = false,
-                                enforce_integrality = false
-                            )
-                        ),
-                        smoothing_stabilization = colgen_stabilization,
-                        cleanup_threshold = colgen_cleanup_threshold,
-                        max_nb_iterations = tuple.maxiters,
-                        opt_atol = opt_atol,
-                        opt_rtol = opt_rtol
-                    )
-                    push!(intrmphase_stages,  colgen)  
-                end                
+             
+                colgen = ColumnGeneration(
+                    pricing_prob_solve_alg = SolveIpForm(
+                        optimizer_id = tuple.solverid,
+                        user_params = UserOptimize(), 
+                        moi_params = MoiOptimize(
+                            deactivate_artificial_vars = false,
+                            enforce_integrality = false
+                        )
+                    ),
+                    stages_pricing_solver_ids = map(t -> t.solverid, stbranch_intrmphase_stages),
+                    smoothing_stabilization = colgen_stabilization,
+                    cleanup_threshold = colgen_cleanup_threshold,
+                    max_nb_iterations = mapreduce(t -> t.maxiters, +, stbranch_intrmphase_stages),
+                    opt_atol = opt_atol,
+                    opt_rtol = opt_rtol
+                )
+                  
+                           
                 intrmphase_conquer = ColCutGenConquer(
-                    stages = intrmphase_stages,
+                    #stages = intrmphase_stages,
+                    colgen = colgen,
                     max_nb_cut_rounds = 0,
                     primal_heuristics = [],
                     opt_atol = opt_atol,

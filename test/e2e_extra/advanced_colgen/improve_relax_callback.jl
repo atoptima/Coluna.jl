@@ -97,11 +97,9 @@ function test_improve_relaxation(; do_improve::Bool)
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    stages = [ClA.ColumnGeneration(
-                                pricing_prob_solve_alg = ClA.SolveIpForm(
-                                    optimizer_id = 1
-                                ))
-                                ],
+                    colgen = ClA.ColumnGeneration(
+                        stages_pricing_solver_ids = [1]
+                    ),
                     primal_heuristics = [],
                     before_cutgen_user_algorithm = ClA.BeforeCutGenAlgo(
                             ImproveRelaxationAlgo(

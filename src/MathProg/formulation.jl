@@ -130,6 +130,9 @@ function getoptimizer(form::Formulation, pos::Int)
     return form.optimizers[pos]
 end
 
+"Returns the list of optimizers of a formulation."
+getoptimizers(form::Formulation) = form.optimizers
+
 """
     getelem(form, varid) -> Variable
     getelem(form, constrid) -> Constraint

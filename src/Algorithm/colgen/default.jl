@@ -6,7 +6,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     restr_master_solve_alg
     restr_master_optimizer_id::Int
 
-    pricing_solve_alg
+    stages_pricing_solver_ids::Vector{Int}
 
     reduced_cost_helper::ReducedCostsCalculationHelper
 
@@ -33,7 +33,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             0.0,
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
-            alg.pricing_prob_solve_alg,
+            alg.stages_pricing_solver_ids,
             rch,
             alg.show_column_already_inserted_warning,
             alg.throw_column_already_inserted_warning,
@@ -57,7 +57,9 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     mlp::Union{Nothing, Float64}
     db::Union{Nothing, Float64}
     new_cut_in_master::Bool
+    no_more_columns::Bool
     infeasible::Bool
+    exact_stage::Bool
 end
 
 struct ColGenOutput <: ColGen.AbstractColGenOutput
@@ -111,6 +113,12 @@ or the cost of artificial variables is not large enough. Phase 1 must be run.
 """
 struct ColGenPhase3 <: ColGen.AbstractColGenPhase end
 
+"""
+Thrown when the phase ended with an unexpected output.
+The algorithm cannot continue because theory is not verified.
+"""
+struct UnexpectedEndOfColGenPhase end
+
 # Implementation of ColGenPhase interface
 ## Implementation of `initial_phase`.
 ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
@@ -121,13 +129,28 @@ function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
 end
 
 colgen_master_has_new_cuts(output::ColGenPhaseOutput) = output.new_cut_in_master
+colgen_uses_exact_stage(output::ColGenPhaseOutput) = output.exact_stage
+colgen_has_converged(output::ColGenPhaseOutput) = !isnothing(output.mlp) && !isnothing(output.db) && abs(output.mlp - output.db) < 1e-5
+colgen_has_no_new_cols(output::ColGenPhaseOutput) = output.no_more_columns
 
 ## Implementation of `next_phase`.
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, output::ColGen.AbstractColGenPhaseOutput)
+    if colgen_mast_lp_sol_has_art_vars(output) && colgen_has_converged(output)
+        return nothing # infeasible
+    end
+
+    if !colgen_mast_lp_sol_has_art_vars(output) && !colgen_has_converged(output)
+        # By definition, solution of the phase 1 does not contaib artifical variables when
+        # algorithm has converged. This case should not happen.
+        throw(UnexpectedEndOfColGenPhase())
+    end
+    
     # If there is a new essential cut in the master, we restart the phase.
-    if colgen_master_has_new_cuts(output)
+    # If algorithm stopped but we didn't converge, we stay in same phase (need to move to next stage).
+    if colgen_master_has_new_cuts(output) || (!colgen_has_converged(output) && !colgen_uses_exact_stage(output))
         return ColGenPhase1()
     end
+
     # If master LP solution has no artificial vars, it means that the phase 1 has succeeded.
     # We have a set of columns that forms a feasible solution to the LP master and we can 
     # thus start phase 2.
@@ -138,6 +161,11 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, output::
 end
 
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::ColGen.AbstractColGenPhaseOutput)
+    if colgen_mast_lp_sol_has_art_vars(output)
+        # No artificial variables in formulation for phase 2, so this case is impossible.
+        throw(UnexpectedEndOfColGenPhase())
+    end
+    
     # If there is a new essential cut in the master, we restart the phase.
     if colgen_master_has_new_cuts(output)
         return ColGenPhase2()
@@ -152,6 +180,12 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::
     if colgen_master_has_new_cuts(output)
         return ColGenPhase3()
     end
+
+    # Stay in phase 3 until reaching exact stage or converging.
+    if !colgen_has_converged(output) && !colgen_uses_exact_stage(output)
+        return ColGenPhase3()
+    end
+
     # Master LP solution has artificial vars.
     if colgen_mast_lp_sol_has_art_vars(output)
         return ColGenPhase1()
@@ -202,8 +236,85 @@ function ColGen.setup_context!(ctx::ColGenContext, phase::ColGen.AbstractColGenP
     return
 end
 
-# Master resolution
+###############################################################################
+# Column generation stages
+###############################################################################
+"""
+Default implementation of the column generation stages works as follows.
 
+Consider a set {A,B,C} of subproblems each of them associated to the following
+sets of pricing solvers: {a1, a2, a3}, {b1, b2}, {c1, c2, c3, c4}.
+Pricing solvers a1, b1, c1 are exact solvers; others are heuristic.
+
+The column generation algorithm will run the following stages:
+- stage 4 with pricing solvers {a3, b2, c4}
+- stage 3 with pricing solvers {a2, b1, c3}
+- stage 2 with pricing solvers {a1, b1, c2}
+- stage 1 with pricing solvers {a1, b1, c1} (exact stage)
+
+Column generation moves from one stage to another when all solvers find no column.
+"""
+struct ColGenStageIterator <: ColGen.AbstractColGenStageIterator
+    nb_stages::Int
+    optimizers_per_pricing_prob::Dict{FormId, Vector{Int}}
+end
+
+struct ColGenStage <: ColGen.AbstractColGenStage
+    current_stage::Int
+    cur_optimizers_id_per_pricing_prob::Dict{FormId, Int}
+end
+ColGen.stage_id(stage::ColGenStage) = stage.current_stage
+ColGen.is_exact_stage(stage::ColGenStage) = ColGen.stage_id(stage) == 1
+ColGen.get_pricing_subprob_optimizer(stage::ColGenStage, form) = stage.cur_optimizers_id_per_pricing_prob[getuid(form)]
+
+function ColGen.new_stage_iterator(ctx::ColGenContext)
+    # TODO: At the moment, the optimizer id defined at each stage stage applies to all 
+    # pricing subproblems. In the future, we would like to have a different optimizer id
+    # for each pricing subproblem but we need to change the user interface. A solution would
+    # be to allow the user to retrieve the "future id" of the subproblem from BlockDecomposition.
+    # Another solution would be to allow the user to mark the solvers in `specify`.
+    optimizers = Dict(
+        form_id => ctx.stages_pricing_solver_ids ∩ collect(1:length(getoptimizers(form)))
+        for (form_id, form) in ColGen.get_pricing_subprobs(ctx)
+    )
+    nb_stages = maximum(length.(values(optimizers)))
+    return ColGenStageIterator(nb_stages, optimizers)
+end
+
+function ColGen.initial_stage(it::ColGenStageIterator)
+    first_stage = maximum(length.(values(it.optimizers_per_pricing_prob)))
+    optimizers_id_per_pricing_prob = Dict{FormId, Int}(
+        form_id => last(optimizer_ids)
+        for (form_id, optimizer_ids) in it.optimizers_per_pricing_prob
+    )
+    return ColGenStage(first_stage, optimizers_id_per_pricing_prob)
+end
+
+function ColGen.decrease_stage(it::ColGenStageIterator, cur_stage::ColGenStage)
+    if ColGen.is_exact_stage(cur_stage)
+        return nothing
+    end
+    new_stage_id = ColGen.stage_id(cur_stage) - 1
+    optimizers_id_per_pricing_prob = Dict(
+        form_id => pricing_solver_ids[max(1, (new_stage_id - it.nb_stages + length(pricing_solver_ids)))]
+        for (form_id, pricing_solver_ids) in it.optimizers_per_pricing_prob
+    )
+    return ColGenStage(new_stage_id, optimizers_id_per_pricing_prob)
+end
+
+function ColGen.next_stage(it::ColGenStageIterator, cur_stage::ColGenStage, output)
+    if colgen_master_has_new_cuts(output)
+        return ColGen.initial_stage(it)
+    end
+    if colgen_has_no_new_cols(output) && !colgen_has_converged(output)
+        return ColGen.decrease_stage(it, cur_stage)
+    end
+    return cur_stage
+end
+
+###############################################################################
+# Master resolution
+###############################################################################
 """
     ColGenMasterResult{F,S}
 
@@ -434,9 +545,16 @@ function ColGen.push_in_set!(ctx::ColGenContext, pool::ColumnsSet, column::Gener
     return false
 end
 
-function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, master_dual_sol)
+function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol)
     input = OptimizationState(sp)
-    opt_state = run!(ctx.pricing_solve_alg, env, sp, input) # master & master dual sol for non robust cuts
+    alg = SolveIpForm(
+        optimizer_id = optimizer,
+        moi_params = MoiOptimize(
+            deactivate_artificial_vars = false,
+            enforce_integrality = false
+        )
+    )
+    opt_state = run!(alg, env, sp, input) # master & master dual sol for non robust cuts
 
     # Reduced cost of a column is composed of
     # (A) the cost of the subproblem variables
@@ -477,7 +595,7 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val,
     return master_lp_obj_val - convexity_contrib + sp_contrib
 end
 
-# Iteration output 
+# Iteration output
 
 struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
@@ -510,7 +628,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
     time_limit_reached,
     master_lp_primal_sol,
     master_ip_primal_sol,
-    master_lp_dual_sol
+    master_lp_dual_sol,
 )
     return ColGenIterationOutput(
         min_sense,
@@ -525,7 +643,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
         time_limit_reached,
         master_lp_primal_sol,
         master_ip_primal_sol,
-        master_lp_dual_sol
+        master_lp_dual_sol,
     )
 end
 
@@ -557,11 +675,11 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
-ColGen.after_colgen_iteration(ctx::ColGenContext, phase, env, colgen_iteration, colgen_iter_output) = nothing
+ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, colgen_iter_output) = nothing
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, colgen_iter_output::ColGenIterationOutput)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, stage, colgen_iter_output::ColGenIterationOutput)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -569,11 +687,13 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, colgen_iter
         colgen_iter_output.mlp,
         colgen_iter_output.db,
         colgen_iter_output.new_cut_in_master,
+        colgen_iter_output.nb_new_cols <= 0,
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem,
+        ColGen.is_exact_stage(stage)
     )
 end
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase1, colgen_iter_output::ColGenIterationOutput)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -581,7 +701,9 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase
         colgen_iter_output.mlp,
         colgen_iter_output.db,
         colgen_iter_output.new_cut_in_master,
+        colgen_iter_output.nb_new_cols <= 0,
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem || abs(colgen_iter_output.mlp) > 1e-5,
+        ColGen.is_exact_stage(stage)
     )
 end
 
@@ -590,4 +712,3 @@ ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_pr
 ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
 ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 ColGen.get_final_db(output::ColGenPhaseOutput) = output.db
-
