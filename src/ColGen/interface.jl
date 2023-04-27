@@ -262,7 +262,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
 
     # Master primal solution
     mast_primal_sol = get_primal_sol(mast_result)
-    if !isnothing(mast_primal_sol)
+    if !isnothing(mast_primal_sol)  && isbetter(mast_primal_sol, ip_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
         # If the model has essential cut callbacks and the master LP solution is integral, one
@@ -275,7 +275,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
         if new_cut_in_master
             return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
         end
-        if !isnothing(new_ip_primal_sol) && isbetter(new_ip_primal_sol, ip_primal_sol)
+        if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
             update_inc_primal_sol!(context, ip_primal_sol) # TODO: change method name because the incumbent is maintained by colgen
         end

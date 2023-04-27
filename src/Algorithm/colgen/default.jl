@@ -384,7 +384,7 @@ function ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Prima
     new_val = ColunaBase.getvalue(new_ip_primal_sol)
     cur_val = ColunaBase.getvalue(ip_primal_sol)
     sc = MathProg.getobjsense(ColunaBase.getmodel(new_ip_primal_sol)) == MinSense ? 1 : -1
-    return sc * new_val < sc * cur_val
+    return sc * new_val < sc * cur_val && abs(new_val - cur_val) > 1e-6
 end
 
 function ColGen.update_inc_primal_sol!(ctx::ColGenContext, ip_primal_sol)
