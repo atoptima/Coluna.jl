@@ -51,10 +51,8 @@ function test_node_finalizer(heuristic_finalizer)
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
                     colgen= ClA.ColumnGeneration(
-                                # pricing_prob_solve_alg = ClA.SolveIpForm(
-                                #     optimizer_id = 1
-                                # )
-                            ),
+                        stages_pricing_solver_ids = [1]
+                    ),
                     primal_heuristics = [],
                     node_finalizer = ClA.NodeFinalizer(
                             EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 

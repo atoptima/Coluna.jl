@@ -6,7 +6,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     restr_master_solve_alg
     restr_master_optimizer_id::Int
 
-    pricing_solve_alg
+    stages_pricing_solver_ids::Vector{Int}
 
     reduced_cost_helper::ReducedCostsCalculationHelper
 
@@ -33,7 +33,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             0.0,
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
-            alg.pricing_prob_solve_alg,
+            alg.stages_pricing_solver_ids,
             rch,
             alg.show_column_already_inserted_warning,
             alg.throw_column_already_inserted_warning,
@@ -255,7 +255,8 @@ The column generation algorithm will run the following stages:
 Column generation moves from one stage to another when all solvers find no column.
 """
 struct ColGenStageIterator <: ColGen.AbstractColGenStageIterator
-    nb_optimizers_per_pricing_prob::Dict{FormId, Int}
+    nb_stages::Int
+    optimizers_per_pricing_prob::Dict{FormId, Vector{Int}}
 end
 
 struct ColGenStage <: ColGen.AbstractColGenStage
@@ -267,31 +268,38 @@ ColGen.is_exact_stage(stage::ColGenStage) = ColGen.stage_id(stage) == 1
 ColGen.get_pricing_subprob_optimizer(stage::ColGenStage, form) = stage.cur_optimizers_id_per_pricing_prob[getuid(form)]
 
 function ColGen.new_stage_iterator(ctx::ColGenContext)
+    # TODO: At the moment, the optimizer id defined at each stage stage applies to all 
+    # pricing subproblems. In the future, we would like to have a different optimizer id
+    # for each pricing subproblem but we need to change the user interface. A solution would
+    # be to allow the user to retrieve the "future id" of the subproblem from BlockDecomposition.
+    # Another solution would be to allow the user to mark the solvers in `specify`.
     optimizers = Dict(
-        form_id => length(getoptimizers(form))
+        form_id => ctx.stages_pricing_solver_ids ∩ collect(1:length(getoptimizers(form)))
         for (form_id, form) in ColGen.get_pricing_subprobs(ctx)
     )
-    return ColGenStageIterator(optimizers)
+    nb_stages = maximum(length.(values(optimizers)))
+    return ColGenStageIterator(nb_stages, optimizers)
 end
 
 function ColGen.initial_stage(it::ColGenStageIterator)
-    first_stage = maximum(values(it.nb_optimizers_per_pricing_prob))
+    first_stage = maximum(length.(values(it.optimizers_per_pricing_prob)))
     optimizers_id_per_pricing_prob = Dict{FormId, Int}(
-        form_id => optimizer_id
-        for (form_id, optimizer_id) in it.nb_optimizers_per_pricing_prob
+        form_id => last(optimizer_ids)
+        for (form_id, optimizer_ids) in it.optimizers_per_pricing_prob
     )
     return ColGenStage(first_stage, optimizers_id_per_pricing_prob)
 end
 
-function ColGen.decrease_stage(::ColGenStageIterator, cur_stage::ColGenStage)
+function ColGen.decrease_stage(it::ColGenStageIterator, cur_stage::ColGenStage)
     if ColGen.is_exact_stage(cur_stage)
         return nothing
     end
+    new_stage_id = ColGen.stage_id(cur_stage) - 1
     optimizers_id_per_pricing_prob = Dict(
-        form_id => max(pricing_solver_id - 1, 1) 
-        for (form_id, pricing_solver_id) in cur_stage.cur_optimizers_id_per_pricing_prob
+        form_id => pricing_solver_ids[max(1, (new_stage_id - it.nb_stages + length(pricing_solver_ids)))]
+        for (form_id, pricing_solver_ids) in it.optimizers_per_pricing_prob
     )
-    return ColGenStage(ColGen.stage_id(cur_stage) - 1, optimizers_id_per_pricing_prob)
+    return ColGenStage(new_stage_id, optimizers_id_per_pricing_prob)
 end
 
 function ColGen.next_stage(it::ColGenStageIterator, cur_stage::ColGenStage, output)
@@ -661,7 +669,7 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
         colgen_iter_output.unbounded_master ||
         colgen_iter_output.infeasible_subproblem ||
         colgen_iter_output.unbounded_subproblem ||
-        colgen_iter_output.nb_new_cols <= 0 || # and exact stage  
+        colgen_iter_output.nb_new_cols <= 0 ||
         colgen_iter_output.new_cut_in_master ||
         _colgen_gap_closed(sc * mlp, sc * db, 1e-8, 1e-5)
 end

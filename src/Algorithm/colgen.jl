@@ -70,6 +70,7 @@ Here are their meanings :
             enforce_integrality = false
         )
     )
+    stages_pricing_solver_ids = [1]
     essential_cut_gen_alg = CutCallbacks(call_robust_facultative=false)
     max_nb_iterations::Int64 = 1000
     log_print_frequency::Int64 = 1

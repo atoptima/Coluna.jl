@@ -1,8 +1,8 @@
 ClMP.getuid(i::Int) = i # hack avoid creating formulations for the tests.
 
 function test_colgen_stage_iterator()
-    nb_optimizers_per_pricing_prob = Dict(1 => 3, 2 => 2, 3 => 4)
-    it = Coluna.Algorithm.ColGenStageIterator(nb_optimizers_per_pricing_prob)
+    nb_optimizers_per_pricing_prob = Dict(1 => [1, 2, 3], 2 => [1, 2], 3 => [1, 2, 3, 4])
+    it = Coluna.Algorithm.ColGenStageIterator(4, nb_optimizers_per_pricing_prob)
 
     stage = ColGen.initial_stage(it)
     @test ColGen.stage_id(stage) == 4
@@ -48,8 +48,8 @@ ClA.colgen_has_no_new_cols(output::TestStageColGenPhaseOutput) = output.no_new_c
 ClA.colgen_has_converged(output::TestStageColGenPhaseOutput) = output.has_converged
 
 function test_colgen_next_stage()
-    nb_optimizers_per_pricing_prob = Dict(1 => 3, 2 => 2, 3 => 4)
-    it = Coluna.Algorithm.ColGenStageIterator(nb_optimizers_per_pricing_prob)
+    nb_optimizers_per_pricing_prob = Dict(1 => [1, 2, 3], 2 => [1, 2], 3 => [1, 2, 3, 4])
+    it = Coluna.Algorithm.ColGenStageIterator(4, nb_optimizers_per_pricing_prob)
 
     # ColGen.next_stage always returns the same stage, the next in the decreasing sequence,
     # or the initial stage.
