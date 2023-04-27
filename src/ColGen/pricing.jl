@@ -54,7 +54,7 @@ One must be able to iterate on this container to insert the columns in the maste
 @mustimplement "ColGenPricing" set_of_columns(ctx) = nothing
 
 """
-    optimize_pricing_problem!(ctx, sp, env, mast_dual_sol) -> PricingResult
+    optimize_pricing_problem!(ctx, sp, env, optimizer, mast_dual_sol) -> PricingResult
 
 Returns a custom object `PricingResult` that must implement following functions:
 - `get_primal_sols`: array of primal solution to the pricing subproblem 
@@ -63,7 +63,7 @@ Returns a custom object `PricingResult` that must implement following functions:
 
 TODO: talk about master_dual_sol
 """
-@mustimplement "ColGenPricing" optimize_pricing_problem!(ctx, sp, env, mast_dual_sol) = nothing
+@mustimplement "ColGenPricing" optimize_pricing_problem!(ctx, sp, env, optimizer, mast_dual_sol) = nothing
 
 "Array of primal solutions to the pricing subproblem"
 @mustimplement "ColGenPricing" get_primal_sols(pricing_res) = nothing

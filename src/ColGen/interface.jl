@@ -27,7 +27,7 @@ Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, env, colgen_iteration, colgen_iter_output) = nothing
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, colgen_iter_output) = nothing
 
 abstract type AbstractColGenPhaseOutput end
 
@@ -45,18 +45,18 @@ abstract type AbstractColGenOutput end
 
 @mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput) = nothing
 
-function run_colgen_phase!(context, phase, env, ip_primal_sol)
+function run_colgen_phase!(context, phase, stage, env, ip_primal_sol)
     colgen_iteration = 1
     cutsep_iteration = 1
     colgen_iter_output = nothing
     while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
         before_colgen_iteration(context, phase)
-        colgen_iter_output = run_colgen_iteration!(context, phase, env, ip_primal_sol)
+        colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
         new_ip_primal_sol = get_master_ip_primal_sol(colgen_iter_output)
         if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
         end
-        after_colgen_iteration(context, phase, env, colgen_iteration, colgen_iter_output)
+        after_colgen_iteration(context, phase, stage, env, colgen_iteration, colgen_iter_output)
         colgen_iteration += 1
     end
     O = colgen_phase_output_type(context)
@@ -64,15 +64,18 @@ function run_colgen_phase!(context, phase, env, ip_primal_sol)
 end
 
 function run!(context, env, ip_primal_sol)
-    it = new_phase_iterator(context)
-    phase = initial_phase(it)
+    phase_it = new_phase_iterator(context)
+    phase = initial_phase(phase_it)
+    stage_it = new_stage_iterator(context)
+    stage = initial_stage(stage_it)
     phase_output = nothing
     while !isnothing(phase)
         setup_reformulation!(get_reform(context), phase)
         setup_context!(context, phase)
-        phase_output = run_colgen_phase!(context, phase, env, ip_primal_sol)
+        phase_output = run_colgen_phase!(context, phase, stage, env, ip_primal_sol)
         ip_primal_sol = ColGen.get_master_ip_primal_sol(phase_output)
-        phase = next_phase(it, phase, phase_output)
+        phase = next_phase(phase_it, phase, phase_output)
+        stage = next_stage(stage_it, stage, phase_output)
     end
     O = colgen_output_type(context)
     return new_output(O, phase_output)
@@ -241,7 +244,7 @@ _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 """
     run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
 """
-function run_colgen_iteration!(context, phase, env, ip_primal_sol)
+function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
     master = get_master(context)
     is_min_sense = is_minimization(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
@@ -328,7 +331,8 @@ function run_colgen_iteration!(context, phase, env, ip_primal_sol)
 
     while !isnothing(sp_to_solve_it)
         (sp_id, sp_to_solve), state = sp_to_solve_it
-        pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, mast_dual_sol)
+        optimizer = get_pricing_subprob_optimizer(stage, sp_to_solve)
+        pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, optimizer, mast_dual_sol)
 
         # Iteration continues only if the pricing solution is not infeasible nor unbounded.
         if is_infeasible(pricing_result)

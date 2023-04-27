@@ -6,6 +6,7 @@ using .MustImplement
 
 abstract type AbstractColGenContext end 
 
+include("stages.jl")
 include("phases.jl")
 include("pricing.jl")
 include("interface.jl")
