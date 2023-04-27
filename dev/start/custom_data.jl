@@ -32,11 +32,10 @@ coluna = JuMP.optimizer_with_attributes(
     "params" => Coluna.Params(
         solver = Coluna.Algorithm.TreeSearchAlgorithm(
             conqueralg = Coluna.Algorithm.ColCutGenConquer(
-                stages = [Coluna.Algorithm.ColumnGeneration(
+                colgen = Coluna.Algorithm.ColumnGeneration(
                             pricing_prob_solve_alg = Coluna.Algorithm.SolveIpForm(
                                 optimizer_id = 1
                             ))
-                            ]
             ),
             maxnumnodes = 1 # we only treat the root node.
         )
