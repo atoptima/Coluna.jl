@@ -50,7 +50,7 @@ function gap_colgen_max_nb_iterations()
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    stages = [ClA.ColumnGeneration(max_nb_iterations = 8)],
+                    colgen = ClA.ColumnGeneration(max_nb_iterations = 8),
                 )
             )
         ),
@@ -156,7 +156,7 @@ function gap_with_all_phases_in_colgen()
         Coluna.Optimizer,
         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
             conqueralg = ClA.ColCutGenConquer(
-                stages = [ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)]
+                colgen = ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)
             )
         )),
         "default_optimizer" => GLPK.Optimizer

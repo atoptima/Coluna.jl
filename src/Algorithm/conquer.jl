@@ -70,7 +70,7 @@ end
 
 """
     Coluna.Algorithm.ColCutGenConquer(
-        stages = ColumnGeneration[ColumnGeneration()],
+        colgen = ColumnGeneration(),
         primal_heuristics = ParameterizedHeuristic[ParamRestrictedMasterHeuristic()],
         cutgen = CutCallbacks(),
         max_nb_cut_rounds = 3
@@ -94,7 +94,7 @@ Parameters :
 - `max_nb_cut_rounds` : number of cut generation done by the algorithm
 """
 struct ColCutGenConquer <: AbstractConquerAlgorithm 
-    stages::Vector{ColumnGeneration}
+    colgen::ColumnGeneration
     primal_heuristics::Vector{ParameterizedHeuristic}
     before_cutgen_user_algorithm::Union{Nothing, BeforeCutGenAlgo}
     node_finalizer::Union{Nothing, NodeFinalizer}
@@ -106,7 +106,7 @@ struct ColCutGenConquer <: AbstractConquerAlgorithm
 end
 
 ColCutGenConquer(;
-        stages = [ColumnGeneration()],
+        colgen = ColumnGeneration(),
         primal_heuristics = [ParamRestrictedMasterHeuristic()],
         before_cutgen_user_algorithm = nothing,
         node_finalizer = nothing,
@@ -116,7 +116,7 @@ ColCutGenConquer(;
         opt_atol = AlgoAPI.default_opt_atol(),
         opt_rtol = AlgoAPI.default_opt_rtol()
 ) = ColCutGenConquer(
-    stages, 
+    colgen, 
     primal_heuristics, 
     before_cutgen_user_algorithm, 
     node_finalizer, 
@@ -138,9 +138,9 @@ end
 # get_units_usage() is not defined for i
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
     child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
-    for colgen in algo.stages
-        push!(child_algos, (colgen, reform))
-    end
+    
+    push!(child_algos, (algo.colgen, reform))
+    
     push!(child_algos, (algo.cutgen, getmaster(reform)))
     if !isnothing(algo.preprocess)
         push!(child_algos, (algo.preprocess, reform))
@@ -182,8 +182,8 @@ the result of the column generation.
 Returns `false` if the node is infeasible, subsolver time limit is reached, or node gap is closed;
 `true` if the conquer algorithm continues.
 """
-function run_colgen!(ctx::ColCutGenContext, colgen, env, reform, node_state)
-    colgen_output = run!(colgen, env, reform, node_state)
+function run_colgen!(ctx::ColCutGenContext, env, reform, node_state)
+    colgen_output = run!(ctx.params.colgen, env, reform, node_state)
     update!(node_state, colgen_output)
     if getterminationstatus(node_state) == INFEASIBLE ||
        getterminationstatus(node_state) == TIME_LIMIT ||
@@ -218,15 +218,12 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
     run_conquer = true
     master_changed = true # stores value returned by the algorithm called before cut gen.
     cuts_were_added = true # stores value returned by cut gen.
-    while run_conquer && (cuts_were_added || master_changed)
-        for (stage_index, colgen) in Iterators.reverse(Iterators.enumerate(ctx.params.stages))
-            # TODO: print stage_index
-            run_conquer = run_colgen!(ctx, colgen, env, reform, node_state)
-            if !run_conquer
-                return false
-            end
+    while run_conquer && (cuts_were_added || master_changed)  
+        run_conquer = run_colgen!(ctx, env, reform, node_state)
+        if !run_conquer
+            return false
         end
-    
+
         master_changed = false
         before_cutgen_user_algorithm = ctx.params.before_cutgen_user_algorithm
         if !isnothing(before_cutgen_user_algorithm)

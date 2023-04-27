@@ -2,12 +2,12 @@
 struct TestColGenOutput <: ColGen.AbstractColGenPhaseOutput
     has_art_vars::Bool
     new_cuts_in_master::Bool
-    exact_phase::Bool
+    exact_stage::Bool
     has_converged::Bool
 end
 ClA.colgen_master_has_new_cuts(ctx::TestColGenOutput) = ctx.new_cuts_in_master
 ClA.colgen_mast_lp_sol_has_art_vars(ctx::TestColGenOutput) = ctx.has_art_vars
-ClA.colgen_uses_exact_phase(ctx::TestColGenOutput) = ctx.exact_phase
+ClA.colgen_uses_exact_stage(ctx::TestColGenOutput) = ctx.exact_stage
 ClA.colgen_has_converged(ctx::TestColGenOutput) = ctx.has_converged
 
 # The two following tests are pretty straightforward.
@@ -58,7 +58,7 @@ function next_phase_colgen_test()
     ( ClA.ColGenPhase2() , true     , true    , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
     ( ClA.ColGenPhase2() , true     , true    , true        , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
     # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
-    ( ClA.ColGenPhase3() , false    , false   , false       , false     , nothing             , false , nothing  ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase3() , false    , false   , false       , false     , ClA.ColGenPhase3()  , false , nothing  ), # you should have converged but you may have hit another limit
     ( ClA.ColGenPhase3() , false    , false   , false       , true      , nothing             , false , nothing  ), # end of the column generation algorithm
     ( ClA.ColGenPhase3() , false    , false   , true        , false     , nothing             , false , nothing  ), # you should have converged but you may have hit another limit
     ( ClA.ColGenPhase3() , false    , false   , true        , true      , nothing             , false , nothing  ), # end of the column generation algorithm
@@ -78,6 +78,7 @@ function next_phase_colgen_test()
 
     # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
     for (cp, art, cut, exact, conv, exp, err, err_type) in table
+        @show (cp, art, cut, exact, conv, exp, err, err_type)
         if !err
             @test ColGen.next_phase(it, cp, TestColGenOutput(art, cut, exact, conv)) isa typeof(exp)
         else

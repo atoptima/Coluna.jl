@@ -84,7 +84,7 @@ function gap_with_pricing_callback_and_stages()
     end
 
     subproblems = BD.getsubproblems(dec)
-    BD.specify!.(subproblems, lower_multiplicity = 0, solver = [GLPK.Optimizer, pricing_callback_stage2, pricing_callback_stage1])
+    BD.specify!.(subproblems, lower_multiplicity = 0, solver = [pricing_callback_stage1, pricing_callback_stage2])
 
     JuMP.optimize!(model)
     @test nb_exact_calls < 30   # WARNING: this test is necessary to properly test stage 2.
@@ -95,4 +95,4 @@ function gap_with_pricing_callback_and_stages()
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
-register!(e2e_extra_tests, "pricing_callback", gap_with_pricing_callback_and_stages)
+register!(e2e_extra_tests, "pricing_callback", gap_with_pricing_callback_and_stages; f = true)

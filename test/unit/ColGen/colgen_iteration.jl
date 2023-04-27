@@ -85,6 +85,7 @@ ColGen.colgen_phase_output_type(::ColGenIterationTestContext) = ClA.ColGenPhaseO
 # Stage
 struct ColGenIterationTestStage <: ColGen.AbstractColGenStage end
 ColGen.get_pricing_subprob_optimizer(::ColGenIterationTestStage, _) = 1
+ColGen.is_exact_stage(::ColGenIterationTestStage) = true
 
 # Pricing strategy
 struct ColGenIterationTestPricingStrategy <: ColGen.AbstractPricingStrategy

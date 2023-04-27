@@ -48,11 +48,12 @@ end
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    stages = [ClA.ColumnGeneration(
-                                pricing_prob_solve_alg = ClA.SolveIpForm(
-                                    optimizer_id = 1
-                                ))
-                                ]
+                    colgen = ClA.ColumnGeneration(
+                                # pricing_prob_solve_alg = ClA.SolveIpForm(
+                                #     optimizer_id = 1
+                                # )
+                            )
+                                
                 ),
                 maxnumnodes = 1
             )
