@@ -24,31 +24,31 @@ function next_phase_colgen_test()
 
     table = [
     # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
-    ( ClA.ColGenPhase1() , false    , false   , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , false   , false       , false     , ClA.ColGenPhase2()  , false , nothing  ),
     ( ClA.ColGenPhase1() , false    , false   , false       , true      , ClA.ColGenPhase2()  , false , nothing  ),
-    ( ClA.ColGenPhase1() , false    , false   , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , false   , true        , false     , ClA.ColGenPhase2()  , false , nothing  ),
     ( ClA.ColGenPhase1() , false    , false   , true        , true      , ClA.ColGenPhase2()  , false , nothing  ),
-    ( ClA.ColGenPhase1() , false    , true    , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , true    , false       , false     , ClA.ColGenPhase1()  , false , nothing  ),
     ( ClA.ColGenPhase1() , false    , true    , false       , true      , ClA.ColGenPhase1()  , false , nothing  ),
-    ( ClA.ColGenPhase1() , false    , true    , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # phase 1: if no art var, you should have converged.
+    ( ClA.ColGenPhase1() , false    , true    , true        , false     , ClA.ColGenPhase1()  , false , nothing  ),
     ( ClA.ColGenPhase1() , false    , true    , true        , true      , ClA.ColGenPhase1()  , false , nothing  ),
-    ( ClA.ColGenPhase1() , true     , false   , false       , false     , ClA.ColGenPhase1()  , false , nothing  ), # continue phase 1 with next stage
-    ( ClA.ColGenPhase1() , true     , false   , false       , true      , nothing             , false , nothing  ), # infeasible
-    ( ClA.ColGenPhase1() , true     , false   , true        , false     , nothing             , false , nothing ), # you should have converged but you hit another limit
+    ( ClA.ColGenPhase1() , true     , false   , false       , false     , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase1() , true     , false   , false       , true      , ClA.ColGenPhase1()  , false , nothing  ), # converging with heuristic pricing means nothing
+    ( ClA.ColGenPhase1() , true     , false   , true        , false     , ClA.ColGenPhase1()  , false , nothing  ),
     ( ClA.ColGenPhase1() , true     , false   , true        , true      , nothing             , false , nothing  ), # infeasible
     ( ClA.ColGenPhase1() , true     , true    , false       , false     , ClA.ColGenPhase1()  , false , nothing  ),
-    ( ClA.ColGenPhase1() , true     , true    , false       , true      , nothing             , false , nothing  ), # infeasible 
+    ( ClA.ColGenPhase1() , true     , true    , false       , true      , ClA.ColGenPhase1()  , false , nothing  ), # infeasible 
     ( ClA.ColGenPhase1() , true     , true    , true        , false     , ClA.ColGenPhase1()  , false , nothing  ),
     ( ClA.ColGenPhase1() , true     , true    , true        , true      , nothing             , false , nothing  ), # infeasible
     # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
-    ( ClA.ColGenPhase2() , false    , false   , false       , false     , nothing             , false , nothing ), # you should have converged but you may have hit another limit
-    ( ClA.ColGenPhase2() , false    , false   , false       , true      , nothing             , false , nothing  ), # end of the column generation algorithm
-    ( ClA.ColGenPhase2() , false    , false   , true        , false     , nothing             , false , nothing ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase2() , false    , false   , false       , false     , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , false   , false       , true      , ClA.ColGenPhase2()  , false , nothing  ),  # converging with heuristic pricing means nothing
+    ( ClA.ColGenPhase2() , false    , false   , true        , false     , ClA.ColGenPhase2()  , false , nothing  ), 
     ( ClA.ColGenPhase2() , false    , false   , true        , true      , nothing             , false , nothing  ), # end of the column generation algorithm
-    ( ClA.ColGenPhase2() , false    , true    , false       , false     , ClA.ColGenPhase2()  , false , nothing  ),
-    ( ClA.ColGenPhase2() , false    , true    , false       , true      , ClA.ColGenPhase2()  , false , nothing  ),
-    ( ClA.ColGenPhase2() , false    , true    , true        , false     , ClA.ColGenPhase2()  , false , nothing  ),
-    ( ClA.ColGenPhase2() , false    , true    , true        , true      , ClA.ColGenPhase2()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , false       , false     , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , false       , true      , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , true        , false     , ClA.ColGenPhase1()  , false , nothing  ),
+    ( ClA.ColGenPhase2() , false    , true    , true        , true      , ClA.ColGenPhase1()  , false , nothing  ),
     ( ClA.ColGenPhase2() , true     , false   , false       , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
     ( ClA.ColGenPhase2() , true     , false   , false       , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
     ( ClA.ColGenPhase2() , true     , false   , true        , false     , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
@@ -59,16 +59,16 @@ function next_phase_colgen_test()
     ( ClA.ColGenPhase2() , true     , true    , true        , true      , nothing             , true  , ClA.UnexpectedEndOfColGenPhase ), # no artificial vars in phase 2 of colgen
     # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
     ( ClA.ColGenPhase3() , false    , false   , false       , false     , ClA.ColGenPhase3()  , false , nothing  ), # you should have converged but you may have hit another limit
-    ( ClA.ColGenPhase3() , false    , false   , false       , true      , nothing             , false , nothing  ), # end of the column generation algorithm
-    ( ClA.ColGenPhase3() , false    , false   , true        , false     , nothing             , false , nothing  ), # you should have converged but you may have hit another limit
+    ( ClA.ColGenPhase3() , false    , false   , false       , true      , ClA.ColGenPhase3()  , false , nothing  ), # converging with heuristic pricing means nothing
+    ( ClA.ColGenPhase3() , false    , false   , true        , false     , ClA.ColGenPhase3()  , false , nothing  ), # you should have converged but you may have hit another limit
     ( ClA.ColGenPhase3() , false    , false   , true        , true      , nothing             , false , nothing  ), # end of the column generation algorithm
     ( ClA.ColGenPhase3() , false    , true    , false       , false     , ClA.ColGenPhase3()  , false , nothing  ),
     ( ClA.ColGenPhase3() , false    , true    , false       , true      , ClA.ColGenPhase3()  , false , nothing  ),
     ( ClA.ColGenPhase3() , false    , true    , true        , false     , ClA.ColGenPhase3()  , false , nothing  ),
     ( ClA.ColGenPhase3() , false    , true    , true        , true      , ClA.ColGenPhase3()  , false , nothing  ),
     ( ClA.ColGenPhase3() , true     , false   , false       , false     , ClA.ColGenPhase3()  , false , nothing  ),
-    ( ClA.ColGenPhase3() , true     , false   , false       , true      , ClA.ColGenPhase1()  , false , nothing  ),
-    ( ClA.ColGenPhase3() , true     , false   , true        , false     , ClA.ColGenPhase1()  , false , nothing ), # you should have converged but you may have hit another limit. Let's try phase 1.
+    ( ClA.ColGenPhase3() , true     , false   , false       , true      , ClA.ColGenPhase3()  , false , nothing  ), # converging with heuristic pricing means nothing
+    ( ClA.ColGenPhase3() , true     , false   , true        , false     , ClA.ColGenPhase1()  , false , nothing  ), # you should have converged but you may have hit another limit. Let's try phase 1.
     ( ClA.ColGenPhase3() , true     , false   , true        , true      , ClA.ColGenPhase1()  , false , nothing  ),
     ( ClA.ColGenPhase3() , true     , true    , false       , false     , ClA.ColGenPhase3()  , false , nothing  ),
     ( ClA.ColGenPhase3() , true     , true    , false       , true      , ClA.ColGenPhase3()  , false , nothing  ),
@@ -76,9 +76,8 @@ function next_phase_colgen_test()
     ( ClA.ColGenPhase3() , true     , true    , true        , true      , ClA.ColGenPhase3()  , false , nothing  ),
     ]
 
-    # Current phase      | art vars | new cut | exact stage | converged | next expected phase | err   | err_type
+    # Current phase      | art vars | n dew cut | exact stage | converged | next expected phase | err   | err_type
     for (cp, art, cut, exact, conv, exp, err, err_type) in table
-        @show (cp, art, cut, exact, conv, exp, err, err_type)
         if !err
             @test ColGen.next_phase(it, cp, TestColGenOutput(art, cut, exact, conv)) isa typeof(exp)
         else
@@ -173,7 +172,6 @@ function stop_colgen_phase_if_colgen_converged_eq()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -192,7 +190,7 @@ function stop_colgen_phase_if_colgen_converged_eq()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_eq)
 
@@ -200,7 +198,6 @@ function stop_colgen_phase_if_colgen_converged_min()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -219,7 +216,7 @@ function stop_colgen_phase_if_colgen_converged_min()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_min)
 
@@ -227,7 +224,6 @@ function stop_colgen_phase_if_colgen_converged_max()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -246,7 +242,7 @@ function stop_colgen_phase_if_colgen_converged_max()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_max)
 
@@ -254,7 +250,6 @@ function stop_colgen_phase_if_iterations_limit()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(max_nb_iterations = 8))
     colgen_iteration = 8
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -273,7 +268,7 @@ function stop_colgen_phase_if_iterations_limit()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_iterations_limit)
 
@@ -281,7 +276,6 @@ function stop_colgen_phase_if_time_limit()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -300,7 +294,7 @@ function stop_colgen_phase_if_time_limit()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_time_limit)
 
@@ -308,7 +302,6 @@ function stop_colgen_phase_if_subproblem_infeasible()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -327,7 +320,7 @@ function stop_colgen_phase_if_subproblem_infeasible()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_subproblem_infeasible)
 
@@ -335,7 +328,6 @@ function stop_colgen_phase_if_subproblem_unbounded()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -354,7 +346,7 @@ function stop_colgen_phase_if_subproblem_unbounded()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_subproblem_unbounded)
 
@@ -362,7 +354,6 @@ function stop_colgen_phase_if_master_unbounded()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -381,7 +372,7 @@ function stop_colgen_phase_if_master_unbounded()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_master_unbounded)
 
@@ -389,7 +380,6 @@ function stop_colgen_phase_if_no_new_column()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -407,7 +397,7 @@ function stop_colgen_phase_if_no_new_column()
         nothing,
         nothing
     )
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_no_new_column)
 
@@ -415,7 +405,6 @@ function stop_colgen_phase_if_new_cut_in_master()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -433,7 +422,7 @@ function stop_colgen_phase_if_new_cut_in_master()
         nothing,
         nothing
     )
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase3(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase3(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_new_cut_in_master)
 
@@ -441,7 +430,6 @@ function continue_colgen_phase_otherwise()
     reform, _, _ = get_reform_master_and_vars()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     colgen_iteration = 1
-    cutsep_iteration = 1
     env = nothing
 
     colgen_iter_output = ClA.ColGenIterationOutput(
@@ -459,7 +447,7 @@ function continue_colgen_phase_otherwise()
         nothing,
         nothing
     )
-    @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", continue_colgen_phase_otherwise)
 
