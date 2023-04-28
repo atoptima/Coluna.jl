@@ -38,7 +38,7 @@ function run!(algo::CutCallbacks, env::Env, form::Formulation, input::CutCallbac
     nb_ess_cuts = 0
     nb_fac_cuts = 0
     if length(robust_generators) > 0 && (algo.call_robust_facultative || algo.call_robust_essential)
-        !projection_is_possible(form) && error("Cannot do projection on original variables. Open an issue.")
+        !MathProg.projection_is_possible(form) && error("Cannot do projection on original variables. Open an issue.")
 
         projsol1 = proj_cols_on_rep(input.primalsol)
         projsol2 = Dict{VarId, Float64}(varid => val for (varid, val) in projsol1)

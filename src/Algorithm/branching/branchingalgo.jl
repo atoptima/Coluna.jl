@@ -50,7 +50,7 @@ struct ClassicBranching <: AlgoAPI.AbstractDivideAlgorithm
 end
 
 
-struct BranchingContext{SelectionCriterion<:Branching.AbstractSelectionCriterion} <: Branching.AbstractDivideContext
+struct BranchingContext{SelectionCriterion<:Branching.AbstractSelectionCriterion} <: Branching.AbstractBranchingContext
     selection_criterion::SelectionCriterion
     rules::Vector{Branching.PrioritisedBranchingRule}
     max_nb_candidates::Int

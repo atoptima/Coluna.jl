@@ -110,10 +110,8 @@ function BranchCutAndPriceAlgorithm(;
                 BranchingPhase(first(stbranch_phases_num_candidates), RestrMasterLPConquer(), ProductScore())
             )    
             if length(stbranch_phases_num_candidates) >= 3
-             
                 colgen = ColumnGeneration(
                     pricing_prob_solve_alg = SolveIpForm(
-                        optimizer_id = tuple.solverid,
                         user_params = UserOptimize(), 
                         moi_params = MoiOptimize(
                             deactivate_artificial_vars = false,
