@@ -39,7 +39,6 @@ abstract type AbstractBendersContext end
 
 @mustimplement "Benders" insert_cuts!(reform, context, generated_cuts) = nothing
 
-
 function run_benders_iteration!(context, phase, env, ip_primal_sol)
     master = get_master(context)
     mast_result = optimize_master_problem!(master, context, env)

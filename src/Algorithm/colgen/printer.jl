@@ -107,8 +107,8 @@ function ColGen.colgen_iteration_output_type(ctx::ColGenPrinterContext)
     return ColGen.colgen_iteration_output_type(ctx.inner)
 end
 
-function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
-    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, colgen_iteration)
+    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, colgen_iteration)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
@@ -176,6 +176,8 @@ function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, 
     println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env)))
     return
 end
+
+ColGen.stop_colgen(ctx::ColGenPrinterContext, phase_output) = ColGen.stop_colgen(ctx.inner, phase_output)
 
 ColGen.colgen_output_type(::ColGenPrinterContext) = ColGenOutput
 ColGen.colgen_phase_output_type(::ColGenPrinterContext) = ColGenPhaseOutput
