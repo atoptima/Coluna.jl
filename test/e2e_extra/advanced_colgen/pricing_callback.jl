@@ -95,4 +95,4 @@ function gap_with_pricing_callback_and_stages()
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
-register!(e2e_extra_tests, "pricing_callback", gap_with_pricing_callback_and_stages; f = true)
+register!(e2e_extra_tests, "pricing_callback", gap_with_pricing_callback_and_stages)
