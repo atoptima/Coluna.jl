@@ -60,6 +60,8 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     no_more_columns::Bool
     infeasible::Bool
     exact_stage::Bool
+    time_limit_reached::Bool
+    nb_iterations::Int
 end
 
 struct ColGenOutput <: ColGen.AbstractColGenOutput
@@ -83,6 +85,14 @@ function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
 end
 
 ColGen.colgen_output_type(::ColGenContext) = ColGenOutput
+
+ColGen.stop_colgen(::ColGenContext, ::Nothing) = false
+
+function ColGen.stop_colgen(ctx::ColGenContext, output::ColGenPhaseOutput)
+    return output.infeasible || 
+        output.time_limit_reached || 
+        output.nb_iterations >= ctx.nb_colgen_iteration_limit
+end
 
 ###############################################################################
 # Sequence of phases
@@ -125,6 +135,9 @@ ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
 
 function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
     master_lp_primal_sol = output.master_lp_primal_sol
+    if isnothing(master_lp_primal_sol)
+        return false
+    end
     return contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
 end
 
@@ -135,29 +148,16 @@ colgen_has_no_new_cols(output::ColGenPhaseOutput) = output.no_more_columns
 
 ## Implementation of `next_phase`.
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase1, output::ColGen.AbstractColGenPhaseOutput)
-    if colgen_mast_lp_sol_has_art_vars(output) && colgen_has_converged(output)
+    if colgen_mast_lp_sol_has_art_vars(output) && colgen_has_converged(output) && colgen_uses_exact_stage(output)
         return nothing # infeasible
     end
 
-    if !colgen_mast_lp_sol_has_art_vars(output) && !colgen_has_converged(output)
-        # By definition, solution of the phase 1 does not contaib artifical variables when
-        # algorithm has converged. This case should not happen.
-        throw(UnexpectedEndOfColGenPhase())
-    end
-    
+    # If the master lp solution still has artificial variables, we restart the phase.
     # If there is a new essential cut in the master, we restart the phase.
-    # If algorithm stopped but we didn't converge, we stay in same phase (need to move to next stage).
-    if colgen_master_has_new_cuts(output) || (!colgen_has_converged(output) && !colgen_uses_exact_stage(output))
+    if colgen_mast_lp_sol_has_art_vars(output) || colgen_master_has_new_cuts(output)
         return ColGenPhase1()
     end
-
-    # If master LP solution has no artificial vars, it means that the phase 1 has succeeded.
-    # We have a set of columns that forms a feasible solution to the LP master and we can 
-    # thus start phase 2.
-    if !colgen_mast_lp_sol_has_art_vars(output)
-        return ColGenPhase2()
-    end
-    return nothing
+    return ColGenPhase2()
 end
 
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::ColGen.AbstractColGenPhaseOutput)
@@ -165,32 +165,35 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::
         # No artificial variables in formulation for phase 2, so this case is impossible.
         throw(UnexpectedEndOfColGenPhase())
     end
-    
-    # If there is a new essential cut in the master, we restart the phase.
-    if colgen_master_has_new_cuts(output)
-        return ColGenPhase2()
+
+    # If we converged using exact stage and there is no new cut in the master, column generation is done.
+    if !colgen_master_has_new_cuts(output) && colgen_has_converged(output) && colgen_uses_exact_stage(output)
+        return nothing
     end
-    # The phase 2 is always the last phase of the column generation algorithm.
-    # It means the algorithm converged or hit a user limit.
-    return nothing
+
+    # If there is a new essential cut in the master, we go the phase 1 to prevent infeasibility.
+    if colgen_master_has_new_cuts(output)
+        return ColGenPhase1()
+    end
+    return ColGenPhase2()
 end
 
 function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::ColGen.AbstractColGenPhaseOutput)
-    # If there is a new essential cut in the master, we restart the phase.
-    if colgen_master_has_new_cuts(output)
-        return ColGenPhase3()
+    # Column generation converged.
+    if !colgen_mast_lp_sol_has_art_vars(output) && 
+        !colgen_master_has_new_cuts(output) && 
+        colgen_has_converged(output) && 
+        colgen_uses_exact_stage(output)
+        return nothing
     end
 
-    # Stay in phase 3 until reaching exact stage or converging.
-    if !colgen_has_converged(output) && !colgen_uses_exact_stage(output)
-        return ColGenPhase3()
-    end
-
-    # Master LP solution has artificial vars.
-    if colgen_mast_lp_sol_has_art_vars(output)
+    # If the master lp solution still has artificial variables, we start pahse 1.
+    if colgen_mast_lp_sol_has_art_vars(output) && 
+        !colgen_master_has_new_cuts(output) &&
+        colgen_uses_exact_stage(output)
         return ColGenPhase1()
     end
-    return nothing
+    return ColGenPhase3()
 end
 
 # Implementatation of `setup_reformulation!`
@@ -603,8 +606,10 @@ struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     db::Union{Nothing, Float64}
     nb_new_cols::Int
     new_cut_in_master::Bool
+    # Equals `true` if the master subsolver returns infeasible.
     infeasible_master::Bool
     unbounded_master::Bool
+    # Equals `true` if one of the pricing subsolver returns infeasible.
     infeasible_subproblem::Bool
     unbounded_subproblem::Bool
     time_limit_reached::Bool
@@ -658,8 +663,8 @@ ColGen.get_master_ip_primal_sol(output::ColGenIterationOutput) = output.master_i
 _gap(mlp, db) = (mlp - db) / abs(db)
 _colgen_gap_closed(mlp, db, atol, rtol) = _gap(mlp, db) < 0 || isapprox(mlp, db, atol = atol, rtol = rtol)
 
-ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, colgen_iteration, cutsep_iteration) = false
-function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, colgen_iteration, cutsep_iteration)
+ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, colgen_iteration) = false
+function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, colgen_iteration)
     mlp = colgen_iter_output.mlp
     db = colgen_iter_output.db
     sc = colgen_iter_output.min_sense ? 1 : -1
@@ -679,7 +684,7 @@ ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iter
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, stage, colgen_iter_output::ColGenIterationOutput)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, stage, colgen_iter_output::ColGenIterationOutput, iteration)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -689,11 +694,13 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, stage, colg
         colgen_iter_output.new_cut_in_master,
         colgen_iter_output.nb_new_cols <= 0,
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem,
-        ColGen.is_exact_stage(stage)
+        ColGen.is_exact_stage(stage),
+        colgen_iter_output.time_limit_reached,
+        iteration
     )
 end
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput, iteration)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -703,7 +710,9 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase
         colgen_iter_output.new_cut_in_master,
         colgen_iter_output.nb_new_cols <= 0,
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem || abs(colgen_iter_output.mlp) > 1e-5,
-        ColGen.is_exact_stage(stage)
+        ColGen.is_exact_stage(stage),
+        colgen_iter_output.time_limit_reached,
+        iteration
     )
 end
 

@@ -45,34 +45,36 @@ abstract type AbstractColGenOutput end
 
 @mustimplement "ColGen" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput) = nothing
 
-function run_colgen_phase!(context, phase, stage, env, ip_primal_sol)
-    colgen_iteration = 1
-    cutsep_iteration = 1
+@mustimplement "ColGen" stop_colgen(context, phase_output) = nothing
+
+function run_colgen_phase!(context, phase, stage, env, ip_primal_sol; iter = 1)
+    iteration = iter
     colgen_iter_output = nothing
-    while !stop_colgen_phase(context, phase, env, colgen_iter_output, colgen_iteration, cutsep_iteration)
+    while !stop_colgen_phase(context, phase, env, colgen_iter_output, iteration)
         before_colgen_iteration(context, phase)
         colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
         new_ip_primal_sol = get_master_ip_primal_sol(colgen_iter_output)
         if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
         end
-        after_colgen_iteration(context, phase, stage, env, colgen_iteration, colgen_iter_output)
-        colgen_iteration += 1
+        after_colgen_iteration(context, phase, stage, env, iteration, colgen_iter_output)
+        iteration += 1
     end
     O = colgen_phase_output_type(context)
-    return new_phase_output(O, phase, stage, colgen_iter_output)
+    return new_phase_output(O, phase, stage, colgen_iter_output, iteration)
 end
 
-function run!(context, env, ip_primal_sol)
+function run!(context, env, ip_primal_sol; iter = 1)
     phase_it = new_phase_iterator(context)
     phase = initial_phase(phase_it)
     stage_it = new_stage_iterator(context)
     stage = initial_stage(stage_it)
     phase_output = nothing
-    while !isnothing(phase)
+    while !isnothing(phase) && !stop_colgen(context, phase_output)
         setup_reformulation!(get_reform(context), phase)
         setup_context!(context, phase)
-        phase_output = run_colgen_phase!(context, phase, stage, env, ip_primal_sol)
+        last_iter = isnothing(phase_output) ? iter : phase_output.nb_iterations
+        phase_output = run_colgen_phase!(context, phase, stage, env, ip_primal_sol; iter = last_iter)
         ip_primal_sol = ColGen.get_master_ip_primal_sol(phase_output)
         phase = next_phase(phase_it, phase, phase_output)
         stage = next_stage(stage_it, stage, phase_output)
@@ -235,7 +237,7 @@ abstract type AbstractColGenIterationOutput end
 
 @mustimplement "ColGenIterationOutput" get_master_ip_primal_sol(::AbstractColGenIterationOutput) = nothing
 
-@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, phase, stage, ::AbstractColGenIterationOutput) = nothing
+@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, phase, stage, ::AbstractColGenIterationOutput, iteration) = nothing
 
 @mustimplement "ColGenPhaseOutput" get_master_ip_primal_sol(::AbstractColGenPhaseOutput) = nothing
 
