@@ -91,7 +91,9 @@ function select!(rule::AbstractBranchingRule, env, reform, input::Branching.Bran
     return BranchingRuleOutput(local_id, candidates)
 end
 
-function advanced_select!(ctx::AbstractDivideContext, candidates, _, reform, input::AbstractDivideInput)
+abstract type AbstractBranchingContext <: AbstractDivideContext end
+
+function advanced_select!(ctx::AbstractBranchingContext, candidates, _, reform, input::AbstractDivideInput)
     children = get_children(first(candidates))
     return new_divide_output(children, nothing)
 end
@@ -101,7 +103,7 @@ end
 ############################################################################################
 
 # Implementation
-"Supertype for the branching contexts."
+"Supertype for the strong branching contexts."
 abstract type AbstractStrongBrContext <: AbstractDivideContext end
 
 "Supertype for the branching phase contexts."

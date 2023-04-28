@@ -127,7 +127,7 @@ function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::Ben
     return true
 end
 
-function Benders.insert_cuts!(reform, ctx, cuts)
+function Benders.insert_cuts!(reform, ctx::BendersContext, cuts)
     master = Benders.get_master(ctx)
     @show cuts
 
