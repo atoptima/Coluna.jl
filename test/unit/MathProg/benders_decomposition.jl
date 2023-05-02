@@ -121,49 +121,39 @@ function benders_decomposition()
 
     # Test second stage variables & Constraints
     # Coluna.MathProg.MinSense + 2.0 y1 + 3.0 y2 + 1.0 μ⁺[x1] + 1.0 μ⁻[x1] + 4.0 μ⁺[x2] + 4.0 μ⁻[x2]
-    # c1 : - 1.0 μ⁺[x1] + 1.0 μ⁻[x1] + 4.0 μ⁺[x2] - 4.0 μ⁻[x2] + 2.0 y1 + 3.0 y2  >= 2.0 (BendSpTechnologicalConstrConstraintu1 | true)
-    # c2 : + 1.0 μ⁺[x1] - 1.0 μ⁻[x1] + 3.0 μ⁺[x2] - 3.0 μ⁻[x2] + 1.0 y1 + 1.0 y2 >= 3.0 (BendSpTechnologicalConstrConstraintu2 | true)
+    # c1 : - 1.0 x1 + 4.0 x2 + 2.0 y1 + 3.0 y2  >= 2.0 (BendSpTechnologicalConstrConstraintu1 | true)
+    # c2 : + 1.0 x1 + 3.0 x2 + 1.0 y1 + 1.0 y2 >= 3.0 (BendSpTechnologicalConstrConstraintu2 | true)
     # c4 : + 1.0 y1 + 1.0 y2  >= 0.0 (BendSpPureConstrConstraintu4 | true)
     # 0.0 <= y1 <= Inf (Continuous | BendSpSepVar | true)
     # 0.0 <= y2 <= Inf (Continuous | BendSpSepVar | true)
-    # 0.0 <= μ⁺[x1] <= Inf (Continuous | BendSpPosSlackFirstStageVar | true)
-    # 0.0 <= μ⁺[x2] <= Inf (Continuous | BendSpPosSlackFirstStageVar | true)
-    # 0.0 <= μ⁻[x1] <= Inf (Continuous | BendSpNegSlackFirstStageVar | true)
-    # 0.0 <= μ⁻[x2] <= Inf (Continuous | BendSpNegSlackFirstStageVar | true)
+    # 0.0 <= x1 <= Inf (Continuous | BendFirstStageRepVar | true)
+    # 0.0 <= x2 <= Inf (Continuous | BendFirstStageRepVar | true)
     
     subprob = first(values(Coluna.MathProg.get_benders_sep_sps(reform)))
     ss_vars = Dict(getname(subprob, varid) => var for (varid, var) in Coluna.MathProg.getvars(subprob))
     ss_constrs = Dict(getname(subprob, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(subprob))
 
-    @test length(ss_vars) == 6
+    @test length(ss_vars) == 4
 
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["y1"])) <= Coluna.MathProg.BendSpSepVar
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["y2"])) <= Coluna.MathProg.BendSpSepVar
-    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["μ⁺[x1]"])) <= Coluna.MathProg.BendSpPosSlackFirstStageVar
-    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["μ⁺[x2]"])) <= Coluna.MathProg.BendSpPosSlackFirstStageVar
-    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["μ⁻[x1]"])) <= Coluna.MathProg.BendSpNegSlackFirstStageVar
-    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["μ⁻[x2]"])) <= Coluna.MathProg.BendSpNegSlackFirstStageVar
+    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["x1"])) <= Coluna.MathProg.BendSpFirstStageRepVar
+    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["x2"])) <= Coluna.MathProg.BendSpFirstStageRepVar
 
     @test Coluna.MathProg.getcurlb(subprob, ss_vars["y1"]) == 0.0
     @test Coluna.MathProg.getcurlb(subprob, ss_vars["y2"]) == 0.0
-    @test Coluna.MathProg.getcurlb(subprob, ss_vars["μ⁺[x1]"]) == 0.0
-    @test Coluna.MathProg.getcurlb(subprob, ss_vars["μ⁺[x2]"]) == 0.0
-    @test Coluna.MathProg.getcurlb(subprob, ss_vars["μ⁻[x1]"]) == 0.0
-    @test Coluna.MathProg.getcurlb(subprob, ss_vars["μ⁻[x2]"]) == 0.0
+    @test Coluna.MathProg.getcurlb(subprob, ss_vars["x1"]) == 0.0
+    @test Coluna.MathProg.getcurlb(subprob, ss_vars["x2"]) == 0.0
 
     @test Coluna.MathProg.getcurub(subprob, ss_vars["y1"]) == Inf
     @test Coluna.MathProg.getcurub(subprob, ss_vars["y2"]) == Inf
-    @test Coluna.MathProg.getcurub(subprob, ss_vars["μ⁺[x1]"]) == Inf
-    @test Coluna.MathProg.getcurub(subprob, ss_vars["μ⁺[x2]"]) == Inf
-    @test Coluna.MathProg.getcurub(subprob, ss_vars["μ⁻[x1]"]) == Inf
-    @test Coluna.MathProg.getcurub(subprob, ss_vars["μ⁻[x2]"]) == Inf
+    @test Coluna.MathProg.getcurub(subprob, ss_vars["x1"]) == Inf
+    @test Coluna.MathProg.getcurub(subprob, ss_vars["x2"]) == Inf
 
     @test Coluna.MathProg.getcurcost(subprob, ss_vars["y1"]) == 2.0
     @test Coluna.MathProg.getcurcost(subprob, ss_vars["y2"]) == 3.0
-    @test Coluna.MathProg.getcurcost(subprob, ss_vars["μ⁺[x1]"]) == 1.0
-    @test Coluna.MathProg.getcurcost(subprob, ss_vars["μ⁺[x2]"]) == 4.0
-    @test Coluna.MathProg.getcurcost(subprob, ss_vars["μ⁻[x1]"]) == 1.0
-    @test Coluna.MathProg.getcurcost(subprob, ss_vars["μ⁻[x2]"]) == 4.0
+    @test Coluna.MathProg.getcurcost(subprob, ss_vars["x1"]) == 1.0
+    @test Coluna.MathProg.getcurcost(subprob, ss_vars["x2"]) == 4.0
 
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_constrs["c1"])) <= Coluna.MathProg.BendSpTechnologicalConstr
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_constrs["c2"])) <= Coluna.MathProg.BendSpTechnologicalConstr
