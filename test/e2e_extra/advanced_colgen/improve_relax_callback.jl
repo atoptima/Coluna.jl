@@ -12,13 +12,13 @@ struct VarData <: BD.AbstractCustomData
     items::Vector{Int}
 end
 
-mutable struct ToyNodeInfoUnit <: ClB.AbstractNewStorageUnit 
+mutable struct ToyNodeInfoUnit <: ClB.AbstractRecordUnit 
     value::Int
 end
 
-ClB.new_storage_unit(::Type{ToyNodeInfoUnit}, _) = ToyNodeInfoUnit(111)
+ClB.storage_unit(::Type{ToyNodeInfoUnit}, _) = ToyNodeInfoUnit(111)
 
-struct ToyNodeInfo <: ClB.AbstractNewRecord
+struct ToyNodeInfo <: ClB.AbstractRecord
     value::Int
 end
 
@@ -30,7 +30,7 @@ struct ToyNodeInfoKey <: ClA.AbstractStorageUnitKey end
 ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
 ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
 
-function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
+function ClB.record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
     return ToyNodeInfo(unit.value)
 end
 

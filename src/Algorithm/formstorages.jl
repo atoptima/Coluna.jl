@@ -56,9 +56,9 @@ end
 Unit for master branching constraints. 
 Can be restored using MasterBranchConstrsRecord.    
 """
-struct MasterBranchConstrsUnit <: AbstractNewStorageUnit end
+struct MasterBranchConstrsUnit <: AbstractRecordUnit end
 
-mutable struct MasterBranchConstrsRecord <: AbstractNewRecord
+mutable struct MasterBranchConstrsRecord <: AbstractRecord
     constrs::Dict{ConstrId,ConstrState}
 end
 
@@ -67,9 +67,9 @@ struct MasterBranchConstrsKey <: AbstractStorageUnitKey end
 key_from_storage_unit_type(::Type{MasterBranchConstrsUnit}) = MasterBranchConstrsKey()
 record_type_from_key(::MasterBranchConstrsKey) = MasterBranchConstrsRecord
 
-ClB.new_storage_unit(::Type{MasterBranchConstrsUnit}, _) = MasterBranchConstrsUnit()
+ClB.storage_unit(::Type{MasterBranchConstrsUnit}, _) = MasterBranchConstrsUnit()
 
-function ClB.new_record(::Type{MasterBranchConstrsRecord}, id::Int, form::Formulation, unit::MasterBranchConstrsUnit)
+function ClB.record(::Type{MasterBranchConstrsRecord}, id::Int, form::Formulation, unit::MasterBranchConstrsUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
     record = MasterBranchConstrsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -118,9 +118,9 @@ end
 Unit for branching constraints of a formulation. 
 Can be restored using a MasterColumnsRecord.    
 """
-struct MasterColumnsUnit <: AbstractNewStorageUnit end
+struct MasterColumnsUnit <: AbstractRecordUnit end
 
-mutable struct MasterColumnsRecord <: AbstractNewRecord
+mutable struct MasterColumnsRecord <: AbstractRecord
     cols::Dict{VarId,VarState}
 end
 
@@ -129,9 +129,9 @@ struct MasterColumnsKey <: AbstractStorageUnitKey end
 key_from_storage_unit_type(::Type{MasterColumnsUnit}) = MasterColumnsKey()
 record_type_from_key(::MasterColumnsKey) = MasterColumnsRecord
 
-ClB.new_storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
+ClB.storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
 
-function ClB.new_record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
+function ClB.record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
     record = MasterColumnsRecord(Dict{VarId,ConstrState}())
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && 
@@ -177,11 +177,11 @@ end
 Unit for cutting planes of a formulation. 
 Can be restored using a MasterCutsRecord.    
 """
-struct MasterCutsUnit <: AbstractNewStorageUnit end
+struct MasterCutsUnit <: AbstractRecordUnit end
 
 MasterCutsUnit(::Formulation) = MasterCutsUnit()
 
-mutable struct MasterCutsRecord <: AbstractNewRecord
+mutable struct MasterCutsRecord <: AbstractRecord
     cuts::Dict{ConstrId,ConstrState}
 end
 
@@ -190,9 +190,9 @@ struct MasterCutsKey <: AbstractStorageUnitKey end
 key_from_storage_unit_type(::Type{MasterCutsUnit}) = MasterCutsKey()
 record_type_from_key(::MasterCutsKey) = MasterCutsRecord
 
-ClB.new_storage_unit(::Type{MasterCutsUnit}, _) = MasterCutsUnit()
+ClB.storage_unit(::Type{MasterCutsUnit}, _) = MasterCutsUnit()
 
-function ClB.new_record(::Type{MasterCutsRecord}, id::Int, form::Formulation, unit::MasterCutsUnit)
+function ClB.record(::Type{MasterCutsRecord}, id::Int, form::Formulation, unit::MasterCutsUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
     record = MasterCutsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)

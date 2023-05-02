@@ -38,8 +38,8 @@ export UnitType,
     restore_from_records!,
     getstorageunit, getstoragewrapper
 
-export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,
-    new_record, record_type, storage_unit_type, restore_from_record!, create_record
+export Storage, RecordUnitManager, AbstractRecordUnit, AbstractRecord, storage_unit,
+    record, record_type, storage_unit_type, restore_from_record!, create_record
 
 include("interface.jl")
 include("nestedenum.jl")
