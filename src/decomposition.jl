@@ -359,7 +359,7 @@ function create_side_vars_constrs!(
     spcoef = getcoefmatrix(spform)
     origcoef = getcoefmatrix(origform)
 
-    # 1st level slack variables
+    # 1st level representative variables.
     masterform = getmaster(spform)
     mast_ann = get(annotations, masterform)
     if haskey(annotations.vars_per_ann, mast_ann)
@@ -367,40 +367,27 @@ function create_side_vars_constrs!(
         for (varid, var) in vars
             duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
             if duty == MasterBendFirstStageVar
-                name = string("μ⁺[", split(getname(origform, var), "[")[end], "]")
-                slack_pos_id = VarId(
+                name = getname(origform, var)
+                repr_id = VarId(
                     varid,
-                    duty = BendSpPosSlackFirstStageVar,
+                    duty = BendSpFirstStageRepVar,
                     assigned_form_uid = getuid(masterform)
                 )
-                slack_pos = setvar!(
-                    spform, name, BendSpPosSlackFirstStageVar;
+
+                repr = setvar!(
+                    spform, name, BendSpFirstStageRepVar;
                     cost = getcurcost(origform, var),
                     lb = getcurlb(origform, var),
                     ub = getcurub(origform, var),
                     kind = Continuous,
-                    is_explicit = true,
-                    id = slack_pos_id
+                    is_explicit = false,
+                    id = repr_id
                 )
-
-                name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")
-                slack_neg = setvar!(
-                    spform, name, BendSpNegSlackFirstStageVar;
-                    cost = getcurcost(origform, var),
-                    lb = getcurlb(origform, var),
-                    ub = getcurub(origform, var),
-                    kind = Continuous,
-                    is_explicit = true
-                )
-
-                spform.duty_data.slack_to_first_stage[getid(slack_pos)] = varid
-                spform.duty_data.slack_to_first_stage[getid(slack_neg)] = varid
 
                 for (constrid, coeff) in @view origcoef[:, varid]
                     spconstr = getconstr(spform, constrid)
                     if spconstr !== nothing
-                        spcoef[getid(spconstr), getid(slack_pos)] = coeff
-                        spcoef[getid(spconstr), getid(slack_neg)] = -coeff
+                        spcoef[getid(spconstr), getid(repr)] = coeff
                     end
                 end
             end
