@@ -5,7 +5,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storage::Union{Nothing,NewStorage}
+    storage::Union{Nothing,Storage}
     duty_data::Duty
     env::Env{VarId}
 end
@@ -48,7 +48,7 @@ function create_formulation!(
         FormulationManager(buffer, custom_families_id = env.custom_families_id), obj_sense,
         buffer, nothing, duty, env
     )
-    storage = NewStorage(form)
+    storage = Storage(form)
     form.storage = storage
     return form
 end
@@ -62,7 +62,7 @@ Returns the id of the formulation.
 ClB.getuid(form::Formulation) = form.uid
 
 """
-    getstorage(form) -> NewStorage
+    getstorage(form) -> Storage
 
 Returns the storage of a formulation.
 Read the documentation of the [Storage API](https://atoptima.github.io/Coluna.jl/stable/api/storage/).

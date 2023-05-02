@@ -10,11 +10,11 @@ function Base.show(io::IO, model::ModelCs1) # TODO remove
     print(io, model.char_values)
 end
 
-struct CharStorageUnitCs1 <: ClB.AbstractNewStorageUnit end
+struct CharStorageUnitCs1 <: ClB.AbstractRecordUnit end
 
-ClB.new_storage_unit(::Type{CharStorageUnitCs1}, _) = CharStorageUnitCs1()
+ClB.storage_unit(::Type{CharStorageUnitCs1}, _) = CharStorageUnitCs1()
 
-struct CharRecordCs1 <: ClB.AbstractNewRecord
+struct CharRecordCs1 <: ClB.AbstractRecord
     id::Int
     char_values::Dict{Int, Char}
 end
@@ -22,7 +22,7 @@ end
 ClB.get_id(r::CharRecordCs1) = r.id
 ClB.record_type(::Type{CharStorageUnitCs1}) = CharRecordCs1
 ClB.storage_unit_type(::Type{CharRecordCs1}) = CharStorageUnitCs1
-function ClB.new_record(::Type{CharRecordCs1}, id::Int, model::ModelCs1, ::CharStorageUnitCs1)
+function ClB.record(::Type{CharRecordCs1}, id::Int, model::ModelCs1, ::CharStorageUnitCs1)
     entries_it = Iterators.filter(
         t -> t[1] ∈ model.tracked_char_pos,
         Iterators.map(t -> (t[1] => t[2]), Iterators.enumerate(model.char_values))
@@ -41,7 +41,7 @@ end
 
 function storage()
     model = ModelCs1(fill('A', NB_VARS_CS1), [3,4,5])
-    storage = ClB.NewStorage(model)
+    storage = ClB.Storage(model)
     r1 = ClB.create_record(storage, CharStorageUnitCs1) # create_record -> save_current_state
 
     a = ClB.restore_from_record!(storage, r1)

@@ -95,20 +95,20 @@ To this purpose, we will use the storage.
 We create a storage unit for variable domains
 
 ````@example storage
-struct VarDomainStorageUnit <: ClB.AbstractNewStorageUnit end
+struct VarDomainStorageUnit <: ClB.AbstractRecordUnit end
 ````
 
 and its constructor.
 
 ````@example storage
-ClB.new_storage_unit(::Type{VarDomainStorageUnit}, _) = VarDomainStorageUnit()
+ClB.storage_unit(::Type{VarDomainStorageUnit}, _) = VarDomainStorageUnit()
 ````
 
 The state of the variables' domains at a given node is called a record.
 The record is defined by the following data structure:
 
 ````@example storage
-struct VarDomainRecord <: ClB.AbstractNewRecord
+struct VarDomainRecord <: ClB.AbstractRecord
     var_domains::Vector{Tuple{Float64,Float64}}
 end
 ````
@@ -124,7 +124,7 @@ ClB.storage_unit_type(::Type{VarDomainRecord}) = VarDomainStorageUnit
 We implement the method that creates a record of the variables' domains.
 
 ````@example storage
-function ClB.new_record(::Type{VarDomainRecord}, id::Int, form::Formulation, ::VarDomainStorageUnit)
+function ClB.record(::Type{VarDomainRecord}, id::Int, form::Formulation, ::VarDomainStorageUnit)
     return VarDomainRecord(copy(form.var_domains))
 end
 ````
@@ -172,10 +172,10 @@ data structure throughout the whole tree search execution.
 mutable struct FullExplSearchSpace <: ClA.AbstractSearchSpace
     nb_nodes_generated::Int
     formulation::Formulation
-    storage::ClB.NewStorage{Formulation}
+    storage::ClB.Storage{Formulation}
     record_ids_per_node::Dict{Int, Any}
     function FullExplSearchSpace(form::Formulation)
-        return new(0, form, ClB.NewStorage(form), Dict{Int,Any}())
+        return new(0, form, ClB.Storage(form), Dict{Int,Any}())
     end
 end
 ````
@@ -312,10 +312,10 @@ storage unit types and record types.
 this correspondance is implemented by methods
 `record_type(StorageUnitType)` and `storage_unit_type(RecordType)`.
 
-The developer must also implement methods `new_storage_unit(StorageUnitType)` and
-`new_record(RecordType, id, model, storage_unit)` that must call constructors of the custom
+The developer must also implement methods `storage_unit(StorageUnitType)` and
+`record(RecordType, id, model, storage_unit)` that must call constructors of the custom
 storage unit and the one of its associated records.
-Arguments of `new_record` allow the developer to record the state of entities from
+Arguments of `record` allow the developer to record the state of entities from
 both the storage unit and the model.
 
 At last, he must implement `restore_from_record!(storage_unit, model, record)` to restore the
@@ -325,8 +325,8 @@ Entities can be in the storage unit, the model, or in both of them.
 ```@docs
     record_type
     storage_unit_type
-    new_storage_unit
-    new_record
+    storage_unit
+    record
     restore_from_record!
 ```
 

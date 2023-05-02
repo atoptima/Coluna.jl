@@ -12,7 +12,7 @@
 # We thus use the AbstractStorageUnitKey and following methods for type inference.
 abstract type AbstractStorageUnitKey end
 
-key_from_storage_unit_type(T::Type{<:AbstractNewStorageUnit}) =
+key_from_storage_unit_type(T::Type{<:AbstractRecordUnit}) =
     error("key_from_storage_unit_type(::Type{$(T)}) not implemented.")
 record_type_from_key(k::AbstractStorageUnitKey) =
     error("record_type_from_key(::$(typeof(k))) not implemented.")
@@ -21,16 +21,16 @@ record_type_from_key(k::AbstractStorageUnitKey) =
 # create_records built on top of ClB.create_record
 ############################################################################################
 struct Records
-    records_by_model_id::Dict{Int, Dict{AbstractStorageUnitKey, AbstractNewRecord}}
-    Records() = new(Dict{Int, Dict{AbstractStorageUnitKey, AbstractNewRecord}}())
+    records_by_model_id::Dict{Int, Dict{AbstractStorageUnitKey, AbstractRecord}}
+    Records() = new(Dict{Int, Dict{AbstractStorageUnitKey, AbstractRecord}}())
 end
 
 function _add_rec!(
-    r::Records, model::AbstractModel, storage_unit_type::Type{<:AbstractNewStorageUnit}, record::AbstractNewRecord
+    r::Records, model::AbstractModel, storage_unit_type::Type{<:AbstractRecordUnit}, record::AbstractRecord
 )
     model_id = getuid(model)
     if !haskey(r.records_by_model_id, model_id)
-        r.records_by_model_id[model_id] = Dict{AbstractStorageUnitKey, AbstractNewRecord}()
+        r.records_by_model_id[model_id] = Dict{AbstractStorageUnitKey, AbstractRecord}()
     end
     if haskey(r.records_by_model_id[model_id], storage_unit_type)
         @error "Already added record for model $(getuid(model)) and storage unit $(storage_unit_type).
