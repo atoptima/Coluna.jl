@@ -759,7 +759,7 @@ end
 #         getstorageunit(masterform, ColGenStabilizationUnit)
 #     else
 #         #ColGenStabilizationUnit(masterform)
-#         ClB.new_storage_unit(ColGenStabilizationUnit, masterform)
+#         ClB.storage_unit(ColGenStabilizationUnit, masterform)
 #     end
 
 #     init_stab_before_colgen_loop!(stabunit)

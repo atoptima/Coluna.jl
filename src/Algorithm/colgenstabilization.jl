@@ -1,4 +1,4 @@
-mutable struct ColGenStabilizationUnit <: AbstractNewStorageUnit
+mutable struct ColGenStabilizationUnit <: AbstractRecordUnit
     basealpha::Float64 # "global" alpha parameter
     curalpha::Float64 # alpha parameter during the current misprice sequence
     nb_misprices::Int64 # number of misprices during the current misprice sequence
@@ -9,13 +9,13 @@ mutable struct ColGenStabilizationUnit <: AbstractNewStorageUnit
     basestabcenter::Union{Nothing,DualSolution} # stability center, corresponding to valid_dual_bound
 end
 
-function ClB.new_storage_unit(::Type{ColGenStabilizationUnit}, master::Formulation{DwMaster})
+function ClB.storage_unit(::Type{ColGenStabilizationUnit}, master::Formulation{DwMaster})
     return ColGenStabilizationUnit(
         0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
     )
 end
 
-mutable struct ColGenStabRecord <: AbstractNewRecord
+mutable struct ColGenStabRecord <: AbstractRecord
     alpha::Float64
     dualbound::DualBound
     stabcenter::Union{Nothing,DualSolution}
@@ -26,7 +26,7 @@ struct ColGenStabKey <: AbstractStorageUnitKey end
 key_from_storage_unit_type(::Type{ColGenStabilizationUnit}) = ColGenStabKey()
 record_type_from_key(::ColGenStabKey) = ColGenStabRecord
 
-function ClB.new_record(::Type{ColGenStabRecord}, id::Int, form::Formulation, unit::ColGenStabilizationUnit)
+function ClB.record(::Type{ColGenStabRecord}, id::Int, form::Formulation, unit::ColGenStabilizationUnit)
     alpha = unit.basealpha < 0.5 ? 0.5 : unit.basealpha
     return ColGenStabRecord(alpha, unit.valid_dual_bound, unit.basestabcenter)
 end

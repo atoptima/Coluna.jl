@@ -5,7 +5,7 @@ mutable struct Reformulation <: AbstractFormulation
     master::Union{Nothing, Formulation}  # TODO : rm Nothing
     dw_pricing_subprs::Dict{FormId, AbstractModel} 
     benders_sep_subprs::Dict{FormId, AbstractModel}
-    storage::Union{Nothing,NewStorage}
+    storage::Union{Nothing,Storage}
 end
 
 """
@@ -26,7 +26,7 @@ function Reformulation(env)
         Dict{FormId, AbstractModel}(),
         nothing
     )
-    reform.storage = NewStorage(reform)
+    reform.storage = Storage(reform)
     return reform
 end
 
