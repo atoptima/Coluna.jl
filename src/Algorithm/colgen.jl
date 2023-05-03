@@ -127,13 +127,7 @@ function _new_context(C::Type{<:ColGen.AbstractColGenContext}, reform, algo)
     return C(reform, algo)
 end
 
-function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
-    C = _colgen_context(algo)
-    ctx = _new_context(C, reform, algo)
-    result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
-
-    master = getmaster(reform)
-    optstate = OptimizationState(master)
+function _colgen_optstate_output(result, master, optstate)
 
     if result.infeasible
         setterminationstatus!(optstate, INFEASIBLE)
@@ -155,7 +149,20 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
         set_lp_dual_bound!(optstate, DualBound(master, result.db))
         set_ip_dual_bound!(optstate, DualBound(master, result.db))
     end
+
     return optstate
+end
+
+function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+    C = _colgen_context(algo)
+    ctx = _new_context(C, reform, algo)
+    result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
+
+    master = getmaster(reform)
+    optstate = OptimizationState(master)
+
+    return _colgen_optstate_output(result, master, optstate)
+
 end
 
 ### BELOW: delete before v0.6

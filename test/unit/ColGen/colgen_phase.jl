@@ -478,32 +478,6 @@ end
 register!(unit_tests, "colgen_phase", stop_when_inf_db)
 
 
-function mock_run(result, master, optstate)
-
-    if result.infeasible
-        ClA.setterminationstatus!(optstate, ClA.INFEASIBLE)
-    end
-
-    if !isnothing(result.master_lp_primal_sol)
-        ClA.set_lp_primal_sol!(optstate, result.master_lp_primal_sol)
-    end
-
-    if !isnothing(result.master_ip_primal_sol)
-        ClA.update_ip_primal_sol!(optstate, result.master_ip_primal_sol)
-    end
-
-    if !isnothing(result.master_lp_dual_sol)
-        ClA.update_lp_dual_sol!(optstate, result.master_lp_dual_sol)
-    end
-
-    if !isnothing(result.db)
-        ClA.set_lp_dual_bound!(optstate, DualBound(master, result.db))
-        ClA.set_ip_dual_bound!(optstate, DualBound(master, result.db))
-    end
-    return optstate
-
-end 
-
 function infeasible_phase_output()
 
     reform, _, _ = get_reform_master_and_vars()
@@ -535,7 +509,7 @@ function infeasible_phase_output()
     @test isnothing(colgen_output.db)
 
     master = ClA.getmaster(reform)
-    optstate = mock_run(colgen_output, master, ClA.OptimizationState(master))
+    optstate = ClA._colgen_optstate_output(colgen_output, master, ClA.OptimizationState(master))
 
     @test optstate.termination_status == ClA.INFEASIBLE
 
