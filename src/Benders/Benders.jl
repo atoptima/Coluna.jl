@@ -5,6 +5,8 @@ using .MustImplement
 
 abstract type AbstractBendersContext end
 
+@mustimplement "Benders" is_minimization(context::AbstractBendersContext) = nothing
+
 @mustimplement "Benders" get_reform(context::AbstractBendersContext) = nothing
 
 @mustimplement "Benders" get_master(context::AbstractBendersContext) = nothing
@@ -18,6 +20,8 @@ abstract type AbstractBendersContext end
 
 @mustimplement "Benders" get_primal_sol(res) = nothing
 
+# If the master is unbounded
+@mustimplement "Benders" treat_unbounded_master_problem!(master, context, env) = nothing
 
 # second stage variable costs
 @mustimplement "Benders" set_second_stage_var_costs_to_zero!(context) = nothing
@@ -26,6 +30,8 @@ abstract type AbstractBendersContext end
 
 
 @mustimplement "Benders" update_sp_rhs!(context, sp, mast_primal_sol) = nothing
+
+@mustimplement "Benders" set_sp_rhs_to_zero!(context, sp, mast_primal_sol) = nothing
 
 @mustimplement "Benders" set_of_cuts(context) = nothing
 
@@ -39,25 +45,43 @@ abstract type AbstractBendersContext end
 
 @mustimplement "Benders" insert_cuts!(reform, context, generated_cuts) = nothing
 
+@mustimplement "Benders" benders_iteration_output_type(::AbstractBendersContext) = nothing
+
+@mustimplement "Benders" new_iteration_output(type, is_min_sense, nb_cuts_inserted, infeasible_master, infeasible_subproblem, time_limit_reached) = nothing
+
+function run_benders_loop!(context, env)
+    phase = nothing
+    ip_primal_sol = nothing
+
+    while stop_benders()
+        run_benders_iteration!(context, phase, env, ip_primal_sol)
+        after_benders_iteration!(context, phase, env, ip_primal_sol)
+    end
+end
+
 function run_benders_iteration!(context, phase, env, ip_primal_sol)
     master = get_master(context)
     mast_result = optimize_master_problem!(master, context, env)
-    @show mast_result
+    certificate = false
 
     # At first iteration, if the master does not contain any Benders cut, the master will be
-    # unbounded. we therefore solve the master by setting the cost of the second stage cost
-    # variable to 0 so that the problem won't be unbounded anymore.
+    # unbounded. The implementation must provide a routine to handle this case.
     if is_unbounded(mast_result)
-        set_second_stage_var_costs_to_zero!(context)
-        mast_result = optimize_master_problem!(master, context, env)
-        reset_second_stage_var_costs!(context)
+        mast_result, certificate = treat_unbounded_master_problem!(master, context, env)
     end
 
     # Master primal solution
     mast_primal_sol = get_primal_sol(mast_result)
 
     for (_, sp) in get_benders_subprobs(context)
-        update_sp_rhs!(context, sp, mast_primal_sol)
+        # Right-hand-side of linking constraints is not updated in the same way whether the
+        # master returns a dual infeasibility certificate or a primal solution.
+        # See Lemma 2 of "Implementing Automatic Benders Decomposition in a Modern MIP Solver" (Bonami et al., 2020)
+        if certificate
+            set_sp_rhs_to_zero!(context, sp, mast_primal_sol)
+        else
+            update_sp_rhs!(context, sp, mast_primal_sol)
+        end
     end
 
     generated_cuts = set_of_cuts(context)
@@ -76,9 +100,10 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
     end
 
     cut_ids = insert_cuts!(get_reform(context), context, generated_cuts)
-    @show master
-    @show cut_ids
-    return
+    nb_cuts_inserted = length(cut_ids)
+    O = benders_iteration_output_type(context)
+    is_min_sense = is_minimization(context)
+    return new_iteration_output(O, is_min_sense, nb_cuts_inserted, false, false, false)
 end
 
 end

@@ -47,6 +47,7 @@ include("colgen.jl")
 # Benders algorithm
 include("benders/utils.jl")
 include("benders/default.jl")
+include("benders/printer.jl")
 include("benders.jl")
 
 # Presolve
