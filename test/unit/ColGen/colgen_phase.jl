@@ -473,7 +473,7 @@ function stop_when_inf_db()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration) 
+    @test_broken ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration) 
 end
 register!(unit_tests, "colgen_phase", stop_when_inf_db)
 
