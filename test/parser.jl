@@ -347,17 +347,18 @@ module Parser
         i = 1
         constraints = ClMP.Constraint[]
         subproblems = []
-        all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.DwSp}}}()
+        all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.BendersSp}}}()
         for (_, sp) in cache.subproblems
             spform = nothing
             for (varid, cost) in sp.objective.vars
                 if haskey(cache.variables, varid)
                     var = cache.variables[varid]
-                    if var.duty <= ClMP.BendSpSecondStageSlackVar || var.duty <= ClMP.BendSpSepVar || var.duty <=  ClMP.MasterBendFirstStageVar
+                    if var.duty <= ClMP.BendSpSecondStageSlackVar || var.duty <= ClMP.BendSpSepVar || var.duty <= ClMP.MasterBendFirstStageVar || var.duty <= ClMP.MasterBendSecondStageCostVar
+                        explicit = true
                         if isnothing(spform)
                             spform = ClMP.create_formulation!(
                                 env,
-                                ClMP.DwSp(nothing, nothing, nothing, ClMP.Integ);
+                                ClMP.BendersSp();
                                 obj_sense = sp.sense
                             )
                         end
@@ -365,10 +366,11 @@ module Parser
                         if var.duty <= ClMP.MasterBendFirstStageVar
                             duty = ClMP.BendSpFirstStageRepVar
                         end
-                        v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind)
-                        # if var.duty <= ClMP.DwSpPricingVar
-                        #     spform.duty_data.setup_var = ClMP.getid(v)
-                        # end
+                        if var.duty <= ClMP.MasterBendSecondStageCostVar
+                            duty = ClMP.BendSpCostRepVar
+                            explicit = false
+                        end
+                        v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = explicit)
                         ClMP.setperencost!(spform, v, cost)
                         all_spvars[varid] = (v, spform)
                     end
@@ -388,9 +390,16 @@ module Parser
                 i += 1
             end
             push!(subproblems, spform)
-            ClMP.add_dw_pricing_sp!(reform, spform)
+            ClMP.add_benders_sep_sp!(reform, spform)
         end
         return subproblems, all_spvars, constraints
+    end
+
+    _sp_duty_data!(sp::ClMP.Formulation{ClMP.DwSp}, var, duty) = nothing
+    function _sp_duty_data!(sp::ClMP.Formulation{ClMP.BendersSp}, var, duty)
+        if duty <= ClMP.MasterBendSecondStageCostVar
+            sp.duty_data.second_stage_cost_var = ClMP.getid(var)
+        end
     end
 
     function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict, cache::ReadCache)
@@ -401,6 +410,10 @@ module Parser
                 if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
                     is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
                     v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
+                    if haskey(all_spvars, varid)
+                        spvar, sp = all_spvars[varid]
+                        _sp_duty_data!(sp, spvar, var.duty)
+                    end
                 else
                     if haskey(all_spvars, varid)
                         var, sp = all_spvars[varid]

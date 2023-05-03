@@ -88,6 +88,7 @@ BendersSp() = BendersSp(Dict{VarId, VarId}(), nothing)
                 BendSpSecondStageSlackVar <= AbstractBendSpSlackMastVar
             BendSpSepVar <= AbstractBendSpVar
             BendSpFirstStageRepVar <= AbstractBendSpVar
+            BendSpCostRepVar <= AbstractBendSpVar
 end
 
 ############################################################################################
