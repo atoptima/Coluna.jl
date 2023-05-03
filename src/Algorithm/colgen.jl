@@ -162,7 +162,6 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     optstate = OptimizationState(master)
 
     return _colgen_optstate_output(result, master, optstate)
-
 end
 
 ### BELOW: delete before v0.6
