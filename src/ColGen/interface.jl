@@ -70,7 +70,7 @@ function run!(context, env, ip_primal_sol; iter = 1)
     stage_it = new_stage_iterator(context)
     stage = initial_stage(stage_it)
     phase_output = nothing
-    while !isnothing(phase) && !stop_colgen(context, phase_output)
+    while !isnothing(phase) && !stop_colgen(context, phase_output) && !isnothing(stage)
         setup_reformulation!(get_reform(context), phase)
         setup_context!(context, phase)
         last_iter = isnothing(phase_output) ? iter : phase_output.nb_iterations
