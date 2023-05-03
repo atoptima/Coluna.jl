@@ -127,7 +127,9 @@ function _new_context(C::Type{<:ColGen.AbstractColGenContext}, reform, algo)
     return C(reform, algo)
 end
 
-function _colgen_optstate_output(result, master, optstate)
+function _colgen_optstate_output(result, master)
+
+    optstate = OptimizationState(master)
 
     if result.infeasible
         setterminationstatus!(optstate, INFEASIBLE)
@@ -159,9 +161,9 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
 
     master = getmaster(reform)
-    optstate = OptimizationState(master)
+    
 
-    return _colgen_optstate_output(result, master, optstate)
+    return _colgen_optstate_output(result, master)
 end
 
 ### BELOW: delete before v0.6
