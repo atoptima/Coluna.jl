@@ -494,7 +494,8 @@ function infeasible_phase_output()
         true, #infeasible
         true, #exact_stage
         false,
-        6
+        6,
+        true
     )
 
     @test ColGen.stop_colgen(ctx, colgen_phase_output)
