@@ -85,9 +85,11 @@ function benders_form_A()
         x1 + 3x2 + y1 + y2 >= 3 {BendTechConstr}
         y1 + y2 >= 0
 
-    continuous
+    integer
         first_stage
             x1, x2
+
+    continuous
         second_stage_cost
             z
         second_stage
@@ -99,15 +101,12 @@ function benders_form_A()
         x2 >= 0
         y1 >= 0
         y2 >= 0
-        a11 >= 0
-        a12 >= 0
-        a21 >= 0
-        a22 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
     return env, reform
 end
 
+# A with continuous first stage finds optimal solution
 function benders_iteration_default_1()
     #env, reform = benders_simple_example()
     env, reform = benders_form_A()
@@ -134,3 +133,32 @@ function benders_iteration_default_1()
     @test result.mlp ≈ 3.7142857142857144
 end
 register!(unit_tests, "benders_default", benders_iteration_default_1)
+
+# A with integer first stage finds optimal solution
+function benders_iteration_default_2()
+    #env, reform = benders_simple_example()
+    env, reform = benders_form_A()
+
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10,
+        separation_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+        print = true
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 3.7142857142857144
+end
+register!(unit_tests, "benders_default", benders_iteration_default_2; x = true)
+
