@@ -451,4 +451,67 @@ function continue_colgen_phase_otherwise()
 end
 register!(unit_tests, "colgen_phase", continue_colgen_phase_otherwise)
 
+function stop_when_inf_db()
+    reform, _, _ = get_reform_master_and_vars()
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+    colgen_iteration = 1
+    env = nothing
 
+    colgen_iter_output = ClA.ColGenIterationOutput(
+        true,
+        4578,
+        Inf,
+        1,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        nothing,
+        nothing,
+        nothing
+    )
+
+    @test_broken ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration) 
+end
+register!(unit_tests, "colgen_phase", stop_when_inf_db)
+
+
+function infeasible_phase_output()
+
+    reform, _, _ = get_reform_master_and_vars()
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+
+    colgen_phase_output = ClA.ColGenPhaseOutput(
+        nothing,
+        nothing,
+        nothing,
+        167673.9643, #mlp
+        162469.0291, #db
+        false,
+        true,
+        true, #infeasible
+        true, #exact_stage
+        false,
+        6
+    )
+
+    @test ColGen.stop_colgen(ctx, colgen_phase_output)
+
+    colgen_output = ColGen.new_output(ClA.ColGenOutput, colgen_phase_output)
+
+    @test colgen_output.infeasible == true
+    @test isnothing(colgen_output.master_lp_primal_sol)
+    @test isnothing(colgen_output.master_ip_primal_sol)
+    @test isnothing(colgen_output.master_lp_dual_sol)
+    @test_broken isnothing(colgen_output.mlp)
+    @test_broken isnothing(colgen_output.db)
+
+    master = ClA.getmaster(reform)
+    optstate = ClA._colgen_optstate_output(colgen_output, master)
+
+    @test optstate.termination_status == ClA.INFEASIBLE
+
+end
+register!(unit_tests, "colgen_phase", infeasible_phase_output)
