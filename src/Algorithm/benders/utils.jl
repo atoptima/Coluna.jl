@@ -16,14 +16,14 @@ function _add_subproblem!(rhs, T, spid, sp)
     for (constr_id, constr) in getconstrs(sp)
         if getduty(constr_id) <= BendSpTechnologicalConstr && iscuractive(sp, constr) && isexplicit(sp, constr)
             push!(constr_ids, constr_id)
-            push!(constr_rhs, getcurrhs(sp, constr_id))
+            push!(constr_rhs, getperenrhs(sp, constr_id))
         end 
     end
     rhs[spid] = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
     T[spid] = _submatrix(
         sp,
         constr_id -> getduty(constr_id) <= BendSpTechnologicalConstr,
-        var_id -> getduty(var_id) <= BendSpPosSlackFirstStageVar
+        var_id -> getduty(var_id) <= BendSpFirstStageRepVar
     )
     return
 end

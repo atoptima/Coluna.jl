@@ -270,3 +270,36 @@ Base.:(*)(m::DynamicSparseMatrix, s::AbstractSolution) = m * s.solution.sol
 Base.:(*)(m::DynamicSparseArrays.Transposed{<:DynamicSparseMatrix}, s::AbstractSolution) = m * s.solution.sol
 
 LinearAlgebra.norm(s::AbstractSolution) = norm(s.solution.sol)
+
+############################################################################################
+# Infeasibility certificate
+############################################################################################
+@enum PrimalOrDualInfeasibility PRIMAL_INFEASIBILITY DUAL_INFEASIBILITY
+struct InfeasibilityCertificate{M} <: AbstractSolution
+    infeasibility::PrimalOrDualInfeasibility
+    vars::Solution{M,VarId,Float64}
+    constrs::Solution{M,ConstrId,Float64}
+end
+
+function PrimalInfeasibilityCertificate(
+    form::M, constrids, constrvals, varids, varvals, cost;
+) where {M<:AbstractFormulation}
+    @assert length(constrids) == length(constrvals)
+    @assert length(varids) == length(varvals)
+    status = INFEASIBLE_SOL
+    vars = Solution{M,VarId,Float64}(form, varids, varvals, cost, status)
+    constrs = Solution{M,ConstrId,Float64}(form, constrids, constrvals, cost, status)
+    return InfeasibilityCertificate{M}(PRIMAL_INFEASIBILITY, vars, constrs)
+end
+
+function DualInfeasibilityCertificate(
+    form::M, constrids, constrvals, varids, varvals, cost;
+) where {M<:AbstractFormulation}
+    @assert length(constrids) == length(constrvals)
+    @assert length(varids) == length(varvals)
+    status = INFEASIBLE_SOL
+    vars = Solution{M,VarId,Float64}(form, varids, varvals, cost, status)
+    constrs = Solution{M,ConstrId,Float64}(form, constrids, constrvals, cost, status)
+    return InfeasibilityCertificate{M}(DUAL_INFEASIBILITY, vars, constrs)
+end
+
