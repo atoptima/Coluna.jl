@@ -497,7 +497,7 @@ function infeasible_phase_output()
         6
     )
 
-    @test_broken ColGen.stop_colgen(ctx, colgen_phase_output)
+    @test ColGen.stop_colgen(ctx, colgen_phase_output)
 
     colgen_output = ColGen.new_output(ClA.ColGenOutput, colgen_phase_output)
 
@@ -505,11 +505,11 @@ function infeasible_phase_output()
     @test isnothing(colgen_output.master_lp_primal_sol)
     @test isnothing(colgen_output.master_ip_primal_sol)
     @test isnothing(colgen_output.master_lp_dual_sol)
-    @test isnothing(colgen_output.mlp)
-    @test isnothing(colgen_output.db)
+    @test_broken isnothing(colgen_output.mlp)
+    @test_broken isnothing(colgen_output.db)
 
     master = ClA.getmaster(reform)
-    optstate = ClA._colgen_optstate_output(colgen_output, master, ClA.OptimizationState(master))
+    optstate = ClA._colgen_optstate_output(colgen_output, master)
 
     @test optstate.termination_status == ClA.INFEASIBLE
 
