@@ -57,6 +57,15 @@ function benders_simple_example()
 end
 
 function benders_iteration_default()
+    # using JuMP, GLPK
+    # m = Model(GLPK.Optimizer)
+    # @variable(m, x[1:2]>= 0)
+    # @variable(m, y[1:2] >= 0)
+    # @constraint(m, -x[1] + 4x[2] + 2y[1] + 3y[2] >= 2)
+    # @constraint(m, x[1] + 3x[2] + y[1] + y[2] >= 3)
+    # @objective(m, Min, x[1] + 4x[2] + 2y[1] + 3y[2])
+    # objectivevalue(m)
+
     env, reform = benders_simple_example()
 
     master = Coluna.MathProg.getmaster(reform)
@@ -68,18 +77,31 @@ function benders_iteration_default()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    println("\e[42m --------------- n --s------------- \e[00m")
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+        print = true
+        #debug_print_master = true,
+        #debug_print_master_primal_solution = true,
+        #debug_print_master_dual_solution = true,
+        #debug_print_subproblem = true,
+        #debug_print_subproblem_primal_solution = true,
+        #debug_print_subproblem_dual_solution = true,
+    )
+    Coluna.set_optim_start_time!(env)
 
-    alg = Coluna.Algorithm.BendersCutGeneration()
-    ctx = Coluna.Algorithm.BendersContext(reform, alg)
+    # println("\e[41m ------------1---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------2---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------3---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------4---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
 
-    println("\e[42m --------------- n --1------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    println("\e[42m --------------- n --2------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    println("\e[42m --------------- n --3------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    println("\e[42m --------------- n --4------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+
+    Coluna.Benders.run_benders_loop!(ctx, env)
 end
 register!(unit_tests, "benders_default", benders_iteration_default)

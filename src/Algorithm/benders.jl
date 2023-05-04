@@ -27,9 +27,6 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
     return units_usage
 end
 
-
-
-
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}

@@ -370,6 +370,34 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
     return solutions
 end
 
+function get_dual_infeasibility_certificate(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
+    inner = getinner(optimizer)
+    nb_certificates = MOI.get(inner, MOI.ResultCount())
+    certificates = PrimalSolution{F}[]
+
+    for res_idx in 1:nb_certificates
+        if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.INFEASIBILITY_CERTIFICATE
+            continue
+        end
+
+        # The ray is stored in the primal status.
+        certificate_var_ids = VarId[]
+        certificate_var_vals = Float64[]
+        for (varid, var) in getvars(form)
+            moi_index = getindex(getmoirecord(var))
+            MOI.is_valid(inner, moi_index) || continue
+            val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
+            val = round(val, digits = Coluna.TOL_DIGITS)
+            if abs(val) > Coluna.TOL
+                push!(certificate_var_ids, varid)
+                push!(certificate_var_vals, val)
+            end
+        end
+        push!(certificates, PrimalSolution(form, certificate_var_ids, certificate_var_vals, 0.0, INFEASIBLE_SOL))
+    end
+    return certificates
+end
+
 function _show_function(io::IO, moi_model::MOI.ModelLike,
                         func::MOI.ScalarAffineFunction)
     for term in func.terms
