@@ -61,7 +61,7 @@ function run_colgen_phase!(context, phase, stage, env, ip_primal_sol; iter = 1)
         iteration += 1
     end
     O = colgen_phase_output_type(context)
-    return new_phase_output(O, phase, stage, colgen_iter_output, iteration)
+    return new_phase_output(O, is_minimization(context), phase, stage, colgen_iter_output, iteration)
 end
 
 function run!(context, env, ip_primal_sol; iter = 1)
@@ -237,7 +237,7 @@ abstract type AbstractColGenIterationOutput end
 
 @mustimplement "ColGenIterationOutput" get_master_ip_primal_sol(::AbstractColGenIterationOutput) = nothing
 
-@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, phase, stage, ::AbstractColGenIterationOutput, iteration) = nothing
+@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, min_sense, phase, stage, ::AbstractColGenIterationOutput, iteration) = nothing
 
 @mustimplement "ColGenPhaseOutput" get_master_ip_primal_sol(::AbstractColGenPhaseOutput) = nothing
 
