@@ -276,6 +276,7 @@ struct BendersOutput <: Benders.AbstractBendersOutput
     infeasible_master::Bool
     infeasible_subproblem::Bool
     time_limit_reached::Bool
+    mlp::Float64
 end
 
 Benders.benders_output_type(::BendersContext) = BendersOutput
@@ -287,7 +288,8 @@ function Benders.new_output(
     return BendersOutput(
         benders_iter_output.infeasible_master,
         benders_iter_output.infeasible_subproblem,
-        benders_iter_output.time_limit_reached
+        benders_iter_output.time_limit_reached,
+        benders_iter_output.master
     )
 end
 
