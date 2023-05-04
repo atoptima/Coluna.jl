@@ -47,16 +47,34 @@ abstract type AbstractBendersContext end
 
 @mustimplement "Benders" benders_iteration_output_type(::AbstractBendersContext) = nothing
 
-@mustimplement "Benders" new_iteration_output(type, is_min_sense, nb_cuts_inserted, infeasible_master, infeasible_subproblem, time_limit_reached) = nothing
+abstract type AbstractBendersIterationOutput end
 
-function run_benders_loop!(context, env)
+@mustimplement "Benders" new_iteration_output(::Type{<:AbstractBendersIterationOutput}, is_min_sense, nb_cuts_inserted, infeasible_master, infeasible_subproblem, time_limit_reached, master_obj_val) = nothing
+
+@mustimplement "Benders" after_benders_iteration(::AbstractBendersContext, phase, env, iteration, benders_iter_output) = nothing
+
+@mustimplement "Benders" stop_benders(::AbstractBendersContext, benders_iter_output, iteration) = nothing
+
+@mustimplement "Benders" benders_output_type(::AbstractBendersContext) = nothing
+
+abstract type AbstractBendersOutput end
+
+@mustimplement "Benders" new_output(::Type{<:AbstractBendersOutput}, benders_iter_output) = nothing
+
+@mustimplement "BendersMasterResult" get_obj_val(master_res) = nothing
+
+function run_benders_loop!(context, env; iter = 1)
+    iteration = iter
     phase = nothing
     ip_primal_sol = nothing
-
-    while stop_benders()
-        run_benders_iteration!(context, phase, env, ip_primal_sol)
-        after_benders_iteration!(context, phase, env, ip_primal_sol)
+    benders_iter_output = nothing
+    while !stop_benders(context, benders_iter_output, iteration)
+        benders_iter_output = run_benders_iteration!(context, phase, env, ip_primal_sol)
+        after_benders_iteration(context, phase, env, iteration, benders_iter_output)
+        iteration += 1
     end
+    O = benders_output_type(context)
+    return new_output(O, benders_iter_output)
 end
 
 function run_benders_iteration!(context, phase, env, ip_primal_sol)
@@ -103,7 +121,8 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
     nb_cuts_inserted = length(cut_ids)
     O = benders_iteration_output_type(context)
     is_min_sense = is_minimization(context)
-    return new_iteration_output(O, is_min_sense, nb_cuts_inserted, false, false, false)
+    master_obj_val = get_obj_val(mast_result)
+    return new_iteration_output(O, is_min_sense, nb_cuts_inserted, false, false, false, master_obj_val)
 end
 
 end

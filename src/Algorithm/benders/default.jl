@@ -1,4 +1,4 @@
-struct BendersContext
+struct BendersContext <: Benders.AbstractBendersContext
     reform::Reformulation
     optim_sense
     restr_master_solve_alg
@@ -47,6 +47,8 @@ end
 
 Benders.get_primal_sol(master_res::BendersMasterResult) = get_best_lp_primal_sol(master_res.result)
 Benders.get_dual_sol(master_res::BendersMasterResult) = get_best_lp_dual_sol(master_res.result)
+Benders.get_obj_val(master_res::BendersMasterResult) = getvalue(get_best_lp_primal_sol(master_res.result))
+
 
 function _reset_second_stage_cost_var_inc_vals(ctx::BendersContext)
     for var_id in ctx.second_stage_cost_var_ids
@@ -56,6 +58,7 @@ function _reset_second_stage_cost_var_inc_vals(ctx::BendersContext)
 end
 
 function _update_second_stage_cost_var_inc_vals(ctx::BendersContext, master_res::BendersMasterResult)
+    isnothing(Benders.get_primal_sol(master_res)) && return
     _reset_second_stage_cost_var_inc_vals(ctx)
     for (var_id, val) in Benders.get_primal_sol(master_res)
         setcurincval!(Benders.get_master(ctx), var_id, val)
@@ -66,7 +69,9 @@ end
 function Benders.optimize_master_problem!(master, ctx::BendersContext, env)
     rm_input = OptimizationState(master)
     opt_state = run!(ctx.restr_master_solve_alg, env, master, rm_input, ctx.restr_master_optimizer_id)
-    return BendersMasterResult(opt_state)
+    master_res = BendersMasterResult(opt_state)
+    _update_second_stage_cost_var_inc_vals(ctx, master_res)
+    return master_res
 end
 
 function Benders.treat_unbounded_master_problem!(master, ctx::BendersContext, env)
@@ -84,6 +89,7 @@ function Benders.treat_unbounded_master_problem!(master, ctx::BendersContext, en
         set_ip_primal_sol!(opt_state, first(certificates))
         set_lp_primal_sol!(opt_state, first(certificates))
         mast_result = BendersMasterResult(opt_state)
+        _update_second_stage_cost_var_inc_vals(ctx, mast_result)
         certificate = true
     else
         # If there is no dual infeasibility certificate, we set the cost of the second stage
@@ -163,7 +169,7 @@ end
 Base.iterate(set::CutsSet) = iterate(set.cuts)
 Base.iterate(set::CutsSet, state) = iterate(set.cuts, state)
 
-Benders.set_of_cuts(ctx::BendersContext) = CutsSet()
+Benders.set_of_cuts(::BendersContext) = CutsSet()
 
 struct BendersSeparationResult{F,S}
     second_stage_estimation::Float64
@@ -194,12 +200,12 @@ function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulati
     cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid]
     cut = GeneratedCut(cut_lhs, cut_rhs)
 
-    cost = getvalue(get_lp_dual_bound(opt_state))
+    cost = getvalue(dual_sol)
     second_stage_cost_var = sp.duty_data.second_stage_cost_var
     @assert !isnothing(second_stage_cost_var)
     estimated_cost = getcurincval(Benders.get_master(ctx), second_stage_cost_var)
 
-    return BendersSeparationResult(cost, estimated_cost, opt_state, cut)
+    return BendersSeparationResult(estimated_cost, cost, opt_state, cut)
 end
 
 Benders.get_dual_sol(res::BendersSeparationResult) = get_best_lp_dual_sol(res.result)
@@ -207,8 +213,11 @@ Benders.get_dual_sol(res::BendersSeparationResult) = get_best_lp_dual_sol(res.re
 function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::BendersSeparationResult)
     sc = Benders.is_minimization(ctx) ? 1.0 : -1.0
 
+    eq = abs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
+    gt = sc * sep_result.second_stage_cost > sc * sep_result.second_stage_estimation
+
     # if cost of separation result > second cost variable in master result
-    if sc * sep_result.second_stage_cost > sc * sep_result.second_stage_estimation
+    if !eq && gt
         push!(set.cuts, sep_result.cut)
         return true
     end
@@ -230,16 +239,16 @@ function Benders.insert_cuts!(reform, ctx::BendersContext, cuts)
         )
         push!(cut_ids, getid(constr))
     end
-
     return cut_ids
 end
 
-struct BendersIterationOutput
+struct BendersIterationOutput <: Benders.AbstractBendersIterationOutput
     min_sense::Bool
     nb_new_cuts::Int
     infeasible_master::Bool
     infeasible_subproblem::Bool
     time_limit_reached::Bool
+    master::Union{Nothing,Float64}
 end
 
 Benders.benders_iteration_output_type(ctx::BendersContext) = BendersIterationOutput
@@ -250,13 +259,43 @@ function Benders.new_iteration_output(
     nb_new_cuts,
     infeasible_master,
     infeasible_subproblem,
-    time_limit_reached
+    time_limit_reached,
+    master_value
 )
     return BendersIterationOutput(
         is_min_sense,
         nb_new_cuts,
         infeasible_master,
         infeasible_subproblem,
-        time_limit_reached
+        time_limit_reached,
+        master_value
     )
+end
+
+struct BendersOutput <: Benders.AbstractBendersOutput
+    infeasible_master::Bool
+    infeasible_subproblem::Bool
+    time_limit_reached::Bool
+end
+
+Benders.benders_output_type(::BendersContext) = BendersOutput
+
+function Benders.new_output(
+    ::Type{BendersOutput},
+    benders_iter_output::BendersIterationOutput
+)
+    return BendersOutput(
+        benders_iter_output.infeasible_master,
+        benders_iter_output.infeasible_subproblem,
+        benders_iter_output.time_limit_reached
+    )
+end
+
+Benders.stop_benders(::BendersContext, ::Nothing, benders_iteration) = false
+function Benders.stop_benders(ctx::BendersContext, benders_iteration_output::BendersIterationOutput, benders_iteration)
+    return benders_iteration_output.infeasible_master ||
+        benders_iteration_output.infeasible_subproblem ||
+        benders_iteration_output.time_limit_reached ||
+        benders_iteration_output.nb_new_cuts <= 0 ||
+        ctx.nb_benders_iteration_limits <= benders_iteration
 end

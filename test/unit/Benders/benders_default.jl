@@ -77,24 +77,31 @@ function benders_iteration_default()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    alg = Coluna.Algorithm.BendersCutGeneration()
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10
+    )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        debug_print_master = true,
-        debug_print_master_primal_solution = true,
-        debug_print_master_dual_solution = true,
-        debug_print_subproblem = true,
-        debug_print_subproblem_primal_solution = true,
-        debug_print_subproblem_dual_solution = true,
+        print = true
+        #debug_print_master = true,
+        #debug_print_master_primal_solution = true,
+        #debug_print_master_dual_solution = true,
+        #debug_print_subproblem = true,
+        #debug_print_subproblem_primal_solution = true,
+        #debug_print_subproblem_dual_solution = true,
     )
+    Coluna.set_optim_start_time!(env)
 
-    println("\e[41m ------------1---------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    println("\e[41m ------------2---------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    println("\e[41m ------------3---------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    println("\e[41m ------------4---------------- \e[00m")
-    Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------1---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------2---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------3---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    # println("\e[41m ------------4---------------- \e[00m")
+    # Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+
+
+    Coluna.Benders.run_benders_loop!(ctx, env)
 end
 register!(unit_tests, "benders_default", benders_iteration_default; f = true)
