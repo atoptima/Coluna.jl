@@ -399,17 +399,16 @@ module Parser
     _sp_duty_data!(sp::ClMP.Formulation{ClMP.DwSp}, sp_var, master_var, duty) = nothing
     function _sp_duty_data!(sp::ClMP.Formulation{ClMP.BendersSp}, sp_var, master_var, duty)
         if duty <= ClMP.MasterBendSecondStageCostVar
-            @show ClMP.getid(master_var)
             sp.duty_data.second_stage_cost_var = ClMP.getid(master_var)
         end
     end
 
-    function add_master_vars!(master::ClMP.Formulation, all_spvars::Dict, cache::ReadCache)
+    function add_master_vars!(master::ClMP.Formulation, master_duty, all_spvars::Dict, cache::ReadCache)
         mastervars = Dict{String, ClMP.Variable}()
         for (varid, cost) in cache.master.objective.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
-                if var.duty <= ClMP.MasterPureVar || var.duty <= ClMP.AbstractAddedMasterVar
+                if (typeof(master_duty) <: ClMP.DwMaster && var.duty <= ClMP.AbstractOriginMasterVar) || var.duty <= ClMP.AbstractAddedMasterVar
                     is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
                     v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
                     if haskey(all_spvars, varid)
@@ -423,7 +422,7 @@ module Parser
                         explicit = false
                         if ClMP.getduty(ClMP.getid(var)) <= ClMP.DwSpSetupVar
                             duty = ClMP.MasterRepPricingSetupVar
-                        else ClMP.getduty(ClMP.getid(var)) <= ClMP.BendSpFirstStageRepVar
+                        elseif ClMP.getduty(ClMP.getid(var)) <= ClMP.BendSpFirstStageRepVar
                             duty = ClMP.MasterPureVar
                             explicit = true
                         end
@@ -503,7 +502,7 @@ module Parser
             parent_formulation = reform
         )
         ClMP.setmaster!(reform, master)
-        mastervars = add_master_vars!(master, all_spvars, cache)
+        mastervars = add_master_vars!(master, master_duty, all_spvars, cache)
         ClMP.setobjconst!(master, cache.master.objective.constant)
         add_master_constraints!(reform, master, mastervars, constraints, cache)
 
