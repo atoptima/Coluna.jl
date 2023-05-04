@@ -62,6 +62,7 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     exact_stage::Bool
     time_limit_reached::Bool
     nb_iterations::Int
+    min_sense::Bool
 end
 
 struct ColGenOutput <: ColGen.AbstractColGenOutput
@@ -143,7 +144,12 @@ end
 
 colgen_master_has_new_cuts(output::ColGenPhaseOutput) = output.new_cut_in_master
 colgen_uses_exact_stage(output::ColGenPhaseOutput) = output.exact_stage
-colgen_has_converged(output::ColGenPhaseOutput) = !isnothing(output.mlp) && !isnothing(output.db) && abs(output.mlp - output.db) < 1e-5
+colgen_has_converged(output::ColGenPhaseOutput) = !isnothing(output.mlp) && 
+                                                  !isnothing(output.db) && (
+                                                  ( abs(output.mlp - output.db) < 1e-5 ) ||
+                                                  ( (output.min_sense) && (output.db >= output.mlp) ) ||
+                                                  ( !(output.min_sense) && (output.db <= output.mlp) ) 
+                                                  )
 colgen_has_no_new_cols(output::ColGenPhaseOutput) = output.no_more_columns
 
 ## Implementation of `next_phase`.
@@ -684,7 +690,7 @@ ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iter
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, stage, colgen_iter_output::ColGenIterationOutput, iteration)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase, stage, colgen_iter_output::ColGenIterationOutput, iteration)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -696,11 +702,12 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase, stage, colg
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem,
         ColGen.is_exact_stage(stage),
         colgen_iter_output.time_limit_reached,
-        iteration
+        iteration,
+        min_sense
     )
 end
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput, iteration)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput, iteration)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
@@ -712,7 +719,8 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, phase::ColGenPhase
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem || abs(colgen_iter_output.mlp) > 1e-5,
         ColGen.is_exact_stage(stage),
         colgen_iter_output.time_limit_reached,
-        iteration
+        iteration,
+        min_sense
     )
 end
 
