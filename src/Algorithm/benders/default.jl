@@ -37,6 +37,7 @@ Benders.get_reform(ctx::BendersContext) = ctx.reform
 Benders.get_master(ctx::BendersContext) = getmaster(ctx.reform)
 Benders.get_benders_subprobs(ctx::BendersContext) = get_benders_sep_sps(ctx.reform)
 struct BendersMasterResult{F,S}
+    ip_solver::Bool
     result::OptimizationState{F,S}
 end
 
@@ -45,9 +46,15 @@ function Benders.is_unbounded(master_res::BendersMasterResult)
     return status == ClB.UNBOUNDED
 end
 
-Benders.get_primal_sol(master_res::BendersMasterResult) = get_best_lp_primal_sol(master_res.result)
+function Benders.get_primal_sol(master_res::BendersMasterResult)
+    if master_res.ip_solver
+        return get_best_ip_primal_sol(master_res.result)
+    end
+    return get_best_lp_primal_sol(master_res.result)
+end
+
 Benders.get_dual_sol(master_res::BendersMasterResult) = get_best_lp_dual_sol(master_res.result)
-Benders.get_obj_val(master_res::BendersMasterResult) = getvalue(get_best_lp_primal_sol(master_res.result))
+Benders.get_obj_val(master_res::BendersMasterResult) = getvalue(Benders.get_primal_sol(master_res))
 
 
 function _reset_second_stage_cost_var_inc_vals(ctx::BendersContext)
@@ -69,7 +76,8 @@ end
 function Benders.optimize_master_problem!(master, ctx::BendersContext, env)
     rm_input = OptimizationState(master)
     opt_state = run!(ctx.restr_master_solve_alg, env, master, rm_input, ctx.restr_master_optimizer_id)
-    master_res = BendersMasterResult(opt_state)
+    ip_solver = typeof(ctx.restr_master_solve_alg) <: SolveIpForm
+    master_res = BendersMasterResult(ip_solver, opt_state)
     _update_second_stage_cost_var_inc_vals(ctx, master_res)
     return master_res
 end
@@ -77,6 +85,16 @@ end
 function Benders.treat_unbounded_master_problem!(master, ctx::BendersContext, env)
     mast_result = nothing
     certificate = false
+    ip_solver = typeof(ctx.restr_master_solve_alg) <: SolveIpForm
+
+    # In the unbounded case, to get a dual infeasibility certificate, we need to relax the 
+    # integrality and solve the master again. (at least with GLPK & the current implementation of SolveIpForm)
+    if ip_solver
+        relax_integrality!(master)
+        rm_input = OptimizationState(master)
+        opt_state = run!(SolveLpForm(get_dual_solution = true), env, master, rm_input, ctx.restr_master_optimizer_id)
+        enforce_integrality!(master)
+    end
 
     # We can derive a cut from the extreme ray
     certificates = MathProg.get_dual_infeasibility_certificate(master, getoptimizer(master, ctx.restr_master_optimizer_id))
@@ -88,7 +106,7 @@ function Benders.treat_unbounded_master_problem!(master, ctx::BendersContext, en
         )
         set_ip_primal_sol!(opt_state, first(certificates))
         set_lp_primal_sol!(opt_state, first(certificates))
-        mast_result = BendersMasterResult(opt_state)
+        mast_result = BendersMasterResult(ip_solver, opt_state)
         _update_second_stage_cost_var_inc_vals(ctx, mast_result)
         certificate = true
     else
