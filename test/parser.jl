@@ -365,6 +365,7 @@ module Parser
                         duty = var.duty
                         if var.duty <= ClMP.MasterBendFirstStageVar
                             duty = ClMP.BendSpFirstStageRepVar
+                            explicit = false
                         end
                         if var.duty <= ClMP.MasterBendSecondStageCostVar
                             duty = ClMP.BendSpCostRepVar
@@ -395,10 +396,11 @@ module Parser
         return subproblems, all_spvars, constraints
     end
 
-    _sp_duty_data!(sp::ClMP.Formulation{ClMP.DwSp}, var, duty) = nothing
-    function _sp_duty_data!(sp::ClMP.Formulation{ClMP.BendersSp}, var, duty)
+    _sp_duty_data!(sp::ClMP.Formulation{ClMP.DwSp}, sp_var, master_var, duty) = nothing
+    function _sp_duty_data!(sp::ClMP.Formulation{ClMP.BendersSp}, sp_var, master_var, duty)
         if duty <= ClMP.MasterBendSecondStageCostVar
-            sp.duty_data.second_stage_cost_var = ClMP.getid(var)
+            @show ClMP.getid(master_var)
+            sp.duty_data.second_stage_cost_var = ClMP.getid(master_var)
         end
     end
 
@@ -407,21 +409,26 @@ module Parser
         for (varid, cost) in cache.master.objective.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
-                if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
+                if var.duty <= ClMP.MasterPureVar || var.duty <= ClMP.AbstractAddedMasterVar
                     is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
                     v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
                     if haskey(all_spvars, varid)
-                        spvar, sp = all_spvars[varid]
-                        _sp_duty_data!(sp, spvar, var.duty)
+                        var, sp = all_spvars[varid]
+                        _sp_duty_data!(sp, var, v, ClMP.getduty(ClMP.getid(v)))
                     end
                 else
                     if haskey(all_spvars, varid)
                         var, sp = all_spvars[varid]
                         duty = ClMP.MasterRepPricingVar
+                        explicit = false
                         if ClMP.getduty(ClMP.getid(var)) <= ClMP.DwSpSetupVar
                             duty = ClMP.MasterRepPricingSetupVar
+                        else ClMP.getduty(ClMP.getid(var)) <= ClMP.BendSpFirstStageRepVar
+                            duty = ClMP.MasterPureVar
+                            explicit = true
                         end
-                        v = ClMP.clonevar!(sp, master, sp, var, duty; is_explicit = false)
+                        v = ClMP.clonevar!(sp, master, sp, var, duty; cost = ClMP.getcurcost(sp, var), is_explicit = explicit)
+                        _sp_duty_data!(sp, var, v, ClMP.getduty(ClMP.getid(var)))
                     else
                         throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                     end
