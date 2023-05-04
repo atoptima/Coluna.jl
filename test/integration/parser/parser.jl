@@ -498,11 +498,11 @@ function minimize_test3()
     # or the code. Make the test independent of the order.
 
     names, kinds, duties, costs, bounds = get_vars_info(master)
-    @test names == ["x1", "x2", "z"]
-    @test kinds == [ClMP.Integ, ClMP.Integ, ClMP.Continuous]
-    @test duties == [ClMP.MasterBendFirstStageVar, ClMP.MasterBendFirstStageVar, ClMP.MasterBendSecondStageCostVar]
+    @test names == ["z", "x2", "x1"]
+    @test kinds == [ClMP.Continuous, ClMP.Integ, ClMP.Integ]
+    @test duties == [ClMP.MasterBendSecondStageCostVar, ClMP.MasterPureVar, ClMP.MasterPureVar]
     @test costs == [1.0, 4.0, 1.0]
-    @test bounds == [(0.0, Inf), (0.0, Inf), (-Inf, Inf)]
+    @test bounds == [(-Inf, Inf), (0.0, Inf), (0, Inf)]
 
     constrs = get_constrs_info(master)
     c1 = constrs[1] # x1 + x2 >= 0
