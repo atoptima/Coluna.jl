@@ -53,6 +53,15 @@ end
 function run!(
     algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationState
 )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, algo;
+        print = true
+    )
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @show result
+    return result
+
     # ctx = _new_context(Benders.BendersCutGenContext, reform, algo)
     # return Benders.run!(ctx, env, nothing)
 
