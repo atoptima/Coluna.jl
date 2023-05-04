@@ -104,4 +104,4 @@ function benders_iteration_default()
 
     Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_iteration_default; f = true)
+register!(unit_tests, "benders_default", benders_iteration_default)
