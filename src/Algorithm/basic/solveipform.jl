@@ -49,7 +49,7 @@ _optimizer_params(::Formulation, algo::SolveIpForm, ::UserOptimizer) = algo.user
 _optimizer_params(form::Formulation, algo::SolveIpForm, ::CustomOptimizer) = getinner(getoptimizer(form, algo.optimizer_id))
 _optimizer_params(::Formulation, ::SolveIpForm, ::NoOptimizer) = nothing
 
-function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationState)
+function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationState, optimizer_id = 1)
     opt = getoptimizer(form, algo.optimizer_id)
     params = _optimizer_params(form, algo, opt)
     if params !== nothing

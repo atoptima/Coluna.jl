@@ -206,18 +206,24 @@ function benders_iter_default_A_integer()
 
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 10,
-        separation_solve_alg = Coluna.Algorithm.SolveIpForm()
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        print = true,
+        # debug_print_master = true,
+        # debug_print_master_primal_solution = true,
+        # debug_print_master_dual_solution = true,
+        # debug_print_subproblem = true,
+        # debug_print_subproblem_primal_solution = true,
+        # debug_print_subproblem_dual_solution = true
     )
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 4.0
 end
-register!(unit_tests, "benders_default", benders_iter_default_A_integer; x = true)
+register!(unit_tests, "benders_default", benders_iter_default_A_integer)
 
 
 # B with continuous first stage finds optimal solution
@@ -254,9 +260,9 @@ register!(unit_tests, "benders_default", benders_iter_default_B_continuous)
 # B with integer first stage finds optimal solution
 # Error occurs during test TODO fix
 # expected output:
-# mlp = 7.083333333333333
-# x1 = 0.0, x2 = 1.0
-# y1 =  3.1666666666666665, y2 = 0.3333333333333333
+# mlp = 7
+# x1 = 0.0, x2 = 2.0
+# y1 =  2, y2 = 0
 function benders_iter_default_B_integer()
     #env, reform = benders_simple_example()
     env, reform = benders_form_B()
@@ -271,7 +277,7 @@ function benders_iter_default_B_integer()
 
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 10,
-        separation_solve_alg = Coluna.Algorithm.SolveIpForm()
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
@@ -280,6 +286,6 @@ function benders_iter_default_B_integer()
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
-    @test result.mlp ≈ 7.083333333333333
+    @test result.mlp ≈ 7
 end
-register!(unit_tests, "benders_default", benders_iter_default_B_integer; x = true)
+register!(unit_tests, "benders_default", benders_iter_default_B_integer)
