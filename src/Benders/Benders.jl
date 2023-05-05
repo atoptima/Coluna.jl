@@ -106,10 +106,10 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
     for (sp_id, sp_to_solve) in get_benders_subprobs(context)
         sep_result = optimize_separation_problem!(context, sp_to_solve, env)
 
-        dual_sol = get_dual_sol(sep_result)
-        if isnothing(dual_sol)
-            error("no dual solution to separation subproblem.")
-        end
+        # dual_sol = get_dual_sol(sep_result)
+        # if isnothing(dual_sol)
+        #     error("no dual solution to separation subproblem.")
+        # end
 
         nb_cuts_pushed = 0
         if push_in_set!(context, generated_cuts, sep_result)

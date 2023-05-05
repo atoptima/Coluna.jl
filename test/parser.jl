@@ -197,7 +197,7 @@ module Parser
 
     function _read_constraint(l::AbstractString)
         line = _strip_line(l)
-        m = match(Regex("(.+)(>=|<=|==)($coeff_re)(\\{([a-zA-Z]+)\\})?"), line)
+        m = match(Regex("(.+)(>=|<=|==)(-?$coeff_re)(\\{([a-zA-Z]+)\\})?"), line)
         if !isnothing(m)
             lhs = _read_expression(m[1])
             sense = if m[2] == ">="

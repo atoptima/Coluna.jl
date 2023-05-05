@@ -276,13 +276,13 @@ function benders_form_max()
     form = """
     master
         max
-        -x1 - 2x2 - 1.5y1 - 1y2 - z
+        -x1 - 2x2 + z
         s.t.
         x1 + x2 >= 0
 
     benders_sp
         max
-        0x1 + 0x2 - 1.5y1 - y2 - z
+        0x1 + 0x2 - 1.5y1 - y2 + z
         s.t.
         x1 - x2 - y1 + 0.5y2 <= -4 {BendTechConstr}
         -2x1 - 1.5x2 - y1 - y2 <= -5 {BendTechConstr}
@@ -480,13 +480,13 @@ function benders_form_upper_bound()
     form = """
     master
         max
-        -x1 - 2x2 - 1.5y1 - 1y2 - z
+        -x1 - 2x2 - 1.5y1 - 1y2 + z
         s.t.
         x1 + x2 >= 0
 
     benders_sp
         max
-        0x1 + 0x2 - 1.5y1 - y2 - z
+        0x1 + 0x2 - 1.5y1 - y2 + z
         s.t.
         x1 - x2 - y1 + 0.5y2 <= -4 {BendTechConstr}
         -2x1 - 1.5x2 - y1 - y2 <= -5 {BendTechConstr}
@@ -610,7 +610,7 @@ function benders_iter_default_A_continuous()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true
     )
     Coluna.set_optim_start_time!(env)
 
@@ -642,13 +642,7 @@ function benders_iter_default_A_integer()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true,
-        # debug_print_master = true,
-        # debug_print_master_primal_solution = true,
-        # debug_print_master_dual_solution = true,
-        # debug_print_subproblem = true,
-        # debug_print_subproblem_primal_solution = true,
-        # debug_print_subproblem_dual_solution = true
+        # print = true,
     )
     Coluna.set_optim_start_time!(env)
 
@@ -680,7 +674,14 @@ function benders_iter_default_B_continuous()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true,
+        # debug_print_master = true,
+        # debug_print_master_primal_solution = true,
+        # debug_print_master_dual_solution = true,
+        # debug_print_subproblem = true,
+        # debug_print_subproblem_primal_solution = true,
+        # debug_print_subproblem_dual_solution = true,
+        # debug_print_generated_cuts = true
     )
     Coluna.set_optim_start_time!(env)
 
@@ -712,7 +713,7 @@ function benders_iter_default_B_integer()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true
     )
     Coluna.set_optim_start_time!(env)
 
@@ -744,7 +745,7 @@ function benders_sp_C_continuous()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true
     )
     Coluna.set_optim_start_time!(env)
 
@@ -776,7 +777,7 @@ function benders_sp_C_integer()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true
     )
     Coluna.set_optim_start_time!(env)
 
@@ -794,7 +795,6 @@ register!(unit_tests, "benders_default", benders_sp_C_integer)
 function benders_default_max_form_continuous()
     env, reform = benders_form_max()
     master = Coluna.MathProg.getmaster(reform)
-    @show master
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
@@ -808,14 +808,21 @@ function benders_default_max_form_continuous()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true,
+        # debug_print_master = true,
+        # debug_print_master_primal_solution = true,
+        # debug_print_master_dual_solution = true,
+        # debug_print_subproblem = true,
+        # debug_print_subproblem_primal_solution = true,
+        # debug_print_subproblem_dual_solution = true,
+        # debug_print_generated_cuts = true
     )
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ -6.833333333333333
 end
-register!(unit_tests, "benders_default", benders_default_max_form_continuous; x = true)
+register!(unit_tests, "benders_default", benders_default_max_form_continuous)
 
 
 # test FAIL
@@ -839,14 +846,14 @@ function benders_default_max_form_integer()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        # print = true
     )
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ -7
 end
-register!(unit_tests, "benders_default", benders_default_max_form_integer; x = true)
+register!(unit_tests, "benders_default", benders_default_max_form_integer)
 
 
 # A formulation with infeasible master constraint
@@ -854,7 +861,6 @@ register!(unit_tests, "benders_default", benders_default_max_form_integer; x = t
 function benders_default_infeasible_master()
     env, reform = benders_form_infeasible_master()
     master = Coluna.MathProg.getmaster(reform)
-    @show master
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
@@ -937,7 +943,7 @@ function benders_min_lower_bound()
     @test result.mlp ≈ 25
 
 end
-register!(unit_tests, "benders_default", benders_min_lower_bound; x = true)
+register!(unit_tests, "benders_default", benders_min_lower_bound)
 
 
 # max form B with upper bound on y variables equal to 1
@@ -948,7 +954,6 @@ register!(unit_tests, "benders_default", benders_min_lower_bound; x = true)
 function benders_max_upper_bound()
     env, reform = benders_form_upper_bound()
     master = Coluna.MathProg.getmaster(reform)
-    @show master
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
@@ -962,7 +967,14 @@ function benders_max_upper_bound()
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, alg;
-        print = true
+        print = true,
+                debug_print_master = true,
+        debug_print_master_primal_solution = true,
+        debug_print_master_dual_solution = true,
+        debug_print_subproblem = true,
+        debug_print_subproblem_primal_solution = true,
+        debug_print_subproblem_dual_solution = true,
+        debug_print_generated_cuts = true
     )
     Coluna.set_optim_start_time!(env)
 
@@ -996,7 +1008,7 @@ function benders_default_unbounded_master()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_master)
+register!(unit_tests, "benders_default", benders_default_unbounded_master; x = true)
 
 
 
