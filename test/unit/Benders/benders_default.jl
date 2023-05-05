@@ -310,6 +310,112 @@ function benders_form_max()
     return env, reform
 end
 
+function benders_form_infeasible_master()
+    #A infeasible master
+    #using JuMP, GLPK
+    #m = Model(GLPK.Optimizer)
+    #@variable(m, x[1:2] >= 0, Int)
+    #@variable(m, y[1:2] >= 0)
+    #@constraint(m, x[1] + x[2] <= -1)
+    #@constraint(m, -x[1] + 4x[2] + 2y[1] + 3y[2] >= 2)
+    #@constraint(m, x[1] + 3x[2] + y[1] + y[2] >= 3)
+    #@objective(m, Min, x[1] + 4x[2] + 2y[1] + 3y[2])
+    #optimize!(m)
+    #objective_value(m)
+    #value.(x)
+    #value.(y)
+
+    form = """
+    master
+        min
+        x1 + 4x2 + z
+        s.t.
+        x1 + x2 >= 0
+        x1 + x2 <= -1
+
+    benders_sp
+        min
+        0x1 + 0x2 + 2y1 + 3y2 + z
+        s.t.
+        -x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
+        x1 + 3x2 + y1 + y2 >= 3 {BendTechConstr}
+        y1 + y2 >= 0
+
+    integer
+        first_stage
+            x1, x2
+
+    continuous
+        second_stage_cost
+            z
+        second_stage
+            y1, y2
+    
+    bounds
+        -Inf <= z <= Inf
+        x1 >= 0
+        x2 >= 0
+        y1 >= 0
+        y2 >= 0
+    """
+    env, _, _, _, reform = reformfromstring(form)
+    return env, reform
+
+end
+
+function benders_form_infeasible_sp()
+    #A infeasible subproblem
+    #using JuMP, GLPK
+    #m = Model(GLPK.Optimizer)
+    #@variable(m, x[1:2]>= 0, Int)
+    #@variable(m, y[1:2] >= 0)
+    #@constraint(m, -x[1] + 4x[2] + 2y[1] + 3y[2] >= 2)
+    #@constraint(m, x[1] + 3x[2] + y[1] + y[2] >= 3)
+    #@constraint(m, 7x[2] + 3y[1] + 4y[2] <= 4)
+    #@objective(m, Min, x[1] + 4x[2] + 2y[1] + 3y[2])
+    #optimize!(m)
+    #objective_value(m)
+    #value.(x)
+    #value.(y)
+
+    form = """
+    master
+        min
+        x1 + 4x2 + z
+        s.t.
+        x1 + x2 >= 0
+
+    benders_sp
+        min
+        0x1 + 0x2 + 2y1 + 3y2 + z
+        s.t.
+        -x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
+        x1 + 3x2 + y1 + y2 >= 3 {BendTechConstr}
+        7x2 + 3y1 + 4y2 <= 4 {BendTechConstr}
+        y1 + y2 >= 0
+
+    integer
+        first_stage
+            x1, x2
+
+    continuous
+        second_stage_cost
+            z
+        second_stage
+            y1, y2
+    
+    bounds
+        -Inf <= z <= Inf
+        x1 >= 0
+        x2 >= 0
+        y1 >= 0
+        y2 >= 0
+    """
+    env, _, _, _, reform = reformfromstring(form)
+    return env, reform
+
+end
+
 # A with continuous first stage finds optimal solution
 # TODO: check output
 # x1 =  0.8571428571428571, x2 = 0.7142857142857143
@@ -571,3 +677,61 @@ function benders_default_max_form_integer()
 end
 register!(unit_tests, "benders_default", benders_default_max_form_integer; x = true)
 
+
+# A formulation with infeasible master constraint
+# test FAIL + I can't see the master constraints with @show master
+function benders_default_infeasible_master()
+    env, reform = benders_form_infeasible_master()
+    master = Coluna.MathProg.getmaster(reform)
+    @show master
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+        print = true
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible_master == true
+
+end
+register!(unit_tests, "benders_default", benders_default_infeasible_master; x = true)
+
+# A formulation with infeasible sp constraint
+# ERROR during test, but maybe I don't check the infeasibility of the sp in a proper way ?
+function benders_default_infeasible_sp()
+    env, reform = benders_form_infeasible_sp()
+    master = Coluna.MathProg.getmaster(reform)
+    @show master
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+        print = true
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible_sp == true
+
+end
+register!(unit_tests, "benders_default", benders_default_infeasible_sp; x = true)
