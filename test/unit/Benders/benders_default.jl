@@ -156,54 +156,6 @@ function benders_form_B()
 end
 
 
-function benders_form_B()
-    #using JuMP, GLPK
-    #m = Model(GLPK.Optimizer)
-    #@variable(m, x[1:2] >= 0)
-    #@variable(m, y[1:2] >= 0)
-    #@constraint(m, -x[1] + x[2] + y[1] - 0.5y[2] >= 4)
-    #@constraint(m, 2x[1] + 1.5x[2] + y[1] + y[2] >= 5)
-    #@objective(m, Min, x[1] + 2x[2] + 1.5y[1] + y[2])
-    #optimize!(m)
-    #objective_value(m)
-    #value.(x)
-    #value.(y)
-    form = """
-    master
-        min
-        x1 + 2x2 + 1.5y1 + 1y2 + z
-        s.t.
-        x1 + x2 >= 0
-
-    benders_sp
-        min
-        0x1 + 0x2 + 1.5y1 + y2 + z
-        s.t.
-        -x1 + x2 + y1 - 0.5y2 >= 4 {BendTechConstr}
-        2x1 + 1.5x2 + y1 + y2 >= 5 {BendTechConstr}
-        y1 + y2 >= 0
-
-    integer
-        first_stage
-            x1, x2
-
-    continuous
-        second_stage_cost
-            z
-        second_stage
-            y1, y2
-    
-    bounds
-        -Inf <= z <= Inf
-        x1 >= 0
-        x2 >= 0
-        y1 >= 0
-        y2 >= 0
-    """
-    env, _, _, _, reform = reformfromstring(form)
-    return env, reform
-end
-
 
 function benders_form_C()
    #using JuMP, GLPK
