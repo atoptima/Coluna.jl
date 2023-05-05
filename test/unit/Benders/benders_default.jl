@@ -262,6 +262,54 @@ function benders_form_C()
 
 end
 
+function benders_form_max()
+    #using JuMP, GLPK
+    #m = Model(GLPK.Optimizer)
+    #@variable(m, x[1:2] >= 0)
+    #@variable(m, y[1:2] >= 0)
+    #@constraint(m, x[1] - x[2] - y[1] + 0.5y[2] <= -4)
+    #@constraint(m, -2x[1] - 1.5x[2] - y[1] - y[2] <= -5)
+    #@objective(m, Max, -x[1] - 2x[2] - 1.5y[1] - y[2])
+    #optimize!(m)
+    #objective_value(m)
+    #value.(x)
+    #value.(y)
+    form = """
+    master
+        max
+        -x1 - 2x2 - 1.5y1 - 1y2 - z
+        s.t.
+        x1 + x2 >= 0
+
+    benders_sp
+        max
+        0x1 + 0x2 - 1.5y1 - y2 - z
+        s.t.
+        x1 - x2 - y1 + 0.5y2 <= -4 {BendTechConstr}
+        -2x1 - 1.5x2 - y1 - y2 <= -5 {BendTechConstr}
+        y1 + y2 >= 0
+
+    integer
+        first_stage
+            x1, x2
+
+    continuous
+        second_stage_cost
+            z
+        second_stage
+            y1, y2
+    
+    bounds
+        -Inf <= z <= Inf
+        x1 >= 0
+        x2 >= 0
+        y1 >= 0
+        y2 >= 0
+    """
+    env, _, _, _, reform = reformfromstring(form)
+    return env, reform
+end
+
 # A with continuous first stage finds optimal solution
 # TODO: check output
 # x1 =  0.8571428571428571, x2 = 0.7142857142857143
@@ -459,3 +507,67 @@ function benders_sp_C_integer()
     @test result.mlp ≈ 15.5
 end
 register!(unit_tests, "benders_default", benders_sp_C_integer;  x = true)
+
+
+# test FAIL
+# expected output:
+# x1 =  0.33333333333333337, x2 = 0.0
+# y1 = 4.333333333333333, y2 = 0.0
+# mlp = -6.833333333333333
+function benders_default_max_form_continuous()
+    env, reform = benders_form_max()
+    master = Coluna.MathProg.getmaster(reform)
+    @show master
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+        print = true
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ -6.833333333333333
+end
+register!(unit_tests, "benders_default", benders_default_max_form_continuous; x = true)
+
+
+# test FAIL
+# expected output:
+# x1 =  0.0, x2 = 2.0
+# y1 = 2.0000000000000004, y2 = 0.0
+# mlp = -7
+function benders_default_max_form_integer()
+    env, reform = benders_form_max()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+        print = true
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ -7
+end
+register!(unit_tests, "benders_default", benders_default_max_form_integer; x = true)
+
