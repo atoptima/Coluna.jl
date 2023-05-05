@@ -79,7 +79,20 @@ function Benders.optimize_master_problem!(master, ctx::BendersPrinterContext, en
     return result
 end
 
-Benders.treat_unbounded_master_problem!(master, ctx::BendersPrinterContext, env) = Benders.treat_unbounded_master_problem!(master, ctx.inner, env)
+function Benders.treat_unbounded_master_problem!(master, ctx::BendersPrinterContext, env)
+    result, c = Benders.treat_unbounded_master_problem!(master, ctx.inner, env)
+    if ctx.debug_print_master || ctx.debug_print_master_primal_solution || ctx.debug_print_master_dual_solution
+        println(crayon"bold blue", repeat('-', 80), crayon"reset")
+        println(crayon"bold underline blue", "Treat unbounded master", crayon"reset")
+        @show master
+        print(crayon"bold underline blue", "Master primal solution:", crayon"!bold !underline")
+        @show Benders.get_primal_sol(result)
+        print(crayon"reset")
+        println(crayon"bold blue", repeat('-', 80), crayon"reset")
+    end
+    return result, c
+end
+
 Benders.set_second_stage_var_costs_to_zero!(ctx::BendersPrinterContext) = Benders.set_second_stage_var_costs_to_zero!(ctx.inner)
 Benders.reset_second_stage_var_costs!(ctx::BendersPrinterContext) = Benders.reset_second_stage_var_costs!(ctx.inner)
 Benders.update_sp_rhs!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.update_sp_rhs!(ctx.inner, sp, primal_sol)
@@ -90,13 +103,13 @@ function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Fo
     if ctx.debug_print_subproblem || ctx.debug_print_subproblem_primal_solution || ctx.debug_print_subproblem_dual_solution
         println(crayon"bold green", repeat('-', 80), crayon"reset")
     end
-    ctx.sp_elapsed_time = @elapsed begin
-    result = Benders.optimize_separation_problem!(ctx.inner, sp, env)
-    end
     if ctx.debug_print_subproblem
         print(crayon"bold underline green", "Separation problem:", crayon"!bold !underline")
         @show sp
         print(crayon"reset")
+    end
+    ctx.sp_elapsed_time = @elapsed begin
+    result = Benders.optimize_separation_problem!(ctx.inner, sp, env)
     end
     if ctx.debug_print_subproblem_primal_solution
         print(crayon"bold underline green", "Separation problem primal solution:", crayon"!bold !underline")
