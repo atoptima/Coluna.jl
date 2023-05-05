@@ -494,15 +494,15 @@ function minimize_test3()
 
     @test CL.getobjsense(master) == CL.MinSense
 
-    # TODO: this test is order dependant and the order may change each time we change the test
-    # or the code. Make the test independent of the order.
+    _s(n, v) = map(t -> t[2], sort!(collect(zip(n,v)); by = t -> t[1]))
+    _s2(t) = sort!(t, by = t -> t[1]) 
 
     names, kinds, duties, costs, bounds = get_vars_info(master)
-    @test names == ["z", "x2", "x1"]
-    @test kinds == [ClMP.Continuous, ClMP.Integ, ClMP.Integ]
-    @test duties == [ClMP.MasterBendSecondStageCostVar, ClMP.MasterPureVar, ClMP.MasterPureVar]
-    @test costs == [1.0, 4.0, 1.0]
-    @test bounds == [(-Inf, Inf), (0.0, Inf), (0, Inf)]
+    @test sort(names) == ["x1", "x2", "z"]
+    @test _s(names, kinds) == [ClMP.Integ, ClMP.Integ, ClMP.Continuous]
+    @test _s(names, duties) == [ClMP.MasterPureVar, ClMP.MasterPureVar, ClMP.MasterBendSecondStageCostVar]
+    @test _s(names, costs) == [1.0, 4.0, 1.0]
+    @test _s(names, bounds) == [(0, Inf), (0.0, Inf), (-Inf, Inf)]
 
     constrs = get_constrs_info(master)
     c1 = constrs[1] # x1 + x2 >= 0
@@ -515,16 +515,16 @@ function minimize_test3()
     @test CL.getobjsense(sp1) == CL.MinSense
 
     names, kinds, duties, costs, bounds = get_vars_info(sp1)
-    @test names == ["z", "y2", "y1", "x2", "x1"] 
-    @test kinds == [ClMP.Continuous, ClMP.Continuous, ClMP.Continuous, ClMP.Integ, ClMP.Integ]
-    @test duties == [ClMP.BendSpCostRepVar, ClMP.BendSpSepVar, ClMP.BendSpSepVar, ClMP.BendSpFirstStageRepVar, ClMP.BendSpFirstStageRepVar]
-    @test costs == [1.0, 3.0, 2.0, 0.0, 0.0]
-    @test bounds == [(-Inf, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf)]
+    @test sort(names) == ["x1", "x2", "y1", "y2", "z"] 
+    @test _s(names, kinds) == [ClMP.Integ, ClMP.Integ, ClMP.Continuous, ClMP.Continuous, ClMP.Continuous]
+    @test _s(names, duties) == [ClMP.BendSpFirstStageRepVar, ClMP.BendSpFirstStageRepVar, ClMP.BendSpSepVar, ClMP.BendSpSepVar, ClMP.BendSpCostRepVar]
+    @test _s(names, costs) == [1.0, 4.0, 2.0, 3.0, 1.0]
+    @test _s(names, bounds) == [(0.0, Inf), (0.0, Inf), (0.0, Inf), (0.0, Inf), (-Inf, Inf)]
     @test !isnothing(sp1.duty_data.second_stage_cost_var)
 
     constrs = get_constrs_info(sp1)
     c1 = constrs[1] # x1 + 3x2 + y1 + y2 >= 3
-    @test c1.coeffs == [("x1", 1.0), ("y1", 1.0), ("x2", 3.0), ("y2", 1.0)]
+    @test _s2(c1.coeffs) == _s2([("x1", 1.0), ("y1", 1.0), ("x2", 3.0), ("y2", 1.0)])
     @test c1.duty == ClMP.BendSpTechnologicalConstr
     @test c1.sense == CL.Greater
     @test c1.rhs == 3.0
@@ -536,7 +536,7 @@ function minimize_test3()
     @test c2.rhs == 0.0
 
     c3 = constrs[3] # -x1 + 3x2 + 2y1 + 3y2 >= 2
-    @test c3.coeffs == [("x1", -1.0), ("y1", 2.0), ("x2", 3.0), ("y2", 3.0)]
+    @test _s2(c3.coeffs) == _s2([("x1", -1.0), ("y1", 2.0), ("x2", 3.0), ("y2", 3.0)])
     @test c3.duty == ClMP.BendSpTechnologicalConstr
     @test c3.sense == CL.Greater
     @test c3.rhs == 2.0
