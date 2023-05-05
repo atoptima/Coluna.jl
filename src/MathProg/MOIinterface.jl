@@ -398,6 +398,79 @@ function get_dual_infeasibility_certificate(form::F, optimizer::MoiOptimizer) wh
     return certificates
 end
 
+function get_primal_infeasibility_certificate(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
+    inner = getinner(optimizer)
+    nb_certificates = MOI.get(inner, MOI.ResultCount())
+    certificates = DualSolution{F}[]
+    sense = getobjsense(form) == MinSense ? 1.0 : -1.0
+
+    for res_idx in 1:nb_certificates
+        if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.INFEASIBILITY_CERTIFICATE
+            continue
+        end
+
+        # The ray is stored in the primal status.
+        certificate_constr_ids = ConstrId[]
+        certificate_constr_vals = Float64[]
+        for (constrid, constr) in getconstrs(form)
+            moi_index = getindex(getmoirecord(constr))
+            MOI.is_valid(inner, moi_index) || continue
+            val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
+            val = round(val, digits = Coluna.TOL_DIGITS)
+            if abs(val) > Coluna.TOL
+                push!(certificate_constr_ids, constrid)
+                push!(certificate_constr_vals, sense * val)
+            end
+        end
+
+        # Get dual value & active bound of variables
+        varids = VarId[]
+        varvals = Float64[]
+        activebounds = ActiveBound[]
+        for (varid, var) in getvars(form)
+            moi_var_index = getindex(getmoirecord(var))
+            moi_bounds_index = getbounds(getmoirecord(var))
+            MOI.is_valid(inner, moi_var_index) && MOI.is_valid(inner, moi_bounds_index) || continue
+            basis_status = MOI.get(inner, MOI.VariableBasisStatus(res_idx), getindex(getmoirecord(var)))
+            val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_bounds_index)
+
+            # Variables with non-zero dual values have at least one active bound.
+            # Otherwise, we print a warning message.
+            if basis_status == MOI.NONBASIC_AT_LOWER
+                solcost += val * getcurlb(form, varid)
+                if abs(val) > Coluna.TOL
+                    push!(varids, varid)
+                    push!(varvals, sense * val)
+                    push!(activebounds, LOWER)
+                end
+            elseif basis_status == MOI.NONBASIC_AT_UPPER
+                solcost += val * getcurub(form, varid)
+                if abs(val) > Coluna.TOL
+                    push!(varids, varid)
+                    push!(varvals, sense * val)
+                    push!(activebounds, UPPER)
+                end
+            elseif basis_status == MOI.NONBASIC
+                @assert getcurlb(form, varid) == getcurlb(form, varid)
+                solcost += val * getcurub(form, varid)
+                if abs(val) > Coluna.TOL
+                    push!(varids, varid)
+                    push!(varvals, sense * val)
+                    push!(activebounds, LOWER_AND_UPPER)
+                end
+            elseif abs(val) > Coluna.TOL
+                @warn """
+                    Basis status of variable $(getname(form, varid)) that has a non-zero dual value is not treated.
+                    Basis status is $basis_status & dual value is $val.
+                """
+            end
+        end
+
+        push!(certificates, DualSolution(form, certificate_constr_ids, certificate_constr_vals, varids, varvals, activebounds, 0.0, INFEASIBLE_SOL))
+    end
+    return certificates
+end
+
 function _show_function(io::IO, moi_model::MOI.ModelLike,
                         func::MOI.ScalarAffineFunction)
     for term in func.terms

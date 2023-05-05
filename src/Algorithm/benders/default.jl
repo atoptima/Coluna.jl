@@ -173,10 +173,11 @@ function Benders.set_sp_rhs_to_zero!(ctx::BendersContext, sp, mast_primal_sol)
 end
 
 struct GeneratedCut
+    min_sense::Bool
     lhs::Dict{VarId, Float64}
     rhs::Float64
-    function GeneratedCut(lhs, rhs)
-        return new(lhs, rhs)
+    function GeneratedCut(min_sense, lhs, rhs)
+        return new(min_sense, lhs, rhs)
     end
 end
 
@@ -193,6 +194,8 @@ struct BendersSeparationResult{F,S}
     second_stage_estimation::Float64
     second_stage_cost::Float64
     result::OptimizationState{F,S}
+    infeasible::Bool
+    certificate::Union{Nothing,DualSolution}
     cut::GeneratedCut
 end
 
@@ -203,39 +206,67 @@ function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulati
     input = OptimizationState(sp)
     opt_state = run!(ctx.separation_solve_alg, env, sp, input)
 
+    @show getterminationstatus(opt_state)
+
     cut_lhs = Dict{VarId, Float64}()
 
     # Second stage cost variable.
     cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0
 
     # Coefficient of first stage variables.
-    dual_sol = get_best_lp_dual_sol(opt_state)
+    infeasible = getterminationstatus(opt_state) == INFEASIBLE
+    dual_sol = if getterminationstatus(opt_state) == OPTIMAL
+        get_best_lp_dual_sol(opt_state)
+    elseif infeasible
+        certificates = MathProg.get_primal_infeasibility_certificate(sp, getoptimizer(sp, 1))
+        @assert length(certificates) >= 1
+        first(certificates)
+    else
+        error("no dual solution to separation subproblem.")
+    end
     coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol
     for (varid, coeff) in zip(findnz(coeffs)...)
         cut_lhs[varid] = coeff
     end
+    if infeasible
+        cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0
+    end
 
-    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid]
-    cut = GeneratedCut(cut_lhs, cut_rhs)
+    bounds_contrib_to_rhs = 0.0
+    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol)
+        if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
+            bounds_contrib_to_rhs += val * getcurlb(sp, varid)
+        elseif active_bound == MathProg.UPPER
+            bounds_contrib_to_rhs -= val * getcurub(sp, varid)
+        end
+    end
+
+    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs
+    min_sense = Benders.is_minimization(ctx)
+    cut = GeneratedCut(min_sense, cut_lhs, cut_rhs)
 
     cost = getvalue(dual_sol)
     second_stage_cost_var = sp.duty_data.second_stage_cost_var
     @assert !isnothing(second_stage_cost_var)
     estimated_cost = getcurincval(Benders.get_master(ctx), second_stage_cost_var)
 
-    return BendersSeparationResult(estimated_cost, cost, opt_state, cut)
+    return BendersSeparationResult(estimated_cost, cost, opt_state, infeasible, dual_sol, cut)
 end
 
-Benders.get_dual_sol(res::BendersSeparationResult) = get_best_lp_dual_sol(res.result)
+function Benders.get_dual_sol(res::BendersSeparationResult)
+    if res.infeasible
+        return res.certificate
+    end
+    return get_best_lp_dual_sol(res.result)
+end
 
 function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::BendersSeparationResult)
     sc = Benders.is_minimization(ctx) ? 1.0 : -1.0
-
     eq = abs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
     gt = sc * sep_result.second_stage_cost > sc * sep_result.second_stage_estimation
 
     # if cost of separation result > second cost variable in master result
-    if !eq && gt
+    if sep_result.infeasible || (!eq && gt)
         push!(set.cuts, sep_result.cut)
         return true
     end
@@ -253,7 +284,8 @@ function Benders.insert_cuts!(reform, ctx::BendersContext, cuts)
         constr = setconstr!(
             master, "Benders", MasterBendCutConstr;
             rhs = cut.rhs,
-            members = cut.lhs
+            members = cut.lhs,
+            sense = cut.min_sense ? Greater : Less,
         )
         push!(cut_ids, getid(constr))
     end
