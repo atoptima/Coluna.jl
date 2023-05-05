@@ -1,11 +1,9 @@
+# # Storage API
+
 # ```@meta
-# CurrentModule = Coluna.Algorithm
-# DocTestSetup = quote
-#     using Coluna.Algorithm, Coluna.ColunaBase
-# end
+#       CurrentModule = Coluna 
 # ```
 
-# # Storage API
 
 # !!! warning
 #    Missing intro, missing finding best solution.
@@ -24,8 +22,8 @@
 # provides two methods to do both actions: 
 
 # ```@docs
-#     create_record
-#     restore_from_record!
+#     ColunaBase.create_record
+#     ColunaBase.restore_from_record!
 # ```
 
 # ## Example
@@ -75,14 +73,14 @@ formulation = Formulation(names, costs, initial_bounds);
 # To this purpose, we will use the storage.
 
 # We create a storage unit for variable domains
-struct VarDomainStorageUnit <: ClB.AbstractNewStorageUnit end
+struct VarDomainStorageUnit <: ClB.AbstractRecordUnit end
 
 # and its constructor.
-ClB.new_storage_unit(::Type{VarDomainStorageUnit}, _) = VarDomainStorageUnit()
+ClB.storage_unit(::Type{VarDomainStorageUnit}, _) = VarDomainStorageUnit()
 
 # The state of the variables' domains at a given node is called a record. 
 # The record is defined by the following data structure:
-struct VarDomainRecord <: ClB.AbstractNewRecord
+struct VarDomainRecord <: ClB.AbstractRecord
     var_domains::Vector{Tuple{Float64,Float64}}
 end
 
@@ -93,7 +91,7 @@ ClB.record_type(::Type{VarDomainStorageUnit}) = VarDomainRecord
 ClB.storage_unit_type(::Type{VarDomainRecord}) = VarDomainStorageUnit
 
 # We implement the method that creates a record of the variables' domains.
-function ClB.new_record(::Type{VarDomainRecord}, id::Int, form::Formulation, ::VarDomainStorageUnit)
+function ClB.record(::Type{VarDomainRecord}, id::Int, form::Formulation, ::VarDomainStorageUnit)
     return VarDomainRecord(copy(form.var_domains))
 end
 
@@ -111,7 +109,7 @@ end
 # There is a tutorial about the tree search interface.
 
 # We define the node data structure.
-mutable struct Node <: ClA.AbstractNode
+mutable struct Node <: Coluna.TreeSearch.AbstractNode
     depth::Int
     id::Int
     branch_description::String
@@ -123,25 +121,25 @@ mutable struct Node <: ClA.AbstractNode
     end
 end
 
-ClA.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.get_parent(node::Node) = node.parent
+Coluna.TreeSearch.get_root(node::Node) = isnothing(node.parent) ? node : Coluna.Treesearch.root(node.parent)
+Coluna.TreeSearch.get_parent(node::Node) = node.parent
 
 # We define the search space data structure.
 # Note that we keep the storage in the search space because we have access to this
 # data structure throughout the whole tree search execution.
-mutable struct FullExplSearchSpace <: ClA.AbstractSearchSpace
+mutable struct FullExplSearchSpace <: Coluna.TreeSearch.AbstractSearchSpace
     nb_nodes_generated::Int
     formulation::Formulation
     solution::Tuple{Vector{Float64},Float64}
-    storage::ClB.NewStorage{Formulation}
+    storage::ClB.Storage{Formulation}
     record_ids_per_node::Dict{Int, Any}
     function FullExplSearchSpace(form::Formulation)
-        return new(0, form, ([],Inf), ClB.NewStorage(form), Dict{Int,Any}())
+        return new(0, form, ([],Inf), ClB.Storage(form), Dict{Int,Any}())
     end
 end
 
 # We implement the method that returns the root node.
-function ClA.new_root(space::FullExplSearchSpace, _)
+function Coluna.TreeSearch.new_root(space::FullExplSearchSpace, _)
     space.nb_nodes_generated += 1
     return Node(nothing, 1, "", nothing)
 end
@@ -248,20 +246,20 @@ end;
 
 # We define the method `children` of the tree search API.
 # It evaluates the current node and then generates its children.
-function ClA.children(space::FullExplSearchSpace, current, _, _)
+function Coluna.TreeSearch.children(space::FullExplSearchSpace, current, _, _)
     evaluate_current_node(space, current)
     return create_children(space, current)
 end
 
 # We don't define specific stopping criterion.
-ClA.stop(::FullExplSearchSpace, _) = false
+Coluna.TreeSearch.stop(::FullExplSearchSpace, _) = false
 
 # We return the best solution and the record at each node to make sure the example worked.
-ClA.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution
+Coluna.TreeSearch.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution
 
 # We run the example.
 search_space = FullExplSearchSpace(formulation)
-ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
+Coluna.TreeSearch.tree_search(Coluna.TreeSearch.DepthFirstStrategy(), search_space, nothing, nothing)
 
 
 # ## API
@@ -271,10 +269,10 @@ ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
 # this correspondance is implemented by methods 
 # `record_type(StorageUnitType)` and `storage_unit_type(RecordType)`.
 
-# The developer must also implement methods `new_storage_unit(StorageUnitType)` and
-# `new_record(RecordType, id, model, storage_unit)` that must call constructors of the custom 
+# The developer must also implement methods `storage_unit(StorageUnitType)` and
+# `record(RecordType, id, model, storage_unit)` that must call constructors of the custom 
 # storage unit and the one of its associated records. 
-# Arguments of `new_record` allow the developer to record the state of entities from 
+# Arguments of `record` allow the developer to record the state of entities from 
 # both the storage unit and the model.
 
 # At last, he must implement `restore_from_record!(storage_unit, model, record)` to restore the
@@ -282,9 +280,9 @@ ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
 # Entities can be in the storage unit, the model, or in both of them.
 
 # ```@docs
-#     record_type
-#     storage_unit_type
-#     new_storage_unit
-#     new_record
-#     restore_from_record!
+#     ColunaBase.record_type
+#     ColunaBase.storage_unit_type
+#     ColunaBase.storage_unit
+#     ColunaBase.record
+#     ColunaBase.restore_from_record!
 # ```

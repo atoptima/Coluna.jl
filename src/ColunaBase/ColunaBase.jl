@@ -1,6 +1,7 @@
 module ColunaBase
 
-using ..Coluna
+include("../MustImplement/MustImplement.jl")
+using .MustImplement
 
 using DynamicSparseArrays, MathOptInterface, TimerOutputs, RandomNumbers, Random, SparseArrays
 
@@ -24,7 +25,7 @@ export Bound, Solution, getvalue, getbound, isbetter, best, worst, diff, gap, pr
 
 # Statuses
 export TerminationStatus, SolutionStatus, OPTIMIZE_NOT_CALLED, OPTIMAL,
-    INFEASIBLE, DUAL_INFEASIBLE, INFEASIBLE_OR_UNBOUNDED, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS, 
+    INFEASIBLE, UNBOUNDED, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS, 
     FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS, 
     UNCOVERED_SOLUTION_STATUS, convert_status
 
@@ -37,17 +38,15 @@ export UnitType,
     restore_from_records!,
     getstorageunit, getstoragewrapper
 
-export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,
-    new_record, record_type, storage_unit_type, restore_from_record!, create_record
+export Storage, RecordUnitManager, AbstractRecordUnit, AbstractRecord, storage_unit,
+    record, record_type, storage_unit_type, restore_from_record!, create_record
 
-# mustimplement.jl
-export @mustimplement
-
-include("mustimplement.jl")
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
 include("hashtable.jl")
+
+# TODO: extract storage
 include("recordmanager.jl")
 include("storage.jl")
 

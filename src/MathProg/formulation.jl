@@ -5,7 +5,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storage::Union{Nothing,NewStorage}
+    storage::Union{Nothing,Storage}
     duty_data::Duty
     env::Env{VarId}
 end
@@ -48,7 +48,7 @@ function create_formulation!(
         FormulationManager(buffer, custom_families_id = env.custom_families_id), obj_sense,
         buffer, nothing, duty, env
     )
-    storage = NewStorage(form)
+    storage = Storage(form)
     form.storage = storage
     return form
 end
@@ -62,7 +62,7 @@ Returns the id of the formulation.
 ClB.getuid(form::Formulation) = form.uid
 
 """
-    getstorage(form) -> NewStorage
+    getstorage(form) -> Storage
 
 Returns the storage of a formulation.
 Read the documentation of the [Storage API](https://atoptima.github.io/Coluna.jl/stable/api/storage/).
@@ -130,6 +130,9 @@ function getoptimizer(form::Formulation, pos::Int)
     return form.optimizers[pos]
 end
 
+"Returns the list of optimizers of a formulation."
+getoptimizers(form::Formulation) = form.optimizers
+
 """
     getelem(form, varid) -> Variable
     getelem(form, constrid) -> Constraint
@@ -183,7 +186,12 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
     return
 end
 
-# interface ==> move ?
+"""
+    computecoeff(var, var_custom_data, constr, constr_custom_data) -> Float64
+
+Dispatches on the type of custom data attached to the variable and the constraint to compute
+the coefficient of the variable in the constraint.
+"""
 function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_data)
     error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
 end
@@ -807,6 +815,10 @@ function _show_obj_fun(io::IO, form::Formulation)
         cost = getcurcost(form, id)
         op = (cost < 0.0) ? "-" : "+"
         print(io, op, " ", abs(cost), " ", name, " ")
+    end
+    if !iszero(getobjconst(form))
+        op = (getobjconst(form) < 0.0) ? "-" : "+"
+        print(io, op, " ", abs(getobjconst(form)))
     end
     println(io, " ")
     return

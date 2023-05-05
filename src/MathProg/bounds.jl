@@ -31,6 +31,8 @@ function PrimalBound(form::AbstractFormulation, pb::PrimalBound{S}) where {S}
     return Bound{Primal,Se}(getvalue(pb))
 end
 
+PrimalBound(::AbstractFormulation, ::Nothing) = nothing
+
 """
     DualBound(formulation)
     DualBound(formulation, value)
@@ -44,10 +46,12 @@ function DualBound(form::AbstractFormulation)
     return Bound{Dual,Se}()
 end
 
-function DualBound(form::AbstractFormulation, val)
+function DualBound(form::AbstractFormulation, val::Real)
     Se = getobjsense(form)
     return Bound{Dual,Se}(val)
 end
+
+DualBound(::AbstractFormulation, ::Nothing) = nothing
 
 function DualBound(form::AbstractFormulation, db::DualBound{S}) where {S}
     Se = getobjsense(form)
@@ -63,10 +67,10 @@ end
 
 # ObjValues
 mutable struct ObjValues{S}
-    lp_primal_bound::PrimalBound{S}
-    lp_dual_bound::DualBound{S}
-    ip_primal_bound::PrimalBound{S}
-    ip_dual_bound::DualBound{S}
+    lp_primal_bound::Union{Nothing,PrimalBound{S}}
+    lp_dual_bound::Union{Nothing,DualBound{S}}
+    ip_primal_bound::Union{Nothing,PrimalBound{S}}
+    ip_dual_bound::Union{Nothing,DualBound{S}}
 end
 
 "A convenient structure to maintain and return incumbent bounds."

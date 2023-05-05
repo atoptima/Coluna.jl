@@ -48,11 +48,12 @@ end
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    stages = [ClA.ColumnGeneration(
-                                pricing_prob_solve_alg = ClA.SolveIpForm(
-                                    optimizer_id = 1
-                                ))
-                                ]
+                    colgen = ClA.ColumnGeneration(
+                                # pricing_prob_solve_alg = ClA.SolveIpForm(
+                                #     optimizer_id = 1
+                                # )
+                            )
+                                
                 ),
                 maxnumnodes = 1
             )
@@ -121,7 +122,7 @@ end
         solver = my_pricing_callback
     )
 
-    cut_ids = []
+    
     function custom_cut_sep(cbdata)
         # compute the constraint violation
         viol = -1.0
@@ -136,11 +137,10 @@ end
 
         # add the cut (at most one variable with 2 or more of the 3 items) if violated
         if viol > 0.001
-            cut_id = MOI.submit(
+            MOI.submit(
                 model, MOI.UserCut(cbdata),
                 JuMP.ScalarConstraint(JuMP.AffExpr(0.0), MOI.LessThan(1.0)), MyCustomCutData(2)
             )
-            push!(cut_ids, cut_id)
         end
         return
     end

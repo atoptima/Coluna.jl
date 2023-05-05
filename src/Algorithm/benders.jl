@@ -1,8 +1,11 @@
 @with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
+    restr_master_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
+    restr_master_optimizer_id = 1
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
     optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     max_nb_iterations::Int = 100
+    separation_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
 end
 
 # TO DO : BendersCutGeneration does not have yet the child algorithms
@@ -23,6 +26,7 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
     # end
     return units_usage
 end
+
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
@@ -31,24 +35,40 @@ mutable struct BendersCutGenRuntimeData
     #slack_cost_increase_applied::Bool
 end
 
-function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
-    optstate = OptimizationState(getmaster(form))
-    best_ip_primal_sol = get_best_ip_primal_sol(init_optstate)
-    if best_ip_primal_sol !== nothing
-        add_ip_primal_sol!(optstate, best_ip_primal_sol)
-    end
-    return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
-end
+# function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
+#     optstate = OptimizationState(getmaster(form))
+#     best_ip_primal_sol = get_best_ip_primal_sol(init_optstate)
+#     if best_ip_primal_sol !== nothing
+#         add_ip_primal_sol!(optstate, best_ip_primal_sol)
+#     end
+#     return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
+# end
 
-get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
+# TreeSearch.get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
+
+function _new_context(C::Type{<:Benders.AbstractBendersContext}, reform, algo)
+    return C(reform, algo)
+end
 
 function run!(
     algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationState
 )
-    bndata = BendersCutGenRuntimeData(reform, input)
-    @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
-    return bndata.optstate
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, algo;
+        print = true
+    )
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @show result
+    return result
+
+    # ctx = _new_context(Benders.BendersCutGenContext, reform, algo)
+    # return Benders.run!(ctx, env, nothing)
+
+    # bndata = BendersCutGenRuntimeData(reform, input)
+    # @logmsg LogLevel(-1) "Run BendersCutGeneration."
+    # Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
+    # return bndata.optstate
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -263,7 +283,7 @@ function solve_sp_to_gencut!(
             )
         end
 
-        if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != DUAL_INFEASIBLE
+        if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != UNBOUNDED
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
             bd = PrimalBound(spform) 
@@ -403,7 +423,7 @@ function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reform
     lagran_bnd = PrimalBound(master, 0.0)
     lagran_bnd += compute_master_pb_contrib(algdata, master, restricted_master_sol_value)
     lagran_bnd += benders_sp_sp_primal_bound_contrib
-    set_lp_primal_bound!(get_opt_state(algdata), lagran_bnd)
+    set_lp_primal_bound!(TreeSearch.get_opt_state(algdata), lagran_bnd)
     return lagran_bnd
 end
 
@@ -450,12 +470,11 @@ end
 function bend_cutting_plane_main_loop!(
     algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, reform::Reformulation
 )
-
     nb_bc_iterations = 0
     masterform = getmaster(reform)
     one_spsol_is_a_relaxed_sol = false
     master_primal_sol = nothing
-    bnd_optstate = get_opt_state(algdata)
+    bnd_optstate = TreeSearch.get_opt_state(algdata)
     primal_bound = PrimalBound(masterform)
     
     for (spuid, spform) in get_benders_sep_sps(reform)

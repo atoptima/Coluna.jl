@@ -1,4 +1,4 @@
-@testset "MathProg - type builders & helpers" begin
+function convert_MOI_Coluna()
     @test ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}() == MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo}(-1)
     @test ClMP.MoiConstrIndex() == MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}(-1)
     @test ClMP.MoiVarIndex() == MOI.VariableIndex(-1)
@@ -25,3 +25,4 @@
     @test ClMP.convert_coluna_sense_to_moi(ClMP.Equal) == MOI.EqualTo{Float64}
     return
 end
+register!(unit_tests, "types", convert_MOI_Coluna)

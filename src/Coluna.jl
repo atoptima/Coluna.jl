@@ -44,11 +44,32 @@ include("parameters.jl")
 include("env.jl")
 export Env
 
+include("MustImplement/MustImplement.jl")
+using .MustImplement
+
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
 
 include("MathProg/MathProg.jl")
 using .MathProg
+
+include("interface.jl")
+using .AlgoAPI
+
+include("TreeSearch/TreeSearch.jl")
+using .TreeSearch
+
+include("Branching/Branching.jl")
+using .Branching
+
+include("ColGen/ColGen.jl")
+using .ColGen
+
+include("Benders/Benders.jl")
+using .Benders
+
+include("Heuristic/Heuristic.jl")
+using .Heuristic
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm

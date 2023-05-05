@@ -12,13 +12,13 @@ struct VarData <: BD.AbstractCustomData
     items::Vector{Int}
 end
 
-mutable struct ToyNodeInfoUnit <: ClB.AbstractNewStorageUnit 
+mutable struct ToyNodeInfoUnit <: ClB.AbstractRecordUnit 
     value::Int
 end
 
-ClB.new_storage_unit(::Type{ToyNodeInfoUnit}, _) = ToyNodeInfoUnit(111)
+ClB.storage_unit(::Type{ToyNodeInfoUnit}, _) = ToyNodeInfoUnit(111)
 
-struct ToyNodeInfo <: ClB.AbstractNewRecord
+struct ToyNodeInfo <: ClB.AbstractRecord
     value::Int
 end
 
@@ -30,7 +30,7 @@ struct ToyNodeInfoKey <: ClA.AbstractStorageUnitKey end
 ClA.key_from_storage_unit_type(::Type{ToyNodeInfoUnit}) = ToyNodeInfoKey()
 ClA.record_type_from_key(::ToyNodeInfoKey) = ToyNodeInfo
 
-function ClB.new_record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
+function ClB.record(::Type{ToyNodeInfo}, id::Int, form::ClMP.Formulation, unit::ToyNodeInfoUnit)
     return ToyNodeInfo(unit.value)
 end
 
@@ -69,7 +69,7 @@ function ClA.get_units_usage(algo::ImproveRelaxationAlgo, reform::ClMP.Reformula
 end
 
 function ClA.get_child_algorithms(algo::ClA.BeforeCutGenAlgo, reform::ClMP.Reformulation)
-    child_algos = Tuple{ClA.AbstractAlgorithm, ClMP.AbstractModel}[]
+    child_algos = Tuple{Coluna.AlgoAPI.AbstractAlgorithm, ClMP.AbstractModel}[]
     push!(child_algos, (algo.algorithm, reform))
     return child_algos
 end
@@ -97,11 +97,9 @@ function test_improve_relaxation(; do_improve::Bool)
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    stages = [ClA.ColumnGeneration(
-                                pricing_prob_solve_alg = ClA.SolveIpForm(
-                                    optimizer_id = 1
-                                ))
-                                ],
+                    colgen = ClA.ColumnGeneration(
+                        stages_pricing_solver_ids = [1]
+                    ),
                     primal_heuristics = [],
                     before_cutgen_user_algorithm = ClA.BeforeCutGenAlgo(
                             ImproveRelaxationAlgo(
@@ -110,7 +108,7 @@ function test_improve_relaxation(; do_improve::Bool)
                             "Improve relaxation"
                     )
                 ),
-                dividealg = ClA.Branching(),
+                dividealg = ClA.ClassicBranching(),
                 maxnumnodes = do_improve ? 1 : 10
             )
         )
@@ -226,7 +224,7 @@ function test_improve_relaxation(; do_improve::Bool)
     @test do_improve || max_info_val == 888
 end
 
-@testset "Improve relaxation callback" begin
+function improve_relaxation_callback()
     # Make two tests: one to improve the relaxation and solve at the root node and other to test
     # the inheritance of the new user information (increment it in both children nodes and check
     # but check if the ones received from parent are unchanged).
@@ -234,3 +232,4 @@ end
     test_improve_relaxation(do_improve = true)
     test_improve_relaxation(do_improve = false)
 end
+register!(e2e_extra_tests, "improve_relax_callback", improve_relaxation_callback)

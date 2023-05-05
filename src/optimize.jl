@@ -102,14 +102,14 @@ function optimize!(
     ip_primal_sols = get_ip_primal_sols(algstate)
     if !isnothing(ip_primal_sols)
         for sol in ip_primal_sols
-            add_ip_primal_sol!(outstate, proj_cols_on_rep(sol, master))
+            add_ip_primal_sol!(outstate, proj_cols_on_rep(sol))
         end
     end
 
     # lp_primal_sol may also be of interest, for example when solving the relaxation
     lp_primal_sol = get_best_lp_primal_sol(algstate)
     if !isnothing(lp_primal_sol)
-        add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
+        add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol))
     end
 
     # lp_dual_sol to retrieve, for instance, the dual value of generated cuts
@@ -122,6 +122,7 @@ function optimize!(
     # The first one contains the solutions projected on the original formulation.
     # The second one contains the solutions to the master formulation so the user can
     # retrieve the disagreggated solution.
+
     return outstate, algstate
 end
 

@@ -48,7 +48,7 @@ where $\bar{c}$ is the reduced cost of the original variables computed by the co
 
 ## Dantzig-Wolfe with identical subproblems (alpha)
 
-When some subproblems are identical (same coefficient matrix and rhs), 
+When some subproblems are identical (same coefficient matrix and right-hand side), 
 you can avoid solving all of them at each iteration by defining only one subproblem and
 setting its multiplicity to the number of time it appears.
 
@@ -195,9 +195,6 @@ All these information are stored in the `ext` field of the JuMP model.
 
 ```@meta
 CurrentModule = BlockDecomposition
-DocTestSetup = quote
-    using BlockDecomposition
-end
 ```
 
 # Errors and warnings
@@ -236,6 +233,5 @@ annotation
 
 ```@meta
 CurrentModule = nothing
-DocTestSetup = nothing
 ```
 

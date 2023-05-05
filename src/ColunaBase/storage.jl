@@ -20,11 +20,11 @@ const UnitType = DataType #Type{<:AbstractStorageUnit}
 
 #####
 
-function getstorageunit(m::AbstractModel, SU::Type{<:AbstractNewStorageUnit})
+function getstorageunit(m::AbstractModel, SU::Type{<:AbstractRecordUnit})
     return getstoragewrapper(m, SU).storage_unit
 end
 
-function getstoragewrapper(m::AbstractModel, SU::Type{<:AbstractNewStorageUnit})
+function getstoragewrapper(m::AbstractModel, SU::Type{<:AbstractRecordUnit})
     storagecont = get(getstorage(m).units, SU, nothing)
     storagecont === nothing && error("No storage unit of type $SU in $(typeof(m)) with id $(getuid(m)).")
     return storagecont

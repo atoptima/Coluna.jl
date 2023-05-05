@@ -4,7 +4,7 @@ using DataStructures
 import MathOptInterface
 import TimerOutputs
 
-using ..Coluna, ..ColunaBase, ..MathProg
+using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen, ..Benders, ..AlgoAPI, ..TreeSearch, ..Branching, ..Heuristic
 
 using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics, SparseArrays, LinearAlgebra
 
@@ -26,10 +26,6 @@ include("data.jl")
 # Algorithm interface
 include("interface.jl")
 
-# Tree search interface
-include("treesearch/interface.jl")
-include("treesearch/explore.jl")
-
 # Storage units & records implementation
 include("formstorages.jl")
 
@@ -41,7 +37,17 @@ include("basic/cutcallback.jl")
 
 # Child algorithms used by conquer algorithms
 include("colgenstabilization.jl")
+
+# Column generation
+include("colgen/utils.jl")
+include("colgen/default.jl")
+include("colgen/printer.jl")
 include("colgen.jl")
+
+# Benders algorithm
+include("benders/utils.jl")
+include("benders/default.jl")
+include("benders/printer.jl")
 include("benders.jl")
 
 # Presolve
@@ -59,11 +65,15 @@ include("branching/single_var_branching.jl")
 include("branching/printer.jl")
 include("branching/branchingalgo.jl")
 
+# Heuristics
+include("heuristic/restricted_master.jl")
+
+# Tree search
 include("treesearch.jl")
 include("treesearch/printer.jl")
 include("treesearch/branch_and_bound.jl")
-include("branchcutprice.jl")
 
+include("branchcutprice.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.
@@ -79,11 +89,11 @@ export getterminationstatus, setterminationstatus!,
     get_ip_primal_bound, get_lp_primal_bound, get_lp_dual_bound, get_ip_dual_bound, 
     set_ip_primal_bound!, set_lp_primal_bound!, set_lp_dual_bound!, set_ip_dual_bound!,
     update_ip_primal_bound!, update_lp_primal_bound!, update_lp_dual_bound!, update_ip_dual_bound!,
-    get_opt_state, run!
+    run!
 
 # Algorithms
 export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterIPHeuristic,
-    SolveLpForm, NoBranching, Branching, StrongBranching, AbstractSelectionCriterion,
+    SolveLpForm, NoBranching, Branching, StrongBranching,
     FirstFoundCriterion, MostFractionalCriterion, SingleVarBranchingRule
 
 # Algorithm's types

@@ -14,41 +14,43 @@ function coefmatrix_factory()
     return rows, cols, vals, matrix
 end
 
-@testset "MathProg - coefficient matrix" begin
-    @testset "close fill mode" begin
-        rows, cols, vals, matrix = coefmatrix_factory()
-        closefillmode!(matrix)
-        for (i,j,v) in Iterators.zip(rows, cols, vals)
-            @test matrix[i,j] == v
-        end
-    end
-
-    @testset "view col" begin
-        rows, cols, vals, matrix = coefmatrix_factory()
-        closefillmode!(matrix)
-
-        for (row, val) in @view matrix[:, 1]
-            @test val == matrix[row,1]
-        end
-    end
-
-    @testset "view row" begin
-        rows, cols, vals, matrix = coefmatrix_factory()
-        closefillmode!(matrix)
-
-        for (col, val) in @view matrix['a', :]
-            @test val == matrix['a', col]
-        end
-    end
-
-    @testset "transpose" begin
-        rows, cols, vals, matrix = coefmatrix_factory()
-        closefillmode!(matrix)
-
-        transposed_matrix = transpose(matrix)
-
-        for (i,j,v) in Iterators.zip(rows, cols, vals)
-            @test transposed_matrix[j,i] == matrix[i,j] == v
-        end
+function close_fill_mode()
+    rows, cols, vals, matrix = coefmatrix_factory()
+    closefillmode!(matrix)
+    for (i,j,v) in Iterators.zip(rows, cols, vals)
+        @test matrix[i,j] == v
     end
 end
+register!(unit_tests, "formulations", close_fill_mode)
+
+function view_col()
+    rows, cols, vals, matrix = coefmatrix_factory()
+    closefillmode!(matrix)
+
+    for (row, val) in @view matrix[:, 1]
+        @test val == matrix[row,1]
+    end
+end
+register!(unit_tests, "formulations", view_col)
+
+function view_row()
+    rows, cols, vals, matrix = coefmatrix_factory()
+    closefillmode!(matrix)
+
+    for (col, val) in @view matrix['a', :]
+        @test val == matrix['a', col]
+    end
+end
+register!(unit_tests, "formulations", view_row)
+
+function transpose_test()
+    rows, cols, vals, matrix = coefmatrix_factory()
+    closefillmode!(matrix)
+
+    transposed_matrix = transpose(matrix)
+
+    for (i,j,v) in Iterators.zip(rows, cols, vals)
+        @test transposed_matrix[j,i] == matrix[i,j] == v
+    end
+end
+register!(unit_tests, "formulations", transpose_test)

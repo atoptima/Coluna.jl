@@ -1,4 +1,11 @@
 """
+Exposes `@mustimplement` macro to help developers identifying API definitions.
+"""
+module MustImplement
+
+using Random
+
+"""
     IncompleteInterfaceError <: Exception
 
 Exception to be thrown when an interface function is called without default implementation.
@@ -18,11 +25,22 @@ function Base.showerror(io::IO, e::IncompleteInterfaceError)
 end
 
 """
-    @mustimplement "Interface name" f(a,b,c)
+    @mustimplement "Interface name" f(a,b,c) = nothing
 
-Creates a fallback for function `f(a,b,c)` that throws a `IncompleteInterfaceError`.
+Converts into a fallback for function `f(a,b,c)` that throws a `IncompleteInterfaceError`.
 """
 macro mustimplement(interface_name, sig)
+    if !(sig.head == :(=) && sig.args[1].head == :call && sig.args[2].head == :block)
+        err_msg = """
+        Cannot generate fallback for function $(string(sig)).
+        Got:
+        - sig.head = $(sig.head) instead of :(=)
+        - sig.args[1].head = $(sig.args[1].head) instead of :call
+        - sig.args[2].head = $(sig.args[2].head) instead of :block
+        """
+        error(err_msg)
+    end
+    sig = sig.args[1] # we only consider the call.
     str_interface_name = string(interface_name)
     fname = string(sig.args[1])
     args = reduce(sig.args[2:end]; init = Union{String,Expr}[]) do collection, arg
@@ -47,7 +65,9 @@ macro mustimplement(interface_name, sig)
         end
         return collection
     end
-    pop!(args)
+    if length(args) > 0
+        pop!(args)
+    end
 
     type_of_args_expr = Expr(:tuple, args...)
     return quote
@@ -58,4 +78,8 @@ macro mustimplement(interface_name, sig)
                 )
             )
     end
+end
+
+export @mustimplement, IncompleteInterfaceError
+
 end

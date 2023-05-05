@@ -61,9 +61,7 @@ This data structure just associates a column key of type `L` to each partition o
 ## References
 
 ```@meta
-DocTestSetup = quote
-    using DynamicSparseArrays
-en
+    CurrentModule = DynamicSparseArrays
 ```
 
 ```@docs

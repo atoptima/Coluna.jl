@@ -1,10 +1,3 @@
-# ```@meta
-# CurrentModule = Coluna.Algorithm
-# DocTestSetup = quote
-#     using Coluna.Algorithm
-# end
-# ```
-
 # # Tree search API
 # ## Introduction
 
@@ -89,7 +82,7 @@ end
 # We start by defining the node. Take a look at the API section to see
 # the list of methods you need to implement.
 
-struct Node <: ClA.AbstractNode
+struct Node <: Coluna.TreeSearch.AbstractNode
     depth::Int
     solution::Vector{Float64}
     var_lbs::Vector{Int}
@@ -127,8 +120,8 @@ struct Node <: ClA.AbstractNode
     end
 end
 
-ClA.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.get_parent(node::Node) = node.parent
+Coluna.TreeSearch.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
+Coluna.TreeSearch.get_parent(node::Node) = node.parent
 
 
 # Then, we define the search spaces. Take a look at the API section to see
@@ -158,13 +151,13 @@ ClA.get_conquer(sp::BtSearchSpace) = sp.conquer_alg
 ClA.get_divide(sp::BtSearchSpace) = sp.divide_alg
 ClA.get_previous(sp::BtSearchSpace) = sp.previous
 ClA.set_previous!(sp::BtSearchSpace, previous) = sp.previous = previous
-ClA.stop(sp::BtSearchSpace, _) = false
+Coluna.TreeSearch.stop(sp::BtSearchSpace, _) = false
 
 # Then, we implement the search space of the diving.
 
 mutable struct DivingSearchSpace <: ClA.AbstractColunaSearchSpace
     formulation::Formulation
-    starting_node_in_bt::ClA.AbstractNode # change node
+    starting_node_in_bt::Coluna.TreeSearch.AbstractNode # change node
     cost_of_best_solution::Float64
     conquer_alg
     divide_alg
@@ -177,7 +170,7 @@ ClA.get_conquer(sp::DivingSearchSpace) = sp.conquer_alg
 ClA.get_divide(sp::DivingSearchSpace) = sp.divide_alg
 ClA.get_previous(sp::DivingSearchSpace) = sp.previous
 ClA.set_previous!(sp::DivingSearchSpace, previous) = sp.previous = previous
-ClA.stop(sp::DivingSearchSpace, _) = false
+Coluna.TreeSearch.stop(sp::DivingSearchSpace, _) = false
 
 # ## Writing algorithms
 
@@ -186,7 +179,7 @@ ClA.stop(sp::DivingSearchSpace, _) = false
 # At each node, we define an algorithm `ComputeSolCost` that compute the cost of the
 # solution and returns its value.
 
-@with_kw struct ComputeSolCost <: ClA.AbstractAlgorithm 
+@with_kw struct ComputeSolCost <: Coluna.AlgoAPI.AbstractAlgorithm 
     log::String = "compute solution cost"
 end
 
@@ -209,7 +202,7 @@ end
 # for a given variable x, both branches x <= 0 & x >= 1 or only branch x = 0 depending on
 # parameters chosen.
 
-@with_kw struct Divide <: ClA.AbstractAlgorithm
+@with_kw struct Divide <: Coluna.AlgoAPI.AbstractAlgorithm
     log::String = "classic divide"
     create_both_branches::Bool = true
 end
@@ -240,13 +233,13 @@ end
 #  - `Divide` with parameter `create_both_branches` equals to `false` as divide strategy
 #  - `Coluna.Algorithm.DepthFirstStrategy` as explore strategy
 
-@with_kw struct Diving <: ClA.AbstractAlgorithm
+@with_kw struct Diving <: Coluna.AlgoAPI.AbstractAlgorithm
     conqueralg = ComputeSolCost(log="compute solution cost of Diving tree")
     dividealg = Divide(
         log = "divide for diving",
         create_both_branches = false
     )
-    explore = ClA.DepthFirstStrategy()
+    explore = Coluna.TreeSearch.DepthFirstStrategy()
 end
 
 struct DivingInput
@@ -255,8 +248,8 @@ end
 
 function ClA.run!(algo::Diving, env, model::Formulation, input::DivingInput)
     LOG_ && println("~~~~~~~~ Diving starts ~~~~~~~~")
-    diving_space = ClA.new_space(ClA.search_space_type(algo), algo, model, input)
-    output = ClA.tree_search(algo.explore, diving_space, env, input)
+    diving_space = Coluna.TreeSearch.new_space(Coluna.TreeSearch.search_space_type(algo), algo, model, input)
+    output = Coluna.TreeSearch.tree_search(algo.explore, diving_space, env, input)
     LOG_ && println("~~~~~~~~ end of Diving ~~~~~~~~")
     return output
 end
@@ -264,7 +257,7 @@ end
 # We define the algorithm that will conquer each node of the binary tree algorithm.
 # It runs the `ComputeSolCost` algorithm and then the diving algorithm if the two first
 # variables have been fixed (i.e. if depth == 2).
-@with_kw struct BtConquer <: ClA.AbstractAlgorithm
+@with_kw struct BtConquer <: Coluna.AlgoAPI.AbstractAlgorithm
     compute = ComputeSolCost(log = "compute solution cost for Binary tree")
     heuristic = Diving()
 end
@@ -284,17 +277,17 @@ end
 #  - `Divide` with parameter `create_both_branches` equals to `false` as divide strategy
 #  - `Coluna.Algorithm.DepthFirstStrategy` as explore strategy
 
-@with_kw struct BinaryTree <: ClA.AbstractAlgorithm
+@with_kw struct BinaryTree <: Coluna.AlgoAPI.AbstractAlgorithm
     conqueralg = BtConquer()
     dividealg = Divide()
-    explore = ClA.DepthFirstStrategy()
+    explore = Coluna.TreeSearch.DepthFirstStrategy()
 end
 
 # Look at how we call the generic tree search implementation.
 
 function ClA.run!(algo::BinaryTree, env, reform, input)
-    search_space = ClA.new_space(ClA.search_space_type(algo), algo, reform, input)
-    return ClA.tree_search(algo.explore, search_space, env, input)
+    search_space = Coluna.TreeSearch.new_space(Coluna.TreeSearch.search_space_type(algo), algo, reform, input)
+    return Coluna.TreeSearch.tree_search(algo.explore, search_space, env, input)
 end
 
 # ## Implementing tree search interface
@@ -304,24 +297,24 @@ end
 # So there is a 1-to-n relation between tree search algorithm configurations and search space.
 # because one search space can be used by several tree search algorithms configuration.
 
-ClA.search_space_type(::BinaryTree) = BtSearchSpace
-ClA.search_space_type(::Diving) = DivingSearchSpace 
+Coluna.TreeSearch.search_space_type(::BinaryTree) = BtSearchSpace
+Coluna.TreeSearch.search_space_type(::Diving) = DivingSearchSpace 
 
 # Now, we implement the method that calls the constructor of a search space.
 # The type of the search space is known from above method.
 # A search space may receive information from the tree-search algorithm. 
 # The `model`, and `input` arguments are the same than those received by the tree search algorithm.
 
-ClA.new_space(::Type{BtSearchSpace}, alg, model, input) =
+Coluna.TreeSearch.new_space(::Type{BtSearchSpace}, alg, model, input) =
     BtSearchSpace(model, alg.conqueralg, alg.dividealg)
-ClA.new_space(::Type{DivingSearchSpace}, alg, model, input) =
+Coluna.TreeSearch.new_space(::Type{DivingSearchSpace}, alg, model, input) =
     DivingSearchSpace(model, input.starting_node_in_parent_algorithm, alg.conqueralg, alg.dividealg)
 
 # We implement the method that returns the root node.
 # The definition of the root node depends on the search space.
 
-ClA.new_root(::BtSearchSpace, input) = Node()
-ClA.new_root(space::DivingSearchSpace, input) = 
+Coluna.TreeSearch.new_root(::BtSearchSpace, input) = Node()
+Coluna.TreeSearch.new_root(space::DivingSearchSpace, input) = 
     Node(space.starting_node_in_bt)
 
 # Then, we implement the method that converts the branching rules into nodes for the tree 
@@ -387,8 +380,8 @@ ClA.get_input(::Divide, space::DivingSearchSpace, node::Node) =
 # We return the cost of the best solution found.
 # We write one method for each search space.
 
-ClA.tree_search_output(space::BtSearchSpace, _) = space.cost_of_best_solution
-ClA.tree_search_output(space::DivingSearchSpace, _) = space.cost_of_best_solution
+Coluna.TreeSearch.tree_search_output(space::BtSearchSpace, _) = space.cost_of_best_solution
+Coluna.TreeSearch.tree_search_output(space::DivingSearchSpace, _) = space.cost_of_best_solution
 
 # ## Run the example
 
@@ -403,65 +396,58 @@ output = ClA.run!(BinaryTree(), env, model, input)
 
 # ## API
 
-# ```@meta
-# CurrentModule = Coluna.Algorithm
-# DocTestSetup = quote
-#     using Coluna.Algorithm
-# end
-# ```
-
 # ### Search space
 
 # ```@docs
-# AbstractSearchSpace
-# search_space_type
-# new_space
+# Coluna.TreeSearch.AbstractSearchSpace
+# Coluna.TreeSearch.search_space_type
+# Coluna.TreeSearch.new_space
 # ```
 
 # ### Node 
 
 # ```@docs
-# AbstractNode
-# new_root
-# get_root
-# get_parent
-# get_priority
+# Coluna.TreeSearch.AbstractNode
+# Coluna.TreeSearch.new_root
+# Coluna.TreeSearch.get_root
+# Coluna.TreeSearch.get_parent
+# Coluna.TreeSearch.get_priority
 # ```
 # Additional methods needed for Coluna's algorithms:
 # ```@docs
-# get_opt_state
-# get_records
-# get_branch_description
-# isroot
+# Coluna.TreeSearch.get_opt_state
+# Coluna.TreeSearch.get_records
+# Coluna.TreeSearch.get_branch_description
+# Coluna.TreeSearch.isroot
 # ```
 
 # ### Tree search algorithm
 
 # ```@docs
-# AbstractExploreStrategy
-# tree_search
-# children
-# stop
-# tree_search_output
+# Coluna.TreeSearch.AbstractExploreStrategy
+# Coluna.TreeSearch.tree_search
+# Coluna.TreeSearch.children
+# Coluna.TreeSearch.stop
+# Coluna.TreeSearch.tree_search_output
 # ```
 
 # ### Tree search algorithm for Coluna
 
 # ```@docs
-# AbstractColunaSearchSpace
+# Coluna.Algorithm.AbstractColunaSearchSpace
 # ```
 
 # The `children` method has a specific implementation for `AbstractColunaSearchSpace``
 # that involves following methods:
 
 # ```@docs
-# get_previous
-# set_previous!
-# node_change!
-# get_divide
-# get_reformulation
-# get_input
-# after_conquer!
-# new_children
+# Coluna.Algorithm.get_previous
+# Coluna.Algorithm.set_previous!
+# Coluna.Algorithm.node_change!
+# Coluna.Algorithm.get_divide
+# Coluna.Algorithm.get_reformulation
+# Coluna.Algorithm.get_input
+# Coluna.Algorithm.after_conquer!
+# Coluna.Algorithm.new_children
 # ```
 

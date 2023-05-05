@@ -1,10 +1,3 @@
-```@meta
-    CurrentModule = Coluna.Algorithm
-    DocTestSetup = quote
-        using Coluna.Algorithm
-    end
-```
-
 # Algorithm API
 
 !!! danger

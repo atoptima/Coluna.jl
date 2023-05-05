@@ -49,7 +49,7 @@ _optimizer_params(::Formulation, algo::SolveIpForm, ::UserOptimizer) = algo.user
 _optimizer_params(form::Formulation, algo::SolveIpForm, ::CustomOptimizer) = getinner(getoptimizer(form, algo.optimizer_id))
 _optimizer_params(::Formulation, ::SolveIpForm, ::NoOptimizer) = nothing
 
-function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationState)
+function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationState, optimizer_id = 1)
     opt = getoptimizer(form, algo.optimizer_id)
     params = _optimizer_params(form, algo, opt)
     if params !== nothing
@@ -249,17 +249,28 @@ function run!(
         throw(MultiplePricingDualBounds(cbdata.nb_times_dual_bound_set))
     end
 
+    # If the user does not submit any primal solution, we consider the primal as infeasible.
+    primal_infeasible = length(cbdata.primal_solutions) == 0
+
+    # If the dual bound from the pricing callback data is nothing, we consider the dual as 
+    # infeasible.
+    dual_infeasible = isnothing(cbdata.dual_bound)
+
+    set_ip_dual_bound!(result, DualBound(spform, cbdata.dual_bound))
+    db = get_ip_dual_bound(result)
+
     for primal_sol in cbdata.primal_solutions
         add_ip_primal_sol!(result, primal_sol)
     end
-    set_ip_dual_bound!(result, DualBound(spform, cbdata.dual_bound))
 
     pb = get_ip_primal_bound(result)
-    db = get_ip_dual_bound(result)
-    if isunbounded(db)
+
+    if primal_infeasible && isunbounded(db)
         setterminationstatus!(result, INFEASIBLE)
-    elseif isinfeasible(db)
-        setterminationstatus!(result, DUAL_INFEASIBLE)
+        set_ip_primal_bound!(result, nothing)
+    elseif isunbounded(pb) && dual_infeasible
+        setterminationstatus!(result, UNBOUNDED)
+        set_ip_dual_bound!(result, nothing)
     elseif abs(gap(pb, db)) <= 1e-4
         setterminationstatus!(result, OPTIMAL)
     elseif gap(pb, db) < -1e-4

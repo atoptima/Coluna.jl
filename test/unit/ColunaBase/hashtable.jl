@@ -1,4 +1,4 @@
-@testset "ColunaBase - hash table 1" begin
+function hash_table_1()
     x = 'A'
     y = 'B'
     z = 'C'
@@ -32,9 +32,10 @@
     @test ClB.getsolids(ht, sol4) == [col4]
     @test ClB.getsolids(ht, sol5) == [col3, col5]
 end
+register!(unit_tests, "hashtable", hash_table_1)
 
 # Same test as "hash table 1" but we use VarIds from Coluna.
-@testset "ColunaBase - hash table 2" begin
+function hash_table_2()
     x = ClMP.VarId(ClMP.OriginalVar, 1, 1)
     y = ClMP.VarId(ClMP.OriginalVar, 2, 1)
     z = ClMP.VarId(ClMP.OriginalVar, 3, 1)
@@ -68,3 +69,4 @@ end
     @test ClB.getsolids(ht, sol4) == [col4]
     @test ClB.getsolids(ht, sol5) == [col3, col5]
 end
+register!(unit_tests, "hashtable", hash_table_2)

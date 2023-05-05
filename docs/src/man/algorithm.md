@@ -1,9 +1,7 @@
 ```@meta
-CurrentModule = Coluna.Algorithm
-DocTestSetup = quote
-    using Coluna.Algorithm
-end
+CurrentModule = Coluna
 ```
+
 # Algorithms
 
 TODO : Description of how algorithms work.
@@ -11,17 +9,17 @@ TODO : Description of how algorithms work.
 ## Tree search algorithm (branch-and-bound)
 
 ```@docs
-TreeSearchAlgorithm
+Algorithm.TreeSearchAlgorithm
 ```
 
 ## Conquer algorithm
 
 ```@docs
-ColCutGenConquer
+Algorithm.ColCutGenConquer
 ```
 
 ```@docs
-ColumnGeneration
+Algorithm.ColumnGeneration
 ```
 
 ## Basic algorithms
@@ -29,40 +27,38 @@ ColumnGeneration
 ### Optimize a linear program
 
 ```@docs
-SolveLpForm
+Algorithm.SolveLpForm
 ```
+
 
 ### Optimize an mixed-integer program / solve a combinatorial problem
 
 ```@docs
-SolveIpForm
-MoiOptimize
-UserOptimize
-CustomOptimize
+Algorithm.SolveIpForm
+Algorithm.MoiOptimize
+Algorithm.UserOptimize
+Algorithm.CustomOptimize
 ```
 
-```@meta
-CurrentModule = nothing
-DocTestSetup = nothing
-```
+
 
 ## Divide algorithms
 
 ```@docs
-NoBranching
-SimpleBranching
-StrongBranching
+Algorithm.NoBranching
+Algorithm.ClassicBranching
+Algorithm.StrongBranching
 ```
 ### Selection criteria
 
 ```@docs
-AbstractSelectionCriterion
-FirstFoundCriterion
-MostFractionalCriterion
+Branching.AbstractSelectionCriterion
+Algorithm.FirstFoundCriterion
+Algorithm.MostFractionalCriterion
 ```
 
 ### Branching rules
 
 ```@docs
-SingleVarBranchingRule
+Algorithm.SingleVarBranchingRule
 ```

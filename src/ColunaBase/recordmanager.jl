@@ -1,49 +1,49 @@
 
-abstract type AbstractNewStorageUnit end
+abstract type AbstractRecordUnit end
 
-abstract type AbstractNewRecord end
+abstract type AbstractRecord end
 
 
 # Interface to implement
-@mustimplement "Storage" get_id(r::AbstractNewRecord)
+@mustimplement "Storage" get_id(r::AbstractRecord) = nothing
 
 "Creates a record of information from the model or a storage unit."
-@mustimplement "Storage" new_record(::Type{<:AbstractNewRecord}, id::Int, model, su::AbstractNewStorageUnit)
+@mustimplement "Storage" record(::Type{<:AbstractRecord}, id::Int, model, su::AbstractRecordUnit) = nothing
 
 "Restore information from the model or the storage unit that is recorded in a record."
-@mustimplement "Storage" restore_from_record!(model, su::AbstractNewStorageUnit, r::AbstractNewRecord)
+@mustimplement "Storage" restore_from_record!(model, su::AbstractRecordUnit, r::AbstractRecord) = nothing
 
 "Returns a storage unit from a given type."
-@mustimplement "Storage" new_storage_unit(::Type{<:AbstractNewStorageUnit}, model)
+@mustimplement "Storage" storage_unit(::Type{<:AbstractRecordUnit}, model) = nothing
 
-mutable struct NewStorageUnitManager{Model,RecordType<:AbstractNewRecord,StorageUnitType<:AbstractNewStorageUnit}
+mutable struct RecordUnitManager{Model,RecordType<:AbstractRecord,StorageUnitType<:AbstractRecordUnit}
     model::Model
     storage_unit::StorageUnitType
     active_record_id::Int
-    function NewStorageUnitManager(::Type{StorageUnitType}, model::M) where {M,StorageUnitType<:AbstractNewStorageUnit}
+    function RecordUnitManager(::Type{StorageUnitType}, model::M) where {M,StorageUnitType<:AbstractRecordUnit}
         return new{M,record_type(StorageUnitType),StorageUnitType}(
-            model, new_storage_unit(StorageUnitType, model), 0
+            model, storage_unit(StorageUnitType, model), 0
         )
     end
 end
 
 # Interface
 "Returns the type of record stored in a type of storage unit."
-@mustimplement "Storage" record_type(::Type{<:AbstractNewStorageUnit})
+@mustimplement "Storage" record_type(::Type{<:AbstractRecordUnit}) = nothing
 
 "Returns the type of storage unit that stores a type of record."
-@mustimplement "Storage" storage_unit_type(::Type{<:AbstractNewRecord})
+@mustimplement "Storage" storage_unit_type(::Type{<:AbstractRecord}) = nothing
 
-struct NewStorage{ModelType}
+struct Storage{ModelType}
     model::ModelType
-    units::Dict{DataType,NewStorageUnitManager}
-    NewStorage(model::M) where {M} = new{M}(model, Dict{DataType,NewStorageUnitManager}())
+    units::Dict{DataType,RecordUnitManager}
+    Storage(model::M) where {M} = new{M}(model, Dict{DataType,RecordUnitManager}())
 end
 
-function _get_storage_unit_manager!(storage, ::Type{StorageUnitType}) where {StorageUnitType<:AbstractNewStorageUnit}
+function _get_storage_unit_manager!(storage, ::Type{StorageUnitType}) where {StorageUnitType<:AbstractRecordUnit}
     storage_unit_manager = get(storage.units, StorageUnitType, nothing)
     if isnothing(storage_unit_manager)
-        storage_unit_manager = NewStorageUnitManager(StorageUnitType, storage.model)
+        storage_unit_manager = RecordUnitManager(StorageUnitType, storage.model)
         storage.units[StorageUnitType] = storage_unit_manager
     end
     return storage_unit_manager
@@ -56,10 +56,10 @@ end
 Returns a Record that contains a description of the state of the storage unit at the time 
 when the method is called.
 """
-function create_record(storage, ::Type{StorageUnitType}) where {StorageUnitType<:AbstractNewStorageUnit}
+function create_record(storage, ::Type{StorageUnitType}) where {StorageUnitType<:AbstractRecordUnit}
     storage_unit_manager = _get_storage_unit_manager!(storage, StorageUnitType)
     id = storage_unit_manager.active_record_id += 1
-    return new_record(
+    return record(
         record_type(StorageUnitType),
         id,
         storage.model,
@@ -67,12 +67,8 @@ function create_record(storage, ::Type{StorageUnitType}) where {StorageUnitType<
     )
 end
 
-"""
-    restore_from_record!(storage, record)
 
-Restores the state of the storage unit using the record that was previously generated.
-"""
-function restore_from_record!(storage::NewStorage, record::RecordType) where {RecordType} 
+function restore_from_record!(storage::Storage, record::RecordType) where {RecordType} 
     storage_unit_manager = _get_storage_unit_manager!(storage, storage_unit_type(RecordType))
     restore_from_record!(storage.model, storage_unit_manager.storage_unit, record)
     return true

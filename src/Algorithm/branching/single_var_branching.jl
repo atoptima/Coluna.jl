@@ -8,7 +8,7 @@ It is an implementation of AbstractBranchingCandidate.
 This is the type of branching candidates produced by the branching rule 
 `SingleVarBranchingRule`.
 """
-mutable struct SingleVarBranchingCandidate{Node<:AbstractNode} <: AbstractBranchingCandidate
+mutable struct SingleVarBranchingCandidate{Node<:TreeSearch.AbstractNode} <: Branching.AbstractBranchingCandidate
     varname::String
     varid::VarId
     local_id::Int64
@@ -19,17 +19,17 @@ mutable struct SingleVarBranchingCandidate{Node<:AbstractNode} <: AbstractBranch
     parent::Union{Nothing,Node}
     function SingleVarBranchingCandidate(
         varname::String, varid::VarId, local_id::Int64, lhs::Float64, parent::N
-    ) where {N<:AbstractNode}
+    ) where {N<:TreeSearch.AbstractNode}
         return new{N}(varname, varid, local_id, lhs, 0.0, SbNode[], false, parent)
     end
 end
 
-getdescription(candidate::SingleVarBranchingCandidate) = candidate.varname
-get_lhs(candidate::SingleVarBranchingCandidate) = candidate.lhs
-get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
-get_children(candidate::SingleVarBranchingCandidate) = candidate.children
-set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
-get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
+Branching.getdescription(candidate::SingleVarBranchingCandidate) = candidate.varname
+Branching.get_lhs(candidate::SingleVarBranchingCandidate) = candidate.lhs
+Branching.get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
+Branching.get_children(candidate::SingleVarBranchingCandidate) = candidate.children
+Branching.set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
+Branching.get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
 function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, reform)
     units_to_restore = UnitsUsage()
@@ -38,12 +38,12 @@ function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, refo
     return units_to_restore
 end
 
-function generate_children!(
+function Branching.generate_children!(
     candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
-    parent::AbstractNode
+    parent::TreeSearch.AbstractNode
 )
     master = getmaster(reform)
-    lhs = get_lhs(candidate)
+    lhs = Branching.get_lhs(candidate)
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",
@@ -91,7 +91,7 @@ This branching rule allows the divide algorithm to branch on single integer vari
 For instance, `SingleVarBranchingRule` can produce the branching `x <= 2` and `x >= 3` 
 where `x` is a scalar integer variable.
 """
-struct SingleVarBranchingRule <: AbstractBranchingRule end
+struct SingleVarBranchingRule <: Branching.AbstractBranchingRule end
 
 # SingleVarBranchingRule does not have child algorithms
 
@@ -100,7 +100,7 @@ function get_units_usage(::SingleVarBranchingRule, reform::Reformulation)
 end
 
 # TODO : unit tests (especially branching priority).
-function apply_branching_rule(::SingleVarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
+function Branching.apply_branching_rule(::SingleVarBranchingRule, env::Env, reform::Reformulation, input::Branching.BranchingRuleInput)
     # Single variable branching works only for the original solution.
     if !input.isoriginalsol
         return SingleVarBranchingCandidate[]

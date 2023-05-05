@@ -14,7 +14,8 @@ function clonevar!(
     is_active::Bool = isperenactive(originform, var),
     is_explicit::Bool = isexplicit(originform, var),
     branching_priority::Float64 = getbranchingpriority(originform, var),
-    members::Union{ConstrMembership,Nothing} = nothing
+    members::Union{ConstrMembership,Nothing} = nothing,
+    custom_data = getcustomdata(originform, var)
 )
     id_of_clone = VarId(
         getid(var);
@@ -26,7 +27,7 @@ function clonevar!(
         cost = cost, lb = lb, ub = ub, kind = kind,
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit, 
         branching_priority = branching_priority, members = members, 
-        id = id_of_clone
+        id = id_of_clone, custom_data = custom_data
     )
 end
 
@@ -44,7 +45,8 @@ function cloneconstr!(
     is_active::Bool = isperenactive(originform, constr),
     is_explicit::Bool = isexplicit(originform, constr),
     members::Union{VarMembership,Nothing}  = nothing,
-    loc_art_var_abs_cost::Float64 = 0.0
+    loc_art_var_abs_cost::Float64 = 0.0,
+    custom_data = getcustomdata(originform, constr)
 )
     id_of_clone = ConstrId(
         getid(constr);
@@ -56,7 +58,7 @@ function cloneconstr!(
         rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
         is_active = is_active, is_explicit = is_explicit, members = members,
         loc_art_var_abs_cost = loc_art_var_abs_cost, 
-        id = id_of_clone
+        id = id_of_clone, custom_data = custom_data
     )
 end
 

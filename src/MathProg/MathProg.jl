@@ -7,7 +7,7 @@ import TimerOutputs
 using ..Coluna # for NestedEnum (types.jl:210)
 using ..ColunaBase
 
-import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
+import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view, isequal
 
 using DynamicSparseArrays, SparseArrays, Logging, Printf, LinearAlgebra
 
@@ -47,7 +47,7 @@ export  MaxSense, MinSense,
 export no_optimizer_builder, set_original_formulation!,
        getid,
        enforce_integrality!, relax_integrality!,
-       getobjsense, getoptimizer,
+       getobjsense, getoptimizer, getoptimizers,
        update!,
        getduty,
        computereducedrhs,
@@ -91,7 +91,8 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, isfixed, fix!, unfix!
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, isfixed, fix!, unfix!,
+    getcustomdata
 
 # Types & methods related to solutions & bounds
 export PrimalBound, DualBound, AbstractSolution, PrimalSolution, DualSolution, ActiveBound, ObjValues,

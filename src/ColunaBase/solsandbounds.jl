@@ -117,10 +117,10 @@ isunbounded(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == -Inf
 
 Return true is the primal bound or the dual bound is infeasible.
 """
-isinfeasible(b::Bound{<:Primal,<:MinSense}) = getvalue(b) == Inf
-isinfeasible(b::Bound{<:Dual,<:MinSense}) = getvalue(b) == -Inf
-isinfeasible(b::Bound{<:Primal,<:MaxSense}) = getvalue(b) == -Inf
-isinfeasible(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == Inf
+isinfeasible(b::Bound{<:Primal,<:MinSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound{<:Dual,<:MinSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound{<:Primal,<:MaxSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound{<:Dual,<:MaxSense}) = isnothing(getvalue(b))
 
 """
     printbounds(db, pb [, io])
@@ -175,8 +175,7 @@ is translated into a Coluna `TerminationStatus`.
 Description of the termination statuses: 
 - `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance
 - `INFEASIBLE` : the algorithm proved infeasibility
-- `DUAL_INFEASIBLE` : the algorithm proved unboundedness
-- `INFEASIBLE_OR_UNBOUNDED` : the algorithm proved infeasibility or unboundedness
+- `UNBOUNDED` : the algorithm proved unboundedness
 - `TIME_LIMIT` : the algorithm stopped because of the time limit
 - `NODE_LIMIT` : the branch-and-bound based algorithm stopped due to the node limit
 - `OTHER_LIMIT` : the algorithm stopped because of a limit that is neither the time limit 
@@ -189,7 +188,7 @@ If the conversion of a `MOI.TerminationStatusCode` returns `UNCOVERED_TERMINATIO
 Coluna should stop because it enters in an undefined behavior.
 """
 @enum(
-    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, DUAL_INFEASIBLE, INFEASIBLE_OR_UNBOUNDED,
+    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, UNBOUNDED,
     TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS
 )
 
@@ -223,8 +222,9 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMIZE_NOT_CALLED && return OPTIMIZE_NOT_CALLED
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
-    moi_status == MOI.DUAL_INFEASIBLE && return DUAL_INFEASIBLE
-    moi_status == MOI.INFEASIBLE_OR_UNBOUNDED && return INFEASIBLE_OR_UNBOUNDED
+    moi_status == MOI.DUAL_INFEASIBLE && return UNBOUNDED
+    # TODO: Happens in MIP presolve (cf JuMP doc), we treat this case as unbounded. 
+    moi_status == MOI.INFEASIBLE_OR_UNBOUNDED && return UNBOUNDED
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
     moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
     moi_status == MOI.OTHER_LIMIT && return OTHER_LIMIT
@@ -234,9 +234,8 @@ end
 function convert_status(coluna_status::TerminationStatus)
     coluna_status == OPTIMIZE_NOT_CALLED && return MOI.OPTIMIZE_NOT_CALLED
     coluna_status == OPTIMAL && return MOI.OPTIMAL
-    coluna_status == INFEASIBLE_OR_UNBOUNDED && return MOI.INFEASIBLE_OR_UNBOUNDED
+    coluna_status == UNBOUNDED && return MOI.DUAL_INFEASIBLE
     coluna_status == INFEASIBLE && return MOI.INFEASIBLE
-    coluna_status == DUAL_INFEASIBLE && return MOI.DUAL_INFEASIBLE
     coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
     coluna_status == NODE_LIMIT && return MOI.NODE_LIMIT
     coluna_status == OTHER_LIMIT && return MOI.OTHER_LIMIT
@@ -285,7 +284,7 @@ Create a solution to the `model`. Other arguments are:
 function Solution{Mo,De,Va}(
     model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus
 ) where {Mo<:AbstractModel,De,Va}
-    sol = sparsevec(decisions, values, Coluna.MAX_NB_ELEMS)
+    sol = sparsevec(decisions, values, typemax(Int32)) #Coluna.MAX_NB_ELEMS)
     return Solution(model, solution_value, status, sol)
 end
 
@@ -370,7 +369,7 @@ function Base.show(io::IOContext, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
 end
 
 # Todo : revise method
-Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))
+Base.copy(s::S) where {S<:Solution} = S(s.model, s.bound, s.status, copy(s.sol))
 
 # Implementing comparison between solution & dynamic matrix col view for solution comparison
 function Base.:(==)(v1::DynamicMatrixColView, v2::Solution)
