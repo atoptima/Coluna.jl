@@ -68,7 +68,7 @@ module Parser
         # MasterRepPricingSetupVar
         "pricing_setup" => ClMP.MasterRepPricingSetupVar,
         # Benders first stage variable
-        "first_stage" => ClMP.MasterBendFirstStageVar,
+        "first_stage" => ClMP.MasterPureVar,
         "second_stage_cost" => ClMP.MasterBendSecondStageCostVar,
         # Benders second stage variable
         "second_stage" => ClMP.BendSpSepVar,
@@ -298,7 +298,7 @@ module Parser
 
     read_variables!(::Any, ::Any, ::ReadCache, ::AbstractString) = nothing
 
-    function create_subproblems!(::Val{:subproblem}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
+    function create_subproblems!(::Val{:subproblem}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache, ::Nothing)
         i = 1
         constraints = ClMP.Constraint[]
         subproblems = []
@@ -343,27 +343,29 @@ module Parser
         return subproblems, all_spvars, constraints
     end
 
-    function create_subproblems!(::Val{:separation}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache)
+    function create_subproblems!(::Val{:separation}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache, master, mastervars)
         i = 1
         constraints = ClMP.Constraint[]
         subproblems = []
         all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.BendersSp}}}()
         for (_, sp) in cache.subproblems
-            spform = nothing
+            spform = ClMP.create_formulation!(
+                env,
+                ClMP.BendersSp();
+                obj_sense = sp.sense
+            )
             for (varid, cost) in sp.objective.vars
                 if haskey(cache.variables, varid)
                     var = cache.variables[varid]
-                    if var.duty <= ClMP.BendSpSecondStageSlackVar || var.duty <= ClMP.BendSpSepVar || var.duty <= ClMP.MasterBendFirstStageVar || var.duty <= ClMP.MasterBendSecondStageCostVar
+                    if var.duty <= ClMP.BendSpSecondStageSlackVar || var.duty <= ClMP.BendSpSepVar
                         explicit = true
-                        if isnothing(spform)
-                            spform = ClMP.create_formulation!(
-                                env,
-                                ClMP.BendersSp();
-                                obj_sense = sp.sense
-                            )
-                        end
                         duty = var.duty
-                        if var.duty <= ClMP.MasterBendFirstStageVar
+                        v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = explicit)
+                        ClMP.setperencost!(spform, v, cost)
+                        all_spvars[varid] = (v, spform)
+                    end
+                    if var.duty <= ClMP.MasterPureVar || var.duty <= ClMP.MasterBendSecondStageCostVar
+                        if var.duty <= ClMP.MasterPureVar
                             duty = ClMP.BendSpFirstStageRepVar
                             explicit = false
                         end
@@ -371,9 +373,12 @@ module Parser
                             duty = ClMP.BendSpCostRepVar
                             explicit = false
                         end
-                        v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = explicit)
-                        ClMP.setperencost!(spform, v, cost)
+                        master_var = mastervars[varid]
+                        v = ClMP.clonevar!(master, spform, master, master_var, duty; cost = ClMP.getcurcost(master, master_var), is_explicit = false)
                         all_spvars[varid] = (v, spform)
+                        if var.duty <= ClMP.MasterBendSecondStageCostVar
+                            spform.duty_data.second_stage_cost_var = ClMP.getid(v)
+                        end
                     end
                 else
                     throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
@@ -396,25 +401,14 @@ module Parser
         return subproblems, all_spvars, constraints
     end
 
-    _sp_duty_data!(sp::ClMP.Formulation{ClMP.DwSp}, sp_var, master_var, duty) = nothing
-    function _sp_duty_data!(sp::ClMP.Formulation{ClMP.BendersSp}, sp_var, master_var, duty)
-        if duty <= ClMP.MasterBendSecondStageCostVar
-            sp.duty_data.second_stage_cost_var = ClMP.getid(master_var)
-        end
-    end
-
-    function add_master_vars!(master::ClMP.Formulation, master_duty, all_spvars::Dict, cache::ReadCache)
+    function add_dw_master_vars!(master::ClMP.Formulation, master_duty, all_spvars::Dict, cache::ReadCache)
         mastervars = Dict{String, ClMP.Variable}()
         for (varid, cost) in cache.master.objective.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
-                if (typeof(master_duty) <: ClMP.DwMaster && var.duty <= ClMP.AbstractOriginMasterVar) || var.duty <= ClMP.AbstractAddedMasterVar
+                if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
                     is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
                     v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
-                    if haskey(all_spvars, varid)
-                        var, sp = all_spvars[varid]
-                        _sp_duty_data!(sp, var, v, ClMP.getduty(ClMP.getid(v)))
-                    end
                 else
                     if haskey(all_spvars, varid)
                         var, sp = all_spvars[varid]
@@ -427,11 +421,25 @@ module Parser
                             explicit = true
                         end
                         v = ClMP.clonevar!(sp, master, sp, var, duty; cost = ClMP.getcurcost(sp, var), is_explicit = explicit)
-                        _sp_duty_data!(sp, var, v, ClMP.getduty(ClMP.getid(var)))
                     else
                         throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                     end
                 end
+                ClMP.setperencost!(master, v, cost)
+                mastervars[varid] = v
+            else
+                throw(UndefVarParserError("Variable $varid duty and/or kind not defined"))
+            end
+        end
+        return mastervars
+    end
+
+    function add_bend_master_vars!(master::ClMP.Formulation, master_duty, cache::ReadCache)
+        mastervars = Dict{String, ClMP.Variable}()
+        for (varid, cost) in cache.master.objective.vars
+            if haskey(cache.variables, varid)
+                var = cache.variables[varid]
+                v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = true)
                 ClMP.setperencost!(master, v, cost)
                 mastervars[varid] = v
             else
@@ -494,17 +502,32 @@ module Parser
 
         dec = cache.benders_sp_type ? Val(:separation) : Val(:subproblem)
         master_duty = cache.benders_sp_type ? ClMP.BendersMaster() : ClMP.DwMaster()
-        subproblems, all_spvars, constraints = create_subproblems!(dec, env, reform, cache)
-        master = ClMP.create_formulation!(
-            env,
-            master_duty;
-            obj_sense = cache.master.sense,
-            parent_formulation = reform
-        )
-        ClMP.setmaster!(reform, master)
-        mastervars = add_master_vars!(master, master_duty, all_spvars, cache)
-        ClMP.setobjconst!(master, cache.master.objective.constant)
-        add_master_constraints!(reform, master, mastervars, constraints, cache)
+
+        if cache.benders_sp_type
+            master = ClMP.create_formulation!(
+                env,
+                master_duty;
+                obj_sense = cache.master.sense,
+                parent_formulation = reform
+            )
+            ClMP.setmaster!(reform, master)
+            mastervars = add_bend_master_vars!(master, master_duty, cache)
+            ClMP.setobjconst!(master, cache.master.objective.constant)
+            subproblems, all_spvars, constraints = create_subproblems!(dec, env, reform, cache, master, mastervars)
+            add_master_constraints!(reform, master, mastervars, constraints, cache)
+        else
+            subproblems, all_spvars, constraints = create_subproblems!(dec, env, reform, cache, nothing)
+            master = ClMP.create_formulation!(
+                env,
+                master_duty;
+                obj_sense = cache.master.sense,
+                parent_formulation = reform
+            )
+            ClMP.setmaster!(reform, master)
+            mastervars = add_dw_master_vars!(master, master_duty, all_spvars, cache)
+            ClMP.setobjconst!(master, cache.master.objective.constant)
+            add_master_constraints!(reform, master, mastervars, constraints, cache)
+        end
 
         for sp in subproblems
             sp.parent_formulation = master
