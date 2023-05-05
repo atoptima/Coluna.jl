@@ -107,53 +107,53 @@ function benders_form_A()
 end
 
 
-function benders_form_B()
-    #using JuMP, GLPK
-    #m = Model(GLPK.Optimizer)
-    #@variable(m, x[1:2] >= 0)
-    #@variable(m, y[1:2] >= 0)
-    #@constraint(m, -x[1] + x[2] + y[1] - 0.5y[2] >= 4)
-    #@constraint(m, 2x[1] + 1.5x[2] + y[1] + y[2] >= 5)
-    #@objective(m, Min, x[1] + 2x[2] + 1.5y[1] + y[2])
-    #optimize!(m)
-    #objective_value(m)
-    #value.(x)
-    #value.(y)
-    form = """
-    master
-        min
-        x1 + 2x2 + 1.5y1 + 1y2 + z
-        s.t.
-        x1 + x2 >= 0
+# function benders_form_B()
+#     #using JuMP, GLPK
+#     #m = Model(GLPK.Optimizer)
+#     #@variable(m, x[1:2] >= 0)
+#     #@variable(m, y[1:2] >= 0)
+#     #@constraint(m, -x[1] + x[2] + y[1] - 0.5y[2] >= 4)
+#     #@constraint(m, 2x[1] + 1.5x[2] + y[1] + y[2] >= 5)
+#     #@objective(m, Min, x[1] + 2x[2] + 1.5y[1] + y[2])
+#     #optimize!(m)
+#     #objective_value(m)
+#     #value.(x)
+#     #value.(y)
+#     form = """
+#     master
+#         min
+#         x1 + 2x2 + 1.5y1 + 1y2 + z
+#         s.t.
+#         x1 + x2 >= 0
 
-    benders_sp
-        min
-        0x1 + 0x2 + 1.5y1 + y2 + z
-        s.t.
-        -x1 + x2 + y1 - 0.5y2 >= 4 {BendTechConstr}
-        2x1 + 1.5x2 + y1 + y2 >= 5 {BendTechConstr}
-        y1 + y2 >= 0
+#     benders_sp
+#         min
+#         0x1 + 0x2 + 1.5y1 + y2 + z
+#         s.t.
+#         -x1 + x2 + y1 - 0.5y2 >= 4 {BendTechConstr}
+#         2x1 + 1.5x2 + y1 + y2 >= 5 {BendTechConstr}
+#         y1 + y2 >= 0
 
-    integer
-        first_stage
-            x1, x2
+#     integer
+#         first_stage
+#             x1, x2
 
-    continuous
-        second_stage_cost
-            z
-        second_stage
-            y1, y2
+#     continuous
+#         second_stage_cost
+#             z
+#         second_stage
+#             y1, y2
     
-    bounds
-        -Inf <= z <= Inf
-        x1 >= 0
-        x2 >= 0
-        y1 >= 0
-        y2 >= 0
-    """
-    env, _, _, _, reform = reformfromstring(form)
-    return env, reform
-end
+#     bounds
+#         -Inf <= z <= Inf
+#         x1 >= 0
+#         x2 >= 0
+#         y1 >= 0
+#         y2 >= 0
+#     """
+#     env, _, _, _, reform = reformfromstring(form)
+#     return env, reform
+# end
 
 
 function benders_form_B()
@@ -171,7 +171,7 @@ function benders_form_B()
     form = """
     master
         min
-        x1 + 2x2 + 1.5y1 + 1y2 + z
+        x1 + 2x2 + z
         s.t.
         x1 + x2 >= 0
 
@@ -218,44 +218,44 @@ function benders_form_C()
    #value.(x)
    #value.(y)
    form = """
-   master
-       min
-       6x1 + 1x2 + 1.5y1 + 1y2 + 1.5y3 + 0.5y4 + z1 + z2
-       s.t.
-       x1 + x2 >= 0
-
-   benders_sp
-       min
-       0x1 + 0x2 + 1.5y1 + y2 + z1
-       s.t.
-       2x1 - x2 + 0.5y1 - y2 >= 5 {BendTechConstr}
-       y1 + y2 >= 0
-
-   benders_sp
+    master
         min
-        0x1 + 0x2 + 1.5y3 + 0.5y4
+        6x1 + 1x2 + z1 + z2
+        s.t.
+        x1 + x2 >= 0
+
+    benders_sp
+        min
+        0x1 + 0x2 + 1.5y1 + y2 + z1
+        s.t.
+        2x1 - x2 + 0.5y1 - y2 >= 5 {BendTechConstr}
+        y1 + y2 >= 0
+
+    benders_sp
+        min
+        0x1 + 0x2 + 1.5y3 + 0.5y4 + z2
         s.t.
         1x1 + 3x2 - 1.5y3 + 1y4 >= 3 {BendTechConstr}
         y3 + y4 >= 0
 
-   integer
-       first_stage
-           x1, x2
+    integer
+        first_stage
+            x1, x2
 
-   continuous
-       second_stage_cost
-           z1, z2
-       second_stage
-           y1, y2, y3, y4
-   
-   bounds
-       -Inf <= z <= Inf
-       x1 >= 0
-       x2 >= 0
-       y1 >= 0
-       y2 >= 0
-       y3 >= 0
-       y4 >= 0
+    continuous
+        second_stage_cost
+            z1, z2
+        second_stage
+            y1, y2, y3, y4
+    
+    bounds
+        -Inf <= z <= Inf
+        x1 >= 0
+        x2 >= 0
+        y1 >= 0
+        y2 >= 0
+        y3 >= 0
+        y4 >= 0
    """
    env, _, _, _, reform = reformfromstring(form)
    return env, reform
@@ -677,8 +677,7 @@ function benders_sp_C_continuous()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 15.25
 end
-register!(unit_tests, "benders_default", benders_sp_C_continuous;  x = true)
-
+register!(unit_tests, "benders_default", benders_sp_C_continuous)
 
 # C with integer first stage
 # Error occurs during test, TODO fix
@@ -710,7 +709,7 @@ function benders_sp_C_integer()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 15.5
 end
-register!(unit_tests, "benders_default", benders_sp_C_integer;  x = true)
+register!(unit_tests, "benders_default", benders_sp_C_integer)
 
 
 # test FAIL
