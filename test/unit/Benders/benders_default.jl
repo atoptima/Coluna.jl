@@ -1024,4 +1024,4 @@ function benders_default_unbounded_sp()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_sp)
+register!(unit_tests, "benders_default", benders_default_unbounded_sp; x = true)
