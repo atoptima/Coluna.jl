@@ -364,18 +364,18 @@ end
 
 function benders_form_infeasible_sp()
     #A infeasible subproblem
-    #using JuMP, GLPK
-    #m = Model(GLPK.Optimizer)
-    #@variable(m, x[1:2]>= 0, Int)
-    #@variable(m, y[1:2] >= 0)
-    #@constraint(m, -x[1] + 4x[2] + 2y[1] + 3y[2] >= 2)
-    #@constraint(m, x[1] + 3x[2] + y[1] + y[2] >= 3)
-    #@constraint(m, 7x[2] + 3y[1] + 4y[2] <= 4)
-    #@objective(m, Min, x[1] + 4x[2] + 2y[1] + 3y[2])
-    #optimize!(m)
-    #objective_value(m)
-    #value.(x)
-    #value.(y)
+    # using JuMP, GLPK
+    # m = Model(GLPK.Optimizer)
+    # @variable(m, x[1:2]>= 0, Int)
+    # @variable(m, y[1:2] >= 0)
+    # @constraint(m, -x[1] + 4x[2] + 2y[1] + 3y[2] >= 2)
+    # @constraint(m, x[1] + 3x[2] + y[1] + y[2] >= 3)
+    # @constraint(m, 7x[2] + 3y[1] + 4y[2] <= 4)
+    # @objective(m, Min, x[1] + 4x[2] + 2y[1] + 3y[2])
+    # optimize!(m)
+    # objective_value(m)
+    # value.(x)
+    # value.(y)
 
     form = """
     master
@@ -386,12 +386,12 @@ function benders_form_infeasible_sp()
 
     benders_sp
         min
-        0x1 + 0x2 + 2y1 + 3y2 + z
+        0x1 + 0x2 + 2y1 + 3y2 + a1 + a2 + a3 + a4 + z
         s.t.
-        -x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
-        x1 + 3x2 + y1 + y2 >= 3 {BendTechConstr}
-        7x2 + 3y1 + 4y2 <= 4 {BendTechConstr}
-        y1 + y2 >= 0
+        -x1 + 4x2 + 2y1 + 3y2 + a1 >= 2 {BendTechConstr}
+        x1 + 3x2 + y1 + y2 + a2 >= 3 {BendTechConstr}
+        7x2 + 3y1 + 4y2 - a3 <= 4 {BendTechConstr}
+        y1 + y2 + a4 >= 0
 
     integer
         first_stage
@@ -402,6 +402,8 @@ function benders_form_infeasible_sp()
             z
         second_stage
             y1, y2
+        second_stage_artificial
+            a1, a2, a3, a4
     
     bounds
         -Inf <= z <= Inf
@@ -409,10 +411,13 @@ function benders_form_infeasible_sp()
         x2 >= 0
         y1 >= 0
         y2 >= 0
+        a1 >= 0
+        a2 >= 0
+        a3 >= 0
+        a4 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
     return env, reform
-
 end
 
 function benders_form_lower_bound()
@@ -861,10 +866,10 @@ function benders_default_infeasible_master()
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
-    @test result.infeasible_master == true
+    @test result.infeasible == true
 
 end
-register!(unit_tests, "benders_default", benders_default_infeasible_master; x = true)
+register!(unit_tests, "benders_default", benders_default_infeasible_master)
 
 # A formulation with infeasible sp constraint
 # ERROR during test, but maybe I don't check the infeasibility of the sp in a proper way ?
@@ -889,10 +894,10 @@ function benders_default_infeasible_sp()
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
-    @test result.infeasible_sp == true
+    @test result.infeasible == true
 
 end
-register!(unit_tests, "benders_default", benders_default_infeasible_sp; x = true)
+register!(unit_tests, "benders_default", benders_default_infeasible_sp)
 
 
 # form A with lower bound on y variables equal to 5
@@ -972,10 +977,19 @@ function benders_default_unbounded_master()
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 10
     )
-    ctx = Coluna.Algorithm.BendersContext(reform, alg)
+    ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg;
+        print = true,
+        debug_print_master = true,
+        debug_print_master_primal_solution = true,
+        debug_print_master_dual_solution = true,
+        debug_print_subproblem = true,
+        debug_print_subproblem_primal_solution = true,
+        debug_print_subproblem_dual_solution = true,
+        debug_print_generated_cuts = true,
+    )
     Coluna.set_optim_start_time!(env)
 
-    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
 register!(unit_tests, "benders_default", benders_default_unbounded_master; x = true)
 
@@ -1000,6 +1014,6 @@ function benders_default_unbounded_sp()
     ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg)
     Coluna.set_optim_start_time!(env)
 
-    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
 register!(unit_tests, "benders_default", benders_default_unbounded_sp; x = true)

@@ -222,6 +222,7 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMIZE_NOT_CALLED && return OPTIMIZE_NOT_CALLED
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
+    moi_status == MOI.LOCALLY_INFEASIBLE && return INFEASIBLE
     moi_status == MOI.DUAL_INFEASIBLE && return UNBOUNDED
     # TODO: Happens in MIP presolve (cf JuMP doc), we treat this case as unbounded. 
     moi_status == MOI.INFEASIBLE_OR_UNBOUNDED && return UNBOUNDED

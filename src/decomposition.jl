@@ -220,7 +220,7 @@ function instantiate_orig_constrs!(
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
     for (_, constr) in constrs
-        cloneconstr!(origform, spform, spform, constr, DwSpPureConstr; loc_art_var_abs_cost = 1)
+        cloneconstr!(origform, spform, spform, constr, DwSpPureConstr; loc_art_var_abs_cost = 1.0)
     end
     return
 end
@@ -345,11 +345,7 @@ function instantiate_orig_constrs!(
     constrs = annotations.constrs_per_ann[sp_ann]
     for (_, constr) in constrs
         duty, explicit  = _dutyexpofbendspconstr(constr, annotations, origform)
-        art_var_cost = 0.0
-        if duty == BendSpTechnologicalConstr
-            art_var_cost = 1.0
-        end
-        cloneconstr!(origform, spform, spform, constr, duty, is_explicit = explicit, loc_art_var_abs_cost = art_var_cost)
+        cloneconstr!(origform, spform, spform, constr, duty, is_explicit = explicit, loc_art_var_abs_cost = 1.0)
     end
     return
 end
