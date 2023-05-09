@@ -85,7 +85,7 @@ BendersSp() = BendersSp(Dict{VarId, VarId}(), nothing)
                     BendSpPosSlackFirstStageVar <= BendSpSlackFirstStageVar
                     BendSpNegSlackFirstStageVar <= BendSpSlackFirstStageVar
                 BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
-                BendSpSecondStageSlackVar <= AbstractBendSpSlackMastVar
+                BendSpSecondStageArtVar <= AbstractBendSpSlackMastVar
             BendSpSepVar <= AbstractBendSpVar
             BendSpFirstStageRepVar <= AbstractBendSpVar
             BendSpCostRepVar <= AbstractBendSpVar
@@ -175,5 +175,5 @@ function isanOriginalRepresentatives(duty::NestedEnum)
 end
 
 function isanArtificialDuty(duty::NestedEnum)
-    return duty <= MasterArtVar
+    return duty <= MasterArtVar || duty <= BendSpSecondStageArtVar
 end

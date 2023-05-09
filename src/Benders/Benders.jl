@@ -63,11 +63,14 @@ abstract type AbstractBendersOutput end
 
 @mustimplement "BendersMasterResult" get_obj_val(master_res) = nothing
 
+@mustimplement "Benders" setup_reformulation!(reform, env) = nothing
+
 function run_benders_loop!(context, env; iter = 1)
     iteration = iter
     phase = nothing
     ip_primal_sol = nothing
     benders_iter_output = nothing
+    setup_reformulation!(get_reform(context), env)
     while !stop_benders(context, benders_iter_output, iteration)
         benders_iter_output = run_benders_iteration!(context, phase, env, ip_primal_sol)
         after_benders_iteration(context, phase, env, iteration, benders_iter_output)

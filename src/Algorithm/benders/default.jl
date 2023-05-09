@@ -36,6 +36,17 @@ Benders.is_minimization(ctx::BendersContext) = ctx.optim_sense == MinSense
 Benders.get_reform(ctx::BendersContext) = ctx.reform
 Benders.get_master(ctx::BendersContext) = getmaster(ctx.reform)
 Benders.get_benders_subprobs(ctx::BendersContext) = get_benders_sep_sps(ctx.reform)
+
+_deactivate_art_vars(sp) = deactivate!(sp, vcid -> isanArtificialDuty(getduty(vcid)))
+_activate_art_vars(sp) = activate!(sp, vcid -> isanArtificialDuty(getduty(vcid)))
+
+function Benders.setup_reformulation!(reform::Reformulation, env)
+    for (_, sp) in get_benders_sep_sps(reform)
+        _deactivate_art_vars(sp)
+    end
+    return
+end
+
 struct BendersMasterResult{F,S}
     ip_solver::Bool
     result::OptimizationState{F,S}
@@ -201,12 +212,40 @@ end
 
 Benders.get_primal_sol(res::BendersSeparationResult) = get_best_lp_primal_sol(res.result)
 
+# This is a kind of phase 1 for the separation problem when it is infeasible.
+function _optimize_feasibility_separation_problem!(ctx, sp::Formulation{BendersSp}, env)
+    for (varid, _) in getvars(sp)
+        if !isanArtificialDuty(getduty(varid))
+            setcurcost!(sp, varid, 0.0)
+        end
+    end
+    _activate_art_vars(sp)
+
+    input = OptimizationState(sp)
+    opt_state = run!(ctx.separation_solve_alg, env, sp, input)
+
+    infeasible = getterminationstatus(opt_state) == INFEASIBLE
+    dual_sol = if getterminationstatus(opt_state) == OPTIMAL
+        get_best_lp_dual_sol(opt_state)
+    elseif infeasible
+       error("infeasible")
+    else
+        error("no dual solution to separation subproblem.")
+    end
+
+    for (varid, _) in getvars(sp)
+        if !isanArtificialDuty(getduty(varid))
+            setcurcost!(sp, varid, getperencost(sp, varid))
+        end
+    end
+    _deactivate_art_vars(sp)
+    return dual_sol
+end
+
 function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env)
     spid = getuid(sp)
     input = OptimizationState(sp)
     opt_state = run!(ctx.separation_solve_alg, env, sp, input)
-
-    @show getterminationstatus(opt_state)
 
     cut_lhs = Dict{VarId, Float64}()
 
@@ -218,9 +257,7 @@ function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulati
     dual_sol = if getterminationstatus(opt_state) == OPTIMAL
         get_best_lp_dual_sol(opt_state)
     elseif infeasible
-        certificates = MathProg.get_primal_infeasibility_certificate(sp, getoptimizer(sp, 1))
-        @assert length(certificates) >= 1
-        first(certificates)
+        _optimize_feasibility_separation_problem!(ctx, sp, env)
     else
         error("no dual solution to separation subproblem.")
     end
@@ -237,7 +274,7 @@ function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulati
         if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
             bounds_contrib_to_rhs += val * getcurlb(sp, varid)
         elseif active_bound == MathProg.UPPER
-            bounds_contrib_to_rhs -= val * getcurub(sp, varid)
+            bounds_contrib_to_rhs += val * getcurub(sp, varid)
         end
     end
 
@@ -350,4 +387,8 @@ function Benders.stop_benders(ctx::BendersContext, benders_iteration_output::Ben
         benders_iteration_output.time_limit_reached ||
         benders_iteration_output.nb_new_cuts <= 0 ||
         ctx.nb_benders_iteration_limits <= benders_iteration
+end
+
+function Benders.after_benders_iteration(::BendersContext, phase, env, iteration, benders_iter_output)
+    return
 end
