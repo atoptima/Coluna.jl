@@ -130,15 +130,18 @@ function benders_decomposition()
     # 0.0 <= x2 <= Inf (Continuous | BendFirstStageRepVar | true)
     
     subprob = first(values(Coluna.MathProg.get_benders_sep_sps(reform)))
+    @show subprob
     ss_vars = Dict(getname(subprob, varid) => var for (varid, var) in Coluna.MathProg.getvars(subprob))
     ss_constrs = Dict(getname(subprob, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(subprob))
 
-    @test length(ss_vars) == 4
+    @test length(ss_vars) == 6
 
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["y1"])) <= Coluna.MathProg.BendSpSepVar
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["y2"])) <= Coluna.MathProg.BendSpSepVar
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["x1"])) <= Coluna.MathProg.BendSpFirstStageRepVar
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["x2"])) <= Coluna.MathProg.BendSpFirstStageRepVar
+    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["local_art_of_c1"])) <= Coluna.MathProg.BendSpSecondStageArtVar
+    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(ss_vars["local_art_of_c2"])) <= Coluna.MathProg.BendSpSecondStageArtVar
 
     @test Coluna.MathProg.getcurlb(subprob, ss_vars["y1"]) == 0.0
     @test Coluna.MathProg.getcurlb(subprob, ss_vars["y2"]) == 0.0
