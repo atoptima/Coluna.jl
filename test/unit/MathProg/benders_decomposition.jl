@@ -130,7 +130,7 @@ function benders_decomposition()
     # 0.0 <= x2 <= Inf (Continuous | BendFirstStageRepVar | true)
     
     subprob = first(values(Coluna.MathProg.get_benders_sep_sps(reform)))
-    @show subprob
+
     ss_vars = Dict(getname(subprob, varid) => var for (varid, var) in Coluna.MathProg.getvars(subprob))
     ss_constrs = Dict(getname(subprob, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(subprob))
 

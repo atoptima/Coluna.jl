@@ -220,7 +220,7 @@ function instantiate_orig_constrs!(
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
     for (_, constr) in constrs
-        cloneconstr!(origform, spform, spform, constr, DwSpPureConstr)
+        cloneconstr!(origform, spform, spform, constr, DwSpPureConstr; loc_art_var_abs_cost = 1)
     end
     return
 end

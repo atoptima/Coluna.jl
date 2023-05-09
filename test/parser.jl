@@ -72,7 +72,7 @@ module Parser
         "second_stage_cost" => ClMP.MasterBendSecondStageCostVar,
         # Benders second stage variable
         "second_stage" => ClMP.BendSpSepVar,
-        "second_stage_artificial" => ClMP.BendSpSecondStageSlackVar
+        "second_stage_artificial" => ClMP.BendSpSecondStageArtVar
     )
 
     const _KW_CONSTR_DUTIES = Dict(
@@ -357,7 +357,7 @@ module Parser
             for (varid, cost) in sp.objective.vars
                 if haskey(cache.variables, varid)
                     var = cache.variables[varid]
-                    if var.duty <= ClMP.BendSpSecondStageSlackVar || var.duty <= ClMP.BendSpSepVar
+                    if var.duty <= ClMP.BendSpSecondStageArtVar || var.duty <= ClMP.BendSpSepVar
                         explicit = true
                         duty = var.duty
                         v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = explicit)

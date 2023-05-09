@@ -175,5 +175,5 @@ function isanOriginalRepresentatives(duty::NestedEnum)
 end
 
 function isanArtificialDuty(duty::NestedEnum)
-    return duty <= MasterArtVar
+    return duty <= MasterArtVar || duty <= BendSpSecondStageArtVar
 end
