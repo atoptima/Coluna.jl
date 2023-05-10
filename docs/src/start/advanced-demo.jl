@@ -58,7 +58,7 @@ routes_per_locations = 1:nb_routes_per_locations
 
 # First, we solve the problem by a direct approach, using the HiGHS solver. We start by initializing the solver:
 
-model = JuMP.direct_model(HiGHS.Optimizer())
+model = JuMP.Model(HiGHS.Optimizer)
 
 
 # and we declare 3 types of binary variables: 
@@ -75,29 +75,31 @@ model = JuMP.direct_model(HiGHS.Optimizer())
 
 # - "each customer is visited by at least one route"
 @constraint(model, cov[i in customers],
-    sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) >= 1)
-# - "for any route from any facility, its length does not exceed the fixed maximum length `nb_positions`"
-@constraint(model, cardinality[j in facilities, k in routes_per_locations], 
-    sum(x[i, j, k, p] for i in customers, p in positions) <= nb_positions * y[j])
-# - "only one customer can be delivered by a given route at a given position"
-@constraint(model, assign_setup[p in positions, j in facilities, k in routes_per_locations], 
-    sum(x[i, j, k, p] for i in customers) <= y[j])
-# - "a customer can only be delivered at position `p > 1` of a given route if there is a customer delivered at position `p-1` of the same route"
-@constraint(model, open_route[j in facilities, k in routes_per_locations, p in positions; p > 1], 
-    sum(x[i, j, k, p] for i in customers) <= sum(x[i, j, k, p-1] for i in customers)) 
-# - "there is an arc between two customers whose demand is satisfied by the same route at consecutive positions"
-@constraint(model, route_arc[i in customers, l in customers, indi in 1:nb_customers, indl in 1:nb_customers, j in facilities, k in routes_per_locations, p in positions; p > 1 && i != l && indi != indl], 
-    z[customers[indi], customers[indl]] >= x[l, j, k, p] + x[i, j, k, p-1] - 1)
-# - "there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`"
-@constraint(model, start_arc[i in customers, indi in 1:nb_customers, j in facilities, k in routes_per_locations], 
-        z[facilities[j], customers[indi]] >= x[i, j, k, 1]) 
+    sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) == 1)
 
+@constraint(model, setup[j in facilities, k in routes_per_locations],
+    sum(x[i,j,k,1] for i in customers) <= y[j]) 
+
+# - "a customer can only be delivered at position `p > 1` of a given route if there is a customer delivered at position `p-1` of the same route"
+@constraint(model, flow_conservation[j in facilities, k in routes_per_locations, p in positions; p > 1], 
+    sum(x[i, j, k, p] for i in customers) <= sum(x[i, j, k, p-1] for i in customers)) 
+
+# - "there is an arc between two customers whose demand is satisfied by the same route at consecutive positions"
+@constraint(model, route_arc[i in customers, l in customers, j in facilities, k in routes_per_locations, p in positions; p > 1 && i != l], 
+    z[i,l] >= x[l, j, k, p] + x[i, j, k, p-1] - 1)
+
+# - "there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`"
+@constraint(model, start_arc[i in customers, j in facilities, k in routes_per_locations], 
+        z[j,i] >= x[i, j, k, 1]) 
 
 # We set the objective function:
 @objective(model, Min,
     sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) 
     +
     sum(facilities_fixed_costs[j] * y[j] for j in facilities)) 
+
+optimize!(model)
+objective_value(model)
 
 # ##TODO: run direct model
 
@@ -135,9 +137,7 @@ coluna = optimizer_with_attributes(
                         ) ## default branch-cut-and-price
                         ),
                         "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
-)
-                        
-                        
+)                   
 
 # The following method creates the model according to the decomposition described: 
 function create_model()
@@ -147,14 +147,14 @@ function create_model()
     @show Base_axis
 
     model = BlockModel(coluna)
-    
+
     ## Let's declare the variables. We distinct the master variables `y`
     
     @variable(model, y[j in facilities], Bin)
     
     ## from the sub-problem variables `x` and `z`:
     
-    @variable(model, x[i in customers, j in Base_axis] <= 1)
+    @variable(model, x[i in customers, j in Base_axis], Bin)
     @variable(model, z[u in locations, v in locations], Bin)
     
     ## The information carried by the `x` variables may seem redundant with that of the `z` variables. 
@@ -254,8 +254,8 @@ end
 # We store all the information given by the pre-computation in a dictionary. To each facility id we match a vector of routes that are the best visiting orders for each possible subset of customers.
 
 routes_per_facility = Dict(
-                        j => best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
-                      )
+    j => best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
+)
 
 
 # We must also declare methods to calculate the contribution to the reduced cost of the two types of subproblem variables, `x` and `z`:
@@ -330,7 +330,7 @@ function my_pricing_callback(cbdata)
 end
 
 # Create the model:
-(model, x, y, z, _) = create_model()
+model, x, y, z, _ = create_model()
 # Solve:
 JuMP.optimize!(model)
 
@@ -338,15 +338,21 @@ JuMP.optimize!(model)
 
 # ## Strengthen with robust cuts (valid inequalities)
 
-# We want to add some constraints of the form `x_i_j <= y_j ∀i ∈ customers, ∀j ∈ facilities` in order to try to "improve" the integrality of `y_j`. However, there are `nb_customers x nb_facilities` such constraints. Instead of adding all of them, we want to consider a constraint if and only if it is violated, i.e. if the solution found does not respect the constraint (this is a cut generation approach). 
+# We introduce of first type of classic valid inqualities that tries to improve the 
+# integrality of the `y` variables.
 
-# We declare a structure representing an inequality `x_i_j <= y_j`for a fixed facility `j` and a fixed customer `i`:
+# ```math
+# x_{ij} <= y_j; \forall i \in customers, \forall j \in facilities
+# ```
+
+# We declare a structure representing an instance of this inequality:
 struct OpenFacilityInequality
     facility_id::Int
     customer_id::Int
 end
 
-# We write our valid inequalities callback:
+# and we write our valid inequalities callback:
+
 function valid_inequalities_callback(cbdata)
     ## Get variables valuations, store them into dictionaries
     x_vals = Dict(
@@ -356,7 +362,8 @@ function valid_inequalities_callback(cbdata)
         "y_$(j)" => BlockDecomposition.callback_value(cbdata, y[j]) for j in facilities
     )
 
-    ## Separate the valid inequalities i.e. retrieve the inequalities that are violated by the current solution. 
+    ## Separate the valid inequalities (i.e. retrieve the inequalities that are violated by 
+    ## the current solution) by enumeration.
     inequalities = Vector{OpenFacilityInequality}()
 
     for j in facilities
@@ -376,23 +383,40 @@ function valid_inequalities_callback(cbdata)
     end 
 end
 
-# We re-declare the model and solve it with the inequalities_callback:
+# We re-declare the model and optimize it with the inequalities_callback:
 (model, x, y, z, _) = create_model()
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
-# ## TODO: comment on the improvement of the dual bound
-
-
+# TODO: comment on the improvement of the dual bound
 
 # ## Strengthen with non-robust cuts (rank-one cuts)
 
-# ##TODO: describe the goal by looking at lambdas values (if possible?) -> highlight that the aim is to drive them towards integrality
+# Here, we implement special types of cuts called "rank-one cuts" (R1C).
+# These cuts are non-robust in the sense that they cannot be expressed only with the
+# original variables of the model. In particular, they have to be expressed with the master 
+# columns variables $λ_k, k \in K$ where $K$ is the set of generated columns.
 
-# Here, we implement special types of cuts called "rank-one cuts" (R1C). These cuts are non-robust in the sense that they can not be expressed only with the original variables of the model. In particular, they have to be expressed with the master columns variables `λ_k`.
-# R1Cs are obtained by applying the Chvátal-Gomory procedure once, hence their name, on cover constraints. We must therefore be able to differentiate the cover constraints from the other constraints of the model. To do this, we exploit an advantage of Coluna that allows us to attach custom data to the constraints and variables of our model:
+# R1Cs are obtained by applying the Chvátal-Gomory procedure once, 
+# hence their name, on cover constraints.
+# R1Cs have the following form:
 
-# We create a special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint. 
+# ```math
+# \sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_k \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor,  C \subseteq I
+# ```
+
+# where:
+# - $C$ is a subset of customers
+# - $\alpha_c$ is a multiplier
+# - $\tilde{x}^k_{ij}$ is the value of the variable $x_{ij}$ in column k
+
+# We must therefore be able to differentiate the cover constraints from the other
+# constraints of the model. 
+# To do this, we exploit an advantage of Coluna that allows us to attach custom data to the
+# constraints and variables of our model.
+
+# First, we create a special custom data with the only information we need to characterize 
+# our cover constraints: the customer id that corresponds to this constraint.
 struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
 end
