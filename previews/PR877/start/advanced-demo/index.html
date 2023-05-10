@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Advanced demo · Coluna User Guide</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna User Guide</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-2" type="checkbox" checked/><label class="tocitem" for="menuitem-2"><span class="docs-label">Getting started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li><a class="tocitem" href="../cuts/">Valid inequalities</a></li><li><a class="tocitem" href="../pricing/">Pricing callback</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li><a class="tocitem" href="../initial_columns/">Initial columns callback</a></li><li class="is-active"><a class="tocitem" href>Advanced demo</a><ul class="internal"><li><a class="tocitem" href="#Direct-model"><span>Direct model</span></a></li><li><a class="tocitem" href="#Decomp-model"><span>Decomp model</span></a></li><li><a class="tocitem" href="#Pricing-callback"><span>Pricing callback</span></a></li><li><a class="tocitem" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section"><span>TODO: display &quot;raw&quot; decomp model output and comment, transition to next section</span></a></li><li><a class="tocitem" href="#Strengthen-with-robust-cuts-(valid-inequalities)"><span>Strengthen with robust cuts (valid inequalities)</span></a></li><li><a class="tocitem" href="#TODO:-comment-on-the-improvement-of-the-dual-bound,-fix-display-of-both-raw-decomp-and-valid-ineq-decomp-model"><span>TODO: comment on the improvement of the dual bound, fix display of both raw decomp and valid ineq decomp model</span></a></li><li><a class="tocitem" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)"><span>Strengthen with non-robust cuts (rank-one cuts)</span></a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition</a></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Algorithms</a></li><li><a class="tocitem" href="../../man/callbacks/">Callbacks</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox"/><label class="tocitem" for="menuitem-4"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../api/treesearch/">Tree Search</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Getting started</a></li><li class="is-active"><a href>Advanced demo</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Advanced demo</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/advanced-demo.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Location-Routing"><a class="docs-heading-anchor" href="#Location-Routing">Location Routing</a><a id="Location-Routing-1"></a><a class="docs-heading-anchor-permalink" href="#Location-Routing" title="Permalink"></a></h1><p>We demonstrate the main features of Coluna on a variant of the Location Routing problem. In our variant, we consider customers that must be delivered by facilities. For simplicity, we assume that any customer&#39;s request can be fulfilled by any facility. To deliver a customer, we must open at least one route that passes through the customer&#39;s location. A route is defined as a vector of locations that satisfies the following rules:</p><ul><li><p>any route must start from a facility location</p></li><li><p>every route has a maximum length, i.e. the number of visited locations cannot exceed a fixed constant <code>nb_positions</code></p></li><li><p>the routes are said to be open, i.e. finish at last visited customer.</p></li><li><p>each route has a cost defined as the sum of the costs of its arcs.</p></li></ul><p>Our objective is to select the best routes to open in order to deliver all customers while minimizing the opening costs of the routes. This cost depends on the original costs of the routes and the opening costs of the facilities.</p><p>In this tutorial, we work on a small instance with only 2 facilities and 7 customers. The maximum length of a route is fixed to 6.</p><pre><code class="language-julia hljs">nb_positions = 6
+facilities_fixed_costs = [1200, 1500]
+facilities = [1, 2]
+customers = [3, 4, 5, 6, 7, 8, 9]
+arc_costs =
+[
+    0.0    253.241  253.924  253.706  353.612  373.716  319.347  246.488  342.445   ;
+    253.241    0.0    212.017  161.689  270.646  268.338  178.325  166.935  231.827 ;
+    253.924  212.017    0.0    142.475  233.867  238.415  182.768  170.346  216.402 ;
+    253.706  161.689  142.475    0.0    285.9    288.07   226.365  156.479  294.774 ;
+    353.612  270.646  233.867  285.9      0.0    420.728  304.439  248.598  391.131 ;
+    373.716  268.338  238.415  288.07   420.728    0.0    324.366  295.006  381.664 ;
+    319.347  178.325  182.768  226.365  304.439  324.366    0.0    224.823  307.48  ;
+    246.488  166.935  170.346  156.479  248.598  295.006  224.823    0.0    213.504 ;
+    342.445  231.827  216.402  294.774  391.131  381.664  307.48   213.504    0.0
+    ]
+
+locations  = vcat(facilities, customers)
+nb_customers = length(customers)
+nb_facilities = length(facilities)
+positions = 1:length(nb_positions)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1:1</code></pre><p>Let&#39;s define the model that will solve our problem; first we need to load some packages and dependencies:</p><pre><code class="language- hljs">using JuMP, HiGHS, GLPK
+using BlockDecomposition, Coluna</code></pre><p>We want to set an upper bound <code>nb_routes_per_locations</code> on the number of routes starting from a facility. This limit is calculated as follows:</p><p>We compute the minimum number of routes needed to visit all customers:</p><pre><code class="language-julia hljs">nb_routes = Int(ceil(nb_customers / nb_positions))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2</code></pre><p>We define the upper bound <code>nb_routes_per_locations</code>:</p><pre><code class="language-julia hljs">nb_routes_per_locations = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2</code></pre><h2 id="Direct-model"><a class="docs-heading-anchor" href="#Direct-model">Direct model</a><a id="Direct-model-1"></a><a class="docs-heading-anchor-permalink" href="#Direct-model" title="Permalink"></a></h2><p>First, we solve the problem by a direct approach, using the HiGHS solver. We start by initializing the solver:</p><pre><code class="language- hljs">direct = JuMP.direct_model(HiGHS.Optimizer())</code></pre><p>and we declare 3 types of binary variables:</p><pre><code class="language- hljs">@variable(model, y[j in facilities], Bin)
+@variable(model, z[u in locations, v in locations], Bin)
+@variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin)</code></pre><p>variables <code>y_j</code> indicate the opening status of a given facility ; if <code>y_j = 1</code> then facility <code>j</code> is open, otherwise <code>y_j = 0</code> variables <code>z_(u,v)</code> indicate which arcs are used ; if <code>z_(u,v) = 1</code> then there is an arc between location <code>u</code> and location <code>v</code>, otherwise <code>z_(u,v) = 0</code> variables <code>x_(i, j, k, p)</code> are used to express cover constraints and to ensure the consistency of the routes ; <code>x_(i, j, k, p) = 1</code> if customer <code>i</code> is delivered from facility <code>j</code> at the position <code>p</code> of route <code>k</code>, otherwise <code>x_(i, j, k, p) = 0</code>.</p><p>Now, we add constraints to our model:</p><p>&quot;each customer is visited by at least one route&quot;</p><pre><code class="language- hljs">@constraint(model, cov[i in customers],
+    sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) &gt;= 1)</code></pre><p>&quot;for any route from any facility, its length does not exceed the fixed maximum length <code>nb_positions</code>&quot;</p><pre><code class="language- hljs">@constraint(model, cardinality[j in facilities, k in routes_per_locations],
+    sum(x[i, j, k, p] for i in customers, p in positions) &lt;= nb_positions * y[j])</code></pre><p>&quot;only one customer can be delivered by a given route at a given position&quot;</p><pre><code class="language- hljs">@constraint(model, assign_setup[p in positions, j in facilities, k in routes_per_locations],
+    sum(x[i, j, k, p] for i in customers) &lt;= y[j])</code></pre><p>&quot;a customer can only be delivered at position <code>p &gt; 1</code> of a given route if there is a customer delivered at position <code>p-1</code> of the same route&quot;</p><pre><code class="language- hljs">@constraint(model, open_route[j in facilities, k in routes_per_locations, p in positions; p &gt; 1],
+    sum(x[i, j, k, p] for i in customers) &lt;= sum(x[i, j, k, p-1] for i in customers))</code></pre><p>&quot;there is an arc between two customers whose demand is satisfied by the same route at consecutive positions&quot;</p><pre><code class="language- hljs">@constraint(model, route_arc[i in customers, l in customers, indi in 1:nb_customers, indl in 1:nb_customers, j in facilities, k in routes_per_locations, p in positions; p &gt; 1 &amp;&amp; i != l &amp;&amp; indi != indl],
+    z[customers[indi], customers[indl]] &gt;= x[l, j, k, p] + x[i, j, k, p-1] - 1)</code></pre><p>&quot;there is an arc between the facility <code>j</code> and the first customer visited by the route <code>k</code> from facility <code>j</code>&quot;</p><pre><code class="language- hljs">@constraint(model, start_arc[i in customers, indi in 1:nb_customers, j in facilities, k in routes_per_locations],
+        z[facilities[j], customers[indi]] &gt;= x[i, j, k, 1])</code></pre><p>We set the objective function:</p><pre><code class="language- hljs">@objective(model, Min,
+    sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
+    +
+    sum(facility_fixed_costs[j] * y[j] for j in facilities))</code></pre><p>##TODO: run direct model</p><h2 id="Decomp-model"><a class="docs-heading-anchor" href="#Decomp-model">Decomp model</a><a id="Decomp-model-1"></a><a class="docs-heading-anchor-permalink" href="#Decomp-model" title="Permalink"></a></h2><p>We can exploit the structure of the problem by generating routes starting from each facility. The most immediate decomposition is to consider each route traveled by a vehicle as a sub-problem. However, at a given facility, vehicles are identical and therefore any vehicle can travel on any route. So we have several identical subproblems at each facility.</p><p>We declare the axis:</p><pre><code class="language- hljs">axis = collect(facilities)
+@axis(Base_axis, axis)
+@show Base_axis</code></pre><p>and we set up the solver:</p><pre><code class="language- hljs">##TODO: clean
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver=Coluna.Algorithm.TreeSearchAlgorithm(
+            maxnumnodes = 1,
+            conqueralg = Coluna.ColCutGenConquer(
+                primal_heuristics = [
+                    ##Coluna.ParameterizedHeuristic(
+                    #    Diva.Diving(),
+                    #    1.0,
+                    #    1.0,
+                    #    1,
+                    #    1,
+                    #    &quot;Diving&quot;
+                    ##)
+                ]
+            )
+        ) ## default branch-cut-and-price
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
+)
+
+decomp = BlockModel(coluna)</code></pre><p>Let&#39;s declare the variables. We distinct the master variables <code>y</code></p><pre><code class="language- hljs">@variable(decomp, y[j in facilities], Bin)</code></pre><p>from the sub-problem variables <code>x</code> and <code>z</code>:</p><pre><code class="language- hljs">@variable(decomp, x[i in customers, j in Base_axis] &lt;= 1)
+@variable(decomp, z[u in locations, v in locations], Bin)</code></pre><p>The information carried by the <code>x</code> variables may seem redundant with that of the <code>z</code> variables. The <code>x</code> variables are in fact introduced only in order to separate a family of robust valid inequalities.</p><p>We now declare our problem&#39;s constraints: The cover constraints are expressed w.r.t. the <code>x</code> variables:</p><pre><code class="language- hljs">@constraint(decomp, cov[i in customers],
+    sum(x[i, j] for j in facilities) &gt;= 1)</code></pre><p>We add a constraint to express that if a facility is not opened, there can be no arc between this facility and a customer.</p><pre><code class="language- hljs">@constraint(decomp, open_facility[j in facilities],
+        sum(z[j, i] for i in customers) &lt;= y[j] * nb_routes_per_locations)</code></pre><p>We do not need to add constraints ensuring the consistency of the routes because we solve our subproblems by pricing. It will therefore be the responsibility of the pricing callback to create consistent routes. ##TODO link with additional constraints of Direct model</p><p>We set the objective function:</p><pre><code class="language- hljs">@objective(decomp, Min,
+sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
++
+sum(facilities_fixed_costs[j] * y[j] for j in facilities))</code></pre><h2 id="Pricing-callback"><a class="docs-heading-anchor" href="#Pricing-callback">Pricing callback</a><a id="Pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Pricing-callback" title="Permalink"></a></h2><p>Each sub-problem could be solved by a MIP, provided the right sub-problem constraints are added. Here, we propose a resolution by enumeration within a pricing callback.</p><p>The general idea of enumeration is very simple: we enumerate the possible routes from a facility and keep the one with the lowest reduced cost, i.e. the one that improves the current solution the most. Enumerating all possible routes is very expensive. We improve the pricing efficiency a bit by pre-processing, for a given subset of customers and a given facility, the best order to visit the customers of the subset. This order depends only on the original cost of the arcs, so we need a method to compute it:</p><pre><code class="language-julia hljs">struct EnumeratedRoute
+    length::Int
+    path::Vector{Int}
+end
+
+function route_original_cost(costs, enroute::EnumeratedRoute)
+    route_cost = 0.0
+    path = enroute.path
+    path_length = enroute.length
+    for i in 1:(path_length-1)
+        route_cost += costs[path[i], path[i+1]]
+    end
+    return route_cost
+end
+
+function best_visit_order(costs, cust_subset, facility_id)
+    # generate all the possible visit orders
+    set_size = size(cust_subset)[1]
+    all_paths = collect(multiset_permutations(cust_subset, set_size))
+    all_enroutes = Vector{EnumeratedRoute}()
+    for path in all_paths
+        # add the first index i.e. the facility id
+        enpath = vcat([facility_id], path)
+        # length of the route = 1 + number of visited customers
+        enroute = EnumeratedRoute(set_size + 1, enpath)
+        push!(all_enroutes, enroute)
+    end
+    # compute each route original cost
+    enroutes_costs = map(r -&gt;
+                         (r, route_original_cost(costs, r)), all_enroutes )
+    # keep the best visit order
+    tmp = argmin([c for (_, c) in enroutes_costs])
+    (best_order, _) = enroutes_costs[tmp]
+    return best_order
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">best_visit_order (generic function with 1 method)</code></pre><p>We are now able to compute the best route for all the possible customers subsets, given a facility id:</p><pre><code class="language- hljs">using Combinatorics
+
+function best_route_forall_cust_subsets(costs, customers, facility_id, max_size)
+    best_routes = Vector{EnumeratedRoute}()
+    all_subsets = Vector{Vector{Int}}()
+    for subset_size in 1:max_size
+        subsets = collect(combinations(customers, subset_size))
+        for s in subsets
+            push!(all_subsets, s)
+        end
+    end
+    for s in all_subsets
+        route_s = best_visit_order(costs, s, facility_id)
+        push!(best_routes, route_s)
+    end
+    return best_routes
+end</code></pre><p>We store all the information given by the pre-computation in a dictionary. To each facility id we match a vector of routes that are the best visiting orders for each possible subset of customers.</p><pre><code class="language- hljs">routes_per_facility = Dict(
+                        j =&gt; best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
+                      )</code></pre><p>We must also declare methods to calculate the contribution to the reduced cost of the two types of subproblem variables, <code>x</code> and <code>z</code>:</p><pre><code class="language-julia hljs">function x_contribution(enroute::EnumeratedRoute, j::Int, x_red_costs)
+    x = 0.0
+    visited_customers = enroute.path[2:enroute.length]
+    for i in visited_customers
+        x += x_red_costs[&quot;x_$(i)_$(j)&quot;]
+    end
+    return x
+end
+
+function z_contribution(enroute::EnumeratedRoute, z_red_costs)
+    z = 0.0
+    for i in 1:(enroute.length-1)
+        current_position = enroute.path[i]
+        next_position = enroute.path[i+1]
+        z += z_red_costs[&quot;z_$(current_position)_$(next_position)&quot;]
+    end
+    return z
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">z_contribution (generic function with 1 method)</code></pre><p>We are now able to write our pricing callback:</p><pre><code class="language-julia hljs">function my_pricing_callback(cbdata)
+    # get the id of the facility
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, decomp))
+
+    # retrieve variables reduced costs
+    z_red_costs = Dict(
+        &quot;z_$(u)_$(v)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
+
+    )
+    x_red_costs = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+    )
+
+    # keep route with minimum reduced cost.
+    red_costs_j = map(r -&gt; (
+            r,
+            x_contribution(r, j, x_red_costs) + z_contribution(r, z_red_costs) # the reduced cost of a route is the sum of the contribution of the variables
+        ), routes_per_facility[j]
+    )
+    min_index = argmin([x for (_,x) in red_costs_j])
+    (best_route, min_reduced_cost) = red_costs_j[min_index]
+
+    # Create the solution (send only variables with non-zero values)
+
+    # retrieve the route&#39;s arcs
+    best_route_arcs = Vector{Tuple{Int, Int}}()
+    for i in 1:(best_route.length - 1)
+        push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
+    end
+    best_route_customers = best_route.path[2:best_route.length]
+    z_vars = [z[u, v] for (u,v) in best_route_arcs]
+    x_vars = [x[i, j] for i in best_route_customers]
+    sol_vars = vcat(z_vars, x_vars)
+    sol_vals = ones(Float64, length(z_vars) + length(x_vars))
+    sol_cost = min_reduced_cost
+
+    # Submit the solution of the subproblem to Coluna
+    MOI.submit(decomp, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+
+    # Submit the dual bound to the solution of the subproblem
+    # This bound is used to compute the contribution of the subproblem to the lagrangian
+    # bound in column generation.
+    MOI.submit(decomp, BlockDecomposition.PricingDualBound(cbdata), sol_cost) # optimal solution
+
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">my_pricing_callback (generic function with 1 method)</code></pre><p>Set decomposition</p><pre><code class="language-julia hljs">#@dantzig_wolfe_decomposition(decomp, dec, Base_axis)
+#subproblems = BlockDecomposition.getsubproblems(dec)
+#specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver = my_pricing_callback) #set solver = nothing to test without my_pricing_callback
+#subproblemrepresentative.(z, Ref(subproblems))
+##Solve the model
+#JuMP.optimize!(decomp)</code></pre><h2 id="TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section"><a class="docs-heading-anchor" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section">TODO: display &quot;raw&quot; decomp model output and comment, transition to next section</a><a id="TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section-1"></a><a class="docs-heading-anchor-permalink" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section" title="Permalink"></a></h2><h2 id="Strengthen-with-robust-cuts-(valid-inequalities)"><a class="docs-heading-anchor" href="#Strengthen-with-robust-cuts-(valid-inequalities)">Strengthen with robust cuts (valid inequalities)</a><a id="Strengthen-with-robust-cuts-(valid-inequalities)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthen-with-robust-cuts-(valid-inequalities)" title="Permalink"></a></h2><p>We want to add some constraints of the form <code>x_i_j &lt;= y_j ∀i ∈ customers, ∀j ∈ facilities</code> in order to try to &quot;improve&quot; the integrality of <code>y_j</code>. However, there are <code>nb_customers x nb_facilities</code> such constraints. Instead of adding all of them, we want to consider a constraint if and only if it is violated, i.e. if the solution found does not respect the constraint (this is a cut generation approach).</p><p>We declare a structure representing an inequality <code>x_i_j &lt;= y_j</code>for a fixed facility <code>j</code> and a fixed customer <code>i</code>:</p><pre><code class="language-julia hljs">struct OpenFacilityInequality
+    facility_id::Int
+    customer_id::Int
+end</code></pre><p>We write our valid inequalities callback:</p><pre><code class="language- hljs">function valid_inequalities_callback(cbdata)
+    # Get variables valuations, store them into dictionaries
+    x_vals = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_value(cbdata, x[i, j]) for i in customers, j in facilities
+    )
+    y_vals = Dict(
+        &quot;y_$(j)&quot; =&gt; BlockDecomposition.callback_value(cbdata, y[j]) for j in facilities
+    )
+
+    # Separate the valid inequalities i.e. retrieve the inequalities that are violated by the current solution.
+    inequalities = Vector{OpenFacilityInequality}()
+
+    for j in facilities
+        for i in customers
+            x_i_j = x_vals[&quot;x_$(i)_$(j)&quot;]
+            y_j = y_vals[&quot;y_$(j)&quot;]
+            if x_i_j &gt; y_j
+                push!(inequalities, OpenFacilityInequality(j, i))
+            end
+        end
+    end
+
+    # Add the valid inequalities to the model.
+    for ineq in inequalities
+        constr = JuMP.@build_constraint(x[ineq.customer_id, ineq.facility_id] &lt;= y[ineq.facility_id])
+        MOI.submit(decomp, MOI.UserCut(cbdata), constr)
+    end
+end
+
+MOI.set(decomp, MOI.UserCutCallback(), valid_inequalities_callback);
+
+
+
+#MOI.set(decomp, MOI.UserCutCallback(), valid_inequalities_callback);
+#@dantzig_wolfe_decomposition(decomp, dec, Base_axis)
+#subproblems = BlockDecomposition.getsubproblems(dec)
+#specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver = my_pricing_callback) #set solver = nothing to test without my_pricing_callback
+#subproblemrepresentative.(z, Ref(subproblems))
+#JuMP.optimize!(decomp)</code></pre><h2 id="TODO:-comment-on-the-improvement-of-the-dual-bound,-fix-display-of-both-raw-decomp-and-valid-ineq-decomp-model"><a class="docs-heading-anchor" href="#TODO:-comment-on-the-improvement-of-the-dual-bound,-fix-display-of-both-raw-decomp-and-valid-ineq-decomp-model">TODO: comment on the improvement of the dual bound, fix display of both raw decomp and valid ineq decomp model</a><a id="TODO:-comment-on-the-improvement-of-the-dual-bound,-fix-display-of-both-raw-decomp-and-valid-ineq-decomp-model-1"></a><a class="docs-heading-anchor-permalink" href="#TODO:-comment-on-the-improvement-of-the-dual-bound,-fix-display-of-both-raw-decomp-and-valid-ineq-decomp-model" title="Permalink"></a></h2><h2 id="Strengthen-with-non-robust-cuts-(rank-one-cuts)"><a class="docs-heading-anchor" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)">Strengthen with non-robust cuts (rank-one cuts)</a><a id="Strengthen-with-non-robust-cuts-(rank-one-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)" title="Permalink"></a></h2><p>##TODO: describe the goal by looking at lambdas values -&gt; highlight that the aim is to drive them towards integrality</p><p>Here, we implement special types of cuts called &quot;rank-one cuts&quot; (R1C). These cuts are non-robust in the sense that they can not be expressed only with the original variables of the model. In particular, they have to be expressed with the master columns variables <code>λ_k</code>. R1Cs are obtained by applying the Chvátal-Gomory procedure once, hence their name, on cover constraints. We must therefore be able to differentiate the cover constraints from the other constraints of the model. To do this, we exploit an advantage of Coluna that allows us to attach custom data to the constraints and variables of our model:</p><p>We create a special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint.</p><pre><code class="language- hljs">struct CoverConstrData &lt;: BlockDecomposition.AbstractCustomData
+    customer::Int
+end</code></pre><p>We declare our custom data to Coluna</p><pre><code class="language- hljs">BlockDecomposition.customconstrs!(decomp, CoverConstrData);
+nothing #hide</code></pre><p>And we attach one custom data to each cover constraint</p><pre><code class="language- hljs">for i in customers
+    customdata!(cov[i], CoverConstrData(i))
+end</code></pre><p>The rank-one cuts we are going to add are of the form: <code>sum(c_k λ_k) &lt;= 1.0</code> for a fixed subset <code>r1c_cov_constrs</code> of cover constraints of size 3, with <code>λ_k</code> the master columns variables and c<em>k<code>s.t.</code>c</em>k = ⌊ 1/2 x |r1c<em>locations ∩ r1c</em>cov<em>constrs| ⌋<code>with</code>r1c</em>locations<code>the current solution (route) that corresponds to</code>λ_k`. e.g. if we consider cover constraints cov[3], cov[6] and cov[8] in our cut, then the route 1-4-6-7 gives a zero coefficient while the route 1-4-6-3 gives a coefficient equal to one.</p><p>But a problem arises: how to get the current solution <code>r1c_locations</code> that corresponds to a given <code>λ_k</code> ? To handle that difficulty, we use once again the custom data trick:</p><p>Each <code>λ_k</code> is associated to a <code>R1cVarData</code> structure that carries the current solution.</p><pre><code class="language- hljs">struct R1cVarData &lt;: BlockDecomposition.AbstractCustomData
+    visited_locations::Vector{Int}
+end</code></pre><p>The rank-one cuts are associated with <code>R1cCutData</code> structures indicating which cover constraints are taken into account in the cut.</p><pre><code class="language- hljs">struct R1cCutData &lt;: BlockDecomposition.AbstractCustomData
+    cov_constrs::Vector{Int}
+end</code></pre><p>We declare our custom data to Coluna:</p><pre><code class="language- hljs">BlockDecomposition.customvars!(decomp, R1cVarData)
+BlockDecomposition.customconstrs!(decomp, [CoverConstrData, R1cCutData]);
+nothing #hide</code></pre><p>This method is called by Coluna to compute the coefficients of the <code>λ_k</code> in the cuts:</p><pre><code class="language- hljs">function Coluna.MathProg.computecoeff(
+    ::Coluna.MathProg.Variable, var_custom_data::R1cVarData,
+    ::Coluna.MathProg.Constraint, constr_custom_data::R1cCutData
+)
+    return floor(1/2 * length(var_custom_data.visited_locations ∩ constr_custom_data.cov_constrs))
+end</code></pre><p>TODO: fix necessity to write computecoeff for cover constr or explain trick</p><pre><code class="language- hljs">function Coluna.MathProg.computecoeff(
+    ::Coluna.MathProg.Variable, ::R1cVarData,
+    ::Coluna.MathProg.Constraint, ::CoverConstrData)
+    return 0
+end</code></pre><p>We are now able to write our rank-one cut callback:</p><pre><code class="language-julia hljs">function r1c_callback(cbdata)
+    original_sol = cbdata.orig_sol
+    master = Coluna.MathProg.getmodel(original_sol)
+    # retrieve the cover constraints
+    cov_constrs = Int[]
+    for constr in values(Coluna.MathProg.getconstrs(master))
+        if typeof(constr.custom_data) &lt;: CoverConstrData
+            push!(cov_constrs, constr.custom_data.customer)
+        end
+    end
+
+    # retrieve the master columns λ
+    lambdas = Vector{Any}()
+    for (var_id, val) in original_sol
+        if Coluna.MathProg.getduty(var_id) &lt;= Coluna.MathProg.MasterCol
+            push!(lambdas, (val, Coluna.MathProg.getvar(cbdata.form, var_id)))
+        end
+    end
+
+    # separate the valid R1Cs (i.e. those violated by the current solution)
+    # for a fixed subset of cover constraints of size 3, iterate on the master columns and check violation:
+    subsets = collect(combinations(cov_constrs, 3))
+    for cov_constr_subset in subsets
+        violation = 0
+        for lambda in lambdas
+            (val, var) = lambda
+            if !isnothing(var.custom_data)
+                coeff = floor(1/2 * length(var.custom_data.visited_locations ∩ cov_constr_subset))
+                violation += coeff * val
+            end
+        end
+        if violation &gt; 1
+            # create the constraint and add it to the model, use custom data to keep information about the cut (= the subset of considered cover constraints)
+            MOI.submit(decomp,
+                      MOI.UserCut(cbdata),
+                      JuMP.ScalarConstraint(JuMP.AffExpr(0.0), MOI.LessThan(1.0)),
+                      R1cCutData(cov_constr_subset)
+                      )
+        end
+    end
+
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">r1c_callback (generic function with 1 method)</code></pre><p>The last thing we need to do to complete the implementation of R1Cs is to update our pricing callback. Unlike valid inequalities, R1Cs are not expressed directly with the model variables. Thus, their cost is not taken into account in the reduced cost calculations. We must therefore add it &quot;manually&quot; in the callback.</p><p>The contribution of R1Cs to the reduced cost computation is managed by the following method:</p><pre><code class="language-julia hljs">function r1c_contrib(enroute::EnumeratedRoute, custduals)
+    cost=0
+    if !isempty(custduals)
+        for (r1c_cov_constrs, dual) in custduals
+            coeff = floor(1/2 * length(enroute.path ∩ r1c_cov_constrs))
+            cost += coeff*dual
+        end
+    end
+    return cost
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">r1c_contrib (generic function with 1 method)</code></pre><p>We re-write our pricing callback, with the additional contribution that corresponds to R1Cs cost:</p><pre><code class="language- hljs">function my_pricing_callback(cbdata)
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, decomp))
+    z_red_costs = Dict(
+        &quot;z_$(u)_$(v)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
+    )
+    x_red_costs = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+    )
+    # Get the dual values of the custom cuts to calculate contributions of
+    # non-robust cuts to the cost of the solution:
+    custduals = Tuple{Vector{Int}, Float64}[]
+    for (_, constr) in Coluna.MathProg.getconstrs(cbdata.form.parent_formulation)
+        if typeof(constr.custom_data) == R1cCutData
+            push!(custduals, (
+                constr.custom_data.cov_constrs,
+                Coluna.MathProg.getcurincval(cbdata.form.parent_formulation, constr)
+            ))
+        end
+    end
+
+    # Keep route with minimum reduced cost,
+    # add variables contribution and also the non-robust cuts contribution
+    red_costs_j = map(r -&gt; (
+            r,
+            x_contribution(r, j, x_red_costs) +
+            z_contribution(r, z_red_costs) - #TODO: comment on sign ?
+            r1c_contrib(r, custduals)
+        ), routes_per_facility[j]
+    )
+    min_index = argmin([x for (_,x) in red_costs_j])
+    (best_route, min_reduced_cost) = red_costs_j[min_index]
+
+    best_route_arcs = Vector{Tuple{Int, Int}}()
+    for i in 1:(best_route.length - 1)
+        push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
+    end
+    best_route_customers = best_route.path[2:best_route.length]
+    z_vars = [z[u, v] for (u,v) in best_route_arcs]
+    x_vars = [x[i, j] for i in best_route_customers]
+    sol_vars = vcat(z_vars, x_vars)
+    sol_vals = vcat([1.0 for _ in z_vars], [1.0 for _ in x_vars])
+    sol_cost = min_reduced_cost
+
+    # Submit the solution of the subproblem to Coluna
+    # TODO: comment on custom data here
+    MOI.submit(decomp, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals, R1cVarData(best_route.path))
+    MOI.submit(decomp, BlockDecomposition.PricingDualBound(cbdata), sol_cost)
+
+end
+
+
+MOI.set(decomp, MOI.UserCutCallback(), r1c_callback);
+@dantzig_wolfe_decomposition(decomp, dec, Base_axis)
+subproblems = BlockDecomposition.getsubproblems(dec)
+specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver = my_pricing_callback)
+subproblemrepresentative.(z, Ref(subproblems))
+JuMP.optimize!(decomp)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 12:57">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
