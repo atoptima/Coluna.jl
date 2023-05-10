@@ -14,7 +14,6 @@
 # Our objective is to minimize the fixed costs of opened facilities and the distance traveled by the routes while
 # ensuring that each customer is at least visited once by a route.
 
-
 # In this tutorial, we work on a small instance with 2 facilities and 7 customers. 
 # The maximum length of a route is fixed to 4. 
 
@@ -37,11 +36,11 @@ arc_costs =
 locations  = vcat(facilities, customers)
 nb_customers = length(customers)
 nb_facilities = length(facilities)
-positions = 1:nb_positions
+positions = 1:nb_positions;
 
 # In this tutorial, we will use the following packages:
 
-using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna
+using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna;
 
 # We want to set an upper bound `nb_routes_per_locations` on the number of routes starting from a facility. 
 # This limit is calculated as follows:
@@ -50,14 +49,14 @@ using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna
 nb_routes = Int(ceil(nb_customers / nb_positions)) 
 ## We define the upper bound `nb_routes_per_locations`: 
 nb_routes_per_locations = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)
-routes_per_locations = 1:nb_routes_per_locations
+routes_per_locations = 1:nb_routes_per_locations;
 
 # ## Direct model
 
 # First, we solve the problem by a direct approach, using the HiGHS solver. 
 # We start by creating a JuMP model:
 
-model = JuMP.Model(HiGHS.Optimizer)
+model = JuMP.Model(HiGHS.Optimizer);
 
 # We declare 3 types of binary variables: 
 
@@ -68,7 +67,7 @@ model = JuMP.Model(HiGHS.Optimizer)
 @variable(model, z[u in locations, v in locations], Bin)
 
 ## x[i,j,k,p] equals 1 if customer i is delivered from facility j at position p of route k; 0 otherwise
-@variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin)
+@variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin);
 
 
 # We define the constraints:
@@ -91,29 +90,37 @@ model = JuMP.Model(HiGHS.Optimizer)
 
 ## there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`
 @constraint(model, start_arc[i in customers, j in facilities, k in routes_per_locations], 
-        z[j,i] >= x[i, j, k, 1]) 
+        z[j,i] >= x[i, j, k, 1]);
 
 # We set the objective function:
 
 @objective(model, Min,
     sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) 
     +
-    sum(facilities_fixed_costs[j] * y[j] for j in facilities)) 
+    sum(facilities_fixed_costs[j] * y[j] for j in facilities));
+
+# and we optimize the model:
 
 optimize!(model)
 objective_value(model)
 
 # We find an optimal solution involving two routes starting from facility 1:
 # - `1` -> `8` -> `9` -> `3` -> `6`
-# - `1` -> `4` -> `5` -> `7
+# - `1` -> `4` -> `5` -> `7``
 
 # ## Decomposed model
 
 # We can exploit the structure of the problem by generating routes starting from each facility. 
 # The most immediate decomposition is to consider each route traveled by a vehicle as a subproblem.
 # However, at a given facility, vehicles are identical and therefore any vehicle can travel
-# on any route. So we have several identical subproblems at each facility. 
+# on any route. So we have several identical subproblems at each facility.
 
+# In this tutorial, we plan to:
+# - solve the subproblems using a pricing callback
+# - strengthen the master problem using robust valid inequalities
+# - strengthen the master problem using non-robust valid inequalities
+# - speed-up the optimization using multi-stage column generation.
+ 
 # The following method creates the model according to the decomposition described: 
 function create_model(optimizer)
     ## We declare an axis over the facilties.
@@ -127,40 +134,49 @@ function create_model(optimizer)
     ## `y[j]` is a master variable equal to 1 if the facility j is open; 0 otherwise
     @variable(model, y[j in facilities], Bin)
     
-    ## `x[i,j]` 
+    ## `x[i,j]` is a subproblem variable equal to 1 if customer i is delivered from facility j; 0 otherwise.
     @variable(model, x[i in customers, j in facilities_axis], Bin)
+    ## `z[u,v]` is a subproblem variable equal to 1 if a vehicle travels from u to v; 0 otherwise.
+    ## we don't use the `facilities_axis` axis here because the `z` variables are defined as
+    ## representatives of the subproblems later.
     @variable(model, z[u in locations, v in locations], Bin)
     
-    ## The information carried by the `x` variables may seem redundant with that of the `z` variables. 
-    ## The `x` variables are in fact introduced only in order to separate a family of robust valid inequalities. 
-    
-    ## We now declare our problem's constraints:
-    ## The cover constraints are expressed w.r.t. the `x` variables:
+    ## `cov` constraints are master constraints ensuring that each customer is visited once.
     @constraint(model, cov[i in customers],
         sum(x[i, j] for j in facilities) >= 1)
     
-    ## We add a constraint to express that if a facility is not opened, there can be no arc between this facility and a customer. 
+    ## `open_facilities` are master constraints ensuring that the depot is open if one vehicle.
+    ## leaves it.
     @constraint(model, open_facility[j in facilities], 
             sum(z[j, i] for i in customers) <= y[j] * nb_routes_per_locations)
     
-
-    ## Contrary to the direct model, we are not obliged here to add constraints to ensure the consistency of the routes because we solve our subproblems by pricing. It will therefore be the responsibility of the pricing callback to create consistent routes.
+    ## We don't need to describe the subproblem constraints because we use a pricing callback.
 
     ## We set the objective function:
     @objective(model, Min,
-    sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
-    +
-    sum(facilities_fixed_costs[j] * y[j] for j in facilities))
+        sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) +
+        sum(facilities_fixed_costs[j] * y[j] for j in facilities)
+    )
 
+    ## We perform decomposition over the facilities.
     @dantzig_wolfe_decomposition(model, dec, facilities_axis)
+
+    ## Subproblems generated routes starting from each facility.
+    ## The number of routes from each facilities is at most `nb_routes_per_locations`.
     subproblems = BlockDecomposition.getsubproblems(dec)
-    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback) 
+    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback)
+    
+    # We define `z` are a subproblem variable common to all subproblems.
     subproblemrepresentative.(z, Ref(subproblems))
 
     return model, x, y, z, cov
-end 
+end
 
-# and we set up Coluna:
+# Note that contrary to the direct model, we don't have to add constraints to ensure the
+# consistency of the routes because we solve our subproblems using a pricing callback.
+# The pricing callback will therefore have the responsibilty to create consistent routes.
+
+# We setup Coluna:
 
 coluna = optimizer_with_attributes(
     Coluna.Optimizer,
@@ -171,9 +187,9 @@ coluna = optimizer_with_attributes(
         ) ## default branch-cut-and-price
     ),
     "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
-)
+);
 
-# ## Pricing callback
+# ### Pricing callback
 
 # Each subproblem could be solved by a MIP, provided the right sub-problem constraints are added.
 # Here, we propose a resolution by enumeration within a pricing callback. 
@@ -326,7 +342,7 @@ JuMP.optimize!(model)
 
 # ## TODO: display "raw" decomp model output and comment, transition to next section 
 
-# ## Strengthen with robust cuts (valid inequalities)
+# ### Strengthen with robust cuts (valid inequalities)
 
 # We introduce of first type of classic valid inqualities that tries to improve the 
 # integrality of the `y` variables.
@@ -380,7 +396,7 @@ JuMP.optimize!(model)
 
 # TODO: comment on the improvement of the dual bound
 
-# ## Strengthen with non-robust cuts (rank-one cuts)
+# ### Strengthen with non-robust cuts (rank-one cuts)
 
 # Here, we implement special types of cuts called "rank-one cuts" (R1C).
 # These cuts are non-robust in the sense that they cannot be expressed only with the
