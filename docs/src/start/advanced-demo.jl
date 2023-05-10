@@ -166,7 +166,7 @@ function create_model(optimizer)
     subproblems = BlockDecomposition.getsubproblems(dec)
     specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback)
     
-    # We define `z` are a subproblem variable common to all subproblems.
+    ## We define `z` are a subproblem variable common to all subproblems.
     subproblemrepresentative.(z, Ref(subproblems))
 
     return model, x, y, z, cov
