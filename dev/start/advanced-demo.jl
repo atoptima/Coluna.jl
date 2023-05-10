@@ -1,4 +1,4 @@
-# # Location Routing
+# # Advanced tutorial - Location Routing
 
 # We demonstrate the main features of Coluna on a variant of the Location Routing problem.
 # In the Location Routing Problem, we are given a set of facilities and a set of customers.
@@ -13,7 +13,6 @@
 
 # Our objective is to minimize the fixed costs of opened facilities and the distance traveled by the routes while
 # ensuring that each customer is at least visited once by a route.
-
 
 # In this tutorial, we work on a small instance with 2 facilities and 7 customers. 
 # The maximum length of a route is fixed to 4. 
@@ -37,151 +36,170 @@ arc_costs =
 locations  = vcat(facilities, customers)
 nb_customers = length(customers)
 nb_facilities = length(facilities)
-positions = 1:nb_positions
+positions = 1:nb_positions;
 
-# Let's define the model that will solve our problem; first we need to load some packages and dependencies:
+# In this tutorial, we will use the following packages:
 
-using JuMP, HiGHS, GLPK
-using BlockDecomposition, Coluna
-
+using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna;
 
 # We want to set an upper bound `nb_routes_per_locations` on the number of routes starting from a facility. 
 # This limit is calculated as follows:
 
-# We compute the minimum number of routes needed to visit all customers:
+## We compute the minimum number of routes needed to visit all customers:
 nb_routes = Int(ceil(nb_customers / nb_positions)) 
-# We define the upper bound `nb_routes_per_locations`: 
+## We define the upper bound `nb_routes_per_locations`: 
 nb_routes_per_locations = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)
-routes_per_locations = 1:nb_routes_per_locations
+routes_per_locations = 1:nb_routes_per_locations;
 
 # ## Direct model
 
-# First, we solve the problem by a direct approach, using the HiGHS solver. We start by initializing the solver:
+# First, we solve the problem by a direct approach, using the HiGHS solver. 
+# We start by creating a JuMP model:
 
-model = JuMP.Model(HiGHS.Optimizer)
+model = JuMP.Model(HiGHS.Optimizer);
 
+# We declare 3 types of binary variables: 
 
-# and we declare 3 types of binary variables: 
-
+## y[j] equals 1 if facility j is open; 0 otherwise.
 @variable(model, y[j in facilities], Bin)
-@variable(model, z[u in locations, v in locations], Bin) 
-@variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin)
 
-# - variables `y_j` indicate the opening status of a given facility ; if `y_j = 1` then facility `j` is open, otherwise `y_j = 0` 
-# - variables `z_(u,v)` indicate which arcs are used ; if `z_(u,v) = 1` then there is an arc between location `u` and location `v`, otherwise `z_(u,v) = 0`
-# - variables `x_(i, j, k, p)` are used to express cover constraints and to ensure the consistency of the routes ; `x_(i, j, k, p) = 1` if customer `i` is delivered from facility `j` at the position `p` of route `k`, otherwise `x_(i, j, k, p) = 0`. 
+## z[u,v] equals 1 if a vehicle travels from u to v; 0 otherwise
+@variable(model, z[u in locations, v in locations], Bin)
 
-# Now, we add constraints to our model:
+## x[i,j,k,p] equals 1 if customer i is delivered from facility j at position p of route k; 0 otherwise
+@variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin);
 
-# - "each customer is visited by at least one route"
+
+# We define the constraints:
+
+## each customer visited once
 @constraint(model, cov[i in customers],
     sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) == 1)
 
+## each facility is open if there is a route starting from it
 @constraint(model, setup[j in facilities, k in routes_per_locations],
     sum(x[i,j,k,1] for i in customers) <= y[j]) 
 
-# - "a customer can only be delivered at position `p > 1` of a given route if there is a customer delivered at position `p-1` of the same route"
+## flow conservation
 @constraint(model, flow_conservation[j in facilities, k in routes_per_locations, p in positions; p > 1], 
     sum(x[i, j, k, p] for i in customers) <= sum(x[i, j, k, p-1] for i in customers)) 
 
-# - "there is an arc between two customers whose demand is satisfied by the same route at consecutive positions"
+## there is an arc between two customers whose demand is satisfied by the same route at consecutive positions
 @constraint(model, route_arc[i in customers, l in customers, j in facilities, k in routes_per_locations, p in positions; p > 1 && i != l], 
     z[i,l] >= x[l, j, k, p] + x[i, j, k, p-1] - 1)
 
-# - "there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`"
+## there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`
 @constraint(model, start_arc[i in customers, j in facilities, k in routes_per_locations], 
-        z[j,i] >= x[i, j, k, 1]) 
+        z[j,i] >= x[i, j, k, 1]);
 
 # We set the objective function:
+
 @objective(model, Min,
     sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) 
     +
-    sum(facilities_fixed_costs[j] * y[j] for j in facilities)) 
+    sum(facilities_fixed_costs[j] * y[j] for j in facilities));
+
+# and we optimize the model:
 
 optimize!(model)
 objective_value(model)
 
-# ##TODO: run direct model
+# We find an optimal solution involving two routes starting from facility 1:
+# - `1` -> `8` -> `9` -> `3` -> `6`
+# - `1` -> `4` -> `5` -> `7``
 
-# ## Decomp model
+# ## Decomposed model
 
 # We can exploit the structure of the problem by generating routes starting from each facility. 
-# The most immediate decomposition is to consider each route traveled by a vehicle as a sub-problem. However, at a given facility, vehicles are identical and therefore any vehicle can travel on any route. So we have several identical subproblems at each facility. 
+# The most immediate decomposition is to consider each route traveled by a vehicle as a subproblem.
+# However, at a given facility, vehicles are identical and therefore any vehicle can travel
+# on any route. So we have several identical subproblems at each facility.
 
-# We declare the axis:
+# In this tutorial, we plan to:
+# - solve the subproblems using a pricing callback
+# - strengthen the master problem using robust valid inequalities
+# - strengthen the master problem using non-robust valid inequalities
+# - speed-up the optimization using multi-stage column generation.
+ 
+# The following method creates the model according to the decomposition described: 
+function create_model(optimizer)
+    ## We declare an axis over the facilties.
+    ## We must use `facilities_axis` instead of `facilities` in the declaration of the 
+    ## variables and constraints that belong to pricing subproblems.
+    @axis(facilities_axis, collect(facilities))
 
-axis = collect(facilities)
-@axis(Base_axis, axis)
-@show Base_axis
+    ## We declare a `BlockModel` instead of `Model`.
+    model = BlockModel(optimizer)
 
-# and we set up the solver:
+    ## `y[j]` is a master variable equal to 1 if the facility j is open; 0 otherwise
+    @variable(model, y[j in facilities], Bin)
+    
+    ## `x[i,j]` is a subproblem variable equal to 1 if customer i is delivered from facility j; 0 otherwise.
+    @variable(model, x[i in customers, j in facilities_axis], Bin)
+    ## `z[u,v]` is a subproblem variable equal to 1 if a vehicle travels from u to v; 0 otherwise.
+    ## we don't use the `facilities_axis` axis here because the `z` variables are defined as
+    ## representatives of the subproblems later.
+    @variable(model, z[u in locations, v in locations], Bin)
+    
+    ## `cov` constraints are master constraints ensuring that each customer is visited once.
+    @constraint(model, cov[i in customers],
+        sum(x[i, j] for j in facilities) >= 1)
+    
+    ## `open_facilities` are master constraints ensuring that the depot is open if one vehicle.
+    ## leaves it.
+    @constraint(model, open_facility[j in facilities], 
+            sum(z[j, i] for i in customers) <= y[j] * nb_routes_per_locations)
+    
+    ## We don't need to describe the subproblem constraints because we use a pricing callback.
+
+    ## We set the objective function:
+    @objective(model, Min,
+        sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) +
+        sum(facilities_fixed_costs[j] * y[j] for j in facilities)
+    )
+
+    ## We perform decomposition over the facilities.
+    @dantzig_wolfe_decomposition(model, dec, facilities_axis)
+
+    ## Subproblems generated routes starting from each facility.
+    ## The number of routes from each facilities is at most `nb_routes_per_locations`.
+    subproblems = BlockDecomposition.getsubproblems(dec)
+    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback)
+    
+    ## We define `z` are a subproblem variable common to all subproblems.
+    subproblemrepresentative.(z, Ref(subproblems))
+
+    return model, x, y, z, cov
+end
+
+# Note that contrary to the direct model, we don't have to add constraints to ensure the
+# consistency of the routes because we solve our subproblems using a pricing callback.
+# The pricing callback will therefore have the responsibilty to create consistent routes.
+
+# We setup Coluna:
 
 coluna = optimizer_with_attributes(
     Coluna.Optimizer,
     "params" => Coluna.Params(
-        solver=Coluna.Algorithm.TreeSearchAlgorithm(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm( ## default branch-and-bound of Coluna
             maxnumnodes = 100,
-            conqueralg = Coluna.ColCutGenConquer()
-                        ) ## default branch-cut-and-price
-                        ),
-                        "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
-)                   
+            conqueralg = Coluna.ColCutGenConquer() ## default column and cut generation of Coluna
+        ) ## default branch-cut-and-price
+    ),
+    "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+);
 
-# The following method creates the model according to the decomposition described: 
-function create_model()
+# ### Pricing callback
 
-    axis = collect(facilities)
-    @axis(Base_axis, axis)
-    @show Base_axis
-
-    model = BlockModel(coluna)
-
-    ## Let's declare the variables. We distinct the master variables `y`
-    
-    @variable(model, y[j in facilities], Bin)
-    
-    ## from the sub-problem variables `x` and `z`:
-    
-    @variable(model, x[i in customers, j in Base_axis], Bin)
-    @variable(model, z[u in locations, v in locations], Bin)
-    
-    ## The information carried by the `x` variables may seem redundant with that of the `z` variables. 
-    ## The `x` variables are in fact introduced only in order to separate a family of robust valid inequalities. 
-    
-    ## We now declare our problem's constraints:
-    ## The cover constraints are expressed w.r.t. the `x` variables:
-    @constraint(model, cov[i in customers],
-        sum(x[i, j] for j in facilities) >= 1)
-    
-    ## We add a constraint to express that if a facility is not opened, there can be no arc between this facility and a customer. 
-    @constraint(model, open_facility[j in facilities], 
-            sum(z[j, i] for i in customers) <= y[j] * nb_routes_per_locations)
-    
-
-    ## Contrary to the direct model, we are not obliged here to add constraints to ensure the consistency of the routes because we solve our subproblems by pricing. It will therefore be the responsibility of the pricing callback to create consistent routes.
-
-    ## We set the objective function:
-    @objective(model, Min,
-    sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
-    +
-    sum(facilities_fixed_costs[j] * y[j] for j in facilities))
-
-    @dantzig_wolfe_decomposition(model, dec, Base_axis)
-    subproblems = BlockDecomposition.getsubproblems(dec)
-    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback) 
-    subproblemrepresentative.(z, Ref(subproblems))
-
-    return model, x, y, z, cov
-end 
-
-
-
-# ## Pricing callback
-
-# Each sub-problem could be solved by a MIP, provided the right sub-problem constraints are added. Here, we propose a resolution by enumeration within a pricing callback. 
-
-# The general idea of enumeration is very simple: we enumerate the possible routes from a facility and keep the one with the lowest reduced cost, i.e. the one that improves the current solution the most. 
-# Enumerating all possible routes is very expensive. We improve the pricing efficiency a bit by pre-processing, for a given subset of customers and a given facility, the best order to visit the customers of the subset. This order depends only on the original cost of the arcs, so we need a method to compute it:
+# Each subproblem could be solved by a MIP, provided the right sub-problem constraints are added.
+# Here, we propose a resolution by enumeration within a pricing callback. 
+# The general idea of enumeration is very simple: we enumerate the possible routes from a
+# facility and keep the one with the lowest reduced cost, i.e. the one that improves the
+# current solution the most. 
+# Enumerating all possible routes is very expensive.
+# We improve the pricing efficiency a bit by pre-processing, for a given subset of customers 
+# and a given facility, the best order to visit the customers of the subset. 
+# This order depends only on the original cost of the arcs, so we need a method to compute it:
 
 struct EnumeratedRoute
     length::Int
@@ -318,13 +336,13 @@ function my_pricing_callback(cbdata)
 end
 
 # Create the model:
-model, x, y, z, _ = create_model()
+model, x, y, z, _ = create_model(coluna)
 # Solve:
 JuMP.optimize!(model)
 
 # ## TODO: display "raw" decomp model output and comment, transition to next section 
 
-# ## Strengthen with robust cuts (valid inequalities)
+# ### Strengthen with robust cuts (valid inequalities)
 
 # We introduce of first type of classic valid inqualities that tries to improve the 
 # integrality of the `y` variables.
@@ -372,14 +390,13 @@ function valid_inequalities_callback(cbdata)
 end
 
 # We re-declare the model and optimize it with the inequalities_callback:
-(model, x, y, z, _) = create_model()
+(model, x, y, z, _) = create_model(coluna)
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
-
 # TODO: comment on the improvement of the dual bound
 
-# ## Strengthen with non-robust cuts (rank-one cuts)
+# ### Strengthen with non-robust cuts (rank-one cuts)
 
 # Here, we implement special types of cuts called "rank-one cuts" (R1C).
 # These cuts are non-robust in the sense that they cannot be expressed only with the
@@ -410,7 +427,7 @@ struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
 end
 
-(model, x, y, z, cov) = create_model()
+(model, x, y, z, cov) = create_model(coluna)
 
 # We declare our custom data to Coluna
 BlockDecomposition.customconstrs!(model, CoverConstrData);
