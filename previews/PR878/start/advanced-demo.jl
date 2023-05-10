@@ -1,42 +1,43 @@
 # # Location Routing
 
-# We demonstrate the main features of Coluna on a variant of the Location Routing problem. 
-# In our variant, we consider customers that must be delivered by facilities. For simplicity, we assume that any customer's request can be fulfilled by any facility. To deliver a customer, we must open at least one route that passes through the customer's location. 
+# We demonstrate the main features of Coluna on a variant of the Location Routing problem.
+# In the Location Routing Problem, we are given a set of facilities and a set of customers.
+# Each customers must be delivered by a route starting from one facility. Each facility has 
+# a setup cost and the cost of a route is the distance traveled.
+
 # A route is defined as a vector of locations that satisfies the following rules:
  
-# - any route must start from a facility location
+# - any route must start from a open facility location
 # - every route has a maximum length, i.e. the number of visited locations cannot exceed a fixed constant `nb_positions`
-
 # - the routes are said to be open, i.e. finish at last visited customer. 
-# - each route has a cost defined as the sum of the costs of its arcs.
 
-# Our objective is to select the best routes to open in order to deliver all customers while minimizing the opening costs of the routes. This cost depends on the original costs of the routes and the opening costs of the facilities.
+# Our objective is to minimize the fixed costs of opened facilities and the distance traveled by the routes while
+# ensuring that each customer is at least visited once by a route.
 
 
-# In this tutorial, we work on a small instance with only 2 facilities and 7 customers. The maximum length of a route is fixed to 6. 
-nb_positions = 6
-facilities_fixed_costs = [1200, 1500]
+# In this tutorial, we work on a small instance with 2 facilities and 7 customers. 
+# The maximum length of a route is fixed to 4. 
+
+nb_positions = 4
+facilities_fixed_costs = [120, 150]
 facilities = [1, 2]
 customers = [3, 4, 5, 6, 7, 8, 9]
 arc_costs = 
 [
-    0.0    253.241  253.924  253.706  353.612  373.716  319.347  246.488  342.445   ;
-    253.241    0.0    212.017  161.689  270.646  268.338  178.325  166.935  231.827 ;
-    253.924  212.017    0.0    142.475  233.867  238.415  182.768  170.346  216.402 ;
-    253.706  161.689  142.475    0.0    285.9    288.07   226.365  156.479  294.774 ;
-    353.612  270.646  233.867  285.9      0.0    420.728  304.439  248.598  391.131 ;
-    373.716  268.338  238.415  288.07   420.728    0.0    324.366  295.006  381.664 ;
-    319.347  178.325  182.768  226.365  304.439  324.366    0.0    224.823  307.48  ;
-    246.488  166.935  170.346  156.479  248.598  295.006  224.823    0.0    213.504 ;
-    342.445  231.827  216.402  294.774  391.131  381.664  307.48   213.504    0.0   
-    ]
-    
+    0.0  25.3  25.4  25.4  35.4  37.4  31.9  24.6  34.2;
+    25.3   0.0  21.2  16.2  27.1  26.8  17.8  16.7  23.2;
+    25.4  21.2   0.0  14.2  23.4  23.8  18.3  17.0  21.6;
+    25.4  16.2  14.2   0.0  28.6  28.8  22.6  15.6  29.5;
+    35.4  27.1  23.4  28.6   0.0  42.1  30.4  24.9  39.1;
+    37.4  26.8  23.8  28.8  42.1   0.0  32.4  29.5  38.2;
+    31.9  17.8  18.3  22.6  30.4  32.4   0.0  22.5  30.7;
+    24.6  16.7  17.0  15.6  24.9  29.5  22.5   0.0  21.4;
+    34.2  23.2  21.6  29.5  39.1  38.2  30.7  21.4   0.0;
+]
 locations  = vcat(facilities, customers)
 nb_customers = length(customers)
 nb_facilities = length(facilities)
 positions = 1:length(nb_positions)
-    
-
 
 # Let's define the model that will solve our problem; first we need to load some packages and dependencies:
 
