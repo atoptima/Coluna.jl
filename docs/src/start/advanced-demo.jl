@@ -132,7 +132,7 @@ coluna = optimizer_with_attributes(
                         ##)
                         ]
                         )
-                        ) # default branch-cut-and-price
+                        ) ## default branch-cut-and-price
                         ),
                         "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
 )
