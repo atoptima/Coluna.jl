@@ -189,6 +189,7 @@ end
 
 "Performs a branching phase."
 function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform)
+    
     return map(candidates) do candidate
         # TODO; I don't understand why we need to sort the children here.
         # Looks like eval_children_of_candidiate! and the default implementation of
@@ -196,24 +197,28 @@ function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found,
         # Moreover, given the generic implementation of perform_branching_phase!,
         # it's not clear to me how the order of the children can affect the result.
         # At the end, only the score matters and AFAIK, the score is also independent of the order.
+
+        # The reason of sorting (by Ruslan) : Ideally, we need to estimate the score of the candidate after 
+        # the first branch is solved if the score estimation is worse than the best score found so far, we discard the candidate
+        # and do not evaluate the second branch. As estimation of score is not implemented, sorting is useless for now. 
         
         # children = sort(
         #     Branching.get_children(candidate),
         #     by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child))
         # )
-        children = Branching.get_children(candidate)
-        eval_children_of_candidate!(children, phase, ip_primal_sols_found, env, reform)
+
+        eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform)
         return compute_score(get_score(phase), candidate)
     end
 end
 
-function eval_children_of_candidate!(children, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    return eval_children_of_candidate_inner!(children, phase, ip_primal_sols_found, env, reform)
+function eval_candidate!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
+    return eval_candidate_inner!(candidate, phase, ip_primal_sols_found, env, reform)
 end
 
 "Evaluates a candidate."
-function eval_children_of_candidate_inner!(children, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    for child in children
+function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
+    for child in get_children(candidate)
         eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform)
     end
     return
