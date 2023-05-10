@@ -127,7 +127,7 @@ We advise to not change them.
 
 ```@docs
 Branching.perform_branching_phase!
-Branching.eval_children_of_candidate!
+Branching.eval_candidate!
 Branching.eval_child_of_candidate!
 ```
 

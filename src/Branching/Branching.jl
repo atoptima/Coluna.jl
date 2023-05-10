@@ -207,8 +207,7 @@ function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found,
         #     by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child))
         # )
 
-        eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform)
-        return compute_score(get_score(phase), candidate)
+        return eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform)
     end
 end
 
@@ -221,7 +220,7 @@ function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, i
     for child in get_children(candidate)
         eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform)
     end
-    return
+    return compute_score(get_score(phase), candidate)
 end
 
 "Evaluate children of a candidate."
