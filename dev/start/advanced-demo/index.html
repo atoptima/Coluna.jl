@@ -37,24 +37,12 @@ routes_per_locations = 1:nb_routes_per_locations</code></pre><pre class="documen
 optimize!(model)
 objective_value(model)</code></pre><p>##TODO: run direct model</p><h2 id="Decomp-model"><a class="docs-heading-anchor" href="#Decomp-model">Decomp model</a><a id="Decomp-model-1"></a><a class="docs-heading-anchor-permalink" href="#Decomp-model" title="Permalink"></a></h2><p>We can exploit the structure of the problem by generating routes starting from each facility. The most immediate decomposition is to consider each route traveled by a vehicle as a sub-problem. However, at a given facility, vehicles are identical and therefore any vehicle can travel on any route. So we have several identical subproblems at each facility.</p><p>We declare the axis:</p><pre><code class="language- hljs">axis = collect(facilities)
 @axis(Base_axis, axis)
-@show Base_axis</code></pre><p>and we set up the solver:</p><pre><code class="language- hljs">##TODO: clean
-coluna = optimizer_with_attributes(
+@show Base_axis</code></pre><p>and we set up the solver:</p><pre><code class="language- hljs">coluna = optimizer_with_attributes(
     Coluna.Optimizer,
     &quot;params&quot; =&gt; Coluna.Params(
         solver=Coluna.Algorithm.TreeSearchAlgorithm(
-            maxnumnodes = 0,
-            conqueralg = Coluna.ColCutGenConquer(
-                primal_heuristics = [
-                    # Coluna.ParameterizedHeuristic(
-                        #    Diva.Diving(),
-                        #    1.0,
-                        #    1.0,
-                        #    1,
-                        #    1,
-                        #    &quot;Diving&quot;
-                        ##)
-                        ]
-                        )
+            maxnumnodes = 100,
+            conqueralg = Coluna.ColCutGenConquer()
                         ) ## default branch-cut-and-price
                         ),
                         &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
@@ -372,4 +360,4 @@ end
 
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
-JuMP.optimize!(model)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 15:43">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+JuMP.optimize!(model)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 15:59">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
