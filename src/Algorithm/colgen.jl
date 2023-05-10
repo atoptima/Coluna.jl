@@ -152,6 +152,10 @@ function _colgen_optstate_output(result, master)
         set_ip_dual_bound!(optstate, DualBound(master, result.db))
     end
 
+    if !isnothing(result.mlp)
+        set_lp_primal_bound!(optstate, PrimalBound(master, result.mlp))
+    end
+
     return optstate
 end
 
@@ -161,8 +165,8 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
 
     master = getmaster(reform)
-    
 
+    
     return _colgen_optstate_output(result, master)
 end
 

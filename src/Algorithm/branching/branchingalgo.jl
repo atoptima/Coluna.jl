@@ -200,7 +200,7 @@ function new_context(
     )
 end
 
-function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
+function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
     child_state = TreeSearch.get_opt_state(child)
 
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
