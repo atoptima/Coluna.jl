@@ -364,7 +364,6 @@ function Benders.build_primal_solution(context::BendersContext, mast_primal_sol,
 
     for sp_sol in sep_sp_sols.sols
         for (varid, val) in sp_sol
-            @show sp_sol
             #if getduty(varid) <= BendSpSepVar
                 push!(var_ids, varid)
                 push!(var_vals, val)

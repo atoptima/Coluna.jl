@@ -300,7 +300,6 @@ function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, 
         @warn "No candidate generated. No children will be generated. However, the node is not conquered."
         return new_divide_output(nothing, nothing)
     end
-
     return advanced_select!(ctx, candidates, env, reform, input)
 end
 

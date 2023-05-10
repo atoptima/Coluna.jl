@@ -876,7 +876,6 @@ register!(unit_tests, "benders_default", benders_default_infeasible_master)
 function benders_default_infeasible_sp()
     env, reform = benders_form_infeasible_sp()
     master = Coluna.MathProg.getmaster(reform)
-    @show master
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
