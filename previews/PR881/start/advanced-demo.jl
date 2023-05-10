@@ -122,7 +122,7 @@ coluna = optimizer_with_attributes(
             maxnumnodes = 0,
             conqueralg = Coluna.ColCutGenConquer(
                 primal_heuristics = [
-                    ## Coluna.ParameterizedHeuristic(
+                    #Coluna.ParameterizedHeuristic(
                         ##    Diva.Diving(),
                         ##    1.0,
                         ##    1.0,
