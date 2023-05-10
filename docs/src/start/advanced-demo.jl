@@ -60,39 +60,42 @@ routes_per_locations = 1:nb_routes_per_locations
 
 model = JuMP.Model(HiGHS.Optimizer)
 
+# We declare 3 types of binary variables: 
 
-# and we declare 3 types of binary variables: 
-
+## y[j] equals 1 if facility j is open; 0 otherwise.
 @variable(model, y[j in facilities], Bin)
-@variable(model, z[u in locations, v in locations], Bin) 
+
+## z[u,v] equals 1 if a vehicle travels from u to v; 0 otherwise
+@variable(model, z[u in locations, v in locations], Bin)
+
+## x[i,j,k,p] equals 1 if customer i is delivered from facility j at position p of route k; 0 otherwise
 @variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin)
 
-# - variables `y_j` indicate the opening status of a given facility ; if `y_j = 1` then facility `j` is open, otherwise `y_j = 0` 
-# - variables `z_(u,v)` indicate which arcs are used ; if `z_(u,v) = 1` then there is an arc between location `u` and location `v`, otherwise `z_(u,v) = 0`
-# - variables `x_(i, j, k, p)` are used to express cover constraints and to ensure the consistency of the routes ; `x_(i, j, k, p) = 1` if customer `i` is delivered from facility `j` at the position `p` of route `k`, otherwise `x_(i, j, k, p) = 0`. 
 
-# Now, we add constraints to our model:
+# We define the constraints:
 
-# - "each customer is visited by at least one route"
+## each customer visited once
 @constraint(model, cov[i in customers],
     sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) == 1)
 
+## each facility is open if there is a route starting from it
 @constraint(model, setup[j in facilities, k in routes_per_locations],
     sum(x[i,j,k,1] for i in customers) <= y[j]) 
 
-# - "a customer can only be delivered at position `p > 1` of a given route if there is a customer delivered at position `p-1` of the same route"
+## flow conservation
 @constraint(model, flow_conservation[j in facilities, k in routes_per_locations, p in positions; p > 1], 
     sum(x[i, j, k, p] for i in customers) <= sum(x[i, j, k, p-1] for i in customers)) 
 
-# - "there is an arc between two customers whose demand is satisfied by the same route at consecutive positions"
+## there is an arc between two customers whose demand is satisfied by the same route at consecutive positions
 @constraint(model, route_arc[i in customers, l in customers, j in facilities, k in routes_per_locations, p in positions; p > 1 && i != l], 
     z[i,l] >= x[l, j, k, p] + x[i, j, k, p-1] - 1)
 
-# - "there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`"
+## there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`
 @constraint(model, start_arc[i in customers, j in facilities, k in routes_per_locations], 
         z[j,i] >= x[i, j, k, 1]) 
 
 # We set the objective function:
+
 @objective(model, Min,
     sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) 
     +
@@ -101,18 +104,20 @@ model = JuMP.Model(HiGHS.Optimizer)
 optimize!(model)
 objective_value(model)
 
-# ##TODO: run direct model
+# We find a solution involving two routes starting from facility 1:
+# - `1` -> `8` -> `9` -> `3` -> `6`
+# - `1` -> `4` -> `5` -> `7
 
-# ## Decomp model
+# ## Decomposed model
 
 # We can exploit the structure of the problem by generating routes starting from each facility. 
-# The most immediate decomposition is to consider each route traveled by a vehicle as a sub-problem. However, at a given facility, vehicles are identical and therefore any vehicle can travel on any route. So we have several identical subproblems at each facility. 
+# The most immediate decomposition is to consider each route traveled by a vehicle as a subproblem.
+# However, at a given facility, vehicles are identical and therefore any vehicle can travel
+# on any route. So we have several identical subproblems at each facility. 
 
 # We declare the axis:
 
-axis = collect(facilities)
-@axis(Base_axis, axis)
-@show Base_axis
+@axis(facilities_axis, collect(facilities))
 
 # and we set up the solver:
 
@@ -142,9 +147,7 @@ coluna = optimizer_with_attributes(
 # The following method creates the model according to the decomposition described: 
 function create_model()
 
-    axis = collect(facilities)
-    @axis(Base_axis, axis)
-    @show Base_axis
+    @axis(facilities_axis, collect(facilities))
 
     model = BlockModel(coluna)
 
@@ -154,7 +157,7 @@ function create_model()
     
     ## from the sub-problem variables `x` and `z`:
     
-    @variable(model, x[i in customers, j in Base_axis], Bin)
+    @variable(model, x[i in customers, j in facilities_axis], Bin)
     @variable(model, z[u in locations, v in locations], Bin)
     
     ## The information carried by the `x` variables may seem redundant with that of the `z` variables. 
@@ -178,14 +181,13 @@ function create_model()
     +
     sum(facilities_fixed_costs[j] * y[j] for j in facilities))
 
-    @dantzig_wolfe_decomposition(model, dec, Base_axis)
+    @dantzig_wolfe_decomposition(model, dec, facilities_axis)
     subproblems = BlockDecomposition.getsubproblems(dec)
     specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback) 
     subproblemrepresentative.(z, Ref(subproblems))
 
     return model, x, y, z, cov
 end 
-
 
 
 # ## Pricing callback
