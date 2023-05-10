@@ -37,7 +37,7 @@ arc_costs =
 locations  = vcat(facilities, customers)
 nb_customers = length(customers)
 nb_facilities = length(facilities)
-positions = 1:length(nb_positions)
+positions = 1:nb_positions
 
 # Let's define the model that will solve our problem; first we need to load some packages and dependencies:
 
@@ -67,28 +67,28 @@ model = JuMP.direct_model(HiGHS.Optimizer())
 @variable(model, z[u in locations, v in locations], Bin) 
 @variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin)
 
-# variables `y_j` indicate the opening status of a given facility ; if `y_j = 1` then facility `j` is open, otherwise `y_j = 0` 
-# variables `z_(u,v)` indicate which arcs are used ; if `z_(u,v) = 1` then there is an arc between location `u` and location `v`, otherwise `z_(u,v) = 0`
-# variables `x_(i, j, k, p)` are used to express cover constraints and to ensure the consistency of the routes ; `x_(i, j, k, p) = 1` if customer `i` is delivered from facility `j` at the position `p` of route `k`, otherwise `x_(i, j, k, p) = 0`. 
+# - variables `y_j` indicate the opening status of a given facility ; if `y_j = 1` then facility `j` is open, otherwise `y_j = 0` 
+# - variables `z_(u,v)` indicate which arcs are used ; if `z_(u,v) = 1` then there is an arc between location `u` and location `v`, otherwise `z_(u,v) = 0`
+# - variables `x_(i, j, k, p)` are used to express cover constraints and to ensure the consistency of the routes ; `x_(i, j, k, p) = 1` if customer `i` is delivered from facility `j` at the position `p` of route `k`, otherwise `x_(i, j, k, p) = 0`. 
 
 # Now, we add constraints to our model:
 
-# "each customer is visited by at least one route"
+# - "each customer is visited by at least one route"
 @constraint(model, cov[i in customers],
     sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) >= 1)
-# "for any route from any facility, its length does not exceed the fixed maximum length `nb_positions`"
+# - "for any route from any facility, its length does not exceed the fixed maximum length `nb_positions`"
 @constraint(model, cardinality[j in facilities, k in routes_per_locations], 
     sum(x[i, j, k, p] for i in customers, p in positions) <= nb_positions * y[j])
-# "only one customer can be delivered by a given route at a given position"
+# - "only one customer can be delivered by a given route at a given position"
 @constraint(model, assign_setup[p in positions, j in facilities, k in routes_per_locations], 
     sum(x[i, j, k, p] for i in customers) <= y[j])
-# "a customer can only be delivered at position `p > 1` of a given route if there is a customer delivered at position `p-1` of the same route"
+# - "a customer can only be delivered at position `p > 1` of a given route if there is a customer delivered at position `p-1` of the same route"
 @constraint(model, open_route[j in facilities, k in routes_per_locations, p in positions; p > 1], 
     sum(x[i, j, k, p] for i in customers) <= sum(x[i, j, k, p-1] for i in customers)) 
-# "there is an arc between two customers whose demand is satisfied by the same route at consecutive positions"
+# - "there is an arc between two customers whose demand is satisfied by the same route at consecutive positions"
 @constraint(model, route_arc[i in customers, l in customers, indi in 1:nb_customers, indl in 1:nb_customers, j in facilities, k in routes_per_locations, p in positions; p > 1 && i != l && indi != indl], 
     z[customers[indi], customers[indl]] >= x[l, j, k, p] + x[i, j, k, p-1] - 1)
-# "there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`"
+# - "there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`"
 @constraint(model, start_arc[i in customers, indi in 1:nb_customers, j in facilities, k in routes_per_locations], 
         z[facilities[j], customers[indi]] >= x[i, j, k, 1]) 
 
@@ -123,13 +123,13 @@ coluna = optimizer_with_attributes(
             conqueralg = Coluna.ColCutGenConquer(
                 primal_heuristics = [
                     #Coluna.ParameterizedHeuristic(
-                        #    Diva.Diving(),
-                        #    1.0,
-                        #    1.0,
-                        #    1,
-                        #    1,
-                        #    "Diving"
-                        #)
+                        ##    Diva.Diving(),
+                        ##    1.0,
+                        ##    1.0,
+                        ##    1,
+                        ##    1,
+                        ##    "Diving"
+                        ##)
                         ]
                         )
                         ) # default branch-cut-and-price
@@ -409,7 +409,7 @@ end
 
 # The rank-one cuts we are going to add are of the form:
 # `sum(c_k λ_k) <= 1.0` 
-# for a fixed subset `r1c_cov_constrs` of cover constraints of size 3, with `λ_k` the master columns variables and c_k` s.t. 
+# for a fixed subset `r1c_cov_constrs` of cover constraints of size 3, with `λ_k` the master columns variables and `c_k` s.t. 
 # `c_k = ⌊ 1/2 x |r1c_locations ∩ r1c_cov_constrs| ⌋`
 # with `r1c_locations` the current solution (route) that corresponds to `λ_k`.
 # e.g. if we consider cover constraints cov[3], cov[6] and cov[8] in our cut, then the route 1-4-6-7 gives a zero coefficient while the route 1-4-6-3 gives a coefficient equal to one. 
