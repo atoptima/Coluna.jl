@@ -1,4 +1,4 @@
-# # Location Routing
+# # Advanced tutorial - Location Routing
 
 # We demonstrate the main features of Coluna on a variant of the Location Routing problem.
 # In the Location Routing Problem, we are given a set of facilities and a set of customers.
@@ -39,24 +39,23 @@ nb_customers = length(customers)
 nb_facilities = length(facilities)
 positions = 1:nb_positions
 
-# Let's define the model that will solve our problem; first we need to load some packages and dependencies:
+# In this tutorial, we will use the following packages:
 
-using JuMP, HiGHS, GLPK
-using BlockDecomposition, Coluna
-
+using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna
 
 # We want to set an upper bound `nb_routes_per_locations` on the number of routes starting from a facility. 
 # This limit is calculated as follows:
 
-# We compute the minimum number of routes needed to visit all customers:
+## We compute the minimum number of routes needed to visit all customers:
 nb_routes = Int(ceil(nb_customers / nb_positions)) 
-# We define the upper bound `nb_routes_per_locations`: 
+## We define the upper bound `nb_routes_per_locations`: 
 nb_routes_per_locations = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)
 routes_per_locations = 1:nb_routes_per_locations
 
 # ## Direct model
 
-# First, we solve the problem by a direct approach, using the HiGHS solver. We start by initializing the solver:
+# First, we solve the problem by a direct approach, using the HiGHS solver. 
+# We start by creating a JuMP model:
 
 model = JuMP.Model(HiGHS.Optimizer)
 
@@ -104,7 +103,7 @@ model = JuMP.Model(HiGHS.Optimizer)
 optimize!(model)
 objective_value(model)
 
-# We find a solution involving two routes starting from facility 1:
+# We find an optimal solution involving two routes starting from facility 1:
 # - `1` -> `8` -> `9` -> `3` -> `6`
 # - `1` -> `4` -> `5` -> `7
 
@@ -115,48 +114,20 @@ objective_value(model)
 # However, at a given facility, vehicles are identical and therefore any vehicle can travel
 # on any route. So we have several identical subproblems at each facility. 
 
-# We declare the axis:
-
-@axis(facilities_axis, collect(facilities))
-
-# and we set up the solver:
-
-##TODO: clean
-coluna = optimizer_with_attributes(
-    Coluna.Optimizer,
-    "params" => Coluna.Params(
-        solver=Coluna.Algorithm.TreeSearchAlgorithm(
-            maxnumnodes = 0,
-            conqueralg = Coluna.ColCutGenConquer(
-                primal_heuristics = [
-                    ## Coluna.ParameterizedHeuristic(
-                        ##    Diva.Diving(),
-                        ##    1.0,
-                        ##    1.0,
-                        ##    1,
-                        ##    1,
-                        ##    "Diving"
-                        ##)
-                        ]
-                        )
-                        ) ## default branch-cut-and-price
-                        ),
-                        "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
-)                   
-
 # The following method creates the model according to the decomposition described: 
-function create_model()
-
+function create_model(optimizer)
+    ## We declare an axis over the facilties.
+    ## We must use `facilities_axis` instead of `facilities` in the declaration of the 
+    ## variables and constraints that belong to pricing subproblems.
     @axis(facilities_axis, collect(facilities))
 
-    model = BlockModel(coluna)
+    ## We declare a `BlockModel` instead of `Model`.
+    model = BlockModel(optimizer)
 
-    ## Let's declare the variables. We distinct the master variables `y`
-    
+    ## `y[j]` is a master variable equal to 1 if the facility j is open; 0 otherwise
     @variable(model, y[j in facilities], Bin)
     
-    ## from the sub-problem variables `x` and `z`:
-    
+    ## `x[i,j]` 
     @variable(model, x[i in customers, j in facilities_axis], Bin)
     @variable(model, z[u in locations, v in locations], Bin)
     
@@ -189,13 +160,30 @@ function create_model()
     return model, x, y, z, cov
 end 
 
+# and we set up Coluna:
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    "params" => Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm( ## default branch-and-bound of Coluna
+            maxnumnodes = 100,
+            conqueralg = Coluna.ColCutGenConquer() ## default column and cut generation of Coluna
+        ) ## default branch-cut-and-price
+    ),
+    "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+)
 
 # ## Pricing callback
 
-# Each sub-problem could be solved by a MIP, provided the right sub-problem constraints are added. Here, we propose a resolution by enumeration within a pricing callback. 
-
-# The general idea of enumeration is very simple: we enumerate the possible routes from a facility and keep the one with the lowest reduced cost, i.e. the one that improves the current solution the most. 
-# Enumerating all possible routes is very expensive. We improve the pricing efficiency a bit by pre-processing, for a given subset of customers and a given facility, the best order to visit the customers of the subset. This order depends only on the original cost of the arcs, so we need a method to compute it:
+# Each subproblem could be solved by a MIP, provided the right sub-problem constraints are added.
+# Here, we propose a resolution by enumeration within a pricing callback. 
+# The general idea of enumeration is very simple: we enumerate the possible routes from a
+# facility and keep the one with the lowest reduced cost, i.e. the one that improves the
+# current solution the most. 
+# Enumerating all possible routes is very expensive.
+# We improve the pricing efficiency a bit by pre-processing, for a given subset of customers 
+# and a given facility, the best order to visit the customers of the subset. 
+# This order depends only on the original cost of the arcs, so we need a method to compute it:
 
 struct EnumeratedRoute
     length::Int
@@ -332,7 +320,7 @@ function my_pricing_callback(cbdata)
 end
 
 # Create the model:
-model, x, y, z, _ = create_model()
+model, x, y, z, _ = create_model(coluna)
 # Solve:
 JuMP.optimize!(model)
 
@@ -386,7 +374,7 @@ function valid_inequalities_callback(cbdata)
 end
 
 # We re-declare the model and optimize it with the inequalities_callback:
-(model, x, y, z, _) = create_model()
+(model, x, y, z, _) = create_model(coluna)
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
@@ -423,7 +411,7 @@ struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
 end
 
-(model, x, y, z, cov) = create_model()
+(model, x, y, z, cov) = create_model(coluna)
 
 # We declare our custom data to Coluna
 BlockDecomposition.customconstrs!(model, CoverConstrData);
@@ -583,3 +571,4 @@ end
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
 JuMP.optimize!(model)
+
