@@ -112,7 +112,7 @@ axis = collect(facilities)
 
 # and we set up the solver:
 
-# ##TODO: clean
+##TODO: clean
 coluna = optimizer_with_attributes(
     Coluna.Optimizer,
     "params" => Coluna.Params(
@@ -120,17 +120,17 @@ coluna = optimizer_with_attributes(
             maxnumnodes = 1,
             conqueralg = Coluna.ColCutGenConquer(
                 primal_heuristics = [
-                    #Coluna.ParameterizedHeuristic(
-                    #    Diva.Diving(),
-                    #    1.0,
-                    #    1.0,
-                    #    1,
-                    #    1,
-                    #    "Diving"
-                    #)
+                    ##Coluna.ParameterizedHeuristic(
+                    ##    Diva.Diving(),
+                    ##    1.0,
+                    ##    1.0,
+                    ##    1,
+                    ##    1,
+                    ##    "Diving"
+                    ##)
                 ]
             )
-        ) # default branch-cut-and-price
+        ) ## default branch-cut-and-price
     ),
     "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
 )
