@@ -116,24 +116,12 @@ axis = collect(facilities)
 
 # and we set up the solver:
 
-##TODO: clean
 coluna = optimizer_with_attributes(
     Coluna.Optimizer,
     "params" => Coluna.Params(
         solver=Coluna.Algorithm.TreeSearchAlgorithm(
-            maxnumnodes = 0,
-            conqueralg = Coluna.ColCutGenConquer(
-                primal_heuristics = [
-                    ## Coluna.ParameterizedHeuristic(
-                        ##    Diva.Diving(),
-                        ##    1.0,
-                        ##    1.0,
-                        ##    1,
-                        ##    1,
-                        ##    "Diving"
-                        ##)
-                        ]
-                        )
+            maxnumnodes = 100,
+            conqueralg = Coluna.ColCutGenConquer()
                         ) ## default branch-cut-and-price
                         ),
                         "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
@@ -388,6 +376,7 @@ end
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
+
 # TODO: comment on the improvement of the dual bound
 
 # ## Strengthen with non-robust cuts (rank-one cuts)
@@ -581,3 +570,4 @@ end
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
 JuMP.optimize!(model)
+
