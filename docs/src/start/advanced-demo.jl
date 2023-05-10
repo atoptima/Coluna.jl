@@ -169,10 +169,10 @@ function create_model()
     @constraint(model, open_facility[j in facilities], 
             sum(z[j, i] for i in customers) <= y[j] * nb_routes_per_locations)
     
-    ## We do not need to add constraints ensuring the consistency of the routes because we solve our subproblems by pricing. It will therefore be the responsibility of the pricing callback to create consistent routes. ##TODO link with additional constraints of Direct model
-    
+
+    ## Contrary to the direct model, we are not obliged here to add constraints to ensure the consistency of the routes because we solve our subproblems by pricing. It will therefore be the responsibility of the pricing callback to create consistent routes.
+
     ## We set the objective function:
-    
     @objective(model, Min,
     sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
     +
@@ -381,13 +381,13 @@ end
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
-# ## TODO: comment on the improvement of the dual bound, fix display of both raw decomp and valid ineq decomp model
+# ## TODO: comment on the improvement of the dual bound
 
 
 
 # ## Strengthen with non-robust cuts (rank-one cuts)
 
-# ##TODO: describe the goal by looking at lambdas values -> highlight that the aim is to drive them towards integrality
+# ##TODO: describe the goal by looking at lambdas values (if possible?) -> highlight that the aim is to drive them towards integrality
 
 # Here, we implement special types of cuts called "rank-one cuts" (R1C). These cuts are non-robust in the sense that they can not be expressed only with the original variables of the model. In particular, they have to be expressed with the master columns variables `λ_k`.
 # R1Cs are obtained by applying the Chvátal-Gomory procedure once, hence their name, on cover constraints. We must therefore be able to differentiate the cover constraints from the other constraints of the model. To do this, we exploit an advantage of Coluna that allows us to attach custom data to the constraints and variables of our model:
