@@ -5,13 +5,13 @@ CurrentModule = Coluna
 # ColGen API
 
 Coluna provides an interface and generic functions to implement a multi-stage column
-generation algorithm.Here is an overview of the main concepts and a description of the 
+generation algorithm. Here is an overview of the main concepts and a description of the 
 default implementation:
 
 ## Phases
 
 In the first iterations, the restricted master LP contains a few columns and may be 
-infeasible. To prevent this , we introduce artificial variables and we change the 
+infeasible. To prevent this, we introduce artificial variables and we change the 
 formulation depending on whether we want to prove the infeasibility of the master LP or find 
 the optimal solution. The default implementation provides three phases:
 
@@ -129,7 +129,7 @@ At each iteration, the algorithm requires primal solutions to the pricing subpro
 
 The default implementation supports optimization of the pricing subproblems using a MILP solver or a pricing callback. Non-robust valid inequalities are not supported by MILP solvers as they change the structure of the subproblems. When using a pricing callback, you must be aware of how Coluna calculates the reduced cost of a column:
 
-The reduced cost of a column is splitted into three contributions:
+The reduced cost of a column is split into three contributions:
 - the contribution of the subproblem variables that is the primal solution cost given the reduced cost of subproblem variables
 - the contribution of the non-robust constraints (i.e. master constraints that cannot be expressed using subproblem variables except the convexity constraint) that is not supported by MILP solver but that you must take into account in the pricing callback
 - the contribution of the master convexity constraint that is automatically taken into account by Coluna once the primal solution returned.

@@ -56,7 +56,7 @@ One must be able to iterate on this container to insert the columns in the maste
 """
     optimize_pricing_problem!(ctx, sp, env, optimizer, mast_dual_sol) -> PricingResult
 
-Returns a custom object `PricingResult` that must implement following functions:
+Returns a custom object `PricingResult` that must implement the following functions:
 - `get_primal_sols`: array of primal solution to the pricing subproblem 
 - `get_primal_bound`: best reduced cost (optional ?)
 - `get_dual_bound`: dual bound of the pricing subproblem (used to compute the master dual bound)
@@ -76,7 +76,7 @@ dual bound.
 @mustimplement "ColGenPricing" get_dual_bound(pricing_res) = nothing
 
 """
-Push the column in the set of columns generated at a given iteration of the column
+Pushes the column in the set of columns generated at a given iteration of the column
 generation algorithm.
 Columns stored in the set will then be considered for insertion in the master problem.
 Returns `true` if column was inserted in the set, `false` otherwise.

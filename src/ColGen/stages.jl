@@ -4,7 +4,7 @@ Each stage is associated to a specific solver for each pricing subproblem.
 """
 abstract type AbstractColGenStage end
 
-"An iterator that indicates how a set of stages follow each other."
+"An iterator that indicates how stages follow each other."
 abstract type AbstractColGenStageIterator end
 
 "Returns a new stage iterator."
