@@ -13,19 +13,18 @@ abstract type AbstractColGenStageIterator end
 "Returns the stage at which the column generation algorithm must start."
 @mustimplement "ColGenStage" initial_stage(::AbstractColGenStageIterator) = nothing
 
-@mustimplement "ColGenStage" next_stage(::AbstractColGenStageIterator, stage, phase_output) = nothing
 
 """
 Returns the next stage.
 Returns `nothing` if the algorithm has already reached the exact phase (last phase).
 """
-@mustimplement "ColGenStage" decrease_stage(::AbstractColGenStageIterator,  ::AbstractColGenStage, output) = nothing
+@mustimplement "ColGenStage" next_stage(::AbstractColGenStageIterator, stage, phase_output) = nothing
 
-"Setup the context for the given stage."
-@mustimplement "ColGenStage" setup_context!(context, ::AbstractColGenStage) = nothing
-
+"Returns the optimizer for the pricing subproblem associated to the given stage."
 @mustimplement "ColGenStage" get_pricing_subprob_optimizer(::AbstractColGenStage, form) = nothing
 
+"Returns the id of the stage."
 @mustimplement "ColGenStage" stage_id(::AbstractColGenStage) = nothing
 
+"Returns `true` if the stage uses an exact solver for the pricing subproblem; `false` otherwise."
 @mustimplement "ColGenStage" is_exact_stage(::AbstractColGenStage) = nothing

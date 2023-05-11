@@ -150,33 +150,35 @@ See `optimize_master_lp_problem!`.
 @mustimplement "ColGenMaster" get_dual_sol(master_res) = nothing
 
 """
-Updates dual value of the master constraints.
-Dual values of the constraints can be used when the pricing solver supports non-robust cut.
-
-**Note (by guimarqu)**: This is something that should be discussed because another option
-is to provide the master LP dual solution to the pricing solver instead of storing the same
-information at two different places.
-"""
-@mustimplement "ColGenMaster" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
-
-"""
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
 @mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform, env) = nothing
 
-@mustimplement "ColGen" isbetter(new_ip_primal_sol, ip_primal_sol) = nothing
+"""
+Returns `true` if the new master IP primal solution is better than the current; `false` otherwise.
+"""
+@mustimplement "ColGenMaster" isbetter(new_ip_primal_sol, ip_primal_sol) = nothing
 
-@mustimplement "ColGen" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
+"""
+Updates the current master IP primal solution.
+"""
+@mustimplement "ColGenMaster" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
 
 ############################################################################################
 # Reduced costs calculation.
 ############################################################################################
 """
+Updates dual value of the master constraints.
+Dual values of the constraints can be used when the pricing solver supports non-robust cut.
+"""
+@mustimplement "ColGenReducedCosts" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
+
+"""
 Returns the original cost `c` of subproblems variables.
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
-@mustimplement "ColGenReducedCosts " get_subprob_var_orig_costs(ctx::AbstractColGenContext) = nothing
+@mustimplement "ColGenReducedCosts" get_subprob_var_orig_costs(ctx::AbstractColGenContext) = nothing
 
 """
 Returns the coefficient matrix `A` of subproblem variables in the master
@@ -209,8 +211,16 @@ function check_pricing_termination_status(pricing_result)
     # TODO
 end
 
-@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) = nothing
+"""
+    compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) -> Float64
 
+Caculates the dual bound at a given iteration of column generation.
+The dual bound is composed of:
+- `master_lp_obj_val`: objective value of the master LP problem
+- `master_dbs`: dual values of the pricing subproblems
+- the contribution of the master convexity constraints that you should compute from `mast_dual_sol`.
+"""
+@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) = nothing
 
 abstract type AbstractColGenIterationOutput end
 
