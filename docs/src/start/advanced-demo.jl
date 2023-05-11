@@ -42,14 +42,14 @@ positions = 1:nb_positions;
 
 using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna;
 
-# We want to set an upper bound `nb_routes_per_locations` on the number of routes starting from a facility. 
+# We want to set an upper bound `nb_routes_per_facility` on the number of routes starting from a facility. 
 # This limit is calculated as follows:
 
 ## We compute the minimum number of routes needed to visit all customers:
 nb_routes = Int(ceil(nb_customers / nb_positions)) 
-## We define the upper bound `nb_routes_per_locations`: 
-nb_routes_per_locations = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)
-routes_per_locations = 1:nb_routes_per_locations;
+## We define the upper bound `nb_routes_per_facility`: 
+nb_routes_per_facility = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)
+routes_per_facility = 1:nb_routes_per_facility;
 
 # ## Direct model
 
@@ -67,29 +67,29 @@ model = JuMP.Model(HiGHS.Optimizer);
 @variable(model, z[u in locations, v in locations], Bin)
 
 ## x[i,j,k,p] equals 1 if customer i is delivered from facility j at position p of route k; 0 otherwise
-@variable(model, x[i in customers, j in facilities, k in routes_per_locations, p in positions], Bin);
+@variable(model, x[i in customers, j in facilities, k in routes_per_facility, p in positions], Bin);
 
 
 # We define the constraints:
 
 ## each customer visited once
 @constraint(model, cov[i in customers],
-    sum(x[i, j, k, p] for j in facilities, k in routes_per_locations, p in positions) == 1)
+    sum(x[i, j, k, p] for j in facilities, k in routes_per_facility, p in positions) == 1)
 
 ## each facility is open if there is a route starting from it
-@constraint(model, setup[j in facilities, k in routes_per_locations],
+@constraint(model, setup[j in facilities, k in routes_per_facility],
     sum(x[i,j,k,1] for i in customers) <= y[j]) 
 
 ## flow conservation
-@constraint(model, flow_conservation[j in facilities, k in routes_per_locations, p in positions; p > 1], 
+@constraint(model, flow_conservation[j in facilities, k in routes_per_facility, p in positions; p > 1], 
     sum(x[i, j, k, p] for i in customers) <= sum(x[i, j, k, p-1] for i in customers)) 
 
 ## there is an arc between two customers whose demand is satisfied by the same route at consecutive positions
-@constraint(model, route_arc[i in customers, l in customers, j in facilities, k in routes_per_locations, p in positions; p > 1 && i != l], 
+@constraint(model, route_arc[i in customers, l in customers, j in facilities, k in routes_per_facility, p in positions; p > 1 && i != l], 
     z[i,l] >= x[l, j, k, p] + x[i, j, k, p-1] - 1)
 
 ## there is an arc between the facility `j` and the first customer visited by the route `k` from facility `j`
-@constraint(model, start_arc[i in customers, j in facilities, k in routes_per_locations], 
+@constraint(model, start_arc[i in customers, j in facilities, k in routes_per_facility], 
         z[j,i] >= x[i, j, k, 1]);
 
 # We set the objective function:
@@ -122,8 +122,8 @@ objective_value(model)
 # - speed-up the optimization using multi-stage column generation.
  
 # The following method creates the model according to the decomposition described: 
-function create_model(optimizer)
-    ## We declare an axis over the facilties.
+function create_model(optimizer, pricing_algorithms)
+    ## We declare an axis over the facilities.
     ## We must use `facilities_axis` instead of `facilities` in the declaration of the 
     ## variables and constraints that belong to pricing subproblems.
     @axis(facilities_axis, collect(facilities))
@@ -148,7 +148,7 @@ function create_model(optimizer)
     ## `open_facilities` are master constraints ensuring that the depot is open if one vehicle.
     ## leaves it.
     @constraint(model, open_facility[j in facilities], 
-            sum(z[j, i] for i in customers) <= y[j] * nb_routes_per_locations)
+            sum(z[j, i] for i in customers) <= y[j] * nb_routes_per_facility)
     
     ## We don't need to describe the subproblem constraints because we use a pricing callback.
 
@@ -162,9 +162,9 @@ function create_model(optimizer)
     @dantzig_wolfe_decomposition(model, dec, facilities_axis)
 
     ## Subproblems generated routes starting from each facility.
-    ## The number of routes from each facilities is at most `nb_routes_per_locations`.
+    ## The number of routes from each facilities is at most `nb_routes_per_facility`.
     subproblems = BlockDecomposition.getsubproblems(dec)
-    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_locations, solver=my_pricing_callback)
+    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_facility, solver=pricing_algorithms)
     
     ## We define `z` are a subproblem variable common to all subproblems.
     subproblemrepresentative.(z, Ref(subproblems))
@@ -174,7 +174,7 @@ end
 
 # Note that contrary to the direct model, we don't have to add constraints to ensure the
 # consistency of the routes because we solve our subproblems using a pricing callback.
-# The pricing callback will therefore have the responsibilty to create consistent routes.
+# The pricing callback will therefore have the responsibility to create consistent routes.
 
 # We setup Coluna:
 
@@ -201,15 +201,15 @@ coluna = optimizer_with_attributes(
 # and a given facility, the best order to visit the customers of the subset. 
 # This order depends only on the original cost of the arcs, so we need a method to compute it:
 
-struct EnumeratedRoute
+mutable struct Route
     length::Int
     path::Vector{Int} 
 end
 
-function route_original_cost(costs, enroute::EnumeratedRoute)
+function route_original_cost(costs, route::Route)
     route_cost = 0.0
-    path = enroute.path
-    path_length = enroute.length
+    path = route.path
+    path_length = route.length
     for i in 1:(path_length-1)
         route_cost += costs[path[i], path[i+1]]
     end
@@ -220,20 +220,20 @@ function best_visit_order(costs, cust_subset, facility_id)
     ## generate all the possible visit orders
     set_size = size(cust_subset)[1]
     all_paths = collect(multiset_permutations(cust_subset, set_size))
-    all_enroutes = Vector{EnumeratedRoute}()
+    all_routes = Vector{Route}()
     for path in all_paths
         ## add the first index i.e. the facility id 
         enpath = vcat([facility_id], path)
         ## length of the route = 1 + number of visited customers
-        enroute = EnumeratedRoute(set_size + 1, enpath) 
-        push!(all_enroutes, enroute)
+        route = Route(set_size + 1, enpath) 
+        push!(all_routes, route)
     end
     ## compute each route original cost
-    enroutes_costs = map(r -> 
-                         (r, route_original_cost(costs, r)), all_enroutes )
+    routes_costs = map(r -> 
+                         (r, route_original_cost(costs, r)), all_routes )
     ## keep the best visit order
-    tmp = argmin([c for (_, c) in enroutes_costs])
-    (best_order, _) = enroutes_costs[tmp]
+    tmp = argmin([c for (_, c) in routes_costs])
+    (best_order, _) = routes_costs[tmp]
     return best_order
 end
 
@@ -242,7 +242,7 @@ end
 using Combinatorics
 
 function best_route_forall_cust_subsets(costs, customers, facility_id, max_size)
-    best_routes = Vector{EnumeratedRoute}()
+    best_routes = Vector{Route}()
     all_subsets = Vector{Vector{Int}}()
     for subset_size in 1:max_size
         subsets = collect(combinations(customers, subset_size))
@@ -266,20 +266,20 @@ routes_per_facility = Dict(
 
 # We must also declare methods to calculate the contribution to the reduced cost of the two types of subproblem variables, `x` and `z`:
 
-function x_contribution(enroute::EnumeratedRoute, j::Int, x_red_costs)
+function x_contribution(route::Route, j::Int, x_red_costs)
     x = 0.0
-    visited_customers = enroute.path[2:enroute.length]
+    visited_customers = route.path[2:route.length]
     for i in visited_customers
         x += x_red_costs["x_$(i)_$(j)"]
     end
     return x
 end
 
-function z_contribution(enroute::EnumeratedRoute, z_red_costs)
+function z_contribution(route::Route, z_red_costs)
     z = 0.0
-    for i in 1:(enroute.length-1) 
-        current_position = enroute.path[i]
-        next_position = enroute.path[i+1]
+    for i in 1:(route.length-1) 
+        current_position = route.path[i]
+        next_position = route.path[i+1]
         z += z_red_costs["z_$(current_position)_$(next_position)"]
     end
     return z 
@@ -289,7 +289,7 @@ end
 
 # We are now able to write our pricing callback: 
 
-function my_pricing_callback(cbdata)
+function pricing_callback(cbdata)
     ## get the id of the facility
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
     
@@ -336,7 +336,7 @@ function my_pricing_callback(cbdata)
 end
 
 # Create the model:
-model, x, y, z, _ = create_model(coluna)
+model, x, y, z, _ = create_model(coluna, pricing_callback)
 # Solve:
 JuMP.optimize!(model)
 
@@ -344,7 +344,7 @@ JuMP.optimize!(model)
 
 # ### Strengthen with robust cuts (valid inequalities)
 
-# We introduce of first type of classic valid inqualities that tries to improve the 
+# We introduce of first type of classic valid inequalities that tries to improve the 
 # integrality of the `y` variables.
 
 # ```math
@@ -390,7 +390,7 @@ function valid_inequalities_callback(cbdata)
 end
 
 # We re-declare the model and optimize it with the inequalities_callback:
-(model, x, y, z, _) = create_model(coluna)
+(model, x, y, z, _) = create_model(coluna, pricing_callback)
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
@@ -427,7 +427,7 @@ struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
 end
 
-(model, x, y, z, cov) = create_model(coluna)
+(model, x, y, z, cov) = create_model(coluna, pricing_callback)
 
 # We declare our custom data to Coluna
 BlockDecomposition.customconstrs!(model, CoverConstrData);
@@ -522,11 +522,11 @@ end
 # The last thing we need to do to complete the implementation of R1Cs is to update our pricing callback. Unlike valid inequalities, R1Cs are not expressed directly with the model variables. Thus, their cost is not taken into account in the reduced cost calculations. We must therefore add it "manually" in the callback. 
 
 # The contribution of R1Cs to the reduced cost computation is managed by the following method:
-function r1c_contrib(enroute::EnumeratedRoute, custduals)
+function r1c_contrib(route::Route, custduals)
     cost=0
     if !isempty(custduals)
         for (r1c_cov_constrs, dual) in custduals 
-            coeff = floor(1/2 * length(enroute.path ∩ r1c_cov_constrs))
+            coeff = floor(1/2 * length(route.path ∩ r1c_cov_constrs))
             cost += coeff*dual
         end
     end
@@ -534,7 +534,7 @@ function r1c_contrib(enroute::EnumeratedRoute, custduals)
 end
 
 # We re-write our pricing callback, with the additional contribution that corresponds to R1Cs cost:
-function my_pricing_callback(cbdata)
+function pricing_callback(cbdata)
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
     z_red_costs = Dict(
         "z_$(u)_$(v)" => BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
@@ -588,3 +588,118 @@ end
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
 JuMP.optimize!(model)
 
+
+# ### Multi-stages pricing callback
+
+# In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate sub-problems solutions. 
+
+# The idea of the heuristic is very simple:
+
+# - Given `j` the idea of the facility, compute the closest customer to j, add it to the route.
+# - While the reduced cost keeps improving, compute and add to the route its last customer's nearest neighbor. Stop if the maximum length of the route is reached.
+
+# We first define an auxiliary function used to compute the route tail's nearest neighbor at each step:
+function add_nearest_neighbor(route::Route, customers, costs)
+    ## get the last customer of the route
+    loc = last(route.path)
+    ## initialize its nearest neighbor to zero and mincost to infinity
+    (nearest, mincost) = (0, Inf) 
+    ## compute nearest and mincost
+    for i in customers
+        if (i != loc) && !(i in route.path) 
+            if (costs[loc, i] < mincost)
+                nearest = i
+                mincost = costs[loc, i]
+            end
+        end
+    end
+    ## add the last customer's nearest neighbor to the route 
+    if nearest != 0
+        push!(route.path, nearest)
+        route.length += 1
+    end
+end
+
+# Then we define our inexact pricing callback:
+function approx_pricing(cbdata)
+    
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
+    z_red_costs = Dict(
+        "z_$(u)_$(v)" => BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
+        )
+    x_red_costs = Dict(
+            "x_$(i)_$(j)" => BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+        )
+
+    custduals = Tuple{Vector{Int}, Float64}[]
+    for (_, constr) in Coluna.MathProg.getconstrs(cbdata.form.parent_formulation)            
+        if typeof(constr.custom_data) == R1cCutData
+            push!(custduals, (
+                constr.custom_data.cov_constrs,
+                Coluna.MathProg.getcurincval(cbdata.form.parent_formulation, constr)
+            ))
+        end
+    end
+
+    ## initialize our "greedy best route"
+    best_route = Route(1, [j])
+    ## initialize the route's cost to zero
+    current_redcost = 0.0
+    old_redcost = Inf
+
+    ## main loop
+    while (current_redcost < old_redcost)
+        add_nearest_neighbor(best_route, customers, arc_costs)
+        old_redcost = current_redcost
+        current_redcost = x_contribution(best_route, j, x_red_costs) + 
+                          z_contribution(best_route, z_red_costs)
+        ## max length is reached
+        if best_route.length == nb_positions
+            break
+        end
+    end
+    
+    best_route_arcs = Vector{Tuple{Int, Int}}()
+    for i in 1:(best_route.length - 1)
+        push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
+    end
+    best_route_customers = best_route.path[2:length(best_route.path)]
+    
+    z_vars = [z[u, v] for (u,v) in best_route_arcs]
+    x_vars = [x[i, j] for i in best_route_customers]
+    sol_vars = vcat(z_vars, x_vars)
+    sol_vals = ones(Float64, length(z_vars) + length(x_vars))
+    ## take the eventual rank-one cuts contribution into account
+    sol_cost = current_redcost - r1c_contrib(best_route, custduals)
+        
+    MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+    ## as the procedure is inexact, no dual bound can be computed, we set it to -Inf
+    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), -Inf) 
+            
+end
+
+# We set the solver, `colgen_stages_pricing_solvers` indicates which solver to use first (here it is `approx_pricing`)
+coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "default_optimizer" => GLPK.Optimizer,
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.BranchCutAndPriceAlgorithm(
+                maxnumnodes = 100,
+            colgen_stages_pricing_solvers = [2, 1]
+        )
+    )
+)
+# We add the two pricing algorithms to our model: 
+model, x, y, z, cov = create_model(coluna, [approx_pricing, pricing_callback])
+# We declare our custom data to Coluna: 
+BlockDecomposition.customvars!(model, R1cVarData)
+BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
+for i in customers
+    customdata!(cov[i], CoverConstrData(i))
+end
+
+# Optimize:
+JuMP.optimize!(model)
+
+
+##TODO: comment on log
