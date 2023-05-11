@@ -34,6 +34,11 @@ routes_costs = Dict(
 @constraint(model, cover[fake in axis, i in customers], 
     sum(λ[fake, j, k] for j in facilities, k in covering_routes[(j,i)]) >= 1)
 
+@constraint(model, limit_nb_routes[fake in axis, j in facilities],
+    sum(λ[fake, j, q] for q in 1:length(routes_per_facility[j])) <= nb_routes_per_facility
+)
+
+
 @constraint(model, min_opening, 
     sum(y[j] for j in facilities) >= 1)
 
