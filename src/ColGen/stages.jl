@@ -13,10 +13,14 @@ abstract type AbstractColGenStageIterator end
 "Returns the stage at which the column generation algorithm must start."
 @mustimplement "ColGenStage" initial_stage(::AbstractColGenStageIterator) = nothing
 
+"""
+Returns the next stage involving a "more exact solver" than the current one.
+Returns `nothing` if the algorithm has already reached the exact phase (last phase).
+"""
+@mustimplement "ColGenStage" decrease_stage(::AbstractColGenStageIterator, stage, phase_output) = nothing
 
 """
-Returns the next stage.
-Returns `nothing` if the algorithm has already reached the exact phase (last phase).
+Returns the next stage that column generation must use.
 """
 @mustimplement "ColGenStage" next_stage(::AbstractColGenStageIterator, stage, phase_output) = nothing
 
