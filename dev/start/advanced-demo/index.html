@@ -55,8 +55,8 @@ nothing #hide</code></pre><p>We set the objective function:</p><pre><code class=
     sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
     +
     sum(facilities_fixed_costs[j] * y[j] for j in facilities));
-nothing #hide</code></pre><p>and we optimize the model:</p><pre><code class="language- hljs">optimize!(model)
-objective_value(model)</code></pre><p>We find an optimal solution involving two routes starting from facility 1:</p><ul><li><code>1</code> -&gt; <code>8</code> -&gt; <code>9</code> -&gt; <code>3</code> -&gt; <code>6</code></li><li><code>1</code> -&gt; <code>4</code> -&gt; <code>5</code> -&gt; <code>7</code>`</li></ul><h2 id="Decomposed-model"><a class="docs-heading-anchor" href="#Decomposed-model">Decomposed model</a><a id="Decomposed-model-1"></a><a class="docs-heading-anchor-permalink" href="#Decomposed-model" title="Permalink"></a></h2><p>We can exploit the structure of the problem by generating routes starting from each facility. The most immediate decomposition is to consider each route traveled by a vehicle as a subproblem. However, at a given facility, vehicles are identical and therefore any vehicle can travel on any route. So we have several identical subproblems at each facility.</p><p>In this tutorial, we plan to:</p><ul><li>solve the subproblems using a pricing callback</li><li>strengthen the master problem using robust valid inequalities</li><li>strengthen the master problem using non-robust valid inequalities</li><li>speed-up the optimization using multi-stage column generation.</li></ul><p>The following method creates the model according to the decomposition described:</p><pre><code class="language- hljs">function create_model(optimizer, pricing_algorithms)
+nothing #hide</code></pre><p>and we optimize the model:</p><pre><code class="language-julia hljs">#optimize!(model)
+#objective_value(model)</code></pre><p>We find an optimal solution involving two routes starting from facility 1:</p><ul><li><code>1</code> -&gt; <code>8</code> -&gt; <code>9</code> -&gt; <code>3</code> -&gt; <code>6</code></li><li><code>1</code> -&gt; <code>4</code> -&gt; <code>5</code> -&gt; <code>7</code>`</li></ul><h2 id="Decomposed-model"><a class="docs-heading-anchor" href="#Decomposed-model">Decomposed model</a><a id="Decomposed-model-1"></a><a class="docs-heading-anchor-permalink" href="#Decomposed-model" title="Permalink"></a></h2><p>We can exploit the structure of the problem by generating routes starting from each facility. The most immediate decomposition is to consider each route traveled by a vehicle as a subproblem. However, at a given facility, vehicles are identical and therefore any vehicle can travel on any route. So we have several identical subproblems at each facility.</p><p>In this tutorial, we plan to:</p><ul><li>solve the subproblems using a pricing callback</li><li>strengthen the master problem using robust valid inequalities</li><li>strengthen the master problem using non-robust valid inequalities</li><li>speed-up the optimization using multi-stage column generation.</li></ul><p>The following method creates the model according to the decomposition described:</p><pre><code class="language- hljs">function create_model(optimizer, pricing_algorithms)
     # We declare an axis over the facilities.
     # We must use `facilities_axis` instead of `facilities` in the declaration of the
     # variables and constraints that belong to pricing subproblems.
@@ -227,7 +227,7 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
     # bound in column generation.
     MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost) # optimal solution
 
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">pricing_callback (generic function with 1 method)</code></pre><p>Create the model:</p><pre><code class="language- hljs">model, x, y, z, _ = create_model(coluna, pricing_callback)</code></pre><p>Solve:</p><pre><code class="language- hljs">JuMP.optimize!(model)</code></pre><h2 id="TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section"><a class="docs-heading-anchor" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section">TODO: display &quot;raw&quot; decomp model output and comment, transition to next section</a><a id="TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section-1"></a><a class="docs-heading-anchor-permalink" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section" title="Permalink"></a></h2><h3 id="Strengthen-with-robust-cuts-(valid-inequalities)"><a class="docs-heading-anchor" href="#Strengthen-with-robust-cuts-(valid-inequalities)">Strengthen with robust cuts (valid inequalities)</a><a id="Strengthen-with-robust-cuts-(valid-inequalities)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthen-with-robust-cuts-(valid-inequalities)" title="Permalink"></a></h3><p>We introduce of first type of classic valid inequalities that tries to improve the integrality of the <code>y</code> variables.</p><p class="math-container">\[x_{ij} &lt;= y_j; \forall i \in customers, \forall j \in facilities\]</p><p>We declare a structure representing an instance of this inequality:</p><pre><code class="language-julia hljs">struct OpenFacilityInequality
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">pricing_callback (generic function with 1 method)</code></pre><p>Create the model:</p><pre><code class="language- hljs">model, x, y, z, _ = create_model(coluna, pricing_callback)</code></pre><p>Solve:</p><pre><code class="language-julia hljs">#JuMP.optimize!(model)</code></pre><h2 id="TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section"><a class="docs-heading-anchor" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section">TODO: display &quot;raw&quot; decomp model output and comment, transition to next section</a><a id="TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section-1"></a><a class="docs-heading-anchor-permalink" href="#TODO:-display-&quot;raw&quot;-decomp-model-output-and-comment,-transition-to-next-section" title="Permalink"></a></h2><h3 id="Strengthen-with-robust-cuts-(valid-inequalities)"><a class="docs-heading-anchor" href="#Strengthen-with-robust-cuts-(valid-inequalities)">Strengthen with robust cuts (valid inequalities)</a><a id="Strengthen-with-robust-cuts-(valid-inequalities)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthen-with-robust-cuts-(valid-inequalities)" title="Permalink"></a></h3><p>We introduce of first type of classic valid inequalities that tries to improve the integrality of the <code>y</code> variables.</p><p class="math-container">\[x_{ij} &lt;= y_j; \forall i \in customers, \forall j \in facilities\]</p><p>We declare a structure representing an instance of this inequality:</p><pre><code class="language-julia hljs">struct OpenFacilityInequality
     facility_id::Int
     customer_id::Int
 end</code></pre><p>and we write our valid inequalities callback:</p><pre><code class="language-julia hljs">function valid_inequalities_callback(cbdata)
@@ -260,7 +260,7 @@ end</code></pre><p>and we write our valid inequalities callback:</p><pre><code c
     end
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">valid_inequalities_callback (generic function with 1 method)</code></pre><p>We re-declare the model and optimize it with the inequalities_callback:</p><pre><code class="language- hljs">(model, x, y, z, _) = create_model(coluna, pricing_callback)
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
-JuMP.optimize!(model)</code></pre><p>TODO: comment on the improvement of the dual bound</p><h3 id="Strengthen-with-non-robust-cuts-(rank-one-cuts)"><a class="docs-heading-anchor" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)">Strengthen with non-robust cuts (rank-one cuts)</a><a id="Strengthen-with-non-robust-cuts-(rank-one-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)" title="Permalink"></a></h3><p>Here, we implement special types of cuts called &quot;rank-one cuts&quot; (R1C). These cuts are non-robust in the sense that they cannot be expressed only with the original variables of the model. In particular, they have to be expressed with the master columns variables <span>$λ_k, k \in K$</span> where <span>$K$</span> is the set of generated columns.</p><p>R1Cs are obtained by applying the Chvátal-Gomory procedure once, hence their name, on cover constraints. R1Cs have the following form:</p><p class="math-container">\[\sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_k \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor,  C \subseteq I\]</p><p>where:</p><ul><li><p class="math-container">\[C\]</p>is a subset of customers</li><li><p class="math-container">\[\alpha_c\]</p>is a multiplier</li><li><p class="math-container">\[\tilde{x}^k_{ij}\]</p>is the value of the variable <span>$x_{ij}$</span> in column k</li></ul><p>We must therefore be able to differentiate the cover constraints from the other constraints of the model. To do this, we exploit an advantage of Coluna that allows us to attach custom data to the constraints and variables of our model.</p><p>First, we create a special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint.</p><pre><code class="language- hljs">struct CoverConstrData &lt;: BlockDecomposition.AbstractCustomData
+#JuMP.optimize!(model)</code></pre><p>TODO: comment on the improvement of the dual bound</p><h3 id="Strengthen-with-non-robust-cuts-(rank-one-cuts)"><a class="docs-heading-anchor" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)">Strengthen with non-robust cuts (rank-one cuts)</a><a id="Strengthen-with-non-robust-cuts-(rank-one-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthen-with-non-robust-cuts-(rank-one-cuts)" title="Permalink"></a></h3><p>Here, we implement special types of cuts called &quot;rank-one cuts&quot; (R1C). These cuts are non-robust in the sense that they cannot be expressed only with the original variables of the model. In particular, they have to be expressed with the master columns variables <span>$λ_k, k \in K$</span> where <span>$K$</span> is the set of generated columns.</p><p>R1Cs are obtained by applying the Chvátal-Gomory procedure once, hence their name, on cover constraints. R1Cs have the following form:</p><p class="math-container">\[\sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_k \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor,  C \subseteq I\]</p><p>where:</p><ul><li><p class="math-container">\[C\]</p>is a subset of customers</li><li><p class="math-container">\[\alpha_c\]</p>is a multiplier</li><li><p class="math-container">\[\tilde{x}^k_{ij}\]</p>is the value of the variable <span>$x_{ij}$</span> in column k</li></ul><p>We must therefore be able to differentiate the cover constraints from the other constraints of the model. To do this, we exploit an advantage of Coluna that allows us to attach custom data to the constraints and variables of our model.</p><p>First, we create a special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint.</p><pre><code class="language- hljs">struct CoverConstrData &lt;: BlockDecomposition.AbstractCustomData
     customer::Int
 end
 
@@ -384,7 +384,7 @@ end
 
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
-JuMP.optimize!(model)</code></pre><h3 id="Multi-stages-pricing-callback"><a class="docs-heading-anchor" href="#Multi-stages-pricing-callback">Multi-stages pricing callback</a><a id="Multi-stages-pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-stages-pricing-callback" title="Permalink"></a></h3><p>In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate sub-problems solutions.</p><p>The idea of the heuristic is very simple:</p><ul><li>Given <code>j</code> the idea of the facility, compute the closest customer to j, add it to the route.</li><li>While the reduced cost keeps improving, compute and add to the route its last customer&#39;s nearest neighbor. Stop if the maximum length of the route is reached.</li></ul><p>We first define an auxiliary function used to compute the route tail&#39;s nearest neighbor at each step:</p><pre><code class="language-julia hljs">function add_nearest_neighbor(route::Route, customers, costs)
+#JuMP.optimize!(model)</code></pre><h3 id="Multi-stages-pricing-callback"><a class="docs-heading-anchor" href="#Multi-stages-pricing-callback">Multi-stages pricing callback</a><a id="Multi-stages-pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-stages-pricing-callback" title="Permalink"></a></h3><p>In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate sub-problems solutions.</p><p>The idea of the heuristic is very simple:</p><ul><li>Given <code>j</code> the idea of the facility, compute the closest customer to j, add it to the route.</li><li>While the reduced cost keeps improving, compute and add to the route its last customer&#39;s nearest neighbor. Stop if the maximum length of the route is reached.</li></ul><p>We first define an auxiliary function used to compute the route tail&#39;s nearest neighbor at each step:</p><pre><code class="language-julia hljs">function add_nearest_neighbor(route::Route, customers, costs)
     # get the last customer of the route
     loc = last(route.path)
     # initialize its nearest neighbor to zero and mincost to infinity
@@ -471,7 +471,73 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
 BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
 for i in customers
     customdata!(cov[i], CoverConstrData(i))
-end</code></pre><p>Optimize:</p><pre><code class="language- hljs">JuMP.optimize!(model)
+end</code></pre><p>Optimize:</p><pre><code class="language- hljs">#JuMP.optimize!(model)
 
 
-##TODO: comment on log</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 11 May 2023 10:24">Thursday 11 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+##TODO: comment on log
+
+
+
+
+
+################# benders #####################
+
+fake = 1
+@axis(axis, collect(fake:fake))
+
+coluna = JuMP.optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+
+        solver = Coluna.Algorithm.BendersCutGeneration()
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer
+)
+
+model = BlockModel(coluna)
+
+
+covering_routes = Dict{Tuple{Int, Int}, Vector{Int}}()
+route_costs = [Vector{Float64}() for _ in facilities]
+for j in facilities
+    for i in customers
+        covering_routes[(j,i)] = Vector{Int}()
+    end
+    @show route_costs
+    for (q,r) in enumerate(routes_per_facility[j])
+        for i in r.path
+            if i in customers
+                append!(covering_routes[(j,i)], q)
+            end
+        end
+        cost = 0.0
+        for i in 2:r.length
+            cost += arc_costs[r.path[i-1], r.path[i]]
+        end
+        append!(route_costs[j], cost)
+    end
+
+end
+
+#master variables
+@variable(model, y[j in facilities], Bin)
+
+
+#sp variables
+@variable(model, 0 &lt;= λ[f in axis, j in facilities, q in 1:length(routes_per_facility[j])] &lt;= 1) # λj,q = 1 -&gt; route (j,q) is opened
+
+@constraint(model, open[fake in axis, j in facilities, q in 1:length(routes_per_facility[j])],
+    y[j] &gt;= λ[fake, j, q])
+
+@constraint(model, cover[fake in axis, i in customers],
+    sum(λ[fake, j, q] for j in facilities, q in covering_routes[(j,i)]) &gt;= 1)
+
+@constraint(model, min_opening,
+    sum(y[j] for j in facilities) &gt;= 1)
+
+@objective(model, Min,
+    sum(facilities_fixed_costs[j] * y[j] for j in facilities) +
+    sum(route_costs[j][q] * λ[fake, j, q] for j in facilities, q in 1:length(routes_per_facility[j])))
+
+@benders_decomposition(model, dec, axis)
+JuMP.optimize!(model)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 11 May 2023 12:43">Thursday 11 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
