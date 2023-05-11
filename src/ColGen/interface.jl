@@ -121,7 +121,7 @@ Returns subproblem formulations.
 """
     optimize_master_lp_problem!(master, context, env) -> MasterResult
 
-Returns an instance of a custom object `MasterResult` that implements following methods:
+Returns an instance of a custom object `MasterResult` that implements the following methods:
 - `get_obj_val`: objective value of the master (mandatory)
 - `get_primal_sol`: primal solution to the master (optional)
 - `get_dual_sol`: dual solution to the master (mandatory otherwise column generation stops)
@@ -170,7 +170,7 @@ Updates the current master IP primal solution.
 ############################################################################################
 """
 Updates dual value of the master constraints.
-Dual values of the constraints can be used when the pricing solver supports non-robust cut.
+Dual values of the constraints can be used when the pricing solver supports non-robust cuts.
 """
 @mustimplement "ColGenReducedCosts" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
 

@@ -5,7 +5,7 @@ Each phase is associated with a specific set up of the reformulation.
 abstract type AbstractColGenPhase end
 
 """
-An iterator that indicates how a set of phases follow each other.
+An iterator that indicates how phases follow each other.
 """
 abstract type AbstractColGenPhaseIterator end
 
