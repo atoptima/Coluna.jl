@@ -55,9 +55,10 @@ makedocs(
             "Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
-            "Tree Search" => joinpath("api", "treesearch.md"),
-            "Storage" => joinpath("api", "storage.md"),
             "Branching" => joinpath("api", "branching.md"),
+            "ColGen" => joinpath("api", "colgen.md"),
+            "TreeSearch" => joinpath("api", "treesearch.md"),
+            "Storage" => joinpath("api", "storage.md"),
         ],
         "Dynamic Sparse Arrays" => "dynamic_sparse_arrays.md",
         "Q&A" => "qa.md",
