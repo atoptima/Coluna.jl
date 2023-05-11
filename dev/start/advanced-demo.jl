@@ -192,19 +192,19 @@ coluna = optimizer_with_attributes(
 # ### Pricing callback
 
 # Each subproblem could be solved by a MIP, provided the right sub-problem constraints are added.
-# Here, we propose a resolution by enumeration within a pricing callback. 
-# The general idea of enumeration is very simple: we enumerate the possible routes from a
-# facility and keep the one with the lowest reduced cost, i.e. the one that improves the
-# current solution the most. 
-# Enumerating all possible routes is very expensive.
-# We improve the pricing efficiency a bit by pre-processing, for a given subset of customers 
-# and a given facility, the best order to visit the customers of the subset. 
-# This order depends only on the original cost of the arcs, so we need a method to compute it:
+# Here, we propose a resolution by enumeration within a pricing callback.
+# Enumerating all possible routes for each facility is time-consuming.
+# We thus perform this task before starting the branch-cut-and-price.
+# The pricing callback will then have to update the cost of each route and select 
+# the route with best cost for each facility.
 
+# We first define a structure to store the routes:
 mutable struct Route
     length::Int
     path::Vector{Int} 
 end
+
+# A method that computes the cost of a route:
 
 function route_original_cost(costs, route::Route)
     route_cost = 0.0
@@ -215,6 +215,11 @@ function route_original_cost(costs, route::Route)
     end
     return route_cost
 end
+
+# Since the cost of the route depends only on the arcs and there is no resource consumption
+# constraints on the route or master constraints that may have an effect of the customer visit order,
+# we know that for a subset of customers, a sequence of visits is better then the others.
+# We therefore keep on route for each subset of customers and facilities.
 
 function best_visit_order(costs, cust_subset, facility_id)
     ## generate all the possible visit orders
@@ -237,7 +242,8 @@ function best_visit_order(costs, cust_subset, facility_id)
     return best_order
 end
 
-# We are now able to compute the best route for all the possible customers subsets, given a facility id:
+# We are now able to compute the best route for all the possible customers subsets,
+# given a facility id:
 
 using Combinatorics
 
@@ -257,14 +263,18 @@ function best_route_forall_cust_subsets(costs, customers, facility_id, max_size)
     return best_routes
 end
 
-# We store all the information given by the pre-computation in a dictionary. To each facility id we match a vector of routes that are the best visiting orders for each possible subset of customers.
+# We store all the information given by this pre-processing phase in a dictionary.
+# To each facility id we match a vector of routes that are the best visiting orders
+# for each possible subset of customers.
 
 routes_per_facility = Dict(
     j => best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
 )
 
+# Our pricing callback will calculate the cost of each route given the reduced cost of the 
+# subproblem variables `x` and `z`.
 
-# We must also declare methods to calculate the contribution to the reduced cost of the two types of subproblem variables, `x` and `z`:
+# We therefore need methods to calculate the contribution to the reduced cost of `x` and `z`:
 
 function x_contribution(route::Route, j::Int, x_red_costs)
     x = 0.0
@@ -285,15 +295,13 @@ function z_contribution(route::Route, z_red_costs)
     return z 
 end
 
-
-
 # We are now able to write our pricing callback: 
 
 function pricing_callback(cbdata)
-    ## get the id of the facility
+    ## Get the id of the facility.
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
     
-    ## retrieve variables reduced costs
+    ## Retrieve variables reduced costs.
     z_red_costs = Dict(
         "z_$(u)_$(v)" => BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
         
@@ -302,7 +310,7 @@ function pricing_callback(cbdata)
         "x_$(i)_$(j)" => BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
     )
 
-    ## keep route with minimum reduced cost.
+    ## Keep route with minimum reduced cost.
     red_costs_j = map(r -> (
             r, 
             x_contribution(r, j, x_red_costs) + z_contribution(r, z_red_costs) # the reduced cost of a route is the sum of the contribution of the variables
@@ -311,45 +319,48 @@ function pricing_callback(cbdata)
     min_index = argmin([x for (_,x) in red_costs_j])
     (best_route, min_reduced_cost) = red_costs_j[min_index]
 
-    ## Create the solution (send only variables with non-zero values)
-
-    ## retrieve the route's arcs
+    ## Retrieve the route's arcs
     best_route_arcs = Vector{Tuple{Int, Int}}()
     for i in 1:(best_route.length - 1)
         push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
     end
     best_route_customers = best_route.path[2:best_route.length]
+
+    ## Create the solution (send only variables with non-zero values).
     z_vars = [z[u, v] for (u,v) in best_route_arcs]
     x_vars = [x[i, j] for i in best_route_customers]
     sol_vars = vcat(z_vars, x_vars)
     sol_vals = ones(Float64, length(z_vars) + length(x_vars))
     sol_cost = min_reduced_cost
 
-    ## Submit the solution of the subproblem to Coluna
+    ## Submit the solution of the subproblem to Coluna.
     MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
     
-    ## Submit the dual bound to the solution of the subproblem
+    ## Submit the dual bound to the solution of the subproblem.
     ## This bound is used to compute the contribution of the subproblem to the lagrangian
     ## bound in column generation.
-    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost) # optimal solution
+    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost) ## optimal solution
 
 end
 
 # Create the model:
 model, x, y, z, _ = create_model(coluna, pricing_callback)
-# Solve:
-#JuMP.optimize!(model)
 
-# ## TODO: display "raw" decomp model output and comment, transition to next section 
+# Solve:
+JuMP.optimize!(model)
+
+
+# TODO: display "raw" decomp model output and comment, transition to next section 
 
 # ### Strengthen with robust cuts (valid inequalities)
 
 # We introduce of first type of classic valid inequalities that tries to improve the 
 # integrality of the `y` variables.
-
+#
 # ```math
-# x_{ij} <= y_j; \forall i \in customers, \forall j \in facilities
+# x_{ij} <= y_j; \forall i \in I, \forall j \in J
 # ```
+# where $I$ os the set of customers and J the set of facilities.
 
 # We declare a structure representing an instance of this inequality:
 struct OpenFacilityInequality
@@ -357,10 +368,11 @@ struct OpenFacilityInequality
     customer_id::Int
 end
 
-# and we write our valid inequalities callback:
+# We are going to separate these inequalities by enumeration.
+# Let's write our valid inequalities callback:
 
 function valid_inequalities_callback(cbdata)
-    ## Get variables valuations, store them into dictionaries
+    ## Get variables valuations, store them into dictionaries.
     x_vals = Dict(
         "x_$(i)_$(j)" => BlockDecomposition.callback_value(cbdata, x[i, j]) for i in customers, j in facilities
     )
@@ -370,7 +382,7 @@ function valid_inequalities_callback(cbdata)
 
     ## Separate the valid inequalities (i.e. retrieve the inequalities that are violated by 
     ## the current solution) by enumeration.
-    inequalities = Vector{OpenFacilityInequality}()
+    inequalities = OpenFacilityInequality[]
 
     for j in facilities
         for i in customers
@@ -389,10 +401,10 @@ function valid_inequalities_callback(cbdata)
     end 
 end
 
-# We re-declare the model and optimize it with the inequalities_callback:
+# We re-declare the model and optimize it with these valid inequalites:
 (model, x, y, z, _) = create_model(coluna, pricing_callback)
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
-#JuMP.optimize!(model)
+JuMP.optimize!(model)
 
 # TODO: comment on the improvement of the dual bound
 
@@ -411,13 +423,11 @@ MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 # \sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_k \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor,  C \subseteq I
 # ```
 
-# where:
-# - $C$ is a subset of customers
-# - $\alpha_c$ is a multiplier
-# - $\tilde{x}^k_{ij}$ is the value of the variable $x_{ij}$ in column k
+# where $C$ is a subset of customers, $\alpha_c$ is a multiplier, $\tilde{x}^k_{ij}$ is the
+# value of the variable $x_{ij}$ in column k
 
-# We must therefore be able to differentiate the cover constraints from the other
-# constraints of the model. 
+# Since we obtain R1C by applying a procedure on cover constraints, we must be able to
+# differentiate them from the other constraints of the model. 
 # To do this, we exploit an advantage of Coluna that allows us to attach custom data to the
 # constraints and variables of our model.
 
@@ -427,31 +437,42 @@ struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
 end
 
+# We re-create the model:
 (model, x, y, z, cov) = create_model(coluna, pricing_callback)
 
 # We declare our custom data to Coluna
 BlockDecomposition.customconstrs!(model, CoverConstrData);
+
 # And we attach one custom data to each cover constraint
 for i in customers
     customdata!(cov[i], CoverConstrData(i))
 end
 
+# We separate R1Cs by enumeration on subset of customers of size 3 ($|C|$ = 3)
+# and use the vector of multipliers $\alpha = (0.5, 0.5, 0.5)$
 
-# The rank-one cuts we are going to add are of the form:
-# `sum(c_k λ_k) <= 1.0` 
-# for a fixed subset `r1c_cov_constrs` of cover constraints of size 3, with `λ_k` the master columns variables and `c_k` s.t. 
-# `c_k = ⌊ 1/2 x |r1c_locations ∩ r1c_cov_constrs| ⌋`
-# with `r1c_locations` the current solution (route) that corresponds to `λ_k`.
-# e.g. if we consider cover constraints cov[3], cov[6] and cov[8] in our cut, then the route 1-4-6-7 gives a zero coefficient while the route 1-4-6-3 gives a coefficient equal to one. 
+# Therefore our R1Cs will have the following form:
 
-# But a problem arises: how to get the current solution `r1c_locations` that corresponds to a given `λ_k` ? To handle that difficulty, we use once again the custom data trick:
+# ```math
+# \sum{k \in K} \tilde{\alpha}(C, k) \lambda_k \leq 1; C \subseteq I, |C| = 3
+# ```
 
-# Each `λ_k` is associated to a `R1cVarData` structure that carries the current solution.  
+# where coefficient $\tilde{\alpha}(C, k)$ equals $1$ if route $k$ visits at least two customers of $C$; $0$ otherwise.
+
+# For instance, if we consider separate a cut over constraints `cov[3]`, `cov[6]` and `cov[8]`,
+# then the route `1`->`4`->`6`->`7` has a zero coefficient while the route `1`->`4`->`6`->`3`
+# has a coefficient equal to one. 
+
+# But a problem arises: how to efficiently get the customers visited by a given route `k`?
+# We are going to attach a custom data structure that contains the visited customers to each generated column.
+
+# Each `λ_k` is associated to a `R1cVarData` structure that carries the locations it visits.  
 struct R1cVarData <: BlockDecomposition.AbstractCustomData
     visited_locations::Vector{Int}
 end
 
-# The rank-one cuts are associated with `R1cCutData` structures indicating which cover constraints are taken into account in the cut. 
+# The rank-one cuts are associated with `R1cCutData` structures indicating which cover constraints
+# are taken into account in the cut. 
 struct R1cCutData <: BlockDecomposition.AbstractCustomData
     cov_constrs::Vector{Int}
 end
@@ -460,7 +481,7 @@ end
 BlockDecomposition.customvars!(model, R1cVarData)
 BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
 
-# This method is called by Coluna to compute the coefficients of the `λ_k` in the cuts:
+# Coluna calls this method to compute the coefficients of the `λ_k` in the cuts:
 function Coluna.MathProg.computecoeff(
     ::Coluna.MathProg.Variable, var_custom_data::R1cVarData,
     ::Coluna.MathProg.Constraint, constr_custom_data::R1cCutData
@@ -468,7 +489,9 @@ function Coluna.MathProg.computecoeff(
     return floor(1/2 * length(var_custom_data.visited_locations ∩ constr_custom_data.cov_constrs))
 end
 
-# TODO: fix necessity to write computecoeff for cover constr or explain trick
+# Coluna always calls `computecoeff` when it finds a pair of variable and constraint that
+# carry custom data. We therefore need to specify that the non-robust contribution to the coefficient 
+# of the `λ_k` in a conver constraint is 0.
 function Coluna.MathProg.computecoeff(
     ::Coluna.MathProg.Variable, ::R1cVarData, 
     ::Coluna.MathProg.Constraint, ::CoverConstrData) 
