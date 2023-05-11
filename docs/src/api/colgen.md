@@ -28,6 +28,7 @@ Coluna.ColGen.AbstractColGenPhase
 Coluna.ColGen.AbstractColGenPhaseIterator
 Coluna.ColGen.new_phase_iterator
 Coluna.ColGen.initial_phase
+Coluna.ColGen.decrease_stage
 Coluna.ColGen.next_phase
 Coluna.ColGen.setup_reformulation!
 Coluna.ColGen.setup_context!
