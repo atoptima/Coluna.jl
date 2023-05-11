@@ -110,14 +110,14 @@ struct ColGenPhase1 <: ColGen.AbstractColGenPhase end
 
 """
 Phase 2 solves the master LP without artificial variables.
-To starts, it requires a set of columns that forms a feasible solution to the LP master.
+To start, it requires a set of columns that forms a feasible solution to the LP master.
 This set is found with phase 1.
 """
 struct ColGenPhase2 <: ColGen.AbstractColGenPhase end
 
 """
 Phase 3 is a mix of phase 1 and phase 2.
-It sets a very large cost to artifical variable to force them to be removed from the master 
+It sets a very large cost to artifical variables to force them to be removed from the master 
 LP solution.
 If the final master LP solution contains artifical variables either the master is infeasible
 or the cost of artificial variables is not large enough. Phase 1 must be run.
