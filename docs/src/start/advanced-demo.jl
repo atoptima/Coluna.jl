@@ -403,7 +403,7 @@ end
 
 # We re-declare the model and optimize it with these valid inequalites:
 (model, x, y, z, _) = create_model(coluna, pricing_callback)
-MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
+MOI.set(model, MOI.UserCutCallback(), (valid_inequalities_callback));
 JuMP.optimize!(model)
 
 # TODO: comment on the improvement of the dual bound
@@ -609,7 +609,7 @@ end
 
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
-#JuMP.optimize!(model)
+JuMP.optimize!(model)
 
 
 # ### Multi-stages pricing callback
@@ -723,3 +723,36 @@ end
 
 # Optimize:
 #JuMP.optimize!(model)
+
+
+
+## r1c + valid ineq callback ##
+
+function cuts_callback(cbdata)
+    valid_inequalities_callback(cbdata)
+    r1c_callback(cbdata)
+end
+
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    "params" => Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm( ## default branch-and-bound of Coluna
+            maxnumnodes = 100,
+            conqueralg = Coluna.ColCutGenConquer() ## default column and cut generation of Coluna
+        ) ## default branch-cut-and-price
+    ),
+    "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+);
+
+model, x, y, z, cov = create_model(coluna, pricing_callback)
+# We declare our custom data to Coluna: 
+BlockDecomposition.customvars!(model, R1cVarData)
+BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
+for i in customers
+    customdata!(cov[i], CoverConstrData(i))
+end
+
+
+MOI.set(model, MOI.UserCutCallback(), cuts_callback);
+JuMP.optimize!(model)
