@@ -51,6 +51,7 @@ The latest minor release `0.6.0` suffers from regressions as some features are n
 - ![Dev](https://img.shields.io/badge/-dev-orange) Features in development.
   - Stabilization for column generation (regression) and benders.
   - Clean-up of large scales formulation (regression)
+  - Preprocessing of formulations and reformulations
 
 ## Contributing
 
