@@ -14,7 +14,16 @@
 # Our objective is to minimize the fixed costs of opened facilities and the distance traveled by the routes while
 # ensuring that each customer is at least visited once by a route.
 
-# In this tutorial, we work on a small instance with 2 facilities and 7 customers. 
+
+# In this tutorial, we will show you how to optimize this problem using:
+# - a direct approach with JuMP and a MILP solver (without Coluna)
+# - a classic branch-and-price provided by Coluna and a pricing callback that calls a custom code to optimize pricing subproblems
+# - robust valid inequalities (branch-cut-and-price algorithm)
+# - non-robust valid inequalities (branch-cut-and-price algorithm)
+# - multi-stage column generation using two different pricing solvers
+# - Benders cut generation algorithm
+
+# We work on a small instance with 2 facilities and 7 customers. 
 # The maximum length of a route is fixed to 4. 
 
 nb_positions = 4
@@ -106,21 +115,15 @@ objective_value(model)
 
 # We find an optimal solution involving two routes starting from facility 1:
 # - `1` -> `8` -> `9` -> `3` -> `6`
-# - `1` -> `4` -> `5` -> `7``
+# - `1` -> `4` -> `5` -> `7`
 
-# ## Decomposed model
+# ## Dantzig-Wolfe decomposition and Branch-and-Price
 
 # We can exploit the structure of the problem by generating routes starting from each facility. 
 # The most immediate decomposition is to consider each route traveled by a vehicle as a subproblem.
 # However, at a given facility, vehicles are identical and therefore any vehicle can travel
 # on any route. So we have several identical subproblems at each facility.
 
-# In this tutorial, we plan to:
-# - solve the subproblems using a pricing callback
-# - strengthen the master problem using robust valid inequalities
-# - strengthen the master problem using non-robust valid inequalities
-# - speed-up the optimization using multi-stage column generation.
- 
 # The following method creates the model according to the decomposition described: 
 function create_model(optimizer, pricing_algorithms)
     ## We declare an axis over the facilities.
@@ -344,7 +347,7 @@ function pricing_callback(cbdata)
 end
 
 # Create the model:
-model, x, y, z, _ = create_model(coluna, pricing_callback)
+model, x, y, z, _ = create_model(coluna, pricing_callback);
 
 # Solve:
 JuMP.optimize!(model)
@@ -358,9 +361,9 @@ JuMP.optimize!(model)
 # integrality of the `y` variables.
 #
 # ```math
-# x_{ij} <= y_j; \forall i \in I, \forall j \in J
+# x_{ij} \leq y_j\; \forall i \in I, \forall j \in J
 # ```
-# where $I$ os the set of customers and J the set of facilities.
+# where $I$ is the set of customers and J the set of facilities.
 
 # We declare a structure representing an instance of this inequality:
 struct OpenFacilityInequality
@@ -368,7 +371,7 @@ struct OpenFacilityInequality
     customer_id::Int
 end
 
-# We are going to separate these inequalities by enumeration.
+# We are going to separate these inequalities by enumeration (i.e. iterating over all pairs of customer and facility).
 # Let's write our valid inequalities callback:
 
 function valid_inequalities_callback(cbdata)
@@ -402,8 +405,8 @@ function valid_inequalities_callback(cbdata)
 end
 
 # We re-declare the model and optimize it with these valid inequalites:
-(model, x, y, z, _) = create_model(coluna, pricing_callback)
-MOI.set(model, MOI.UserCutCallback(), (valid_inequalities_callback));
+model, x, y, z, _ = create_model(coluna, pricing_callback);
+MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
 # TODO: comment on the improvement of the dual bound
@@ -420,11 +423,11 @@ JuMP.optimize!(model)
 # R1Cs have the following form:
 
 # ```math
-# \sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_k \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor,  C \subseteq I
+# \sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_k \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor, \;  C \subseteq I
 # ```
 
 # where $C$ is a subset of customers, $\alpha_c$ is a multiplier, $\tilde{x}^k_{ij}$ is the
-# value of the variable $x_{ij}$ in column k
+# value of the variable $x_{ij}$ in column $k$.
 
 # Since we obtain R1C by applying a procedure on cover constraints, we must be able to
 # differentiate them from the other constraints of the model. 
@@ -438,23 +441,23 @@ struct CoverConstrData <: BlockDecomposition.AbstractCustomData
 end
 
 # We re-create the model:
-(model, x, y, z, cov) = create_model(coluna, pricing_callback)
+(model, x, y, z, cov) = create_model(coluna, pricing_callback);
 
-# We declare our custom data to Coluna
+# We declare our custom data to Coluna and we attach one custom data to each cover constraint
 BlockDecomposition.customconstrs!(model, CoverConstrData);
 
-# And we attach one custom data to each cover constraint
 for i in customers
     customdata!(cov[i], CoverConstrData(i))
 end
 
-# We separate R1Cs by enumeration on subset of customers of size 3 ($|C|$ = 3)
-# and use the vector of multipliers $\alpha = (0.5, 0.5, 0.5)$
+# In this example, we separate R1Cs for subset of customers of size 3 ($|C|$ = 3) and we
+# use the vector of multipliers $\alpha = (0.5, 0.5, 0.5)$.
+# We perform the separation by enumeration (i.e. iterating over all subsets of customers of size 3).
 
 # Therefore our R1Cs will have the following form:
 
 # ```math
-# \sum{k \in K} \tilde{\alpha}(C, k) \lambda_k \leq 1; C \subseteq I, |C| = 3
+# \sum_{k \in K} \tilde{\alpha}(C, k) \lambda_k \leq 1; C \subseteq I, |C| = 3
 # ```
 
 # where coefficient $\tilde{\alpha}(C, k)$ equals $1$ if route $k$ visits at least two customers of $C$; $0$ otherwise.
@@ -481,7 +484,19 @@ end
 BlockDecomposition.customvars!(model, R1cVarData)
 BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
 
-# Coluna calls this method to compute the coefficients of the `λ_k` in the cuts:
+# You saw from the R1C formula that it's impossible to compute the coefficient of the 
+# columns as a linear expression of the subproblem variables.
+# This is here that custom data structures come into play.
+# When adding new constraints or variables in the model, Coluna will call the `computecoeff`
+# method each time it finds a pair of variable and constraint that carry custom data.
+# This method must return the coefficient of the variable in the constraint.
+
+# Basically, Coluna calculates the coefficient of a column as the addition of the robust
+# contribution (i.e. linear expression of subproblem variable valuations) and the non-robust
+# contribution retuned by the `computecoeff` method.
+
+# So we define this first method that Coluna call sget the coefficients of the columns
+# in the R1C:
 function Coluna.MathProg.computecoeff(
     ::Coluna.MathProg.Variable, var_custom_data::R1cVarData,
     ::Coluna.MathProg.Constraint, constr_custom_data::R1cCutData
@@ -489,9 +504,9 @@ function Coluna.MathProg.computecoeff(
     return floor(1/2 * length(var_custom_data.visited_locations ∩ constr_custom_data.cov_constrs))
 end
 
-# Coluna always calls `computecoeff` when it finds a pair of variable and constraint that
-# carry custom data. We therefore need to specify that the non-robust contribution to the coefficient 
-# of the `λ_k` in a cover constraint is 0.
+# and we also define this method because we needed to attach custom data to cover constraints.
+# Since there is no contribution of the non-robust part of the coefficient of the `λ_k` in a cover constraint,
+# the method returns 0.
 function Coluna.MathProg.computecoeff(
     ::Coluna.MathProg.Variable, ::R1cVarData, 
     ::Coluna.MathProg.Constraint, ::CoverConstrData) 
@@ -511,7 +526,7 @@ function r1c_callback(cbdata)
     end
     
     ## retrieve the master columns λ 
-    lambdas = Vector{Any}()
+    lambdas = Tuple{Float64, Coluna.MathProg.Variable}[]
     for (var_id, val) in original_sol
         if Coluna.MathProg.getduty(var_id) <= Coluna.MathProg.MasterCol
             push!(lambdas, (val, Coluna.MathProg.getvar(cbdata.form, var_id)))
@@ -519,9 +534,9 @@ function r1c_callback(cbdata)
     end
 
     ## separate the valid R1Cs (i.e. those violated by the current solution)
-    ## for a fixed subset of cover constraints of size 3, iterate on the master columns and check violation:
-    subsets = collect(combinations(cov_constrs, 3))
-    for cov_constr_subset in subsets
+    ## for a fixed subset of cover constraints of size 3, iterate on the master columns 
+    ## and check violation:
+    for cov_constr_subset in collect(combinations(cov_constrs, 3))
         violation = 0
         for lambda in lambdas 
             (val, var) = lambda
@@ -531,20 +546,31 @@ function r1c_callback(cbdata)
             end
         end
         if violation > 1
-            ## create the constraint and add it to the model, use custom data to keep information about the cut (= the subset of considered cover constraints)
+            ## Create the constraint and add it to the model.
             MOI.submit(model, 
-                      MOI.UserCut(cbdata), 
-                      JuMP.ScalarConstraint(JuMP.AffExpr(0.0), MOI.LessThan(1.0)), 
-                      R1cCutData(cov_constr_subset)
-                      )
+                MOI.UserCut(cbdata), 
+                JuMP.ScalarConstraint(JuMP.AffExpr(0.0), MOI.LessThan(1.0)), 
+                R1cCutData(cov_constr_subset)
+            )
         end
     end
-    
 end
 
-# The last thing we need to do to complete the implementation of R1Cs is to update our pricing callback. Unlike valid inequalities, R1Cs are not expressed directly with the model variables. Thus, their cost is not taken into account in the reduced cost calculations. We must therefore add it "manually" in the callback. 
+# You should find disturbing the way we add the non-robust valid inequalities because we 
+# literally add the constraint `0 <= 1` to the model.
+# This is because you don't have access to the columns from the seperation callbacl and how 
+# Coluna computes the coefficient of the columns in the constraints.
+# You can only express the robust-part of the inequality. The non-robust part is calculated
+# in the `compute_coeff` method.
 
-# The contribution of R1Cs to the reduced cost computation is managed by the following method:
+# The last thing we need to do to complete the implementation of R1Cs is to update our 
+# pricing callback. Unlike valid inequalities, R1Cs are not expressed directly with the 
+# subproblem variables. 
+# Thus, their contribution to the redcued cost of a column is not captured by the reduced cost
+# of subproblem variables.
+# We must therefore take this contribution into account "manually". 
+
+# The contribution of R1Cs to the reduced cost of a route is managed by the following method:
 function r1c_contrib(route::Route, custduals)
     cost=0
     if !isempty(custduals)
@@ -556,7 +582,10 @@ function r1c_contrib(route::Route, custduals)
     return cost
 end
 
-# We re-write our pricing callback, with the additional contribution that corresponds to R1Cs cost:
+# We re-write our pricing callback to: 
+# - retrieve the dual cost of the R1Cs
+# - take into account the contribution of the R1C in the reduced cost of the route
+# - attach custom data to the route to know which customers are visited by the route and compute its coefficient in the R1Cs
 function pricing_callback(cbdata)
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
     z_red_costs = Dict(
@@ -565,6 +594,8 @@ function pricing_callback(cbdata)
     x_red_costs = Dict(
         "x_$(i)_$(j)" => BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
     )
+
+    ## FIRST CHANGE HERE:
     ## Get the dual values of the custom cuts to calculate contributions of
     ## non-robust cuts to the cost of the solution:
     custduals = Tuple{Vector{Int}, Float64}[]
@@ -576,18 +607,20 @@ function pricing_callback(cbdata)
             ))
         end
     end
+    ## END OF FIRST CHANGE
 
-    ## Keep route with minimum reduced cost,
-    ## add variables contribution and also the non-robust cuts contribution 
+    ## SECOND CHANGE HERE:
+    ## Keep route with minimum reduced cost: contribution of the subproblem variables and 
+    ## the R1C.
     red_costs_j = map(r -> (
             r, 
-            x_contribution(r, j, x_red_costs) + 
-            z_contribution(r, z_red_costs) - #TODO: comment on sign ? 
-            r1c_contrib(r, custduals)
+            x_contribution(r, j, x_red_costs) + z_contribution(r, z_red_costs) - r1c_contrib(r, custduals)
         ), routes_per_facility[j]
     ) 
+    ## END OF SECOND CHANGE
     min_index = argmin([x for (_,x) in red_costs_j])
-    (best_route, min_reduced_cost) = red_costs_j[min_index]
+    best_route, min_reduced_cost = red_costs_j[min_index]
+
 
     best_route_arcs = Vector{Tuple{Int, Int}}()
     for i in 1:(best_route.length - 1)
@@ -601,16 +634,18 @@ function pricing_callback(cbdata)
     sol_cost = min_reduced_cost
 
     ## Submit the solution of the subproblem to Coluna
-    ## TODO: comment on custom data here
-    MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals, R1cVarData(best_route.path))
+    ## THIRD CHANGE HERE:
+    ## You must attach the visited customers `R1cVarData` to the solution of the subproblem
+    MOI.submit(
+        model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals, 
+        R1cVarData(best_route.path)
+    )
+    ## END OF THIRD CHANGE
     MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost) 
-
 end
-
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
 JuMP.optimize!(model)
-
 
 # ### Multi-stages pricing callback
 
@@ -688,8 +723,7 @@ function approx_pricing(cbdata)
         
     MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
     ## as the procedure is inexact, no dual bound can be computed, we set it to -Inf
-    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), -Inf) 
-            
+    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), -Inf)  
 end
 
 # We set the solver, `colgen_stages_pricing_solvers` indicates which solver to use first (here it is `approx_pricing`)
@@ -717,6 +751,8 @@ JuMP.optimize!(model)
 
 
 # ## Benders decomposition
+
+
 fake = 1
 @axis(axis, collect(fake:fake))
 
@@ -730,6 +766,7 @@ coluna = JuMP.optimizer_with_attributes(
 )
 
 model = BlockModel(coluna)
+## model = Model(GLPK.Optimizer)
 
 covering_routes = Dict(
     (j, i) => findall(r -> (i in r.path), routes_per_facility[j]) for i in customers, j in facilities
@@ -739,12 +776,12 @@ routes_costs = Dict(
 )
 
 
-#master variables
+## master variables
 
 @variable(model, 0 <= y[j in facilities] <= 1)
 
 
-#sp variables
+## sp variables
 @variable(model, 0 <= λ[f in axis, j in facilities, k in 1:length(routes_per_facility[j])] <= 1) # λj,q = 1 -> route (j,q) is opened
 
 @constraint(model, open[fake in axis, j in facilities, k in 1:length(routes_per_facility[j])], 
@@ -768,7 +805,6 @@ routes_costs = Dict(
 @benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)
 @show objective_value(model)
-
 
 
 
@@ -845,31 +881,27 @@ end;
 # First, we solve the root node with the "raw" decomposition model:
 model, x, y, z, cov = create_model(coluna, pricing_callback)
 attach_data(model, cov)
-JuMP.optimize!(model);
 
-# dual bound = 1588.00
+# dual bound found after optimization = 1588.00
 
 # Then, we re-solve it with the robust cuts:
 model, x, y, z, cov = create_model(coluna, pricing_callback)
 attach_data(model, cov)
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
-JuMP.optimize!(model);
 
-# dual bound = 1591.55
+# dual bound found after optimization = 1591.55
 
 
 # And with non-robust cuts:
 model, x, y, z, cov = create_model(coluna, pricing_callback)
 attach_data(model, cov)
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
-JuMP.optimize!(model);
 
-# dual bound = 1598.26
+# dual bound found after optimization = 1598.26
 
 # Finally we add both robust and non-robust cuts:
 model, x, y, z, cov = create_model(coluna, pricing_callback)
 attach_data(model, cov)
 MOI.set(model, MOI.UserCutCallback(), cuts_callback);
-JuMP.optimize!(model);
 
-# dual bound =  1600.63
+# dual bound found after optimization =  1600.63
