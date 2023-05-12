@@ -810,7 +810,7 @@ JuMP.optimize!(model)
 
 
 
-# ## Comparison of the results obtained on a larger instance
+# ## Example of comparison of the dual bounds obtained on a larger instance.
 
 # In this section, we propose to create an instance with 3 facilities and 20 customers. We will solve only the root node and look at the dual bound:
 # - with the "raw" decomposition model
@@ -851,7 +851,7 @@ routes_per_facility = Dict(
     j => best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
 );
 
-# We set maxnumnodes to zero to optimize only the root node:
+# We set `maxnumnodes` to zero to optimize only the root node:
 coluna = optimizer_with_attributes(
     Coluna.Optimizer,
     "params" => Coluna.Params(
