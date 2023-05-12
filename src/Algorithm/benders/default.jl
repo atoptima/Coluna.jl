@@ -162,7 +162,14 @@ function Benders.update_sp_rhs!(ctx::BendersContext, sp, mast_primal_sol)
     for (constr_id, constr) in getconstrs(sp)
         if getduty(constr_id) <= BendSpTechnologicalConstr
             setcurrhs!(sp, constr_id, new_rhs[constr_id])
+        else
+            setcurrhs!(sp, constr_id, getperenrhs(sp, constr_id))
         end
+    end
+
+    for (var_id, var) in getvars(sp)
+        setcurlb!(sp, var_id, getperenlb(sp, var_id))
+        setcurub!(sp, var_id, getperenub(sp, var_id))
     end
     return
 end
@@ -176,6 +183,21 @@ function Benders.set_sp_rhs_to_zero!(ctx::BendersContext, sp, mast_primal_sol)
     for (constr_id, constr) in getconstrs(sp)
         if getduty(constr_id) <= BendSpTechnologicalConstr
             setcurrhs!(sp, constr_id, - new_rhs[constr_id])
+        else
+            setcurrhs!(sp, constr_id, 0.0)
+        end
+    end
+
+
+    for (var_id, var) in getvars(sp)
+        if !(getduty(var_id) <= BendSpSecondStageArtVar)
+            if getobjsense(sp) == MinSense
+                setcurlb!(sp, var_id, 0.0)
+                setcurub!(sp, var_id, Inf)
+            else
+                setcurlb!(sp, var_id, 0.0)
+                setcurub!(sp, var_id, Inf)
+            end
         end
     end
     return
@@ -316,7 +338,7 @@ end
 
 function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::BendersSeparationResult)
     sc = Benders.is_minimization(ctx) ? 1.0 : -1.0
-    eq = abs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
+    eq = false #bs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
     gt = sc * sep_result.second_stage_cost > sc * sep_result.second_stage_estimation
 
     # if cost of separation result > second cost variable in master result
@@ -364,7 +386,6 @@ function Benders.build_primal_solution(context::BendersContext, mast_primal_sol,
 
     for sp_sol in sep_sp_sols.sols
         for (varid, val) in sp_sol
-            @show sp_sol
             #if getduty(varid) <= BendSpSepVar
                 push!(var_ids, varid)
                 push!(var_vals, val)
@@ -418,6 +439,7 @@ struct BendersOutput <: Benders.AbstractBendersOutput
     infeasible::Bool
     time_limit_reached::Bool
     mlp::Union{Nothing, Float64}
+    ip_primal_sol::Union{Nothing,PrimalSolution}
 end
 
 Benders.benders_output_type(::BendersContext) = BendersOutput
@@ -429,7 +451,8 @@ function Benders.new_output(
     return BendersOutput(
         benders_iter_output.infeasible,
         benders_iter_output.time_limit_reached,
-        benders_iter_output.master
+        benders_iter_output.master,
+        benders_iter_output.ip_primal_sol
     )
 end
 

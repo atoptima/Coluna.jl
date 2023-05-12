@@ -149,6 +149,6 @@ end
 
 projection_is_possible(master::Formulation{BendersMaster}) = false
 
-function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{BendersMaster})
+function proj_cols_on_rep(sol::PrimalSolution{Formulation{BendersMaster}})
     return sol
 end

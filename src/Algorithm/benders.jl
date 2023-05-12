@@ -50,6 +50,26 @@ function _new_context(C::Type{<:Benders.AbstractBendersContext}, reform, algo)
     return C(reform, algo)
 end
 
+# TODO: fis this method
+function _benders_optstate_output(result, master)
+    optstate = OptimizationState(master)
+
+    if result.infeasible
+        setterminationstatus!(optstate, INFEASIBLE)
+    end
+
+    if !isnothing(result.ip_primal_sol)
+        set_lp_primal_sol!(optstate, result.ip_primal_sol)
+    end
+
+    if !isnothing(result.mlp)
+        set_lp_dual_bound!(optstate, DualBound(master, result.mlp))
+        set_ip_dual_bound!(optstate, DualBound(master, result.mlp))
+        set_lp_primal_bound!(optstate, PrimalBound(master, result.mlp))
+    end
+    return optstate
+end
+
 function run!(
     algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationState
 )
@@ -57,18 +77,8 @@ function run!(
         reform, algo;
         print = true
     )
-
     result = Coluna.Benders.run_benders_loop!(ctx, env)
-    @show result
-    return result
-
-    # ctx = _new_context(Benders.BendersCutGenContext, reform, algo)
-    # return Benders.run!(ctx, env, nothing)
-
-    # bndata = BendersCutGenRuntimeData(reform, input)
-    # @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    # Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
-    # return bndata.optstate
+    return _benders_optstate_output(result, getmaster(reform))
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
