@@ -263,7 +263,7 @@ function _optimize_feasibility_separation_problem!(ctx, sp::Formulation{BendersS
     return opt_state
 end
 
-function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master, primal_sol)
+function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master)
     spid = getuid(sp)
 
     second_stage_cost_var = sp.duty_data.second_stage_cost_var

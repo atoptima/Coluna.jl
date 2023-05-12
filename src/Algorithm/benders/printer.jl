@@ -100,7 +100,7 @@ Benders.set_sp_rhs_to_zero!(ctx::BendersPrinterContext, sp, primal_sol) = Bender
 Benders.set_of_cuts(ctx::BendersPrinterContext) = Benders.set_of_cuts(ctx.inner)
 Benders.set_of_sep_sols(ctx::BendersPrinterContext) = Benders.set_of_sep_sols(ctx.inner)
 
-function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Formulation{BendersSp}, env, unbounded_master, p)
+function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Formulation{BendersSp}, env, unbounded_master)
     if ctx.debug_print_subproblem || ctx.debug_print_subproblem_primal_solution || ctx.debug_print_subproblem_dual_solution
         println(crayon"bold green", repeat('-', 80), crayon"reset")
     end
@@ -110,7 +110,7 @@ function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Fo
         print(crayon"reset")
     end
     ctx.sp_elapsed_time = @elapsed begin
-    result = Benders.optimize_separation_problem!(ctx.inner, sp, env, unbounded_master, p)
+    result = Benders.optimize_separation_problem!(ctx.inner, sp, env, unbounded_master)
     end
     if ctx.debug_print_subproblem_primal_solution
         print(crayon"bold underline green", "Separation problem primal solution:", crayon"!bold !underline")

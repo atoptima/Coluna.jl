@@ -43,7 +43,7 @@ struct UnboundedError <: Exception end
 
 @mustimplement "Benders" set_of_sep_sols(context) = nothing
 
-@mustimplement "Benders" optimize_separation_problem!(context, sp_to_solve, env, unbounded_master, p) = nothing
+@mustimplement "Benders" optimize_separation_problem!(context, sp_to_solve, env, unbounded_master) = nothing
 
 @mustimplement "Benders" get_dual_sol(res) = nothing
 
@@ -127,7 +127,7 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
     generated_cuts = set_of_cuts(context)
     sep_sp_sols = set_of_sep_sols(context)
     for (_, sp_to_solve) in get_benders_subprobs(context)
-        sep_result = optimize_separation_problem!(context, sp_to_solve, env, is_certificate(mast_result), mast_primal_sol)
+        sep_result = optimize_separation_problem!(context, sp_to_solve, env, is_certificate(mast_result))
 
         if is_unbounded(sep_result)
             throw(UnboundedError())
