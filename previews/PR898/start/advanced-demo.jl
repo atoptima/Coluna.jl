@@ -25,6 +25,7 @@
 
 # We work on a small instance with 2 facilities and 7 customers. 
 # The maximum length of a route is fixed to 4. 
+# We suggest a larger instance in the last section of the tutorial.
 
 nb_positions = 4
 facilities_fixed_costs = [120, 150]
@@ -753,6 +754,21 @@ JuMP.optimize!(model)
 
 # ## Benders decomposition
 
+# In this last section, we show you how you solve the linear relaxation of the problem using Benders.
+
+# At the first stage, we chose a subset of facilities to open. 
+# At the second stage, we solve the linear rekaxation of the routing problem for each facility that is open.
+# Since we play with a toy instance and we can enumerate all the routes, the second-level will
+# return select the routes to use.
+
+# We introduce the variables.
+# Let `y[j]` equals 1 if the facility `j` is open and 0 otherwise.
+# Let `λ[j,k]` equals 1 if route `k` starting from facility `j` is selected and 0 otherwise.
+
+# Since there is only one subproblem at the second stage, we introduce a fake axis that contains
+# only one element.
+# In the case of Benders, when the second-stage is decomposable, you can imagine the axis as the set of scenarios for instance.
+
 fake = 1
 @axis(axis, collect(fake:fake))
 
@@ -765,36 +781,40 @@ coluna = JuMP.optimizer_with_attributes(
     "default_optimizer" => GLPK.Optimizer
 )
 
-model = BlockModel(coluna)
-## model = Model(GLPK.Optimizer)
+model = BlockModel(coluna);
 
+
+# We introduce auxiliary structures to make the code readable.
+
+## routes covering customer i from facility j.
 covering_routes = Dict(
     (j, i) => findall(r -> (i in r.path), routes_per_facility[j]) for i in customers, j in facilities
 )
+## routes costs from facility j.
 routes_costs = Dict(
     j => [route_original_cost(arc_costs, r) for r in routes_per_facility[j]] for j in facilities 
 )
 
+# We declare the variables.
+@variable(model, 0 <= y[j in facilities] <= 1) ## 1st stage
+@variable(model, 0 <= λ[f in axis, j in facilities, k in 1:length(routes_per_facility[j])] <= 1) ## 2nd stage
 
-## master variables
+# We declare the constraints.
 
-@variable(model, 0 <= y[j in facilities] <= 1)
-
-
-## sp variables
-@variable(model, 0 <= λ[f in axis, j in facilities, k in 1:length(routes_per_facility[j])] <= 1) # λj,q = 1 -> route (j,q) is opened
-
+## Linking constraints
 @constraint(model, open[fake in axis, j in facilities, k in 1:length(routes_per_facility[j])], 
     y[j] >= λ[fake, j, k])
 
+## Second-stage constraints 
 @constraint(model, cover[fake in axis, i in customers], 
     sum(λ[fake, j, k] for j in facilities, k in covering_routes[(j,i)]) >= 1)
 
+## Second-stage constraints
 @constraint(model, limit_nb_routes[fake in axis, j in facilities],
     sum(λ[fake, j, q] for q in 1:length(routes_per_facility[j])) <= nb_routes_per_facility
 )
 
-
+## First-stage constraint
 @constraint(model, min_opening, 
     sum(y[j] for j in facilities) >= 1)
 
@@ -802,6 +822,7 @@ routes_costs = Dict(
     sum(facilities_fixed_costs[j] * y[j] for j in facilities) + 
     sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])))               
 
+# We perform the decomposition over the axis and we optimize the problem.
 @benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)
 
