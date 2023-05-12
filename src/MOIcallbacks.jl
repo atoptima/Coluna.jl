@@ -167,12 +167,14 @@ function MOI.submit(
     sense = MathProg.convert_moi_sense_to_coluna(set)
     lhs = 0.0
     members = Dict{VarId, Float64}()
+
+    # Robust terms
     for term in func.terms
         varid = _get_varid_of_origvar_in_form(model.env, form, term.variable)
         members[varid] = term.coefficient
         lhs += term.coefficient * get(cb.callback_data.proj_sol_dict, varid, 0.0)
     end
-
+    
     constr = setconstr!(
         form, "", MasterUserCutConstr;
         rhs = rhs,
@@ -182,6 +184,13 @@ function MOI.submit(
         loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost,
         custom_data = custom_data
     )
+
+    # Non-robust terms
+    for (varid, var) in getvars(form)
+        if !isnothing(var.custom_data)
+            lhs += MathProg.computecoeff(var, var.custom_data, constr, custom_data)
+        end
+    end
 
     gap = lhs - rhs
     if sense == Less

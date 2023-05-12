@@ -80,7 +80,7 @@ function Benders.optimize_master_problem!(master, ctx::BendersPrinterContext, en
 end
 
 function Benders.treat_unbounded_master_problem!(master, ctx::BendersPrinterContext, env)
-    result, c = Benders.treat_unbounded_master_problem!(master, ctx.inner, env)
+    result = Benders.treat_unbounded_master_problem!(master, ctx.inner, env)
     if ctx.debug_print_master || ctx.debug_print_master_primal_solution || ctx.debug_print_master_dual_solution
         println(crayon"bold blue", repeat('-', 80), crayon"reset")
         println(crayon"bold underline blue", "Treat unbounded master", crayon"reset")
@@ -90,7 +90,7 @@ function Benders.treat_unbounded_master_problem!(master, ctx::BendersPrinterCont
         print(crayon"reset")
         println(crayon"bold blue", repeat('-', 80), crayon"reset")
     end
-    return result, c
+    return result
 end
 
 Benders.set_second_stage_var_costs_to_zero!(ctx::BendersPrinterContext) = Benders.set_second_stage_var_costs_to_zero!(ctx.inner)
@@ -98,8 +98,9 @@ Benders.reset_second_stage_var_costs!(ctx::BendersPrinterContext) = Benders.rese
 Benders.update_sp_rhs!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.update_sp_rhs!(ctx.inner, sp, primal_sol)
 Benders.set_sp_rhs_to_zero!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.set_sp_rhs_to_zero!(ctx.inner, sp, primal_sol)
 Benders.set_of_cuts(ctx::BendersPrinterContext) = Benders.set_of_cuts(ctx.inner)
+Benders.set_of_sep_sols(ctx::BendersPrinterContext) = Benders.set_of_sep_sols(ctx.inner)
 
-function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Formulation{BendersSp}, env)
+function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Formulation{BendersSp}, env, unbounded_master)
     if ctx.debug_print_subproblem || ctx.debug_print_subproblem_primal_solution || ctx.debug_print_subproblem_dual_solution
         println(crayon"bold green", repeat('-', 80), crayon"reset")
     end
@@ -109,7 +110,7 @@ function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Fo
         print(crayon"reset")
     end
     ctx.sp_elapsed_time = @elapsed begin
-    result = Benders.optimize_separation_problem!(ctx.inner, sp, env)
+    result = Benders.optimize_separation_problem!(ctx.inner, sp, env, unbounded_master)
     end
     if ctx.debug_print_subproblem_primal_solution
         print(crayon"bold underline green", "Separation problem primal solution:", crayon"!bold !underline")
@@ -140,7 +141,7 @@ Benders.stop_benders(ctx::BendersPrinterContext, benders_iter_output, benders_it
 Benders.benders_output_type(ctx::BendersPrinterContext) = Benders.benders_output_type(ctx.inner)
 
 function _benders_iter_str(iteration, benders_iter_output, sp_time::Float64, mst_time::Float64, optim_time::Float64)
-    master::Float64 = benders_iter_output.master
+    master::Float64 = isnothing(benders_iter_output.master) ? NaN : benders_iter_output.master
     nb_new_cuts = benders_iter_output.nb_new_cuts
     return @sprintf(
         "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%2i> <master=%10.4f>",
@@ -154,4 +155,8 @@ function Benders.after_benders_iteration(ctx::BendersPrinterContext, phase, env,
         println(crayon"bold red", repeat('-', 30), " end of iteration ", iteration, " ", repeat('-', 30), crayon"reset")
     end
     return
+end
+
+function Benders.build_primal_solution(context::BendersPrinterContext, mast_primal_sol, sep_sp_sols)
+    return Benders.build_primal_solution(context.inner, mast_primal_sol, sep_sp_sols)
 end
