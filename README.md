@@ -42,7 +42,7 @@ The latest minor release `0.6.0` suffers from regressions as some features are n
 - ![Beta](https://img.shields.io/badge/-beta-green) Features that work well but need more tests/usage and performance review before being stable:
   - Dantzig-Wolfe decomposition
   - Benders decomposition
-  - Branching-and-bound algorithm
+  - Branch-and-bound algorithm
   - Column generation (MILP pricing solver/pricing callback)
   - Cut generation (robust and non-robust cut generation)
   - Strong-branching
