@@ -128,7 +128,6 @@ function _new_context(C::Type{<:ColGen.AbstractColGenContext}, reform, algo)
 end
 
 function _colgen_optstate_output(result, master)
-
     optstate = OptimizationState(master)
 
     if result.infeasible
@@ -165,7 +164,6 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
 
     master = getmaster(reform)
-
     
     return _colgen_optstate_output(result, master)
 end
