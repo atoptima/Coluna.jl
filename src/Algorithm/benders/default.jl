@@ -190,12 +190,14 @@ function Benders.set_sp_rhs_to_zero!(ctx::BendersContext, sp, mast_primal_sol)
 
 
     for (var_id, var) in getvars(sp)
-        if getobjsense(sp) == MinSense
-            setcurlb!(sp, var_id, 0.0)
-            setcurub!(sp, var_id, Inf)
-        else
-            setcurlb!(sp, var_id, -Inf)
-            setcurub!(sp, var_id, 0.0)
+        if !(getduty(var_id) <= BendSpSecondStageArtVar)
+            if getobjsense(sp) == MinSense
+                setcurlb!(sp, var_id, 0.0)
+                setcurub!(sp, var_id, Inf)
+            else
+                setcurlb!(sp, var_id, 0.0)
+                setcurub!(sp, var_id, Inf)
+            end
         end
     end
     return
@@ -336,7 +338,7 @@ end
 
 function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::BendersSeparationResult)
     sc = Benders.is_minimization(ctx) ? 1.0 : -1.0
-    eq = abs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
+    eq = false #bs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
     gt = sc * sep_result.second_stage_cost > sc * sep_result.second_stage_estimation
 
     # if cost of separation result > second cost variable in master result
@@ -437,6 +439,7 @@ struct BendersOutput <: Benders.AbstractBendersOutput
     infeasible::Bool
     time_limit_reached::Bool
     mlp::Union{Nothing, Float64}
+    ip_primal_sol::Union{Nothing,PrimalSolution}
 end
 
 Benders.benders_output_type(::BendersContext) = BendersOutput
@@ -448,7 +451,8 @@ function Benders.new_output(
     return BendersOutput(
         benders_iter_output.infeasible,
         benders_iter_output.time_limit_reached,
-        benders_iter_output.master
+        benders_iter_output.master,
+        benders_iter_output.ip_primal_sol
     )
 end
 

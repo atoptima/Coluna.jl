@@ -875,8 +875,7 @@ register!(unit_tests, "benders_default", benders_default_infeasible_master)
 # ERROR during test, but maybe I don't check the infeasibility of the sp in a proper way ?
 function benders_default_infeasible_sp()
     env, reform = benders_form_infeasible_sp()
-    master = Coluna.MathProg.getmaster(reform)
-    @show master
+    master = Coluna.MathProg.getmaster(reform)    
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
@@ -888,7 +887,7 @@ function benders_default_infeasible_sp()
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 10
     )
-    ctx = Coluna.Algorithm.BendersPrinterContext(
+    ctx = Coluna.Algorithm.BendersContext(
         reform, alg;
     )
     Coluna.set_optim_start_time!(env)
@@ -948,7 +947,7 @@ function benders_max_upper_bound()
     end
 
     alg = Coluna.Algorithm.BendersCutGeneration(
-        max_nb_iterations = 10
+        max_nb_iterations = 10,
     )
     ctx = Coluna.Algorithm.BendersContext(
         reform, alg;
