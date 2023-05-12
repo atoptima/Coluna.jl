@@ -689,15 +689,6 @@ function approx_pricing(cbdata)
             "x_$(i)_$(j)" => BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
         )
 
-    custduals = Tuple{Vector{Int}, Float64}[]
-    for (_, constr) in Coluna.MathProg.getconstrs(cbdata.form.parent_formulation)            
-        if typeof(constr.custom_data) == R1cCutData
-            push!(custduals, (
-                constr.custom_data.cov_constrs,
-                Coluna.MathProg.getcurincval(cbdata.form.parent_formulation, constr)
-            ))
-        end
-    end
 
     ## initialize our "greedy best route"
     best_route = Route(1, [j])
@@ -728,7 +719,7 @@ function approx_pricing(cbdata)
     sol_vars = vcat(z_vars, x_vars)
     sol_vals = ones(Float64, length(z_vars) + length(x_vars))
     ## take the eventual rank-one cuts contribution into account
-    sol_cost = current_redcost - r1c_contrib(best_route, custduals)
+    sol_cost = current_redcost 
         
     MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
     ## as the procedure is inexact, no dual bound can be computed, we set it to -Inf
@@ -759,10 +750,8 @@ end
 
 JuMP.optimize!(model)
 
+
 # ## Benders decomposition
-
-
-
 
 fake = 1
 @axis(axis, collect(fake:fake))
@@ -815,4 +804,100 @@ routes_costs = Dict(
 
 @benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)
-## @show objective_value(model)
+
+
+# ## Example of comparison of the dual bounds obtained on a larger instance.
+
+# In this section, we propose to create an instance with 3 facilities and 20 customers. We will solve only the root node and look at the dual bound:
+# - with the "raw" decomposition model
+# - by adding robust cuts
+# - by adding non-robust cuts
+# - by adding both robust and non-robust cuts
+
+
+nb_positions = 6
+facilities_fixed_costs = [120, 150, 110]
+facilities = [1, 2, 3]
+customers = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+arc_costs = [
+    0.0    125.6  148.9  182.2  174.9  126.2  158.6  172.9  127.4  133.1  152.6  183.8  182.4  176.9  120.7  129.5;
+    123.6    0.0  175.0  146.7  191.0  130.4  142.5  139.3  130.1  133.3  163.8  127.8  139.3  128.4  186.4  115.6;
+    101.5  189.6    0.0  198.2  150.5  159.6  128.3  133.0  195.1  167.3  187.3  178.1  171.7  161.5  142.9  142.1;
+    159.4  188.4  124.7    0.0  174.5  174.0  142.6  102.5  135.5  184.4  121.6  112.1  139.9  105.5  190.9  140.7;
+    157.7  160.3  184.2  196.1    0.0  115.5  175.2  153.5  137.7  141.3  109.5  107.7  125.3  151.0  133.1  140.6;
+    145.2  120.4  106.7  138.8  157.3    0.0  153.6  192.2  153.2  184.4  133.6  164.9  163.6  126.3  121.3  161.4;
+    182.6  152.1  178.8  184.1  150.8  163.5    0.0  164.1  104.0  100.5  117.3  156.1  115.1  168.6  186.5  100.2;
+    144.9  193.8  146.1  191.4  136.8  172.7  108.1    0.0  131.0  166.3  116.4  187.0  161.3  148.2  162.1  116.0;
+    173.4  199.1  132.9  133.2  139.8  112.7  138.1  118.8    0.0  173.4  131.8  180.6  191.0  133.9  178.7  108.7;
+    150.5  171.0  163.8  171.5  116.3  149.1  124.0  192.5  188.8    0.0  112.2  188.7  197.3  144.9  110.7  186.6;
+    153.6  104.4  141.1  124.7  121.1  137.5  190.3  177.1  194.4  135.3    0.0  146.4  132.7  103.2  150.3  118.4;
+    112.5  133.7  187.1  170.0  130.2  177.7  159.2  169.9  183.8  101.6  156.2    0.0  114.7  169.3  149.9  125.3;
+    151.5  165.6  162.1  133.4  159.4  200.5  132.7  199.9  136.8  121.3  118.1  123.4    0.0  104.8  197.1  134.4;
+    195.0  101.1  194.1  160.1  147.1  164.6  137.2  138.6  166.7  191.2  169.2  186.0  171.2    0.0  106.8  150.9;
+    158.2  152.7  104.0  136.0  168.9  175.7  139.2  163.2  102.7  153.3  185.9  164.0  113.2  200.7    0.0  127.4;
+    136.6  174.3  103.2  131.4  107.8  191.6  115.1  127.6  163.2  123.2  173.3  133.0  120.5  176.9  173.8    0.0
+]
+
+locations  = vcat(facilities, customers)
+nb_customers = length(customers)
+nb_facilities = length(facilities)
+positions = 1:nb_positions;
+
+routes_per_facility = Dict(
+    j => best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
+);
+
+# We set `maxnumnodes` to zero to optimize only the root node:
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    "params" => Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm( 
+        maxnumnodes = 0,
+        conqueralg = Coluna.ColCutGenConquer() 
+        ) 
+        ),
+        "default_optimizer" => GLPK.Optimizer 
+);
+        
+        
+# We define a method to call both `valid_inequalities_callback` and `r1c_callback`:
+function cuts_callback(cbdata)
+    valid_inequalities_callback(cbdata)
+    r1c_callback(cbdata)
+end
+
+function attach_data(model, cov)
+    BlockDecomposition.customvars!(model, R1cVarData)
+    BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
+    for i in customers
+        customdata!(cov[i], CoverConstrData(i))
+    end
+end;
+
+# First, we solve the root node with the "raw" decomposition model:
+model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+
+# dual bound found after optimization = 1588.00
+
+# Then, we re-solve it with the robust cuts:
+model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
+
+# dual bound found after optimization = 1591.55
+
+
+# And with non-robust cuts:
+model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+MOI.set(model, MOI.UserCutCallback(), r1c_callback);
+
+# dual bound found after optimization = 1598.26
+
+# Finally we add both robust and non-robust cuts:
+model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+MOI.set(model, MOI.UserCutCallback(), cuts_callback);
+
+# dual bound found after optimization =  1600.63
