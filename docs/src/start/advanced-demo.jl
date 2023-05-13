@@ -176,7 +176,7 @@ function create_model(optimizer, pricing_algorithms)
     subproblemrepresentative.(z, Ref(subproblems))
 
     return model, x, y, z, cov
-end
+end;
 
 # Note that contrary to the direct model, we don't have to add constraints to ensure the
 # consistency of the routes because we solve our subproblems using a pricing callback.
@@ -221,7 +221,7 @@ function route_original_cost(arc_costs, route::Route)
         route_cost += arc_costs[path[i], path[i+1]]
     end
     return route_cost
-end
+end;
 
 # The reduced cost of the route only depends on the facility used, the selected set of customers,
 # and the total arc costs and there is no master constraints that may have an effect of the customer visit order.
@@ -252,7 +252,7 @@ function best_visit_order(arc_costs, cust_subset, facility_id)
     tmp = argmin([c for (_, c) in routes_costs])
     (best_order, _) = routes_costs[tmp]
     return best_order
-end
+end;
 
 # We are now able to compute the best route for all the possible customers subsets,
 # given a facility id:
@@ -273,7 +273,7 @@ function best_route_forall_cust_subsets(arc_costs, customers, facility_id, max_s
         push!(best_routes, route_s)
     end
     return best_routes
-end
+end;
 
 # We store all the information given by this pre-processing phase in a dictionary.
 # To each facility id, we match a vector of routes that are the best visiting sequences
@@ -299,7 +299,7 @@ function x_contribution(route::Route, j::Int, x_red_costs)
         x += x_red_costs["x_$(i)_$(j)"]
     end
     return x
-end
+end;
 
 function z_contribution(route::Route, z_red_costs)
     z = 0.0
@@ -355,7 +355,7 @@ function pricing_callback(cbdata)
     ## bound in column generation.
     MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost) ## optimal solution
 
-end
+end;
 
 # Create the model:
 model, x, y, z, _ = create_model(coluna, pricing_callback);
@@ -363,8 +363,6 @@ model, x, y, z, _ = create_model(coluna, pricing_callback);
 # Solve:
 JuMP.optimize!(model)
 
-
-# TODO: display "raw" decomp model output and comment, transition to next section 
 
 # ### Strengthening the master with linear valid inequalities on the original variables (so called "robust" cuts)
 
@@ -416,14 +414,14 @@ function valid_inequalities_callback(cbdata)
         constr = JuMP.@build_constraint(x[ineq.customer_id, ineq.facility_id] <= y[ineq.facility_id])
         MOI.submit(model, MOI.UserCut(cbdata), constr)
     end
-end
+end;
 
 # We re-declare the model and optimize it with these valid inequalites:
 model, x, y, z, _ = create_model(coluna, pricing_callback);
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
 
-# TODO: comment on the improvement of the dual bound
+
 
 
 # ### Strengthening the master with valid inequalities on the column generation variables (so called "non-robust" cuts)
@@ -580,7 +578,7 @@ function r1c_callback(cbdata)
             )
         end
     end
-end
+end;
 
 # You can find disturbing the way we add the non-robust valid inequalities because we 
 # literally add the constraint `0 <= 1` to the model.
@@ -592,7 +590,7 @@ end
 
 # The last thing we need to do to complete the implementation of R1Cs is to update our pricing callback. 
 # Unlike valid inequalities, R1Cs are not expressed directly with the subproblem variables. 
-# Thus, their contribution to the redcued cost of a column is not captured by the reduced cost
+# Thus, their contribution to the reduced cost of a column is not captured by the reduced cost
 # of subproblem variables.
 # We must therefore take this contribution into account "manually". 
 
@@ -606,7 +604,7 @@ function r1c_contrib(route::Route, custduals)
         end
     end
     return cost
-end
+end;
 
 # We re-write our pricing callback to: 
 # - retrieve the dual cost of the R1Cs
@@ -703,20 +701,10 @@ function add_nearest_neighbor(route::Route, customers, costs)
         push!(route.path, nearest)
         route.length += 1
     end
-end
+end;
 
-# Then we define our inexact pricing callback:
-function approx_pricing(cbdata)
-
-    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
-    z_red_costs = Dict(
-        "z_$(u)_$(v)" => BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
-    )
-    x_red_costs = Dict(
-        "x_$(i)_$(j)" => BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
-    )
-
-
+# We then define our heuristic for the enumeration of the routes, the method returns the best route found by he heuristic together with its cost:
+function enumeration_heuristic(x_red_costs, z_red_costs, j)
     ## initialize our "greedy best route"
     best_route = Route(1, [j])
     ## initialize the route's cost to zero
@@ -734,7 +722,24 @@ function approx_pricing(cbdata)
             break
         end
     end
+    return (best_route, current_redcost)
+end
 
+# We can now define our inexact pricing callback:
+function approx_pricing(cbdata)
+
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
+    z_red_costs = Dict(
+        "z_$(u)_$(v)" => BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
+    )
+    x_red_costs = Dict(
+        "x_$(i)_$(j)" => BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+    )
+
+    ## call the heuristic to elect the "greedy best route":
+    best_route, sol_cost = enumeration_heuristic(x_red_costs, z_red_costs, j)
+
+    ## build the solution:
     best_route_arcs = Vector{Tuple{Int,Int}}()
     for i in 1:(best_route.length-1)
         push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
@@ -745,8 +750,6 @@ function approx_pricing(cbdata)
     x_vars = [x[i, j] for i in best_route_customers]
     sol_vars = vcat(z_vars, x_vars)
     sol_vals = ones(Float64, length(z_vars) + length(x_vars))
-    ## take the eventual rank-one cuts contribution into account
-    sol_cost = current_redcost
 
     MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
     ## as the procedure is inexact, no dual bound can be computed, we set it to -Inf
@@ -774,7 +777,6 @@ for i in customers
 end
 
 # Optimize:
-
 JuMP.optimize!(model)
 
 
@@ -848,7 +850,7 @@ routes_costs = Dict(
 
 @objective(model, Min,
     sum(facilities_fixed_costs[j] * y[j] for j in facilities) +
-    sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])))
+    sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])));
 
 # We perform the decomposition over the axis and we optimize the problem.
 @benders_decomposition(model, dec, axis)
