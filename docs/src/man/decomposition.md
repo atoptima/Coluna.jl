@@ -1,6 +1,6 @@
 # Decomposition & reformulation
 
-Coluna is a framework to optimizate mixed-integer programs that you can decompose.
+Coluna is a framework to optimize mixed-integer programs that you can decompose.
 In other words, if you remove the linking constraints or linking variables from you
 program, you'll get sets of constraints (blocks) that you can solve independently.
 
