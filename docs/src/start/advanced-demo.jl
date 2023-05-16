@@ -286,7 +286,6 @@ routes_per_facility = Dict(
 # as long as there are no master constraints involving `z`;
 # but this will change as branching constraints and cuts are added to the master.
 
-
 # We therefore need methods to compute the contributions to the reduced cost of the `x` and `z` variables:
 
 function x_contribution(route::Route, j::Int, x_red_costs)
@@ -486,7 +485,6 @@ end
 # contribution (i.e. linear expression of subproblem variables valuations) and the non-robust
 # contribution returned by the `computecoeff` method.
 
-
 # Let us illustrate this for the restricted R1C case.
 # First, we attach a custom data structure to master columns `λ_k` associated to a given route `k`.
 # They record the set of customers that are visited by the given route `k`.
@@ -537,8 +535,9 @@ function r1c_callback(cbdata)
     ## Retrieve the cover constraints. 
     cov_constrs = Int[]
     for constr in values(Coluna.MathProg.getconstrs(master))
-        if typeof(constr.custom_data) <: CoverConstrData
-            push!(cov_constrs, constr.custom_data.customer)
+        constr_custom_data = Coluna.MathProg.getcustomdata(master, constr)
+        if typeof(constr_custom_data) <: CoverConstrData
+            push!(cov_constrs, constr_custom_data.customer)
         end
     end
 
@@ -546,7 +545,7 @@ function r1c_callback(cbdata)
     lambdas = Tuple{Float64,Coluna.MathProg.Variable}[]
     for (var_id, val) in original_sol
         if Coluna.MathProg.getduty(var_id) <= Coluna.MathProg.MasterCol
-            push!(lambdas, (val, Coluna.MathProg.getvar(cbdata.form, var_id)))
+            push!(lambdas, (val, Coluna.MathProg.getvar(master, var_id)))
         end
     end
 
@@ -557,8 +556,9 @@ function r1c_callback(cbdata)
         lhs = 0
         for lambda in lambdas
             (val, var) = lambda
-            if !isnothing(var.custom_data)
-                coeff = floor(1 / 2 * length(var.custom_data.visited_locations ∩ cov_constr_subset))
+            var_custom_data = Coluna.MathProg.getcustomdata(master, var)
+            if !isnothing(var_custom_data)
+                coeff = floor(1 / 2 * length(var_custom_data.visited_locations ∩ cov_constr_subset))
                 lhs += coeff * val
             end
         end
@@ -615,12 +615,14 @@ function pricing_callback(cbdata)
     ## FIRST CHANGE HERE:
     ## Get the dual values of the custom cuts to compute contributions of
     ## non-robust cuts to the cost of the solution:
+    master = cbdata.form.parent_formulation
     custduals = Tuple{Vector{Int},Float64}[]
-    for (_, constr) in Coluna.MathProg.getconstrs(cbdata.form.parent_formulation)
-        if typeof(constr.custom_data) == R1cCutData
+    for (_, constr) in Coluna.MathProg.getconstrs(master)
+        constr_custom_data = Coluna.MathProg.getcustomdata(master, constr)
+        if typeof(constr_custom_data) == R1cCutData
             push!(custduals, (
-                constr.custom_data.cov_constrs,
-                Coluna.MathProg.getcurincval(cbdata.form.parent_formulation, constr)
+                constr_custom_data.cov_constrs,
+                Coluna.MathProg.getcurincval(master, constr)
             ))
         end
     end
@@ -638,8 +640,7 @@ function pricing_callback(cbdata)
     min_index = argmin([x for (_, x) in red_costs_j])
     best_route, min_reduced_cost = red_costs_j[min_index]
 
-
-    best_route_arcs = Vector{Tuple{Int,Int}}()
+    best_route_arcs = Tuple{Int,Int}[]
     for i in 1:(best_route.length-1)
         push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
     end
@@ -666,20 +667,22 @@ JuMP.optimize!(model)
 
 # ### Multi-stages pricing callback
 
-# In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate sub-problems solutions. 
+# In this section, we implement a pricing heuristic that can be used together with the exact
+# pricing callback to generate sub-problems solutions. 
 
 # The idea of the heuristic is very simple:
 
-# - Given a facility `j`, the heuristic computes the closest customer to `j`, and adds it to the route.
-# - Then, while the reduced cost keeps improving, the heuristic computes and adds to the route the nearest neighbor to the last customer of the route. It stops if the maximum length of the route is reached.
+# - Given a facility `j`, the heuristic computes the closest customer to j, add it to the route.
+# - Then, while the reduced cost keeps improving, the heuristic computes and adds to the route 
+# the nearest neighbor to the last customer of the route. It stops if the maximum length of the route is reached.
 
 # We first define an auxiliary function used to compute the route tail's nearest neighbor at each step:
 function add_nearest_neighbor(route::Route, customers, costs)
     ## Get the last customer of the route.
     loc = last(route.path)
-    ## Initialize its nearest neighbor to zero and mincost to infinity.
+    ## initialize its nearest neighbor to zero and mincost to infinity
     (nearest, mincost) = (0, Inf)
-    ## Compute nearest and mincost.
+    ## compute nearest and mincost
     for i in customers
         if !(i in route.path) # implying in particular (i != loc)
             if (costs[loc, i] < mincost)
@@ -848,7 +851,6 @@ routes_costs = Dict(
 @benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)
 
-
 # ## Example of comparison of the dual bounds obtained on a larger instance.
 
 # In this section, we propose to create an instance with 3 facilities and 13 customers. We will solve only the root node and look at the dual bound:
@@ -856,7 +858,6 @@ JuMP.optimize!(model)
 # - by adding robust cuts
 # - by adding non-robust cuts
 # - by adding both robust and non-robust cuts
-
 
 nb_positions = 6
 facilities_fixed_costs = [120, 150, 110]
