@@ -14,11 +14,11 @@ The more classical callbacks in a branch-and-price solver are:
 
 !!! note
     You can't change the original formulation in a callback because Coluna does not propagate the
-    changes into the reformulation and does not check if solutions found are still feasible.
+    changes into the reformulation and does not check if the solutions found are still feasible.
 
 ## Pricing callback
 
-The pricing callback let you define how to solve the subproblems of a Dantzig-Wolfe
+The pricing callback lets you define how to solve the subproblems of a Dantzig-Wolfe
 decomposition to generate a new entering column in the master program.
 This callback is useful when you know an efficient algorithm to solve the subproblems,
 i.e. an algorithm better than solving the subproblem with a MIP solver.

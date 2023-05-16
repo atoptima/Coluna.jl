@@ -130,8 +130,8 @@ for t in T
 end
 getsubproblems(dec_on_types)
 ```
-We see that subproblem for machine type 1 has upper multiplicity equals to 3,
-and second subproblem for machine type 2 has upper multiplicity equals to 2.
+We see that subproblem for machine type 1 has an upper multiplicity equals to 3,
+and the second subproblem for machine type 2 has an upper multiplicity equals to 2.
 It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.
 
 We can then optimize
@@ -140,7 +140,7 @@ We can then optimize
 optimize!(model);
 ```
 
-and retrieve the disagreggated solution
+and retrieve the disaggregated solution
 
 ```@example identical
 for t in T
@@ -182,7 +182,7 @@ BlockDecomposition allows the user to perform two types of decomposition using
 [`BlockDecomposition.@dantzig_wolfe_decomposition`](@ref) and [`BlockDecomposition.@benders_decomposition`](@ref).
 
 The macro creates a decomposition tree where the root is the master and the depth
-is the number of nested decomposition. A classic Dantzig-Wolfe or Benders
+is the number of nested decompositions. A classic Dantzig-Wolfe or Benders
 decomposition produces a decomposition tree of depth 1.
 At the moment, nested decomposition is not supported.
 
@@ -191,7 +191,7 @@ using the method [`BlockDecomposition.annotation`](@ref).
 
 BlockDecomposition does not change the JuMP model.
 It decorates the model with additional information.
-All these information are stored in the `ext` field of the JuMP model.
+All this information is stored in the `ext` field of the JuMP model.
 
 ```@meta
 CurrentModule = BlockDecomposition
@@ -217,7 +217,7 @@ These are the methods to decompose a JuMP model :
 @dantzig_wolfe_decomposition
 ```
 
-These are the methods to set additional information to the decomposition (multiplcity and optimizers) :
+These are the methods to set additional information to the decomposition (multiplicity and optimizers) :
 
 ```@docs
 getmaster
@@ -225,7 +225,7 @@ getsubproblems
 specify!
 ```
 
-This method help you to check your decomposition :
+This method helps you to check your decomposition :
 
 ```@docs
 annotation
