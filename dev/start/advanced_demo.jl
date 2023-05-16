@@ -6,24 +6,23 @@
 # a setup cost, while the cost of a route is the distance traveled.
 
 # A route is defined as a vector of locations that satisfies the following rules:
+# - it must start from an open facility location
+# - it can finish at any customer (open route variant)
+# - its length is limited (the maximum number of visited locations is equal to a constant `nb_positions`)
 
-# - any route must start from an open facility location
-# - every route has a maximum number of visited locations (which is fixed to a constant `nb_positions`)
-# - the routes are said to be open, i.e. they finish at the last visited customer.
-
-# Our objective is to minimize the fixed costs for opening facilities and the distance traveled
-# by the routes while ensuring that each customer is visited by one route.
+# Our objective is to minimize the sum of fixed costs for opening facilities and the total traveled distance
+# while ensuring that each customer is covered by a route.
 
 
-# In this tutorial, we will show you how to optimize this problem using:
+# In this tutorial, we will show you how to solve this problem by applying:
 # - a direct approach with JuMP and a MILP solver (without Coluna)
-# - a classic branch-and-price provided by Coluna and a pricing callback that calls a custom code to optimize pricing subproblems
-# - a branch-cut-and-price algorithm based on valid inequalities on the original variables (so called "robust" cuts) 
-# - a branch-cut-and-price algorithm based on valid inequalities on the variables of column generation  reformulation (so called "non-robust" cuts) 
+# - a branch-and-price algorithm provided by Coluna, which uses a custom pricing callback to optimize pricing subproblems
+# - a robust branch-cut-and-price algorithm, which separates valid inequalities on the original arc variables (so-called "robust" cuts) 
+# - a non-robust branch-cut-and-price algorithm, which separates valid inequalities on the route variables of the Dantzig-Wolfe reformulation (so-called "non-robust" cuts) 
 # - a multi-stage column generation algorithm using two different pricing solvers
-# - a Benders decomposition approach (based on LP)
+# - a classic Benders decomposition approach, which uses the LP relaxation of the subproblem
 
-# We work on a small instance with 2 facilities and 7 customers. 
+# For illustration purposes, we use a small instance with 2 facilities and 7 customers. 
 # The maximum length of a route is fixed to 4. 
 # We also provide a larger instance in the last section of the tutorial.
 
@@ -120,16 +119,17 @@ objective_value(model)
 
 # ## Dantzig-Wolfe decomposition and Branch-and-Price
 
-# One can solve the above problem by exploiting its structure with a Dantzig-Wolfe decomposition approach.
-# The subproblem induced by such decomposition amount to generate routes starting from each facility. 
-# The most naive decomposition is to consider a subproblem associated with each vehicle, generating the vehicle route.
+# One can solve the problem by exploiting its structure with a Dantzig-Wolfe decomposition approach.
+# The subproblem induced by such decomposition amount to generating routes starting from each facility. 
+# A possible decomposition is to consider a subproblem associated with each vehicle, generating the vehicle route.
 # However, for a given facility, the vehicles that are identical will give rise to the same subproblem and route solutions.
-# So instead of the naive decomposition, with several identical subproblems for each facility, we define below a single subproblem per facility.
+# So instead of this decomposition with several identical subproblems for each facility, we define below a single subproblem per facility.
 # For each subproblem, we define its multiplicity, i.e. we bound the number of solutions of this subproblem that can be used in a master solution.
 
 # The following method creates the model according to the decomposition described: 
 function create_model(optimizer, pricing_algorithms)
-    ## We declare an axis over the facilities.
+    ## A user should resort to axes to communicate to Coluna how to decompose a formulation.
+    ## For our problem, we declare an axis over the facilities, thus `facilities_axis` contain subproblem indices.
     ## We must use `facilities_axis` instead of `facilities` in the declaration of the 
     ## variables and constraints that belong to pricing subproblems.
     @axis(facilities_axis, collect(facilities))
@@ -172,15 +172,18 @@ function create_model(optimizer, pricing_algorithms)
     subproblems = BlockDecomposition.getsubproblems(dec)
     specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_facility, solver=pricing_algorithms)
 
-    ## We define `z` as a subproblem variable common to all subproblems.
+    ## We define `z` are a subproblem variable common to all subproblems.
+    ## Each implicit variable `z` replaces a sum of explicit `z'` variables: `z[u,v] = sum(z'[j,u,v] for j in facilities_axis)`
+    ## This way the model is simplified, and column generation is accelerated as the reduced cost for pair `z[u,v]` is calculated only once
+    ## instead of performing the same reduced cost calculation for variables `z'[j,u,v]`, `j in facilities_axis`.
     subproblemrepresentative.(z, Ref(subproblems))
 
     return model, x, y, z, cov
 end;
 
-# Note that contrary to the direct model, we don't have to add constraints to ensure the
-# consistency of the routes because we solve our subproblems using a pricing callback.
-# The pricing callback will therefore have the responsibility to create consistent routes.
+# Contrary to the direct model, we do not add constraints to ensure the
+# feasibility of the routes because we solve our subproblems in a pricing callback.
+# The user who implements the pricing callback has the responsibility to create only feasible routes.
 
 # We setup Coluna:
 
@@ -197,13 +200,13 @@ coluna = optimizer_with_attributes(
 
 # ### Pricing callback
 
-# Each subproblem could be solved by a MIP, provided the right subproblem constraints are added to the model.
-# Here, we do not use this default pricing subproblem solver, but instead, we define a pricing callback.
-# This pricing callback solver takes here the form of an enumeration of all possible routes for each facility.
-# However the enumeration of feasible routes is time-consuming.
-# Therefore, this operation is performed in a preprocessing phase, before starting the branch-cut-and-price algorithm.
-# The pricing callback for a given facility then simply has to update the cost of each route and select 
-# the route with the best-reduced cost.
+# If the user declares all the necessary subproblem constraints and possibly additional subproblem variables 
+# to describe the set of feasible subproblem solutions, Coluna may perform automatic Dantzig-Wolfe 
+# decomposition in which the pricing subproblems are solved by applying a (default) MIP solver. 
+# In our case, applying a MIP solver is not the most efficient way to solve the pricing problem. 
+# Therefore, we implement an ad-hoc algorithm for solving the pricing subproblems and declare it as a pricing callback.
+# In our pricing callback for a given facility, we inspect all feasible routes enumerated before calling the branch-cut-and-price algorithm.
+# The inspection algorithm calculates the reduced cost for each enumerated route and returns a route with the minimum reduced cost.
 
 # We first define a structure to store the routes:
 mutable struct Route
@@ -211,8 +214,15 @@ mutable struct Route
     path::Vector{Int} # record the sequence of visited customers 
 end;
 
-# A method that computes the cost of a route:
+# We can reduce the number of enumerated routes by exploiting the following property.
+# Consider two routes starting from the same facility and visiting the same subset of locations (customers).
+# These two routes correspond to columns with the same vector of coefficients in master constraints. 
+# A solution containing the route with a larger traveled distance (i.e., larger route original cost) is dominated:
+# this dominated route can be replaced by the other route without increasing the total solution cost. 
+# Therefore, for each subset of locations of a size not exceeding the maximum one, 
+# the enumeration procedure keeps only one route visiting this subset, the one with the smallest cost.
 
+# A method that computes the cost of a route:
 function route_original_cost(arc_costs, route::Route)
     route_cost = 0.0
     path = route.path
@@ -223,12 +233,7 @@ function route_original_cost(arc_costs, route::Route)
     return route_cost
 end;
 
-# The reduced cost of the route only depends on the facility used, the selected set of customers,
-# and the total arcs cost. There are no master constraints that may affect the customer visit order.
-# Hence, for a given subset of customers, one needs only to consider the optimal visit sequence 
-# that can be computed once and for all in the preprocessing phase, 
-# as it is done by enumeration in the following `best_visit_sequence` function.
-# We therefore keep only this dominant route for each facility and each subset of customers.
+# This procedure finds a least-cost sequence of visiting the given set of customers starting from a given facility.
 
 function best_visit_sequence(arc_costs, cust_subset, facility_id)
     ## generate all the possible visit orders
@@ -251,7 +256,7 @@ function best_visit_sequence(arc_costs, cust_subset, facility_id)
     return best_order
 end;
 
-# We are now able to compute the best route for all the possible customers' subsets,
+# We are now able to compute a dominating route for all the possible customers' subsets,
 # given a facility id:
 
 using Combinatorics
@@ -272,8 +277,8 @@ function best_route_forall_cust_subsets(arc_costs, customers, facility_id, max_s
     return best_routes
 end;
 
-# We store all the information given by this preprocessing phase in a dictionary.
-# To each facility id, we match a vector of routes that are the best visit sequences
+# We store all the information given by the enumeration phase in a dictionary.
+# For each facility id, we match a vector of routes that are the best visiting sequences
 # for each possible subset of customers.
 
 routes_per_facility = Dict(
@@ -282,11 +287,12 @@ routes_per_facility = Dict(
 
 # Our pricing callback must compute the reduced cost of each route, 
 # given the reduced cost of the subproblem variables `x` and `z`.
-# Note that for `z` variables, the reduced cost is initially equal to the original arc_cost,
-# as long as there are no master constraints involving `z`;
-# but this will change as branching constraints and cuts are added to the master.
+# Remember that subproblem variables `z` are implicitly defined by master representative variables `z`.
+# We remark that `z` variables participate only in the objective function.
+# Thus their reduced costs are initially equal to the original costs (i.e., objective coefficients)
+# This is not true anymore after adding branching constraints and robust cuts involving variables `z`.
 
-# We therefore need methods to compute the contributions to the reduced cost of the `x` and `z` variables:
+# We need methods to compute the contributions to the reduced cost of the `x` and `z` variables:
 
 function x_contribution(route::Route, j::Int, x_red_costs)
     x = 0.0
@@ -343,7 +349,7 @@ function pricing_callback(cbdata)
     sol_vals = ones(Float64, length(z_vars) + length(x_vars))
     sol_cost = min_reduced_cost
 
-    ## Submit the solution of the subproblem to Coluna.
+    ## Submit the solution to the subproblem to Coluna.
     MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
 
     ## Submit the dual bound to the solution of the subproblem.
@@ -362,23 +368,22 @@ JuMP.optimize!(model)
 
 # ### Strengthening the master with linear valid inequalities on the original variables (so-called "robust" cuts)
 
-# We introduce a first type of classic valid inequalities that try to improve the 
-# integrality enforcement on the `y` variables. 
-# A cut separation callback is presented that implements a simple enumeration process.
+# To improve the quality of the linear relaxation, a family of classic facility location valid inequalities can be used:
 #
 # ```math
 # x_{ij} \leq y_j\; \forall i \in I, \forall j \in J
 # ```
 # where $I$ is the set of customers and $J$ the set of facilities.
 
-# We declare a structure representing an instance of this inequality:
+# We declare a structure representing an inequality in this family:
 struct OpenFacilityInequality
     facility_id::Int
     customer_id::Int
 end
 
-# To identify violated valid inequalities for a current master LP solution, we proceed by enumeration (i.e. iterating over all pairs of customer and facility).
-# Let's write our cut separation callback as follows:
+# To identify violated valid inequalities from a current master LP solution, 
+# we proceed by enumeration (i.e. iterating over all pairs of customer and facility).
+# Enumeration separation procedure is implemented in the following callback.
 
 function valid_inequalities_callback(cbdata)
     ## Get variables valuations and store them in dictionaries.
@@ -418,29 +423,30 @@ JuMP.optimize!(model)
 
 # ### Strengthening the master with valid inequalities on the column generation variables (so-called "non-robust" cuts)
 
-# Here, we implement a special type of cut called "rank-one cuts" (R1C).
-# These cuts are non-robust in the sense that they cannot be expressed as a linear expression of only the
-# original variables of the model. In particular, they have to be expressed with the master 
-# columns variables $λ_k, k \in K$ where $K$ is the set of generated columns.
+# In order to further strengthen the linear relaxation of the Dantzig-Wolfe reformulation, 
+# we separate a family of subset-row cuts, which is a subfamily of Chvátal-Gomory rank-1 cuts (R1C), 
+# obtained from the set-partitioning constraints. 
+# These cuts cannot be expressed as a linear combination of the original variables of the model. 
+# Instead, they are expressed with the master columns variables $λ_k$, $k \in K$, where $K$ is the set of generated columns
+# or set of solutions returned by the pricing subproblems. 
+# Subset-row cuts are ``non-robust'' in the sense that they modify the structure of the pricing subproblems, 
+# and not just the reduced cost of subproblem variables. Thus, the implementation of the pricing callback should 
+# be updated to take into account dual costs associated with non-robust cutting planes. 
 
-# "Rank-one cuts" (R1Cs) are obtained by applying the Chvátal-Gomory procedure once, 
-# hence their name, in this case on the packing constraints implicitly going alongside with
-# the covering constraints of the master program to define the set partitioning formulation.
-# R1Cs have the following form:
-
+# Each Chvátal-Gomory rank-1 cut is characterized by a subset of set-partitioning constraints, or equivalently by a subset $C$ of customers,
+# and a multiplier $\alpha_i$ for each customer $i\in C$:
 # ```math
-# \sum_{k \in K} \lfloor \sum_{i \in C} \alpha_c \tilde{x}^k_{i,j} \lambda_{k} \rfloor \leq \lfloor \sum_{i \in C} \alpha_c \rfloor, \;  C \subseteq I
+# \sum_{k \in K} \lfloor \sum_{i \in C} \alpha_i \tilde{x}^k_{i,j} \lambda_{k} \rfloor \leq \lfloor \sum_{i\in C} \alpha_i \rfloor, \;  C \subseteq I,
 # ```
+# where $\tilde{x}^k_{ij}$ is the value of the variable $x_{ij}$ in the $k$-th column generated. 
+# For subset-row cuts, $|C|=3$, and $\alpha_i=\frac{1}{2}$, $i\in C$.
 
-# where $C$ is a subset of customers, $\alpha_c$ is a multiplier, $\tilde{x}^k_{ij}$ is the
-# value of the variable $x_{ij}$ in the $k$th column generated.
-
-# Since we obtain R1C by applying a procedure on cover constraints, we must be able to
+# Since we obtain subset-row cuts based on set-partitioning constraints, we must be able to
 # differentiate them from the other constraints of the model. 
-# To do this, we exploit an advantage of Coluna that allows us to attach custom data to the
-# constraints and variables of our model, via the add-ons of BlockDecomposition
+# To do this, we exploit a feature of Coluna that allows us to attach custom data to the
+# constraints and variables of a model, via the add-ons of BlockDecomposition package. 
 
-# First, we create a special custom data with the only information we need to characterize 
+# First, we create special custom data with the only information we need to characterize 
 # our cover constraints: the customer id that corresponds to this constraint.
 struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
@@ -456,46 +462,38 @@ for i in customers
     customdata!(cov[i], CoverConstrData(i))
 end
 
-# For the sequel, we "restrict" our ambition to separate only R1Cs based on a subset of customers of size 3 ($|C|$ = 3) 
-# and on a multipliers vector  $\alpha = (0.5, 0.5, 0.5)$.
+# We perform the separation by enumeration (i.e. iterating over all subsets of customers of size three).
 
-# We perform the separation by enumeration (i.e. iterating over all subsets of customers of size 3).
-
-# Therefore our R1Cs will have the following form:
-
+# The subset-row cust have the following form:
 # ```math
-# \sum_{k \in K} \tilde{\alpha}(C, k) \lambda_{k} \leq 1\; C \subseteq I, |C| = 3
+# \sum_{k \in K} \tilde{\alpha}(C, k) \lambda_{k} \leq 1\; C \subseteq I, |C| = 3,
 # ```
-
 # where coefficient $\tilde{\alpha}(C, k)$ equals $1$ if route $k$ visits at least two customers of $C$; $0$ otherwise.
 
 # For instance, if we consider separating a cut over constraints `cov[3]`, `cov[6]` and `cov[8]`,
 # then the route `1`->`4`->`6`->`7` has a zero coefficient while the route `1`->`4`->`6`->`3`
 # has a coefficient equal to one.
 
-# Now the "challenge" is to implement the computation of the variable coefficients in such a cut. 
-# This will be done thanks to further custom data structures attached to the cut constraints and 
-# the master variables. 
-# These custom data structures allow Coluna to recognize variables that are involved in such cuts
-# and call a user-defined method `computecoeff` to get the coefficient of the variable in the cut.
-# When adding new constraints or variables to the model, Coluna will call the `computecoeff` method.
-# Each time it finds a pair of variable and constraint that carries custom data, it is an indicator that we probably are in a non-robust case.
-# This method shall compute and return the coefficient of the variable in the constraint.
-# Thanks to this mechanism, Coluna basically computes the coefficient of a column as the addition of the robust
-# contribution (i.e. linear expression of subproblem variables valuations) and the non-robust
-# contribution returned by the `computecoeff` method.
+# Since columns are generated dynamically, we cannot pre-compute the coefficients of columns in the subset-row cuts. 
+# Instead, coefficients are computed dynamically via a user-defined `computecoeff` method which takes
+# a cut and a column as arguments. To recognize which cut and which column are passed to the method, 
+# custom data structures are attached to the cut constraints and the master variables. 
+# When a new column is generated, Coluna computes its coefficients in the original constraints and robust cuts
+# using coefficients of subproblem variables in the master constraints. 
+# Coluna retrieves coefficients of the new column in the non-robust cuts by calling the `computecoeff` method for the column and each such cut. 
+# When a new non-robust cut is generated, Coluna retrieves the coefficients of columns in this cut by calling the `computecoeff` method for the cut and all existing columns. 
 
-# Let us illustrate this for the restricted R1C case.
+# We now proceed to the implementation of necessary data structures and methods needed to support the subset-row cuts.
 # First, we attach a custom data structure to master columns `λ_k` associated with a given route `k`.
 # They record the set of customers that are visited by the given route `k`.
 
-# Thus, to each `λ_k`, we associate a `R1cVarData` structure that carries the locations it visits.  
+# Thus, to each `λ_k`, we associate an `R1cVarData` structure that carries the customers it visits.  
 struct R1cVarData <: BlockDecomposition.AbstractCustomData
     visited_locations::Vector{Int}
 end
 
-# Then, we attach a `R1cCutData` custom data structure to the R1C.
-# It indicates which customer cover constraints are taken into account to define the cut. 
+# Then, we attach an `R1cCutData` custom data structure to the subset-row cuts.
+# It contains the set $C$ of customers characterizing the cut. 
 struct R1cCutData <: BlockDecomposition.AbstractCustomData
     cov_constrs::Vector{Int}
 end
@@ -504,13 +502,7 @@ end
 BlockDecomposition.customvars!(model, R1cVarData)
 BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
 
-# We can see from the R1C formula that it is not possible to compute the coefficients of the 
-# columns as a linear expression of the subproblem variables. 
-# But we can instead define a function that computes the `α` coefficient directly.
-# This is here where custom data structures come into play.
-
-# So we define this first method that Coluna calls to get the coefficients of the columns `λ_k`
-# in a R1C constraint:
+# The next method calculates the coefficients of a column `λ_k` in a subset-row cut:
 function Coluna.MathProg.computecoeff(
     ::Coluna.MathProg.Variable, var_custom_data::R1cVarData,
     ::Coluna.MathProg.Constraint, constr_custom_data::R1cCutData
@@ -519,7 +511,7 @@ function Coluna.MathProg.computecoeff(
 end
 
 # We also need to define a second method for the case of the cover constraints.
-# Indeed, we use a custom data to know the customer attached to each cover constraint
+# Indeed, we use custom data to know the customer attached to each cover constraint
 # There is no contribution of the non-robust part of the coefficient of the `λ_k`, so
 # the method returns 0.
 function Coluna.MathProg.computecoeff(
@@ -541,7 +533,7 @@ function r1c_callback(cbdata)
         end
     end
 
-    ## Retrieve the master columns λ. 
+    ## Retrieve the master columns λ and their values in the current fractional solution
     lambdas = Tuple{Float64,Coluna.MathProg.Variable}[]
     for (var_id, val) in original_sol
         if Coluna.MathProg.getduty(var_id) <= Coluna.MathProg.MasterCol
@@ -549,8 +541,8 @@ function r1c_callback(cbdata)
         end
     end
 
-    ## Separate the valid R1Cs (i.e. those violated by the current solution).
-    ## For a fixed subset of cover constraints of size 3, iterate on the master columns 
+    ## Separate the valid subset-row cuts violated by the current solution.
+    ## For a fixed subset of customers of size three, iterate on the master columns 
     ## and check if lhs > 1:
     for cov_constr_subset in collect(combinations(cov_constrs, 3))
         lhs = 0
@@ -573,21 +565,17 @@ function r1c_callback(cbdata)
     end
 end;
 
-# You can find disturbing the way we add the non-robust valid inequalities because we 
-# literally add the constraint `0 <= 1` to the model.
-# This is because you don't have direct access to the columns from the separation callback. 
-# But you now understand that Coluna will get the coefficients of the columns in the constraints via 
-# the above `computecoeff` method. 
-# Basically, you can only express the robust part of the inequality in the separation callback.
-# The non-robust part is provided by the `computecoeff` method.
+# When creating non-robust constraints, only the linear (i.e., robust) part is passed to the model.
+# In our case, the constraint `0 <= 1` is passed.
+# As explained above, the non-robust part is computed by calling the `computecoeff` method using 
+# the structure of type `R1cCutData` provided.
 
-# The last thing we need to do to complete the implementation of R1Cs is to update our pricing callback. 
-# Unlike valid inequalities, R1Cs are not expressed directly with the subproblem variables. 
-# Thus, their contribution to the reduced cost of a column is not captured by the reduced cost
-# of subproblem variables.
-# We must therefore take this contribution into account "manually". 
+# Finally, we need to update our pricing callback to take into account the active non-robust cuts. 
+# The contribution of these cuts to the reduced cost of a column is not captured by the reduced cost
+# of subproblem variables. We must therefore take this contribution into account manually, by inquiring 
+# the set of existing non-robust cuts and their values in the current dual solution. 
 
-# The contribution of R1Cs to the reduced cost of a route is managed by the following method:
+# The contribution of a subset-row cut to the reduced cost of a route is managed by the following method:
 function r1c_contrib(route::Route, custduals)
     cost = 0
     if !isempty(custduals)
@@ -600,9 +588,9 @@ function r1c_contrib(route::Route, custduals)
 end;
 
 # We re-write our pricing callback to: 
-# - retrieve the dual cost of the R1Cs
-# - take into account the contribution of the R1Cs in the reduced cost of the route
-# - attach custom data to the route to know which customers are visited by the route and compute its coefficient in the R1Cs
+# - retrieve the dual cost of the subset-row cuts
+# - take into account the contribution of the subset-row cuts in the reduced cost of the route
+# - attach custom data to the route so that its coefficient in the existing non-robust cuts can be computed 
 function pricing_callback(cbdata)
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
     z_red_costs = Dict(
@@ -613,7 +601,7 @@ function pricing_callback(cbdata)
     )
 
     ## FIRST CHANGE HERE:
-    ## Get the dual values of the custom cuts to compute the contributions of
+    ## Get the dual values of the constraints of the specific type to compute the contributions of
     ## non-robust cuts to the cost of the solution:
     master = cbdata.form.parent_formulation
     custduals = Tuple{Vector{Int},Float64}[]
@@ -630,7 +618,7 @@ function pricing_callback(cbdata)
 
     ## SECOND CHANGE HERE:
     ## Keep route with the minimum reduced cost: contribution of the subproblem variables and 
-    ## the R1C.
+    ## the non-robust cuts.
     red_costs_j = map(r -> (
             r,
             x_contribution(r, j, x_red_costs) + z_contribution(r, z_red_costs) - r1c_contrib(r, custduals)
@@ -653,7 +641,7 @@ function pricing_callback(cbdata)
 
     ## Submit the solution of the subproblem to Coluna
     ## THIRD CHANGE HERE:
-    ## You must attach the visited customers `R1cVarData` to the solution of the subproblem
+    ## You must attach the visited customers in the structure of type `R1cVarData` to the solution of the subproblem
     MOI.submit(
         model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals,
         R1cVarData(best_route.path)
@@ -673,8 +661,8 @@ JuMP.optimize!(model)
 # The idea of the heuristic is very simple:
 
 # - Given a facility `j`, the heuristic finds the closest customer to `j` and adds it to the route.
-# - Then, while the reduced cost keeps improving, the heuristic computes and adds to the route 
-# the nearest neighbor to the last customer of the route. It stops when the maximum length of the route is reached.
+# - Then, while the reduced cost keeps improving and the maximum length of the route is not reached, 
+# the heuristic computes and adds to the route the nearest neighbor to the last customer of the route. 
 
 # We first define an auxiliary function used to compute the route tail's nearest neighbor at each step:
 function add_nearest_neighbor(route::Route, customers, costs)
@@ -720,7 +708,7 @@ function enumeration_heuristic(x_red_costs, z_red_costs, j)
     return (best_route, current_redcost)
 end;
 
-# We can now define our inexact pricing callback:
+# We can now define our heuristic pricing callback:
 function approx_pricing(cbdata)
 
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
@@ -777,24 +765,24 @@ JuMP.optimize!(model)
 
 # ## Benders decomposition
 
-# In this section, we show you how to solve the linear relaxation of the master program of 
+# In this section, we show how one can solve the linear relaxation of the master program of 
 # a Benders Decomposition approach to this facility location demo problem.
 
 # The first-stage decisions consist in choosing a subset of facilities to open. 
 # The second-stage decisions consist in choosing the routes that are assigned to each facility. 
-# Because the second stage problem is an integer program, we convexify it into a linear program by formulating it 
-# as a convex combination of enumerated routes. 
-# The subproblem takes the form of an LP and we solve this linear relaxation of the routing problem for each facility that is open.
-# Given that we play with a toy instance, we can enumerate all the routes and use a direct formulation of the second stage subproblem.
-# Otherwise, we would have to implement a column generation approach to handle the second level and select the routes to use.
+# The second stage problem is an integer program, so for simplicity, we use its linear relaxation instead. To improve the quality of this
+# relaxation, we enumerate the routes and use one variable per route. As this approach is practical only for small instances, 
+# we use it only for illustration purposes. For larger instances, we would have to implement a column generation approach 
+# to solve the subproblem, i.e., the Benders cut separation problem. 
 
 # In the same spirit as the above models, we use the variables.
 # Let `y[j]` equal 1 if the facility `j` is open and 0 otherwise.
 # Let `λ[j,k]` equal 1 if route `k` starting from facility `j` is selected and 0 otherwise.
 
 # Since there is only one subproblem in the second stage, we introduce a fake axis that contains
-# only one element.
-# In the case of Benders, when the second stage is decomposable, you can imagine the axis as the set of scenarios for instance.
+# only one element. This approach can be generalized to the case where customer demand uncertainty is expressed with scenarios. 
+# In this case, we would have one subproblem for each scenario, and the axis would have been defined for the set of scenarios.
+# In our case, the set of scenarios consists of one ``fake'' scenario. 
 
 fake = 1
 @axis(axis, collect(fake:fake))
@@ -809,7 +797,7 @@ coluna = JuMP.optimizer_with_attributes(
 model = BlockModel(coluna);
 
 
-# We introduce auxiliary structures to make the code readable.
+# We introduce auxiliary structures to improve the clarity of the code.
 
 ## routes covering customer i from facility j.
 covering_routes = Dict(
@@ -840,6 +828,7 @@ routes_costs = Dict(
 )
 
 ## First-stage constraint
+## This constraint is redundant, we add it in order not to start with an empty master problem
 @constraint(model, min_opening,
     sum(y[j] for j in facilities) >= 1)
 
@@ -851,10 +840,10 @@ routes_costs = Dict(
 @benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)
 
-# ## Example of comparison of the dual bounds obtained on a larger instance.
+# ## Example of comparison of the dual bounds 
 
-# In this section, we propose to create an instance with 3 facilities and 13 customers. We will solve only the root node and look at the dual bound:
-# - with the "raw" decomposition model
+# In this section, we use a larger instance with 3 facilities and 13 customers. We solve only the root node and look at the dual bound:
+# - with the standard column generation (without cut separation)
 # - by adding robust cuts
 # - by adding non-robust cuts
 # - by adding both robust and non-robust cuts
