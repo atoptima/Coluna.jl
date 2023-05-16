@@ -97,18 +97,18 @@ I = [1, 2, 3];
 
 # But the problem is that the cut is expressed over the master column and we don't have 
 # access to these variables from the JuMP model.
-# To adress this problem, Coluna offers a way to compute the coefficient of a column in a
-# constraint by implemnting the following method:
+# To address this problem, Coluna offers a way to compute the coefficient of a column in a
+# constraint by implementing the following method:
 #
 # ```@docs
 #  Coluna.MathProg.computecoeff
 # ```
 #
 #
-# We therefore needs to attach custom data to the master columns and the non-robust cut to
+# We therefore need to attach custom data to the master columns and the non-robust cut to
 # use the method `compute_coeff`.
 #
-# For every subproblem solution $s$, we define a custom data with the number of items in the bin.
+# For every subproblem solution $s$, we define custom data with the number of items in the bin.
 
 struct MyCustomVarData <: BlockDecomposition.AbstractCustomData
     nb_items::Int
@@ -116,8 +116,8 @@ end
 BlockDecomposition.customvars!(model, MyCustomVarData);
 
 
-# We define a custom data for the cut that will contain the minimum number of items
-# in a bin that can be used one. The value will be `2` in this example.
+# We define custom data for the cut that will contain the minimum number of items
+# in a bin that can be used. The value will be `2` in this example.
 struct MyCustomCutData <: BlockDecomposition.AbstractCustomData
     min_items::Int
 end
@@ -134,8 +134,8 @@ end
 
 # ## Pricing callback and subproblem multiplicity
 
-# We define the pricing callback that will generate the bin with best reduced cost.
-# Be careful, when using non-robut cuts, you must take into account the controbution of the
+# We define the pricing callback that will generate the bin with best-reduced cost.
+# Be careful, when using non-robust cuts, you must take into account the contribution of the
 # non-robust cuts to the reduced cost of your solution.
 
 function my_pricing_callback(cbdata)
@@ -194,7 +194,7 @@ function my_pricing_callback(cbdata)
     return
 end
 
-# The pricing callback is done, we define it as solver of our pricing problem.
+# The pricing callback is done, we define it as the solver of our pricing problem.
 # We also specify that the lower multiplicity of the master problem is 0 and the upper 
 # multiplicity is 3. It means that the final solution to the problem can use a least 0 bin
 # and at most 3 bins.
@@ -211,9 +211,9 @@ BlockDecomposition.specify!.(
 # ## Non-robust cut separation callback.
 
 # We now define the cut separation callback for our non-robust cut.
-# This is the same callback than the one used for robust cuts. 
+# This is the same callback as the one used for robust cuts. 
 # There is just one slight difference when you submit the non-robust cut.
-# Since cuts are expressed over the master variables and these variables are inacessible from
+# Since cuts are expressed over the master variables and these variables are inaccessible from
 # the JuMP model, you'll submit a constraint with an empty left-hand side and you'll leave Coluna 
 # populate the left-hand side with the values returned by `Coluna.MathProg.computecoeff`.
 
@@ -236,7 +236,7 @@ function custom_cut_sep(cbdata)
         MOI.submit(
             model, MOI.UserCut(cbdata),
             JuMP.ScalarConstraint(
-                JuMP.AffExpr(0.0), # We cannot express the left-hand-side so we push 0.
+                JuMP.AffExpr(0.0), # We cannot express the left-hand side so we push 0.
                 MOI.LessThan(1.0)
             ),
             MyCustomCutData(2) # Cut custom data.
