@@ -15,10 +15,10 @@
 
 
 # In this tutorial, we will show you how to solve this problem by applying:
-# - a direct approach with JuMP and an MILP solver (without Coluna)
+# - a direct approach with JuMP and a MILP solver (without Coluna)
 # - a branch-and-price algorithm provided by Coluna, which uses a custom pricing callback to optimize pricing subproblems
-# - a robust branch-cut-and-price algorithm, which separates valid inequalities on the original arc variables (so called "robust" cuts) 
-# - a non-robust branch-cut-and-price algorithm, which separates valid inequalities on the route variables of the Dantzig-Wolfe reformulation (so called "non-robust" cuts) 
+# - a robust branch-cut-and-price algorithm, which separates valid inequalities on the original arc variables (so-called "robust" cuts) 
+# - a non-robust branch-cut-and-price algorithm, which separates valid inequalities on the route variables of the Dantzig-Wolfe reformulation (so-called "non-robust" cuts) 
 # - a multi-stage column generation algorithm using two different pricing solvers
 # - a classic Benders decomposition approach, which uses the LP relaxation of the subproblem
 
@@ -129,13 +129,6 @@ objective_value(model)
 # The following method creates the model according to the decomposition described: 
 function create_model(optimizer, pricing_algorithms)
     ## A user should resort to axes to communicate to Coluna how to decompose a formulation.
-    ## Every axis is a set of indices, and each index in an axis indicates one subproblem.
-    ## If a variable or constraint has an index from an axis, it belongs to the corresponding subproblem. 
-    ## A variable or constraint which does not have an index from an axis remains in the master problem. 
-    ## A variable belonging to a subproblem may be used in a constraint of this subproblem or in a master constraint.    
-    ## A master variable may be used only in a master constraint. 
-    ## A master variable may be declared as an implicit representative variable for several subproblem.
-    ## Representative variables are useful to avoid duplication of subproblem variables and accelerate the solution process.
     ## For our problem, we declare an axis over the facilities, thus `facilities_axis` contain subproblem indices.
     ## We must use `facilities_axis` instead of `facilities` in the declaration of the 
     ## variables and constraints that belong to pricing subproblems.
@@ -180,7 +173,7 @@ function create_model(optimizer, pricing_algorithms)
     specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_facility, solver=pricing_algorithms)
 
     ## We define `z` are a subproblem variable common to all subproblems.
-    ## Each implicit variable `z` replaces a sum of explicit `z'`` variables: `z[u,v] = sum(z'[j,u,v] for j in facilities_axis)`
+    ## Each implicit variable `z` replaces a sum of explicit `z'` variables: `z[u,v] = sum(z'[j,u,v] for j in facilities_axis)`
     ## This way the model is simplified, and column generation is accelerated as the reduced cost for pair `z[u,v]` is calculated only once
     ## instead of performing the same reduced cost calculation for variables `z'[j,u,v]`, `j in facilities_axis`.
     subproblemrepresentative.(z, Ref(subproblems))
@@ -190,7 +183,7 @@ end;
 
 # Contrary to the direct model, we do not add constraints to ensure the
 # feasibility of the routes because we solve our subproblems in a pricing callback.
-# The user which implements the pricing callback has the responsibility to create only feasible routes.
+# The user who implements the pricing callback has the responsibility to create only feasible routes.
 
 # We setup Coluna:
 
@@ -207,13 +200,13 @@ coluna = optimizer_with_attributes(
 
 # ### Pricing callback
 
-# If user declares all the necessary subproblem constraints and possibly additional subproblem variables 
+# If the user declares all the necessary subproblem constraints and possibly additional subproblem variables 
 # to describe the set of feasible subproblem solutions, Coluna may perform automatic Dantzig-Wolfe 
 # decomposition in which the pricing subproblems are solved by applying a (default) MIP solver. 
-# In our case, applying a MIP solver is not the most efficient ways to solve the pricing problem. 
+# In our case, applying a MIP solver is not the most efficient way to solve the pricing problem. 
 # Therefore, we implement an ad-hoc algorithm for solving the pricing subproblems and declare it as a pricing callback.
 # In our pricing callback for a given facility, we inspect all feasible routes enumerated before calling the branch-cut-and-price algorithm.
-# The inspection algorithm calculates the reduced cost for each enumerated routes and returns a route with the minimum reduced cost.
+# The inspection algorithm calculates the reduced cost for each enumerated route and returns a route with the minimum reduced cost.
 
 # We first define a structure to store the routes:
 mutable struct Route
@@ -222,10 +215,10 @@ mutable struct Route
 end;
 
 # We can reduce the number of enumerated routes by exploiting the following property.
-# Consider two routes starting from a same facility and visiting the same subset of locations (customers).
+# Consider two routes starting from the same facility and visiting the same subset of locations (customers).
 # These two routes correspond to columns with the same vector of coefficients in master constraints. 
-# A solution containing the route with larger traveled distance (i.e., larger route original cost) is dominated:
-# this route can dominated be replaced by the other route without increasing the total solution cost. 
+# A solution containing the route with a larger traveled distance (i.e., larger route original cost) is dominated:
+# this dominated route can be replaced by the other route without increasing the total solution cost. 
 # Therefore, for each subset of locations of a size not exceeding the maximum one, 
 # the enumeration procedure keeps only one route visiting this subset, the one with the smallest cost.
 
@@ -240,7 +233,7 @@ function route_original_cost(arc_costs, route::Route)
     return route_cost
 end;
 
-# This procedure finds a least cost sequence of visiting the given set of customers staring from a given facility.
+# This procedure finds a least-cost sequence of visiting the given set of customers starting from a given facility.
 
 function best_visit_sequence(arc_costs, cust_subset, facility_id)
     ## generate all the possible visit orders
@@ -263,7 +256,7 @@ function best_visit_sequence(arc_costs, cust_subset, facility_id)
     return best_order
 end;
 
-# We are now able to compute a dominating route for all the possible customers subsets,
+# We are now able to compute a dominating route for all the possible customers' subsets,
 # given a facility id:
 
 using Combinatorics
@@ -296,7 +289,7 @@ routes_per_facility = Dict(
 # given the reduced cost of the subproblem variables `x` and `z`.
 # Remember that subproblem variables `z` are implicitly defined by master representative variables `z`.
 # We remark that `z` variables participate only in the objective function.
-# Thus their reduced costs are initially equal to original costs (i.e., objective coefficients)
+# Thus their reduced costs are initially equal to the original costs (i.e., objective coefficients)
 # This is not true anymore after adding branching constraints and robust cuts involving variables `z`.
 
 # We need methods to compute the contributions to the reduced cost of the `x` and `z` variables:
@@ -356,7 +349,7 @@ function pricing_callback(cbdata)
     sol_vals = ones(Float64, length(z_vars) + length(x_vars))
     sol_cost = min_reduced_cost
 
-    ## Submit the solution of the subproblem to Coluna.
+    ## Submit the solution to the subproblem to Coluna.
     MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
 
     ## Submit the dual bound to the solution of the subproblem.
@@ -448,12 +441,12 @@ JuMP.optimize!(model)
 # where $\tilde{x}^k_{ij}$ is the value of the variable $x_{ij}$ in the $k$-th column generated. 
 # For subset-row cuts, $|C|=3$, and $\alpha_i=\frac{1}{2}$, $i\in C$.
 
-# Since we obtain subset-row cuts are based on set-partitioning constraints, we must be able to
+# Since we obtain subset-row cuts based on set-partitioning constraints, we must be able to
 # differentiate them from the other constraints of the model. 
-# To do this, we exploit a feature of Coluna that allows us to attach a custom data to the
+# To do this, we exploit a feature of Coluna that allows us to attach custom data to the
 # constraints and variables of a model, via the add-ons of BlockDecomposition package. 
 
-# First, we create a special custom data with the only information we need to characterize 
+# First, we create special custom data with the only information we need to characterize 
 # our cover constraints: the customer id that corresponds to this constraint.
 struct CoverConstrData <: BlockDecomposition.AbstractCustomData
     customer::Int
@@ -482,25 +475,25 @@ end
 # has a coefficient equal to one.
 
 # Since columns are generated dynamically, we cannot pre-compute the coefficients of columns in the subset-row cuts. 
-# Instead, coefficients are also computed dynamically via a user-defined method `computecoeff` which takes
+# Instead, coefficients are computed dynamically via a user-defined `computecoeff` method which takes
 # a cut and a column as arguments. To recognize which cut and which column are passed to the method, 
-# custom data structures are attached to the cut constraints and to the master variables. 
-# When a new column is generated, its coefficients in the original constraints and robust cuts are computed 
-# using coefficients of subproblem variables in the master constraints, and coefficients in the non-robust cuts
-# are computed by calling method `computecoeff` for the column and each such cut. When a new non-robust cut is generated, 
-# the coefficients of columns in this cut are computed by calling method `computecoeff` for the cut and all existing columns. 
+# custom data structures are attached to the cut constraints and the master variables. 
+# When a new column is generated, Coluna computes its coefficients in the original constraints and robust cuts
+# using coefficients of subproblem variables in the master constraints. 
+# Coluna retrieves coefficients of the new column in the non-robust cuts by calling the `computecoeff` method for the column and each such cut. 
+# When a new non-robust cut is generated, Coluna retrieves the coefficients of columns in this cut by calling the `computecoeff` method for the cut and all existing columns. 
 
 # We now proceed to the implementation of necessary data structures and methods needed to support the subset-row cuts.
 # First, we attach a custom data structure to master columns `λ_k` associated with a given route `k`.
 # They record the set of customers that are visited by the given route `k`.
 
-# Thus, to each `λ_k`, we associate a `R1cVarData` structure that carries the customers it visits.  
+# Thus, to each `λ_k`, we associate an `R1cVarData` structure that carries the customers it visits.  
 struct R1cVarData <: BlockDecomposition.AbstractCustomData
     visited_locations::Vector{Int}
 end
 
-# Then, we attach a `R1cCutData` custom data structure to the subset-row cuts.
-# It contains set $C$ of customers characterizing the cut. 
+# Then, we attach an `R1cCutData` custom data structure to the subset-row cuts.
+# It contains the set $C$ of customers characterizing the cut. 
 struct R1cCutData <: BlockDecomposition.AbstractCustomData
     cov_constrs::Vector{Int}
 end
@@ -518,7 +511,7 @@ function Coluna.MathProg.computecoeff(
 end
 
 # We also need to define a second method for the case of the cover constraints.
-# Indeed, we use a custom data to know the customer attached to each cover constraint
+# Indeed, we use custom data to know the customer attached to each cover constraint
 # There is no contribution of the non-robust part of the coefficient of the `λ_k`, so
 # the method returns 0.
 function Coluna.MathProg.computecoeff(
@@ -574,7 +567,7 @@ end;
 
 # When creating non-robust constraints, only the linear (i.e., robust) part is passed to the model.
 # In our case, the constraint `0 <= 1` is passed.
-# As explained above, the non-robust part is computed by calling the method `computecoeff` using 
+# As explained above, the non-robust part is computed by calling the `computecoeff` method using 
 # the structure of type `R1cCutData` provided.
 
 # Finally, we need to update our pricing callback to take into account the active non-robust cuts. 
@@ -778,8 +771,8 @@ JuMP.optimize!(model)
 # The first-stage decisions consist in choosing a subset of facilities to open. 
 # The second-stage decisions consist in choosing the routes that are assigned to each facility. 
 # The second stage problem is an integer program, so for simplicity, we use its linear relaxation instead. To improve the quality of this
-# relaxation, we enumerate the routes and use one variable per route. This approach is practical only for small instances, 
-# so we use it only for illustration purposes. For larger instances, we would have to implement a column generation approach 
+# relaxation, we enumerate the routes and use one variable per route. As this approach is practical only for small instances, 
+# we use it only for illustration purposes. For larger instances, we would have to implement a column generation approach 
 # to solve the subproblem, i.e., the Benders cut separation problem. 
 
 # In the same spirit as the above models, we use the variables.
@@ -787,7 +780,7 @@ JuMP.optimize!(model)
 # Let `λ[j,k]` equal 1 if route `k` starting from facility `j` is selected and 0 otherwise.
 
 # Since there is only one subproblem in the second stage, we introduce a fake axis that contains
-# only one element. This approach can be generalized to the case with customer demand uncertainty expressed with scenarios. 
+# only one element. This approach can be generalized to the case where customer demand uncertainty is expressed with scenarios. 
 # In this case, we would have one subproblem for each scenario, and the axis would have been defined for the set of scenarios.
 # In our case, the set of scenarios consists of one ``fake'' scenario. 
 
@@ -835,7 +828,7 @@ routes_costs = Dict(
 )
 
 ## First-stage constraint
-# This constraint is redundant, we add it in order not to start with an empty master problem
+## This constraint is redundant, we add it in order not to start with an empty master problem
 @constraint(model, min_opening,
     sum(y[j] for j in facilities) >= 1)
 
