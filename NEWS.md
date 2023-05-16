@@ -1,3 +1,15 @@
+# Coluna 0.6.0 Release notes
+
+This release is a major update of the algorithms as it implements the architectural choices of 0.5.0 in column generation and benders.
+
+About the algorithms:
+- We separated the generic codes and the interfaces from the implementation (doc will be available soon). The default implementation of algorithms is in the `Algorithm` module. Four new submodules `TreeSearch`, `Branching`, `ColGen`, and `Benders` contain generic code and interface. They are independant.
+- Refactoring of column generation
+- Refactoring and draft of benders cut generation
+- Tests and documentation
+- Various bug fixes
+- Some regressions as indicated in the Readme.
+
 # Coluna 0.5.0 Release notes
 
 This release is a major update of the algorithms.
