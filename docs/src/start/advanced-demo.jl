@@ -7,23 +7,23 @@
 
 # A route is defined as a vector of locations that satisfies the following rules:
 
-# - any route must start from a open facility location
-# - every route has a maximum number of visited locations (which is fixed to a constant `nb_positions`)
-# - the routes are said to be open, i.e. they finish at last visited customer.
+# - it must start from an open facility location
+# - it can finish at any customer (open route variant)
+# - its length is limited (the maximum number of visited locations is equal to a constant `nb_positions`)
 
-# Our objective is to minimize the fixed costs for opening facilities and the distance traveled
-# by the routes while ensuring that each customer is by one route.
+# Our objective is to minimize the sum of fixed costs for opening facilities and the total traveled distance
+# while ensuring that each customer is covered by a route.
 
 
-# In this tutorial, we will show you how to optimize this problem using:
-# - a direct approach with JuMP and a MILP solver (without Coluna)
-# - a classic branch-and-price provided by Coluna and a pricing callback that calls a custom code to optimize pricing subproblems
-# - a branch-cut-and-price algorithm based on valid inequalities on the original variables (so called "robust" cuts) 
-# - a branch-cut-and-price algorithm based on valid inequalities on the varibles of column geenration  reformulation (so called "non-robust" cuts) 
+# In this tutorial, we will show you how to solve this problem by applying:
+# - a direct approach with JuMP and an MILP solver (without Coluna)
+# - a branch-and-price algorithm provided by Coluna, which uses a custom pricing callback to optimize pricing subproblems
+# - a robust branch-cut-and-price algorithm, which separates valid inequalities on the original arc variables (so called "robust" cuts) 
+# - a non-robust branch-cut-and-price algorithm, which separates valid inequalities on the route variables of the Dantzig-Wolfe reformulation (so called "non-robust" cuts) 
 # - a multi-stage column generation algorithm using two different pricing solvers
-# - a Benders decomposition approach (based on LP)
+# - a classic Benders decomposition approach, which uses the LP relaxation of the subproblem
 
-# We work on a small instance with 2 facilities and 7 customers. 
+# For illustration purposes, we use a small instance with 2 facilities and 7 customers. 
 # The maximum length of a route is fixed to 4. 
 # We also provide a larger instance in the last section of the tutorial.
 
@@ -120,16 +120,24 @@ objective_value(model)
 
 # ## Dantzig-Wolfe decomposition and Branch-and-Price
 
-# One can solve the above problem by exploiting its structure with a Dantzig-Wolfe decomposition approach.
-# The subproblem induced by such decompostion amount to generating routes starting from each facility. 
-# The most naive decomposition is to consider a subproblem associated with each vehicle, generating the vehicle route.
+# One can solve the problem by exploiting its structure with a Dantzig-Wolfe decomposition approach.
+# The subproblem induced by such decomposition amount to generating routes starting from each facility. 
+# A possible decomposition is to consider a subproblem associated with each vehicle, generating the vehicle route.
 # However, for a given facility, the vehicles that are identical will give rise to the same subproblem and route solutions.
-# So instead of the naive decomposition, with several identical subproblems for each facility, we define below a single subproblem per facility.
-# For each subproblem, we define its multipliclity, i.e. we bound the number of solutions of this subproblem that can be used in a master solution.
+# So instead of this decomposition with several identical subproblems for each facility, we define below a single subproblem per facility.
+# For each subproblem, we define its multiplicity, i.e. we bound the number of solutions of this subproblem that can be used in a master solution.
 
 # The following method creates the model according to the decomposition described: 
 function create_model(optimizer, pricing_algorithms)
-    ## We declare an axis over the facilities.
+    ## A user should resort to axes to communicate to Coluna how to decompose a formulation.
+    ## Every axis is a set of indices, and each index in an axis indicates one subproblem.
+    ## If a variable or constraint has an index from an axis, it belongs to the corresponding subproblem. 
+    ## A variable or constraint which does not have an index from an axis remains in the master problem. 
+    ## A variable belonging to a subproblem may be used in a constraint of this subproblem or in a master constraint.    
+    ## A master variable may be used only in a master constraint. 
+    ## A master variable may be declared as an implicit representative variable for several subproblem.
+    ## Representative variables are useful to avoid duplication of subproblem variables and accelerate the solution process.
+    ## For our problem, we declare an axis over the facilities, thus `facilities_axis` contain subproblem indices.
     ## We must use `facilities_axis` instead of `facilities` in the declaration of the 
     ## variables and constraints that belong to pricing subproblems.
     @axis(facilities_axis, collect(facilities))
@@ -167,20 +175,23 @@ function create_model(optimizer, pricing_algorithms)
     ## We perform decomposition over the facilities.
     @dantzig_wolfe_decomposition(model, dec, facilities_axis)
 
-    ## Subproblems generated routes starting from each facility.
-    ## The number of routes from each facilities is at most `nb_routes_per_facility`.
+    ## Subproblems generate routes starting from each facility.
+    ## The number of routes from each facility is at most `nb_routes_per_facility`.
     subproblems = BlockDecomposition.getsubproblems(dec)
     specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_facility, solver=pricing_algorithms)
 
     ## We define `z` are a subproblem variable common to all subproblems.
+    ## Each implicit variable `z` replaces a sum of explicit `z'`` variables: `z[u,v] = sum(z'[j,u,v] for j in facilities_axis)`
+    ## This way the model is simplified, and column generation is accelerated as the reduced cost for pair `z[u,v]` is calculated only once
+    ## instead of performing the same reduced cost calculation for variables `z'[j,u,v]`, `j in facilities_axis`.
     subproblemrepresentative.(z, Ref(subproblems))
 
     return model, x, y, z, cov
 end;
 
-# Note that contrary to the direct model, we don't have to add constraints to ensure the
-# consistency of the routes because we solve our subproblems using a pricing callback.
-# The pricing callback will therefore have the responsibility to create consistent routes.
+# Contrary to the direct model, we do not add constraints to ensure the
+# feasibility of the routes because we solve our subproblems in a pricing callback.
+# The user which implements the pricing callback has the responsibility to create only feasible routes.
 
 # We setup Coluna:
 
@@ -197,13 +208,13 @@ coluna = optimizer_with_attributes(
 
 # ### Pricing callback
 
-# Each subproblem could be solved by a MIP, provided the right sub-problem constraints are added in the model.
-# Here, we do not use this default pricing subproblem solver, but instead we define a pricing callback.
-# This pricing callback solver takes here the form of an enumeration all possible routes for each facility.
-# However the enumeration of feasible routes is time-consuming.
-# Therefore, this operation is performed in a preprocessing phase, before starting the branch-cut-and-price algorithm.
-# The pricing callback for a given facility then simply have to update the cost of each route and select 
-# the route with the best reduced cost.
+# If user declares all the necessary subproblem constraints and possibly additional subproblem variables 
+# to describe the set of feasible subproblem solutions, Coluna may perform automatic Dantzig-Wolfe 
+# decomposition in which the pricing subproblems are solved by applying a (default) MIP solver. 
+# In our case, applying a MIP solver is not the most efficient ways to solve the pricing problem. 
+# Therefore, we implement an ad-hoc algorithm for solving the pricing subproblems and declare it as a pricing callback.
+# In our pricing callback for a given facility, we inspect all feasible routes enumerated before calling the branch-cut-and-price algorithm.
+# The inspection algorithm calculates the reduced cost for each enumerated routes and returns a route with the minimum reduced cost.
 
 # We first define a structure to store the routes:
 mutable struct Route
@@ -211,8 +222,15 @@ mutable struct Route
     path::Vector{Int} # record the sequence of visited customers 
 end;
 
-# A method that computes the cost of a route:
+# We can reduce the number of enumerated routes by exploiting the following property.
+# Consider two routes starting from a same facility and visiting the same subset of locations (customers).
+# These two routes correspond to columns with the same vector of coefficients in master constraints. 
+# A solution containing the route with larger traveled distance (i.e., larger route original cost) is dominated:
+# this route can dominated be replaced by the other route without increasing the total solution cost. 
+# Therefore, for each subset of locations of a size not exceeding the maximum one, 
+# the enumeration procedure keeps only one route visiting this subset, the one with the smallest cost.
 
+# A method that computes the cost of a route:
 function route_original_cost(arc_costs, route::Route)
     route_cost = 0.0
     path = route.path
@@ -223,12 +241,7 @@ function route_original_cost(arc_costs, route::Route)
     return route_cost
 end;
 
-# The reduced cost of the route only depends on the facility used, the selected set of customers,
-# and the total arc costs. There is no master constraints that may have an effect of the customer visit order.
-# Hence, for a given subset of customers, one needs only to consider the optimal visit sequence 
-# that can be computed once and for all in the preprocessing phase, 
-# as it is done by enumeration in the following best_visit_sequence function.
-# We therefore keep only this dominant route for each subset of customers and facilities.
+# This procedure finds a least cost sequence of visiting the given set of customers staring from a given facility.
 
 function best_visit_sequence(arc_costs, cust_subset, facility_id)
     ## generate all the possible visit orders
@@ -251,7 +264,7 @@ function best_visit_sequence(arc_costs, cust_subset, facility_id)
     return best_order
 end;
 
-# We are now able to compute the best route for all the possible customers subsets,
+# We are now able to compute a dominating route for all the possible customers subsets,
 # given a facility id:
 
 using Combinatorics
@@ -272,8 +285,8 @@ function best_route_forall_cust_subsets(arc_costs, customers, facility_id, max_s
     return best_routes
 end;
 
-# We store all the information given by this pre-processing phase in a dictionary.
-# To each facility id, we match a vector of routes that are the best visiting sequences
+# We store all the information given by the enumeration phase in a dictionary.
+# For each facility id, we match a vector of routes that are the best visiting sequences
 # for each possible subset of customers.
 
 routes_per_facility = Dict(
@@ -282,12 +295,12 @@ routes_per_facility = Dict(
 
 # Our pricing callback must compute the reduced cost of each route, 
 # given the reduced cost of the subproblem variables `x` and `z`.
-# Note that for `z` variables, the reduced cost is initially equal the original arc_cost,
-# as long as there are no master constraints involving `z`;
-# but this will change as branching constraints and cuts are added to the master.
+# Remember that subproblem variables `z` are implicitly defined by master representative variables `z`.
+# We remark that `z` variables participate only in the objective function.
+# Thus their reduced costs are initially equal to original costs (i.e., objective coefficients)
+# This is not true anymore after adding branching constraints and robust cuts involving variables `z`.
 
-
-# We therefore need methods to compute the contributions to the reduced cost of the `x` and `z` variables:
+# We need methods to compute the contributions to the reduced cost of the `x` and `z` variables:
 
 function x_contribution(route::Route, j::Int, x_red_costs)
     x = 0.0
@@ -363,23 +376,22 @@ JuMP.optimize!(model)
 
 # ### Strengthening the master with linear valid inequalities on the original variables (so called "robust" cuts)
 
-# We introduce of first type of classic valid inequalities that tries to improve the 
-# integrality enforcement on the `y` variables. 
-# A cut speration callback is presented that implements a simple enumeration process.
+# To improve the quality of the linear relaxation, a family of classic facility location valid inequalities can be used:
 #
 # ```math
 # x_{ij} \leq y_j\; \forall i \in I, \forall j \in J
 # ```
 # where $I$ is the set of customers and J the set of facilities.
 
-# We declare a structure representing an instance of this inequality:
+# We declare a structure representing an inequality in this family:
 struct OpenFacilityInequality
     facility_id::Int
     customer_id::Int
 end
 
-# To identify violated valid inequalities for a current master LP solution, we proceed by enumeration (i.e. iterating over all pairs of customer and facility).
-# Let's write our cut separation callback as follows:
+# To identify violated valid inequalities from a current master LP solution, 
+# we proceed by enumeration (i.e. iterating over all pairs of customer and facility).
+# Enumeration separation procedure is implemented in the following callback.
 
 function valid_inequalities_callback(cbdata)
     ## Get variables valuations, store them into dictionaries.
@@ -411,7 +423,7 @@ function valid_inequalities_callback(cbdata)
     end
 end;
 
-# We re-declare the model and optimize it with these valid inequalites:
+# We re-declare the model and optimize it with these valid inequalities:
 model, x, y, z, _ = create_model(coluna, pricing_callback);
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)
