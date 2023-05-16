@@ -24,7 +24,7 @@ function get_original_sol(reform, opt_state)
     return original_sol
 end
 
-function Branching.projection_is_possible(::Branching.AbstractDivideContext, reform)
+function Branching.projection_on_master_is_possible(::Branching.AbstractDivideContext, reform)
     return MathProg.projection_is_possible(getmaster(reform))
 end
 

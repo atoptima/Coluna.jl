@@ -21,7 +21,7 @@ Coluna.Algorithm.ColGenPhase2
 Coluna.Algorithm.ColGenPhase3
 ```
 
-Here are the references of the interface:
+Here are the references for the interface:
 
 ```@docs
 Coluna.ColGen.AbstractColGenPhase
@@ -42,7 +42,7 @@ The goal is to solve the pricing subproblem with very fast heuristic solvers fir
 switch to a "more exact" solver when a given condition is met. The last stage generally uses
 an exact solver.
 
-Here are the references of the interface:
+Here are the references for the interface:
 
 ```@docs
 Coluna.ColGen.AbstractColGenStage
@@ -69,7 +69,7 @@ reduced cost of subproblem variables.
 The default implementation optimizes the master with an LP solver through MathOptInterface.
 It returns a primal and a dual solution.
 
-Here are the references of the interface:
+Here are the references for the interface:
 
 ```@docs
 Coluna.ColGen.optimize_master_lp_problem!
@@ -109,13 +109,13 @@ Coluna.ColGen.update_sp_vars_red_costs!
 ## Pricing strategy
 
 The pricing strategy is basically an iterator used to iterate over the pricing subproblems
-to optimize at each iteration of the column generation. The context can serve as memory of
+to optimize at each iteration of the column generation. The context can serve as a memory of
 the pricing strategy to change the way we iterate over subproblems between each column
 generation iteration.
 
 The default implementation iterates over all subproblems.
 
-Here are the references of the interface:
+Here are the references for the interface:
 
 ```@docs
 Coluna.ColGen.AbstractPricingStrategy
@@ -125,14 +125,14 @@ Coluna.ColGen.pricing_strategy_iterate
 
 ## Pricing subproblem optimization
 
-At each iteration, the algorithm requires primal solutions to the pricing subproblems. The generic function supports multi-columns generation so you can return any number of solutions.
+At each iteration, the algorithm requires primal solutions to the pricing subproblems. The generic function supports multi-column generation so you can return any number of solutions.
 
 The default implementation supports optimization of the pricing subproblems using a MILP solver or a pricing callback. Non-robust valid inequalities are not supported by MILP solvers as they change the structure of the subproblems. When using a pricing callback, you must be aware of how Coluna calculates the reduced cost of a column:
 
 The reduced cost of a column is split into three contributions:
 - the contribution of the subproblem variables that is the primal solution cost given the reduced cost of subproblem variables
 - the contribution of the non-robust constraints (i.e. master constraints that cannot be expressed using subproblem variables except the convexity constraint) that is not supported by MILP solver but that you must take into account in the pricing callback
-- the contribution of the master convexity constraint that is automatically taken into account by Coluna once the primal solution returned.
+- the contribution of the master convexity constraint that is automatically taken into account by Coluna once the primal solution is returned.
 
 Therefore, it is very important that you do not discard some columns based only on the primal solution cost because you don't know the contribution of the convexity constraint.
 
@@ -148,9 +148,9 @@ You must also implement the `Coluna.ColGen.is_optimal`, `Coluna.ColGen.is_infeas
 
 ## Columns management and insertion
 
-You can define your own data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
+You can define your data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
 
-Here are the references of the interface:
+Here are the references for the interface:
 
 ```@docs
 Coluna.ColGen.set_of_columns

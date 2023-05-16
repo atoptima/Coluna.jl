@@ -5,7 +5,7 @@ TUTORIAL_CUTS = joinpath(@__DIR__, "src", "start", "cuts.jl")
 TUTORIAL_PRICING = joinpath(@__DIR__, "src", "start", "pricing.jl")
 TUTORIAL_CUSTOMDATA = joinpath(@__DIR__, "src", "start", "custom_data.jl")
 TUTORIAL_INITCOLS = joinpath(@__DIR__, "src", "start", "initial_columns.jl")
-TUTORIAL_ADVANCED = joinpath(@__DIR__, "src", "start", "advanced-demo.jl")
+TUTORIAL_ADVANCED = joinpath(@__DIR__, "src", "start", "advanced_demo.jl")
 TUTORIAL_TREESEARCH_API = joinpath(@__DIR__, "src", "api", "treesearch.jl")
 TUTORIAL_STORAGE_API = joinpath(@__DIR__, "src", "api", "storage.jl")
 
@@ -46,7 +46,7 @@ makedocs(
             "Pricing callback" => joinpath("start", "pricing.md"),
             "Custom data" => joinpath("start", "custom_data.md"),
             "Initial columns callback" => joinpath("start", "initial_columns.md"),
-            "Advanced demo" => joinpath("start", "advanced-demo.md"),
+            "Advanced tutorial" => joinpath("start", "advanced_demo.md"),
         ],
         "Manual" => Any[
             "Decomposition" => joinpath("man", "decomposition.md"),
