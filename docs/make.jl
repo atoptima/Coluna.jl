@@ -46,7 +46,7 @@ makedocs(
             "Pricing callback" => joinpath("start", "pricing.md"),
             "Custom data" => joinpath("start", "custom_data.md"),
             "Initial columns callback" => joinpath("start", "initial_columns.md"),
-            "Advanced tutorial" => joinpath("start", "advanced-demo.md"),
+            "Advanced tutorial" => joinpath("start", "advanced_demo.md"),
         ],
         "Manual" => Any[
             "Decomposition" => joinpath("man", "decomposition.md"),

@@ -62,7 +62,7 @@ abstract type AbstractDivideContext end
 @mustimplement "Branching" get_selection_criterion(::AbstractDivideContext) = nothing
 
 # find better name
-@mustimplement "Branching" projection_is_possible(::AbstractDivideContext, reform) = nothing
+@mustimplement "Branching" projection_on_master_is_possible(ctx, reform) = nothing
 
 # branching output
 """
@@ -278,7 +278,7 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
         append!(kept_branch_candidates, output.candidates)
         local_id = output.local_id
 
-        if projection_is_possible(ctx, reform) && !isnothing(extended_sol)
+        if projection_on_master_is_possible(ctx, reform) && !isnothing(extended_sol)
             output = Branching.select!(
                 rule, env, reform, Branching.BranchingRuleInput(
                     extended_sol, false, max_nb_candidates, Branching.get_selection_criterion(ctx),
