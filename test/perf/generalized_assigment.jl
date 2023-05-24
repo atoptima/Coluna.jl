@@ -55,12 +55,33 @@ function gap_strong_branching()
     JuMP.optimize!(model)
 end
 
+function gap_big_instance()
+    data = ColunaDemos.GeneralizedAssignment.data("gapC-5-100.txt")
 
-gap_toy_instance()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(solver = Coluna.Algorithm.BranchCutAndPriceAlgorithm(
+        )
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model, x, dec = ColunaDemos.GeneralizedAssignment.model(data, coluna)
+    #BlockDecomposition.objectiveprimalbound!(model, 100)
+    #BlockDecomposition.objectivedualbound!(model, 0)
+
+    JuMP.optimize!(model)
+end
+
+
+#gap_toy_instance()
 gap_strong_branching()
+#gap_big_instance()
 
 Profile.clear()
-@profile gap_toy_instance()
+Profile.init(; n = 10^6, delay = 0.005)
+#@profile gap_toy_instance()
 @profile gap_strong_branching()
+#@profile gap_big_instance()
 pprof()
 readline()
