@@ -56,11 +56,12 @@ function gap_strong_branching()
 end
 
 function gap_big_instance()
-    data = ColunaDemos.GeneralizedAssignment.data("gapC-5-100.txt")
+    data = ColunaDemos.GeneralizedAssignment.data("mediumgapcuts1.txt")
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => Coluna.Params(solver = Coluna.Algorithm.BranchCutAndPriceAlgorithm(
+            maxnumnodes=5
         )
         ),
         "default_optimizer" => GLPK.Optimizer
@@ -75,13 +76,13 @@ end
 
 
 #gap_toy_instance()
-gap_strong_branching()
-#gap_big_instance()
+#gap_strong_branching()
+gap_big_instance()
 
 Profile.clear()
 Profile.init(; n = 10^6, delay = 0.005)
 #@profile gap_toy_instance()
-@profile gap_strong_branching()
-#@profile gap_big_instance()
+#@profile gap_strong_branching()
+@profile gap_big_instance()
 pprof()
 readline()
