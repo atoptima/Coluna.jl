@@ -86,3 +86,10 @@ Profile.init(; n = 10^6, delay = 0.005)
 @profile gap_big_instance()
 pprof()
 readline()
+
+# Collect an allocation profile
+#Profile.Allocs.@profile gap_big_instance()
+
+# Export pprof allocation profile and open interactive profiling web interface.
+#PProf.Allocs.pprof()
+#readline()
