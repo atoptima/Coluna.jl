@@ -535,7 +535,7 @@ function benders_form_unbounded_master()
         min
         0x1 + 0x2 + 2y1 + 3y2 + z
         s.t.
-        -x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
+        x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
         x1 + 3x2 + y1 + y2 >= 3 {BendTechConstr}
         y1 + y2 >= 0
 
@@ -898,7 +898,6 @@ function benders_default_infeasible_sp()
 end
 register!(unit_tests, "benders_default", benders_default_infeasible_sp)
 
-
 # form A with lower bound on y variables equal to 5
 # test FAIL, expected output:
 # x1 = x2 = 0.0
@@ -959,7 +958,6 @@ function benders_max_upper_bound()
 end
 register!(unit_tests, "benders_default", benders_max_upper_bound)
 
-
 #TODO check if benders throws error
 function benders_default_unbounded_master()
     env, reform = benders_form_unbounded_master()
@@ -977,21 +975,13 @@ function benders_default_unbounded_master()
         max_nb_iterations = 10
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg;
-        print = true,
-        debug_print_master = true,
-        debug_print_master_primal_solution = true,
-        debug_print_master_dual_solution = true,
-        debug_print_subproblem = true,
-        debug_print_subproblem_primal_solution = true,
-        debug_print_subproblem_dual_solution = true,
-        debug_print_generated_cuts = true,
+        print = false
     )
     Coluna.set_optim_start_time!(env)
 
     @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_master; x = true)
-
+register!(unit_tests, "benders_default", benders_default_unbounded_master)
 
 
 # TODO: check if benders throws error
@@ -1015,4 +1005,4 @@ function benders_default_unbounded_sp()
 
     @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_sp; x = true)
+register!(unit_tests, "benders_default", benders_default_unbounded_sp)

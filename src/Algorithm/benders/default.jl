@@ -96,7 +96,7 @@ function Benders.optimize_master_problem!(master, ctx::BendersContext, env)
     return master_res
 end
 
-function Benders.treat_unbounded_master_problem!(master, ctx::BendersContext, env)
+function Benders.treat_unbounded_master_problem_case!(master, ctx::BendersContext, env)
     mast_result = nothing
     ip_solver = typeof(ctx.restr_master_solve_alg) <: SolveIpForm
 
@@ -174,7 +174,7 @@ function Benders.update_sp_rhs!(ctx::BendersContext, sp, mast_primal_sol)
     return
 end
 
-function Benders.set_sp_rhs_to_zero!(ctx::BendersContext, sp, mast_primal_sol)
+function Benders.setup_separation_for_unbounded_master_case!(ctx::BendersContext, sp, mast_primal_sol)
     spid = getuid(sp)
     T = ctx.rhs_helper.T[spid]
 
@@ -238,12 +238,100 @@ struct BendersSeparationResult{F,S}
     unbounded_master::Bool
 end
 
+Benders.get_obj_val(res::BendersSeparationResult) = res.second_stage_cost
 Benders.get_primal_sol(res::BendersSeparationResult) = get_best_lp_primal_sol(res.result)
 Benders.is_infeasible(res::BendersSeparationResult) = res.infeasible
 Benders.is_unbounded(res::BendersSeparationResult) = res.unbounded
 
-# This is a kind of phase 1 for the separation problem when it is infeasible.
-function _optimize_feasibility_separation_problem!(ctx, sp::Formulation{BendersSp}, env)
+function _compute_cut_lhs(ctx, sp, dual_sol, feasibility_cut)
+    cut_lhs = Dict{VarId, Float64}()
+
+    coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol
+    for (varid, coeff) in zip(findnz(coeffs)...)
+        cut_lhs[varid] = coeff
+    end
+
+    if feasibility_cut
+        cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0
+    else
+        cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0
+    end
+    return cut_lhs
+end
+
+function _compute_cut_rhs_contrib(ctx, sp, dual_sol)
+    spid = getuid(sp)
+    bounds_contrib_to_rhs = 0.0
+    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol)
+        if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
+            bounds_contrib_to_rhs += val * getcurlb(sp, varid)
+        elseif active_bound == MathProg.UPPER
+            bounds_contrib_to_rhs += val * getcurub(sp, varid)
+        end
+    end
+
+    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs
+    return cut_rhs
+end
+
+function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master)
+    spid = getuid(sp)
+
+    second_stage_cost_var = sp.duty_data.second_stage_cost_var
+    @assert !isnothing(second_stage_cost_var)
+    estimated_cost = getcurincval(Benders.get_master(ctx), second_stage_cost_var)
+
+    input = OptimizationState(sp)
+    opt_state = run!(ctx.separation_solve_alg, env, sp, input)
+
+    if getterminationstatus(opt_state) == UNBOUNDED
+        return BendersSeparationResult(estimated_cost, nothing, opt_state, false, true, nothing, nothing, unbounded_master)
+    end
+
+    if getterminationstatus(opt_state) == INFEASIBLE
+        return BendersSeparationResult(estimated_cost, nothing, opt_state, true, false, nothing, nothing, unbounded_master)
+    end
+
+    dual_sol = get_best_lp_dual_sol(opt_state)
+    cost = getvalue(dual_sol)
+    min_sense = Benders.is_minimization(ctx)
+    sc = min_sense ? 1.0 : - 1.0
+
+    # println(">>>>> $cost < $estimated_cost   ")
+    # if sc * cost < sc * estimated_cost + 1e-5
+    #     # Unbounded error if in Master unbounded case
+    #     if unbounded_master
+    #         return BendersSeparationResult(estimated_cost, nothing, opt_state, false, true, nothing, nothing, true)
+    #     else
+    #         # Optimal solution in the othercase
+    #         return BendersSeparationResult(estimated_cost, cost, opt_state, false, false, dual_sol, nothing, unbounded_master)
+    #     end
+    # end
+
+    cut_lhs = _compute_cut_lhs(ctx, sp, dual_sol, false)
+    cut_rhs = _compute_cut_rhs_contrib(ctx, sp, dual_sol)
+
+    cut = GeneratedCut(min_sense, cut_lhs, cut_rhs)
+    return BendersSeparationResult(estimated_cost, cost, opt_state, false, false, dual_sol, cut, unbounded_master)
+end
+
+function Benders.master_is_unbounded(ctx::BendersContext, second_stage_cost, unbounded_master_case)
+    estimated_cost = 0
+    for (spid, sp) in Benders.get_benders_subprobs(ctx)
+        second_stage_cost_var = sp.duty_data.second_stage_cost_var
+        estimated_cost += getcurincval(Benders.get_master(ctx), second_stage_cost_var)
+    end
+
+    min_sense = Benders.is_minimization(ctx)
+    sc = min_sense ? 1.0 : - 1.0
+    return sc * second_stage_cost < sc * estimated_cost + 1e-5 && unbounded_master_case
+end
+
+function Benders.treat_infeasible_separation_problem_case!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master_case)
+    second_stage_cost_var = sp.duty_data.second_stage_cost_var
+    @assert !isnothing(second_stage_cost_var)
+    estimated_cost = getcurincval(Benders.get_master(ctx), second_stage_cost_var)
+
     for (varid, _) in getvars(sp)
         if !isanArtificialDuty(getduty(varid))
             setcurcost!(sp, varid, 0.0)
@@ -260,73 +348,25 @@ function _optimize_feasibility_separation_problem!(ctx, sp::Formulation{BendersS
         end
     end
     _deactivate_art_vars(sp)
-    return opt_state
-end
 
-function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master)
-    spid = getuid(sp)
-
-    second_stage_cost_var = sp.duty_data.second_stage_cost_var
-    @assert !isnothing(second_stage_cost_var)
-    estimated_cost = getcurincval(Benders.get_master(ctx), second_stage_cost_var)
-
-    input = OptimizationState(sp)
-    opt_state = run!(ctx.separation_solve_alg, env, sp, input)
-
-    if getterminationstatus(opt_state) == UNBOUNDED
-        return BendersSeparationResult(estimated_cost, nothing, opt_state, true, false, nothing, nothing, unbounded_master)
-    end
-
-    feasibility_cut = false
-    infeasible = getterminationstatus(opt_state) == INFEASIBLE
-    if infeasible
-        feasibility_cut = true
-        opt_state = _optimize_feasibility_separation_problem!(ctx, sp, env)
-    end
-
-    infeasible = getterminationstatus(opt_state) == INFEASIBLE
-    if infeasible
-        return BendersSeparationResult(estimated_cost, nothing, opt_state, false, true, nothing, nothing, unbounded_master)
+    if getterminationstatus(opt_state) == INFEASIBLE # should not happen
+        error("A")
+        return BendersSeparationResult(estimated_cost, nothing, opt_state, false, true, nothing, nothing, unbounded_master_case)
     end
 
     dual_sol = get_best_lp_dual_sol(opt_state)
     cost = getvalue(dual_sol)
     min_sense = Benders.is_minimization(ctx)
     sc = min_sense ? 1.0 : - 1.0
-    if sc * cost < sc * estimated_cost
-        # Unbounded error if in Master unbounded case
-        if !feasibility_cut && unbounded_master
-          return BendersSeparationResult(estimated_cost, nothing, opt_state, false, true, nothing, nothing, true)
-        end
-        # Optimal solution in the othercase
+
+    if sc * cost <= 0
+        error("B") # should not happen
     end
 
-    cut_lhs = Dict{VarId, Float64}()
-
-    coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol
-    for (varid, coeff) in zip(findnz(coeffs)...)
-        cut_lhs[varid] = coeff
-    end
-
-    if feasibility_cut
-        cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0
-    else
-        cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0
-    end
-
-    bounds_contrib_to_rhs = 0.0
-    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol)
-        if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
-            bounds_contrib_to_rhs += val * getcurlb(sp, varid)
-        elseif active_bound == MathProg.UPPER
-            bounds_contrib_to_rhs += val * getcurub(sp, varid)
-        end
-    end
-
-    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs
+    cut_lhs = _compute_cut_lhs(ctx, sp, dual_sol, true)
+    cut_rhs = _compute_cut_rhs_contrib(ctx, sp, dual_sol)
     cut = GeneratedCut(min_sense, cut_lhs, cut_rhs)
-
-    return BendersSeparationResult(estimated_cost, cost, opt_state, false, false, dual_sol, cut, unbounded_master)
+    return BendersSeparationResult(estimated_cost, cost, opt_state, false, false, dual_sol, cut, unbounded_master_case)
 end
 
 function Benders.get_dual_sol(res::BendersSeparationResult)
@@ -337,9 +377,13 @@ function Benders.get_dual_sol(res::BendersSeparationResult)
 end
 
 function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::BendersSeparationResult)
+    if isnothing(sep_result.cut)
+        return false
+    end
+    
     sc = Benders.is_minimization(ctx) ? 1.0 : -1.0
     eq = false #bs(sep_result.second_stage_cost - sep_result.second_stage_estimation) < 1e-5
-    gt = sc * sep_result.second_stage_cost > sc * sep_result.second_stage_estimation
+    gt = sc * sep_result.second_stage_cost + 1e-5 > sc * sep_result.second_stage_estimation
 
     # if cost of separation result > second cost variable in master result
     if !eq && gt
