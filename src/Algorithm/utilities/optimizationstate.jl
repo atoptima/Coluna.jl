@@ -270,7 +270,7 @@ Similar methods :
 """
 function update_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
-    b = PrimalBound{S}(getvalue(sol))
+    b = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
     if update_ip_primal_bound!(state, b)
         state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     end

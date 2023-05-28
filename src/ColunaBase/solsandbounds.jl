@@ -74,9 +74,11 @@ end
 Return relative gap. Gap is non-positive if pb reached db.
 """
 function gap(b1::Bound, b2::Bound)
-    @assert b1.primal != b2.primal
+    @assert b1.primal != b2.primal && b1.min == b2.min
     db = b1.primal ? b2 : b1
-    return diff(b1, b2) / abs(db.value)
+    pb = b1.primal ? b1 : b2
+    den = b1.min ? db : pb
+    return diff(b1, b2) / abs(den.value)
 end
 
 """

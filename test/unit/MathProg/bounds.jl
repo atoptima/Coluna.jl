@@ -17,7 +17,7 @@ function primal_bound_constructor()
     @test pb2 == -Inf
     pb3 = ClMP.PrimalBound(min_form, 10)
     @test pb3 == 10
-    @test_throws ErrorException ClMP.PrimalBound(max_form, pb3)
+    @test_throws AssertionError ClMP.PrimalBound(max_form, pb3)
 end
 register!(unit_tests, "bounds", primal_bound_constructor)
 
@@ -40,7 +40,7 @@ function dual_bound_constructor()
     @test db2 == Inf
     db3 = ClMP.DualBound(min_form, 150)
     @test db3 == 150
-    @test_throws ErrorException ClMP.DualBound(max_form, db3)
+    @test_throws AssertionError ClMP.DualBound(max_form, db3)
 end
 register!(unit_tests, "bounds", dual_bound_constructor)
 

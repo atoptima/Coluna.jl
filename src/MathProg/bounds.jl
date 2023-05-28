@@ -142,7 +142,7 @@ function _update_ip_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
 end
 
 function _update_ip_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
-    @assert db.primal && db.min == ov.min
+    @assert !db.primal && db.min == ov.min
     if ColunaBase.isbetter(db, ov.ip_dual_bound)
         ov.ip_dual_bound = db
         return true
