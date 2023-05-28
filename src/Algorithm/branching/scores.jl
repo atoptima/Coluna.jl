@@ -24,12 +24,12 @@ function _product_score(
     children_lp_primal_bounds::Vector
 )
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_delta = diff(parent_ip_primal_bound, parent_lp_dual_bound)
+    parent_delta = ColunaBase.diff(parent_ip_primal_bound, parent_lp_dual_bound)
 
     all_branches_above_delta = true
     deltas = zeros(Float64, length(children_lp_primal_bounds))
     for (i, child_lp_primal_bound) in enumerate(children_lp_primal_bounds)
-        node_delta = diff(child_lp_primal_bound, parent_lp_dual_bound)
+        node_delta = ColunaBase.diff(child_lp_primal_bound, parent_lp_dual_bound)
         if node_delta < parent_delta
             all_branches_above_delta = false
         end
@@ -98,12 +98,12 @@ function _tree_depth_score(
     end
 
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_delta = diff(parent_ip_primal_bound, parent_lp_dual_bound)
+    parent_delta = ColunaBase.diff(parent_ip_primal_bound, parent_lp_dual_bound)
 
     deltas = zeros(Float64, nb_children)
     nb_zero_deltas = 0
     for (i, child_lp_primal_bound) in enumerate(children_lp_primal_bounds)
-        node_delta = diff(child_lp_primal_bound, parent_lp_dual_bound)
+        node_delta = ColunaBase.diff(child_lp_primal_bound, parent_lp_dual_bound)
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
         end
