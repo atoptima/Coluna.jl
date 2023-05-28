@@ -7,27 +7,49 @@ abstract type AbstractBendersContext end
 
 struct UnboundedError <: Exception end
 
+"Returns `true` if the objective sense is minimization, `false` otherwise."
 @mustimplement "Benders" is_minimization(context::AbstractBendersContext) = nothing
 
+"Returns Benders reformulation."
 @mustimplement "Benders" get_reform(context::AbstractBendersContext) = nothing
 
+"Returns the master problem."
 @mustimplement "Benders" get_master(context::AbstractBendersContext) = nothing
 
+"Returns the separation subproblems."
 @mustimplement "Benders" get_benders_subprobs(context) = nothing
 
+"""
+    optimize_master_problem!(master, context, env) -> MasterResult
+
+Returns an instance of a custom object `MasterResult` that implements the following methods:
+- `is_unbounded(res::MasterResult) -> Bool`
+- `is_infeasible(res::MasterResult) -> Bool`
+- `is_certificate(res::MasterResult) -> Bool`
+- `get_primal_sol(res::MasterResult) -> Union{Nothing, PrimalSolution}`
+"""
 @mustimplement "Benders" optimize_master_problem!(master, context, env) = nothing
 
+"""
+    treat_unbounded_master_problem_case!(master, context, env) -> MasterResult
+
+When after a call to `optimize_master_problem!`, the master is unbounded, this method is called.
+Returns an instance of a custom object `MasterResult`.
+"""
+@mustimplement "Benders" treat_unbounded_master_problem_case!(master, context, env) = nothing
+
 # Master solution
+"Returns `true` if the master is unbounded, `false` otherwise."
 @mustimplement "Benders" is_unbounded(res) = nothing
 
+"Returns `true` if the master is infeasible, `false` otherwise."
 @mustimplement "Benders" is_infeasible(res) = nothing
 
+"Returns the certificate of dual infeasibility if the master is unbounded, `nothing` otherwise."
 @mustimplement "Benders" is_certificate(res) = nothing
 
+"Returns the primal solution of the master problem if it exists, `nothing` otherwise."
 @mustimplement "Benders" get_primal_sol(res) = nothing
-
-# If the master is unbounded
-@mustimplement "Benders" treat_unbounded_master_problem_case!(master, context, env) = nothing
 
 # second stage variable costs
 @mustimplement "Benders" set_second_stage_var_costs_to_zero!(context) = nothing
@@ -42,10 +64,27 @@ struct UnboundedError <: Exception end
 
 @mustimplement "Benders" set_of_sep_sols(context) = nothing
 
+"""
+    optimize_separation_problem!(context, sp_to_solve, env, unbounded_master) -> SeparationResult
+
+Returns an instance of a custom object `SeparationResult` that implements the following methods:
+- `is_unbounded(res::SeparationResult) -> Bool`
+- `is_infeasible(res::SeparationResult) -> Bool`
+- `get_obj_val(res::SeparationResult) -> Float64`
+- `get_primal_sol(res::SeparationResult) -> Union{Nothing, PrimalSolution}`
+- `get_dual_sp_sol(res::SeparationResult) -> Union{Nothing, DualSolution}`
+"""
 @mustimplement "Benders" optimize_separation_problem!(context, sp_to_solve, env, unbounded_master) = nothing
 
+"""
+    treat_infeasible_separation_problem_case!(context, sp_to_solve, env, unbounded_master) -> SeparationResult
+
+When after a call to `optimize_separation_problem!`, the separation problem is infeasible, this method is called.
+Returns an instance of a custom object `SeparationResult`.
+"""
 @mustimplement "Benders" treat_infeasible_separation_problem_case!(context, sp_to_solve, env, unbounded_master_case) = nothing
 
+"Returns the dual solution of the separation problem if it exists; `nothing` otherwise."
 @mustimplement "Benders" get_dual_sol(res) = nothing
 
 @mustimplement "Benders" update_sp_dual_vars!(context, sp_to_solve, dual_sol) = nothing

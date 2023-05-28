@@ -55,6 +55,7 @@ makedocs(
             "Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
+            "Benders" => joinpath("api", "benders.md"),
             "Branching" => joinpath("api", "branching.md"),
             "ColGen" => joinpath("api", "colgen.md"),
             "TreeSearch" => joinpath("api", "treesearch.md"),
