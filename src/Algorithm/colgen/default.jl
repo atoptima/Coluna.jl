@@ -325,14 +325,13 @@ end
 # Master resolution
 ###############################################################################
 """
-    ColGenMasterResult{F,S}
+    ColGenMasterResult{F}
 
 Contains the solution to the master LP.
 - `F` is the formulation type
-- `S` is the objective sense Type
 """
-struct ColGenMasterResult{F,S}
-    result::OptimizationState{F,S}
+struct ColGenMasterResult{F}
+    result::OptimizationState{F}
 end
 
 # TODO: not type stable !!
@@ -516,8 +515,8 @@ function ColGen.set_of_columns(ctx::ColGenContext)
     return ColumnsSet()
 end
 
-struct ColGenPricingResult{F,S}
-    result::OptimizationState{F,S}
+struct ColGenPricingResult{F}
+    result::OptimizationState{F}
     columns::Vector{GeneratedColumn}
     best_red_cost::Float64
 end

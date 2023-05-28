@@ -1,4 +1,4 @@
-mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
+mutable struct OptimizationState{F<:AbstractFormulation}
     termination_status::TerminationStatus
     incumbents::MathProg.ObjValues
     max_length_ip_primal_sols::Int
@@ -87,8 +87,7 @@ function OptimizationState(
         lp_primal_bound = lp_primal_bound,
         lp_dual_bound = lp_dual_bound
     )
-    S = getobjsense(form)
-    state = OptimizationState{F,S}(
+    state = OptimizationState{F}(
         termination_status, 
         incumbents,
         max_length_ip_primal_sols,
@@ -268,7 +267,7 @@ Similar methods :
     update_lp_primal_sol!(optstate, sol)
     update_lp_dual_sol!(optstate, sol)
 """
-function update_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function update_ip_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_ip_primal_sols == 0 && return
     b = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
     if update_ip_primal_bound!(state, b)
@@ -290,7 +289,7 @@ Similar methods :
     add_lp_primal_sol!(optstate, sol)
     add_lp_dual_sol!(optstate, sol)
 """
-function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function add_ip_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_ip_primal_sols == 0 && return
     state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     pb = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
@@ -316,7 +315,7 @@ Similar methods :
     set_lp_primal_sol!(optstate, sol)
     set_lp_dual_sol!(optstate, sol)
 """
-function set_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function set_ip_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_ip_primal_sols == 0 && return
     set!(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     return
@@ -335,7 +334,7 @@ Similar methods :
 empty_ip_primal_sols!(state::OptimizationState) = empty!(state.ip_primal_sols)
 
 "Similar to [`update_ip_primal_sol!`](@ref)."
-function update_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function update_lp_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_lp_primal_sols == 0 && return
     pb = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
     if update_lp_primal_bound!(state, pb)
@@ -345,7 +344,7 @@ function update_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSoluti
 end
 
 "Similar to [`add_ip_primal_sol!`](@ref)."
-function add_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function add_lp_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_lp_primal_sols == 0 && return
     state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     pb = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
@@ -354,7 +353,7 @@ function add_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
 end
 
 "Similar to [`set_ip_primal_sol!`](@ref)."
-function set_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function set_lp_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_lp_primal_sols == 0 && return
     set!(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     return
@@ -364,7 +363,7 @@ end
 empty_lp_primal_sols!(state::OptimizationState) = empty!(state.lp_primal_sols)
 
 "Similar to [`update_ip_primal_sol!`](@ref)."
-function update_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+function update_lp_dual_sol!(state::OptimizationState{F}, sol::DualSolution{F}) where {F}
     state.max_length_lp_dual_sols == 0 && return
     db = ColunaBase.Bound(false, state.incumbents.min, getvalue(sol))
     if update_lp_dual_bound!(state, db)
@@ -374,7 +373,7 @@ function update_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F
 end
 
 "Similar to [`add_ip_primal_sol!`](@ref)."
-function add_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+function add_lp_dual_sol!(state::OptimizationState{F}, sol::DualSolution{F}) where {F}
     state.max_length_lp_dual_sols == 0 && return
     state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     db = ColunaBase.Bound(false, state.incumbents.min, getvalue(sol))
@@ -383,7 +382,7 @@ function add_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) 
 end
 
 "Similar to [`set_ip_primal_sol!`](@ref)."
-function set_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+function set_lp_dual_sol!(state::OptimizationState{F}, sol::DualSolution{F}) where {F}
     state.max_length_lp_dual_sols == 0 && return
     set!(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     return

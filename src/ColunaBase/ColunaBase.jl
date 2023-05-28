@@ -14,13 +14,13 @@ import Printf
 
 # interface.jl
 export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
-    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, getuid, getstorage
+    getuid, getstorage
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
-export Bound, Solution, getvalue, getbound, isbetter, best, worst, diff, gap, printbounds,
+export Bound, Solution, getvalue, getbound, isbetter, best, worst, gap, printbounds,
     getstatus, remove_until_last_point, getmodel, isunbounded, isinfeasible
 
 # Statuses
@@ -34,8 +34,7 @@ export HashTable, gethash, savesolid!, getsolids
 
 # Storages (TODO : clean)
 export UnitType,
-    UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED,
-    restore_from_records!,
+    UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED,
     getstorageunit, getstoragewrapper
 
 export Storage, RecordUnitManager, AbstractRecordUnit, AbstractRecord, storage_unit,

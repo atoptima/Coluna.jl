@@ -47,9 +47,9 @@ function Benders.setup_reformulation!(reform::Reformulation, env)
     return
 end
 
-struct BendersMasterResult{F,S}
+struct BendersMasterResult{F}
     ip_solver::Bool
-    result::OptimizationState{F,S}
+    result::OptimizationState{F}
     infeasible::Bool
     unbounded::Bool
     certificate::Bool
@@ -227,10 +227,10 @@ struct SepSolSet
 end
 Benders.set_of_sep_sols(::BendersContext) = SepSolSet()
 
-struct BendersSeparationResult{F,S}
+struct BendersSeparationResult{F}
     second_stage_estimation::Float64
     second_stage_cost::Union{Nothing,Float64}
-    result::OptimizationState{F,S}
+    result::OptimizationState{F}
     infeasible::Bool
     unbounded::Bool
     certificate::Union{Nothing,DualSolution}
