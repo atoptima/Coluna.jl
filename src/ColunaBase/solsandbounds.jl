@@ -15,7 +15,7 @@ end
 """
     Bound(primal, min)
 
-Create a default primal bound for a problem with objective sense `Sense<:AbstractSense` in `Space<:AbstractSpace`.  
+Create a default primal bound for a problem with objective sense (min or max) in the space (primal or dual).  
 """
 function Bound(primal, min)
     val = _defaultboundvalue(primal, min)

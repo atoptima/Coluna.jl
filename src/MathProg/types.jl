@@ -3,9 +3,6 @@ abstract type AbstractVcData end
 abstract type AbstractOptimizer end
 
 # Interface (src/interface.jl)
-struct Primal <: Coluna.AbstractPrimalSpace end
-struct Dual <: Coluna.AbstractDualSpace end
-
 struct MinSense <: Coluna.AbstractMinSense end
 struct MaxSense <: Coluna.AbstractMaxSense end
 
