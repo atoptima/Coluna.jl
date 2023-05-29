@@ -24,15 +24,7 @@ mutable struct DwSp <: AbstractSpDuty
     column_var_kind::VarKind
 
     # Pool of solutions to the Dantzig-Wolfe subproblem.
-    ## Coluna representation of solutions (filtered by `_sol_repr_for_pool`).
-    ## [colid, varid] = value
-    primalsols_pool::VarVarMatrix
-    # Hash table to quickly find identical solutions
-    hashtable_primalsols_pool::HashTable{VarId,VarId}
-    ## Perennial cost of solutions
-    costs_primalsols_pool::Dict{VarId, Float64}
-    ## Custom representation of solutions
-    custom_primalsols_pool::Dict{VarId, BD.AbstractCustomData}
+    pool::Pool
 end
 
 "A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
@@ -40,10 +32,7 @@ function DwSp(setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr
     return DwSp(
         setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr_id, 
         column_var_kind,
-        dynamicsparse(VarId, VarId, Float64; fill_mode = false),
-        HashTable{VarId, VarId}(),
-        Dict{VarId, Float64}(),
-        Dict{VarId, BD.AbstractCustomData}()
+        Pool()
     )
 end
 mutable struct BendersSp <: AbstractSpDuty 
