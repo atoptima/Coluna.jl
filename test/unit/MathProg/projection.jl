@@ -149,8 +149,7 @@ function projection_from_dw_reform_to_master_1()
     pool = ClMP.get_primal_sol_pool(spform)
 
     var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
-
-    @show spform
+ 
     # VarId[Variableu2, Variableu1, Variableu3, Variableu4, Variableu5, Variableu6]
     for (name, vals) in Iterators.zip(
             ["MC1", "MC2", "MC3", "MC4"],
