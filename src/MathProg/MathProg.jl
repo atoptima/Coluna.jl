@@ -72,7 +72,7 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool,
+    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, get_dual_sol_pool,
     setvar!, setconstr!,
     set_robust_constr_generator!, get_robust_constr_generators,
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,

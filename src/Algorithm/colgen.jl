@@ -154,7 +154,6 @@ function _colgen_optstate_output(result, master)
     if !isnothing(result.mlp)
         set_lp_primal_bound!(optstate, PrimalBound(master, result.mlp))
     end
-
     return optstate
 end
 

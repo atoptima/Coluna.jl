@@ -485,6 +485,7 @@ end
 ############################################################################################
 
 get_primal_sol_pool(form::Formulation{DwSp}) = form.duty_data.pool
+get_dual_sol_pool(form::Formulation{BendersSp}) = form.duty_data.pool
 
 function initialize_solution_pool!(form::Formulation{DwSp}, initial_columns_callback::Function)
     master = getmaster(form)
@@ -592,7 +593,6 @@ function set_robust_constr_generator!(form::Formulation, kind::ConstrKind, alg::
 end
 
 get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
-
 
 function set_objective_sense!(form::Formulation, min::Bool)
     if min

@@ -659,7 +659,6 @@ function benders_iter_default_A_integer()
 end
 register!(unit_tests, "benders_default", benders_iter_default_A_integer)
 
-
 # B with continuous first stage finds optimal solution
 # TODO: check output
 # x1 = 0.33333333333333337, x2 = 0.0
@@ -983,7 +982,6 @@ function benders_default_unbounded_master()
 end
 register!(unit_tests, "benders_default", benders_default_unbounded_master)
 
-
 # TODO: check if benders throws error
 function benders_default_unbounded_sp()
     env, reform = benders_form_unbounded_sp()
@@ -1006,3 +1004,59 @@ function benders_default_unbounded_sp()
     @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
 register!(unit_tests, "benders_default", benders_default_unbounded_sp)
+
+function test_two_identicals_cut_at_two_iterations_failure()
+    env, reform = benders_form_A()
+    master = ClMP.getmaster(reform)
+    sps = ClMP.get_benders_sep_sps(reform)
+    spform = sps[3]
+    spconstrids = Dict(CL.getname(spform, constr) => constrid for (constrid, constr) in CL.getconstrs(spform))
+    spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 2
+    )
+    ctx = Coluna.Algorithm.BendersContext(
+        reform, alg;
+    )
+
+    cut1 = ClMP.DualSolution(
+        spform,
+        map(x -> spconstrids[x], ["sp_c1", "sp_c2", "sp_c3"]),
+        [1.5, 2.0, 4.0],
+        map(x -> spvarids[x], ["y1", "y2"]),
+        [1.0, 1.0],
+        [ClMP.LOWER, ClMP.UPPER],
+        1.0,
+        ClB.FEASIBLE_SOL
+    )
+    lhs1 = Dict{ClMP.VarId, Float64}()
+    rhs1 = 1.0
+    cut2 = ClMP.DualSolution(
+        spform,
+        map(x -> spconstrids[x], ["sp_c1", "sp_c2", "sp_c3"]),
+        [1.5, 2.0, 4.0],
+        map(x -> spvarids[x], ["y1", "y2"]),
+        [1.0, 1.0],
+        [ClMP.LOWER, ClMP.UPPER],
+        1.0,
+        ClB.FEASIBLE_SOL
+    )
+    lhs2 = Dict{ClMP.VarId, Float64}()
+    rhs2 = 1.5
+
+    cuts = Coluna.Benders.set_of_cuts(ctx)
+    for (sol, lhs, rhs) in Iterators.zip([cut1, cut2], [lhs1, lhs2], [rhs1, rhs2])
+        cut = ClA.GeneratedCut(true, lhs, rhs, sol)
+        sep_res = ClA.BendersSeparationResult(2.0, 3.0, nothing, false, false, nothing, cut, false)
+        Coluna.Benders.push_in_set!(ctx, cuts, sep_res)
+    end
+    Coluna.Benders.insert_cuts!(reform, ctx, cuts)
+    @test_throws Coluna.Algorithm.CutAlreadyInsertedBendersWarning Coluna.Benders.insert_cuts!(reform, ctx, cuts)
+
+    # Coluna.set_optim_start_time!(env)
+    # result = Coluna.Benders.run_benders_loop!(ctx, env)
+
+    # @test result.mlp ≈ 3.7142857142857144
+end
+register!(unit_tests, "benders_default", test_two_identicals_cut_at_two_iterations_failure)

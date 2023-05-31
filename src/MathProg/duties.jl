@@ -38,10 +38,11 @@ end
 mutable struct BendersSp <: AbstractSpDuty 
     slack_to_first_stage::Dict{VarId, VarId}
     second_stage_cost_var::Union{VarId,Nothing}
+    pool::DualSolutionPool
 end
 
 "A Benders subproblem of a formulation decomposed using Benders."
-BendersSp() = BendersSp(Dict{VarId, VarId}(), nothing)
+BendersSp() = BendersSp(Dict{VarId, VarId}(), nothing, DualSolutionPool())
 
 ############################################################################################
 # Duties tree for a Variable
