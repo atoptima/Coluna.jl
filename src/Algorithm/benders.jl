@@ -77,6 +77,6 @@ function run!(
         reform, algo;
         print = true
     )
-    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    result = Benders.run_benders_loop!(ctx, env)
     return _benders_optstate_output(result, getmaster(reform))
 end

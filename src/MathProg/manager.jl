@@ -47,9 +47,6 @@ mutable struct FormulationManager
     constrs::Dict{ConstrId, Constraint}
     objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
-    dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
-    dual_sols_varbounds::VarConstrDualSolMatrix # cols = dual solutions with constrid, rows = variables
-    dual_sol_rhss::DynamicSparseVector{ConstrId} # dual solutions with constrid map to their rhs
     fixed_vars::Set{VarId}
     robust_constr_generators::Vector{RobustConstraintsGenerator}
     custom_families_id::Dict{DataType,Int}
@@ -63,9 +60,6 @@ function FormulationManager(buffer; custom_families_id = Dict{BD.AbstractCustomD
         constrs,
         0.0,
         ConstrVarMatrix(buffer),
-        dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
-        dynamicsparse(VarId, ConstrId, Tuple{Float64, ActiveBound}; fill_mode = false),
-        dynamicsparsevec(ConstrId[], Float64[]),
         Set{VarId}(),
         RobustConstraintsGenerator[],
         custom_families_id
