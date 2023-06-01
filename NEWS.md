@@ -9,6 +9,7 @@ Fixes:
 Changes:
 - `ColunaBase.Bound{Space, Sense}` is now `ColunaBase.Bound`. The two parameters are now flags in the struct. All mathematical operations are not supported anymore, we need to convert the `Bound` to a `<:Real`.
 - `Algorithm.OptimizationState{F,S}` does not depend on the objective sense anymore and is now `Algorithm.OptimizationState{F}`
+- Improve Benders implementation & starting writing documentation
 
 
 # Coluna 0.6.0
