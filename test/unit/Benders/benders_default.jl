@@ -962,4 +962,4 @@ function test_two_identicals_cut_at_two_iterations_failure()
 
     # @test result.mlp ≈ 3.7142857142857144
 end
-register!(unit_tests, "benders_default", test_two_identicals_cut_at_two_iterations_failure; f = true)
+register!(unit_tests, "benders_default", test_two_identicals_cut_at_two_iterations_failure)
