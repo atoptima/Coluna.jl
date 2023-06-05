@@ -102,16 +102,3 @@ function _addconstr!(m::FormulationManager, constr::Constraint)
     m.constrs[constr.id] = constr
     return
 end
-
-function Base.show(io::IO, m::FormulationManager)
-    println(io, "FormulationManager :")
-    println(io, "> variables : ")
-    for (id, var) in m.vars
-        println(io, "  ", id, " => ", var)
-    end
-    println(io, "> constraints : ")
-    for (id, constr) in m.constrs
-        println(io, " ", id, " => ", constr)
-    end
-    return
-end

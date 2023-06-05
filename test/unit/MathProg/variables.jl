@@ -131,13 +131,16 @@ function record()
     v_rec = ClMP.MoiVarRecord(; index = ClMP.MoiVarIndex(-15))
 
     @test ClMP.getindex(v_rec) == ClMP.MoiVarIndex(-15)
-    @test ClMP.getbounds(v_rec) == ClMP.MoiVarBound(-1)
+    @test ClMP.getlowerbound(v_rec) == ClMP.MoiVarLowerBound(-1)
+    @test ClMP.getupperbound(v_rec) == ClMP.MoiVarUpperBound(-1)
 
     ClMP.setindex!(v_rec, ClMP.MoiVarIndex(-20))
-    ClMP.setbounds!(v_rec, ClMP.MoiVarBound(10))
+    ClMP.setlowerbound!(v_rec, ClMP.MoiVarLowerBound(10))
+    ClMP.setupperbound!(v_rec, ClMP.MoiVarUpperBound(20))
 
     @test ClMP.getindex(v_rec) == ClMP.MoiVarIndex(-20)
-    @test ClMP.getbounds(v_rec) == ClMP.MoiVarBound(10)
+    @test ClMP.getlowerbound(v_rec) == ClMP.MoiVarLowerBound(10)
+    @test ClMP.getupperbound(v_rec) == ClMP.MoiVarUpperBound(20)
 end
 register!(unit_tests, "variables", record)
 
