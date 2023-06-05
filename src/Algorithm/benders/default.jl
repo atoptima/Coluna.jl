@@ -232,6 +232,7 @@ struct BendersSeparationResult{F}
     unbounded::Bool
     certificate::Union{Nothing,MathProg.DualSolution{F}}
     cut::Union{Nothing,GeneratedCut{F}}
+    infeasible_separation::Bool
     unbounded_master::Bool
 end
  
@@ -282,34 +283,21 @@ function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulati
     opt_state = run!(ctx.separation_solve_alg, env, sp, input)
 
     if getterminationstatus(opt_state) == UNBOUNDED
-        return BendersSeparationResult{Formulation{BendersSp}}(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), false, true, nothing, nothing, unbounded_master)
+        return BendersSeparationResult{Formulation{BendersSp}}(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), false, true, nothing, nothing, false, unbounded_master)
     end
 
     if getterminationstatus(opt_state) == INFEASIBLE
-        return BendersSeparationResult{Formulation{BendersSp}}(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), true, false, nothing, nothing, unbounded_master)
+        return BendersSeparationResult{Formulation{BendersSp}}(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), true, false, nothing, nothing, false, unbounded_master)
     end
 
     dual_sol = get_best_lp_dual_sol(opt_state)
     cost = getvalue(dual_sol)
     min_sense = Benders.is_minimization(ctx)
-    sc = min_sense ? 1.0 : - 1.0
-
-    # println(">>>>> $cost < $estimated_cost   ")
-    # if sc * cost < sc * estimated_cost + 1e-5
-    #     # Unbounded error if in Master unbounded case
-    #     if unbounded_master
-    #         return BendersSeparationResult(estimated_cost, nothing, opt_state, false, true, nothing, nothing, true)
-    #     else
-    #         # Optimal solution in the othercase
-    #         return BendersSeparationResult(estimated_cost, cost, opt_state, false, false, dual_sol, nothing, unbounded_master)
-    #     end
-    # end
-
     cut_lhs = _compute_cut_lhs(ctx, sp, dual_sol, false)
     cut_rhs = _compute_cut_rhs_contrib(ctx, sp, dual_sol)
 
     cut = GeneratedCut(min_sense, cut_lhs, cut_rhs, dual_sol)
-    return BendersSeparationResult(estimated_cost, cost, get_best_lp_primal_sol(opt_state), false, false, dual_sol, cut, unbounded_master)
+    return BendersSeparationResult(estimated_cost, cost, get_best_lp_primal_sol(opt_state), false, false, dual_sol, cut, false, unbounded_master)
 end
 
 function Benders.master_is_unbounded(ctx::BendersContext, second_stage_cost, unbounded_master_case)
@@ -348,7 +336,7 @@ function Benders.treat_infeasible_separation_problem_case!(ctx::BendersContext, 
 
     if getterminationstatus(opt_state) == INFEASIBLE # should not happen
         error("A")
-        return BendersSeparationResult(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), false, true, nothing, nothing, unbounded_master_case)
+        return BendersSeparationResult(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), false, true, nothing, nothing, true, unbounded_master_case)
     end
 
     dual_sol = get_best_lp_dual_sol(opt_state)
@@ -363,7 +351,7 @@ function Benders.treat_infeasible_separation_problem_case!(ctx::BendersContext, 
     cut_lhs = _compute_cut_lhs(ctx, sp, dual_sol, true)
     cut_rhs = _compute_cut_rhs_contrib(ctx, sp, dual_sol)
     cut = GeneratedCut(min_sense, cut_lhs, cut_rhs, dual_sol)
-    return BendersSeparationResult(estimated_cost, cost, get_best_lp_primal_sol(opt_state), false, false, dual_sol, cut, unbounded_master_case)
+    return BendersSeparationResult(estimated_cost, cost, get_best_lp_primal_sol(opt_state), false, false, dual_sol, cut, true, unbounded_master_case)
 end
 
 function Benders.get_dual_sol(res::BendersSeparationResult)
@@ -382,12 +370,9 @@ function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::Ben
     eq = abs(sep_result.second_stage_cost - sep_result.second_stage_estimation_in_master) < 1e-5
     gt = sc * sep_result.second_stage_cost + 1e-5 > sc * sep_result.second_stage_estimation_in_master
 
-    # println("\e[33m ***** \e[00m")
-    # @show sep_result.second_stage_estimation_in_master
-    # @show sep_result.second_stage_cost
 
     # if cost of separation result > second cost variable in master result
-    if !eq && gt
+    if !eq && gt || sep_result.infeasible_separation
         push!(set.cuts, sep_result.cut)
         return true
     end
