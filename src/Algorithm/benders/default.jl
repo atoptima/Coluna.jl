@@ -370,9 +370,6 @@ function Benders.push_in_set!(ctx::BendersContext, set::CutsSet, sep_result::Ben
     eq = abs(sep_result.second_stage_cost - sep_result.second_stage_estimation_in_master) < 1e-5
     gt = sc * sep_result.second_stage_cost + 1e-5 > sc * sep_result.second_stage_estimation_in_master
 
-    println("\e[33m ***** \e[00m")
-    @show sep_result.second_stage_estimation_in_master
-    @show sep_result.second_stage_cost
 
     # if cost of separation result > second cost variable in master result
     if !eq && gt || sep_result.infeasible_separation
