@@ -35,22 +35,23 @@ Structure to hold the pointers to the MOI representation of a Coluna Variable.
 """
 mutable struct MoiVarRecord
     index::MoiVarIndex
-    bounds::MoiVarBound
-    lower_bound::Union{Nothing,Id{<:AbstractVarConstr}}
-    upper_bound::Union{Nothing,Id{<:AbstractVarConstr}}
+    lower_bound::Union{Nothing, MoiVarLowerBound}
+    upper_bound::Union{Nothing, MoiVarUpperBound}
     kind::MoiVarKind
 end
 
 function MoiVarRecord(;index::MoiVarIndex = MoiVarIndex())
-    return MoiVarRecord(index, MoiVarBound(), nothing, nothing, MoiVarKind())
+    return MoiVarRecord(index, MoiVarLowerBound(), MoiVarUpperBound(), MoiVarKind())
 end
 
 getindex(record::MoiVarRecord) = record.index
-getbounds(record::MoiVarRecord) = record.bounds
+getlowerbound(record::MoiVarRecord) = record.lower_bound
+getupperbound(record::MoiVarRecord) = record.upper_bound
 getkind(record::MoiVarRecord) = record.kind
 
 setindex!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
-setbounds!(record::MoiVarRecord, bounds::MoiVarBound) = record.bounds = bounds
+setlowerbound!(record::MoiVarRecord, bound::MoiVarLowerBound) = record.lower_bound = bound
+setupperbound!(record::MoiVarRecord, bound::MoiVarUpperBound) = record.upper_bound = bound
 setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
 """

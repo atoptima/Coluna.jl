@@ -147,11 +147,9 @@ function projection_from_dw_reform_to_master_1()
     # Register column in the pool
     spform = first(sps)
     pool = ClMP.get_primal_sol_pool(spform)
-    pool_hashtable = ClMP._get_primal_sol_pool_hash_table(spform)
-    costs_pool = spform.duty_data.costs_primalsols_pool
-    custom_pool = spform.duty_data.custom_primalsols_pool
 
-    var_ids = map(n -> mastervarids[n], ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
+    var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
+ 
     # VarId[Variableu2, Variableu1, Variableu3, Variableu4, Variableu5, Variableu6]
     for (name, vals) in Iterators.zip(
             ["MC1", "MC2", "MC3", "MC4"],
@@ -163,9 +161,7 @@ function projection_from_dw_reform_to_master_1()
             ]
     )
         col_id = ClMP.VarId(mastervarids[name]; duty = DwSpPrimalSol)
-        addrow!(pool, col_id, var_ids, vals)
-        costs_pool[col_id] = 1.0
-        ClMP.savesolid!(pool_hashtable, col_id, ClMP.PrimalSolution(spform, var_ids, vals, 1.0, ClMP.FEASIBLE_SOL))
+        ClMP.push_in_pool!(pool, ClMP.PrimalSolution(spform, var_ids, vals, 1.0, ClMP.FEASIBLE_SOL), col_id, 1.0)
     end
 
     # Create primal solution where each route is used 1/2 time.

@@ -1,11 +1,31 @@
+"""
+    Coluna.Algorithm.BendersCutGeneration(
+        restr_master_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true),
+        restr_master_optimizer_id = 1,
+        feasibility_tol::Float64 = 1e-5,
+        optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL,
+        max_nb_iterations::Int = 100,
+        separation_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
+    )
+
+Benders cut generation algorithm that can be applied to a formulation reformulated using
+Benders decomposition.
+"""
 @with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
     restr_master_optimizer_id = 1
-    option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
     optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     max_nb_iterations::Int = 100
     separation_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
+    print::Bool = true
+    debug_print_master::Bool = false
+    debug_print_master_primal_solution::Bool = false
+    debug_print_master_dual_solution::Bool = false
+    debug_print_subproblem::Bool = false
+    debug_print_subproblem_primal_solution::Bool = false
+    debug_print_subproblem_dual_solution::Bool = false
+    debug_print_generated_cuts::Bool = false
 end
 
 # TO DO : BendersCutGeneration does not have yet the child algorithms
@@ -26,25 +46,6 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
     # end
     return units_usage
 end
-
-mutable struct BendersCutGenRuntimeData
-    optstate::OptimizationState
-    spform_phase::Dict{FormId, FormulationPhase}
-    spform_phase_applied::Dict{FormId, Bool}
-    #slack_cost_increase::Float64
-    #slack_cost_increase_applied::Bool
-end
-
-# function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
-#     optstate = OptimizationState(getmaster(form))
-#     best_ip_primal_sol = get_best_ip_primal_sol(init_optstate)
-#     if best_ip_primal_sol !== nothing
-#         add_ip_primal_sol!(optstate, best_ip_primal_sol)
-#     end
-#     return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
-# end
-
-# TreeSearch.get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
 
 function _new_context(C::Type{<:Benders.AbstractBendersContext}, reform, algo)
     return C(reform, algo)
@@ -75,8 +76,15 @@ function run!(
 )
     ctx = Coluna.Algorithm.BendersPrinterContext(
         reform, algo;
-        print = true
+        print = true,
+        debug_print_master = algo.debug_print_master,
+        debug_print_master_primal_solution = algo.debug_print_master_primal_solution,
+        debug_print_master_dual_solution = algo.debug_print_master_dual_solution,
+        debug_print_subproblem = algo.debug_print_subproblem,
+        debug_print_subproblem_primal_solution = algo.debug_print_subproblem_primal_solution,
+        debug_print_subproblem_dual_solution = algo.debug_print_subproblem_dual_solution,
+        debug_print_generated_cuts = algo.debug_print_generated_cuts
     )
-    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    result = Benders.run_benders_loop!(ctx, env)
     return _benders_optstate_output(result, getmaster(reform))
 end
