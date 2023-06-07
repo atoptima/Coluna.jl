@@ -93,8 +93,6 @@ function Benders.treat_unbounded_master_problem_case!(master, ctx::BendersPrinte
     return result
 end
 
-Benders.set_second_stage_var_costs_to_zero!(ctx::BendersPrinterContext) = Benders.set_second_stage_var_costs_to_zero!(ctx.inner)
-Benders.reset_second_stage_var_costs!(ctx::BendersPrinterContext) = Benders.reset_second_stage_var_costs!(ctx.inner)
 Benders.update_sp_rhs!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.update_sp_rhs!(ctx.inner, sp, primal_sol)
 Benders.setup_separation_for_unbounded_master_case!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.setup_separation_for_unbounded_master_case!(ctx.inner, sp, primal_sol)
 Benders.set_of_cuts(ctx::BendersPrinterContext) = Benders.set_of_cuts(ctx.inner)
