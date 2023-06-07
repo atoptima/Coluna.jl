@@ -127,14 +127,14 @@ function Benders.treat_unbounded_master_problem_case!(master, ctx::BendersContex
         # and probably be trapped in an infinite loop.
         # We can escape the infinite loop by implementing a cut duplication checker but the
         # algorithm won't exit gracefully.
-        Benders.set_second_stage_var_costs_to_zero!(ctx)
+        set_second_stage_var_costs_to_zero!(ctx)
         mast_result = Benders.optimize_master_problem!(master, ctx, env)
-        Benders.reset_second_stage_var_costs!(ctx)
+        reset_second_stage_var_costs!(ctx)
     end
     return mast_result
 end
 
-function Benders.set_second_stage_var_costs_to_zero!(ctx::BendersContext)
+function set_second_stage_var_costs_to_zero!(ctx::BendersContext)
     master = Coluna.MathProg.getmaster(ctx.reform)
     vars = filter(varid -> getduty(varid) <= MasterBendSecondStageCostVar, keys(getvars(master)))
     for varid in vars
@@ -143,7 +143,7 @@ function Benders.set_second_stage_var_costs_to_zero!(ctx::BendersContext)
     return
 end
 
-function Benders.reset_second_stage_var_costs!(ctx::BendersContext)
+function reset_second_stage_var_costs!(ctx::BendersContext)
     master = Coluna.MathProg.getmaster(ctx.reform)
     vars = filter(varid -> getduty(varid) <= MasterBendSecondStageCostVar, keys(getvars(master)))
     for varid in vars
