@@ -992,7 +992,9 @@ function benders_default_unbounded_sp()
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
+    #@show master
     for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        #@show sp
         sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
@@ -1005,4 +1007,99 @@ function benders_default_unbounded_sp()
 
     @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_sp)
+register!(unit_tests, "benders_default", benders_default_unbounded_sp, f = true)
+
+
+
+
+function benders_form_location_routing()
+    form = """
+    master
+        min
+        150y1 + 210y2 + 130y3 + z
+        s.t.
+        y1 + y2 + y3 >= 0
+
+    benders_sp
+        min
+        0y1 + 0y2 + 0y3 + 100x11 + 50x12 + 75x13 + 15x14 + 80x21 + 40x22 + 67x23 + 24x24 + 70x31 + 5x32 + 35x33 + 73x34 + z
+        s.t.
+        y1 - x11 >= 0 {BendTechConstr}
+        y1 - x12 >= 0 {BendTechConstr}
+        y1 - x13 >= 0 {BendTechConstr}
+        y1 - x14 >= 0 {BendTechConstr}
+        y2 - x21 >= 0 {BendTechConstr}
+        y2 - x22 >= 0 {BendTechConstr}
+        y2 - x23 >= 0 {BendTechConstr}
+        y2 - x24 >= 0 {BendTechConstr}
+        y3 - x31 >= 0 {BendTechConstr}
+        y3 - x32 >= 0 {BendTechConstr}
+        y3 - x33 >= 0 {BendTechConstr}
+        y3 - x34 >= 0 {BendTechConstr}
+        x11 + x12 >= 1
+        x12 + x13 + x21 + x23 + x31 + x34 >= 1
+        x13 + x22 + x33 + x34 >= 1
+        x13 + x14 + x21 + x22 + x24 >= 1
+        x21 + x23 + x31 + x32 + x34 >= 1
+        x11 + x12 + x13 + x14 <= 3
+        x21 + x22 + x23 + x24 <= 3
+        x31 + x32 + x33 + x34 <= 3
+        x11 + x12 + x13 + x14 + x21 + x22 + x23 + x24 + x31 + x32 + x33 + x34 >= 0
+
+    integer
+        first_stage
+            y1, y2, y3
+
+    continuous
+        second_stage_cost
+            z
+        second_stage
+            x11, x12, x13, x14, x21, x22, x23, x24, x31, x32, x33, x34
+
+    bounds
+        -Inf <= z <= Inf
+        0 <= x11 <= 1
+        0 <= x12 <= 1
+        0 <= x13 <= 1
+        0 <= x14 <= 1
+        0 <= x21 <= 1
+        0 <= x22 <= 1
+        0 <= x23 <= 1
+        0 <= x24 <= 1
+        0 <= x31 <= 1
+        0 <= x32 <= 1
+        0 <= x33 <= 1
+        0 <= x34 <= 1
+        0 <= y1 <= 1
+        0 <= y2 <= 1
+        0 <= y3 <= 1
+    """
+    env, _, _, _, reform = reformfromstring(form)
+    return env, reform
+end
+
+
+function benders_default_loc_routing()
+    env, reform = benders_form_location_routing()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    @show master
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+        @show sp
+    end
+    #alg = Coluna.Algorithm.BendersCutGeneration(
+    #    max_nb_iterations = 10
+    #)
+    #ctx = Coluna.Algorithm.BendersContext(
+    #    reform, alg;
+    #)
+    #Coluna.set_optim_start_time!(env)
+#
+    #result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test true
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing, f = true)
