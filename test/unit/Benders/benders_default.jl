@@ -955,7 +955,10 @@ function benders_form_location_routing()
         second_stage_cost
             z
         second_stage
-            x11, x12, x13, x14, x21, x22, x23, x24, x31, x32, x33, x34, local_art_of_open1, local_art_of_open2, local_art_of_open3, local_art_of_open4, local_art_of_open5, local_art_of_open6, local_art_of_open7, local_art_of_open8, local_art_of_open9, local_art_of_open10, local_art_of_open11, local_art_of_open12, local_art_of_cov1, local_art_of_cov2, local_art_of_cov3, local_art_of_cov4, local_art_of_cov5, local_art_of_limit_nb_routes1, local_art_of_limit_nb_routes2, local_art_of_limit_nb_routes3
+            x11, x12, x13, x14, x21, x22, x23, x24, x31, x32, x33, x34
+
+        second_stage_artificial
+            local_art_of_open1, local_art_of_open2, local_art_of_open3, local_art_of_open4, local_art_of_open5, local_art_of_open6, local_art_of_open7, local_art_of_open8, local_art_of_open9, local_art_of_open10, local_art_of_open11, local_art_of_open12, local_art_of_cov1, local_art_of_cov2, local_art_of_cov3, local_art_of_cov4, local_art_of_cov5, local_art_of_limit_nb_routes1, local_art_of_limit_nb_routes2, local_art_of_limit_nb_routes3
 
     bounds
         -Inf <= z <= Inf
@@ -1021,8 +1024,7 @@ function benders_default_loc_routing()
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
-    @show result.mlp
-    #@test result.db ≈ 293,5
+    @test result.mlp ≈ 293.5
 end
 register!(unit_tests, "benders_default", benders_default_loc_routing, f = true)
 
