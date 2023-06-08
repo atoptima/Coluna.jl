@@ -264,7 +264,6 @@ end
 function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, node_state)
     for heuristic in heuristics
         # TODO: check time limit of Coluna
-
         if ip_gap_closed(node_state, atol = ctx.params.opt_atol, rtol = ctx.params.opt_rtol)
             return false
         end
@@ -345,7 +344,6 @@ end
 
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     node = get_node(input)
-    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
     node_state = TreeSearch.get_opt_state(node)
 
     time_limit_reached!(node_state, env) && return
@@ -387,6 +385,8 @@ end
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
     ctx = new_context(type_of_context(algo), algo, reform, input)
+    node = get_node(input)
+    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
     run_colcutgen_conquer!(ctx, env, reform, input)
     return
 end

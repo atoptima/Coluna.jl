@@ -41,6 +41,10 @@ end
 
 getinner(optimizer::MoiOptimizer) = optimizer.inner
 
+function setbasis!(optimizer::MoiOptimizer) 
+    
+end
+
 function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     buffer = f.buffer

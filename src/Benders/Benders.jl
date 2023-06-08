@@ -19,8 +19,6 @@ struct UnboundedError <: Exception end
 "Returns the separation subproblems."
 @mustimplement "BendersProbInfo" get_benders_subprobs(context) = nothing
 
-
-
 """
     optimize_master_problem!(master, context, env) -> MasterResult
 
