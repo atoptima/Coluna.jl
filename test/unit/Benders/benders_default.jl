@@ -908,6 +908,86 @@ function benders_default_unbounded_sp()
 end
 register!(unit_tests, "benders_default", benders_default_unbounded_sp)
 
+
+
+
+
+
+
+function benders_default_loc_routing()
+    env, reform = benders_form_location_routing()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    #ClMP.relax_integrality!(master)
+    @show master
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+        @show sp
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 293.5
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing, f = true)
+
+
+
+function benders_default_loc_routing_infeasible()
+    env, reform = benders_form_location_routing_infeasible()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    #ClMP.relax_integrality!(master)
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible == true
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible, f = true)
+
+function benders_default_location_routing_subopt()
+    env, reform = benders_form_location_routing_subopt()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    #ClMP.relax_integrality!(master)
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 386.0
+end
+register!(unit_tests, "benders_default", benders_default_location_routing_subopt, f = true)
+
+
 function test_two_identicals_cut_at_two_iterations_failure()
     env, reform = benders_form_A()
     master = ClMP.getmaster(reform)
