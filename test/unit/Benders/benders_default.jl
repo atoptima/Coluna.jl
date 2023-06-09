@@ -893,9 +893,7 @@ function benders_default_unbounded_sp()
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
-    #@show master
     for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
-        #@show sp
         sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
