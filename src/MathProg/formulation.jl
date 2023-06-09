@@ -604,17 +604,6 @@ function set_objective_sense!(form::Formulation, min::Bool)
     return
 end
 
-# TODO : remove (unefficient & specific to Benders)
-function computereducedrhs(form::Formulation{BendersSp}, constrid::ConstrId, primalsol::PrimalSolution)
-    constrrhs = getperenrhs(form,constrid)
-    coefficient_matrix = getcoefmatrix(form)
-    for (varid, primal_val) in primalsol
-        coeff = coefficient_matrix[constrid, varid]
-        constrrhs -= primal_val * coeff
-    end
-    return constrrhs
-end
-
 function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     val = 0.0
     for (varid, coeff) in @view getcoefmatrix(getmodel(primalsol))[constrid, :]
