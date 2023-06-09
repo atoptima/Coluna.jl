@@ -1,3 +1,10 @@
+## optimal solution is found with 1st level variables y equals to:
+## y1 = 0.5, y2 = 0.0, y3 = 0.33333
+## mlp = 293.5
+## a sub-optimal solution can be found with 1st level variables:
+## y1 = 0.5, y2 = 0.5, y3 = 0.0 (fix y3 to zero)
+## mlp = 386.00
+## if y1 is fixed to zero, the problem is infeasible
 function benders_form_location_routing()
     form = """
     master
