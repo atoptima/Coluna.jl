@@ -283,6 +283,7 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
     end
 
     # Solve the separation problems.
+    # Here one subproblem = one dual sol = possibly one cut (multi-cuts approach). 
     generated_cuts = set_of_cuts(context)
     sep_sp_sols = set_of_sep_sols(context)
     second_stage_cost = 0.0
@@ -303,6 +304,7 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
 
         second_stage_cost += get_obj_val(sep_result)
 
+        # Push generated dual sol and cut in the context.
         nb_cuts_pushed = 0
         if push_in_set!(context, generated_cuts, sep_result)
             nb_cuts_pushed += 1

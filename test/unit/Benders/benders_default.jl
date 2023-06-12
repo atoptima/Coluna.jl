@@ -910,10 +910,6 @@ register!(unit_tests, "benders_default", benders_default_unbounded_sp)
 
 
 
-
-
-
-
 function benders_default_loc_routing()
     env, reform = benders_form_location_routing()
     master = Coluna.MathProg.getmaster(reform)
@@ -937,7 +933,7 @@ function benders_default_loc_routing()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 293.5
 end
-register!(unit_tests, "benders_default", benders_default_loc_routing, f = true)
+register!(unit_tests, "benders_default", benders_default_loc_routing)
 
 
 
@@ -962,7 +958,7 @@ function benders_default_loc_routing_infeasible()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.infeasible == true
 end
-register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible, f = true)
+register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible)
 
 function benders_default_location_routing_subopt()
     env, reform = benders_form_location_routing_subopt()
@@ -1043,3 +1039,142 @@ function test_two_identicals_cut_at_two_iterations_failure()
     # @test result.mlp ≈ 3.7142857142857144
 end
 register!(unit_tests, "benders_default", test_two_identicals_cut_at_two_iterations_failure)
+
+
+
+##########################################################################
+
+
+
+
+## original MIP:
+## min cx + dy s.t.
+##  Ax >= b 
+##  Tx + Qy >= r
+##  x, y >= 0, x ∈ Z^n
+
+## master:
+## min cx + η
+##  Ax >= B
+##  < benders cuts >
+
+## SP:
+## min  dy
+##  Tx* + Qy >= r
+##  y >= 0
+
+## π: dual sol
+## η: contribution to the objective of the second-level variables
+## feasibility cut: πTx >= πr
+## optimality cut: η + πTx >= πr
+
+
+struct TestBendersIterationContext <: Coluna.Benders.AbstractBendersContext
+    context::ClA.BendersContext
+    first_stage_sol::Dict{String, Float64} ## id of variable, value
+    second_stage_sols::Dict{String, Float64} ##id of sp, id of variable, value
+    second_stage_dual_vals::Dict{String, Float64} ##id of sp, value ## TODO: see if useless ?
+end
+
+Coluna.Benders.get_master(ctx::TestBendersIterationContext) = Coluna.Benders.get_master(ctx.context)
+Coluna.Benders.get_reform(ctx::TestBendersIterationContext) = Coluna.Benders.get_reform(ctx.context)
+Coluna.Benders.is_minimization(ctx::TestBendersIterationContext) = Coluna.Benders.is_minimization(ctx.context)
+Coluna.Benders.get_benders_subprobs(ctx::TestBendersIterationContext) = Coluna.Benders.get_benders_subprobs(ctx.context)
+
+## re-def if need to check something
+Coluna.Benders.optimize_master_problem!(master, ctx::TestBendersIterationContext, env) = Coluna.Benders.optimize_master_problem!(master, ctx.context, env)
+
+Coluna.Benders.treat_unbounded_master_problem_case!(master, ctx::TestBendersIterationContext, env) = Coluna.Benders.treat_unbounded_master_problem_case!(master, ctx.context, env) 
+
+Coluna.Benders.setup_separation_for_unbounded_master_case!(ctx::TestBendersIterationContext, sp, mast_primal_sol) = Coluna.Benders.setup_separation_for_unbounded_master_case!(ctx.context, sp, mast_primal_sol) 
+
+
+## TODO: redef to check cuts
+Coluna.Benders.optimize_separation_problem!(ctx::TestBendersIterationContext, sp::Formulation{BendersSp}, env, unbounded_master) = Coluna.Benders.optimize_separation_problem!(ctx.context, sp, env, unbounded_master)
+
+Coluna.Benders.master_is_unbounded(ctx::TestBendersIterationContext, second_stage_cost, unbounded_master_case) = Coluna.Benders.master_is_unbounded(ctx.context, second_stage_cost, unbounded_master_case)
+
+## same
+Coluna.Benders.treat_infeasible_separation_problem_case!(ctx::TestBendersIterationContext, sp::Formulation{BendersSp}, env, unbounded_master_case) = Coluna.Benders.treat_infeasible_separation_problem_case!(ctx.context, sp, env, unbounded_master_case)
+
+
+Coluna.Benders.push_in_set!(ctx::TestBendersIterationContext, set::Coluna.Algorithm.CutsSet, sep_result::Coluna.Algorithm.BendersSeparationResult) = Coluna.Benders.push_in_set!(ctx.context, set, sep_result)
+
+Coluna.Benders.push_in_set!(ctx::TestBendersIterationContext, set::Coluna.Algorithm.SepSolSet, sep_result::Coluna.Algorithm.BendersSeparationResult) = Coluna.Benders.push_in_set!(ctx.context, set, sep_result)
+
+Coluna.Benders.insert_cuts!(reform, ctx::TestBendersIterationContext, cuts) = Coluna.Benders.insert_cuts!(reform, ctx.context, cuts)
+
+Coluna.Benders.build_primal_solution(ctx::TestBendersIterationContext, mast_primal_sol, sep_sp_sols) = Coluna.Benders.build_primal_solution(ctx.context, mast_primal_sol, sep_sp_sols)
+
+Coluna.Benders.benders_iteration_output_type(ctx::TestBendersIterationContext) = Coluna.Benders.benders_iteration_output_type(ctx.context)
+
+Coluna.Benders.update_sp_rhs!(ctx::TestBendersIterationContext, sp, mast_primal_sol) =
+Coluna.Benders.update_sp_rhs!(ctx.context, sp, mast_primal_sol)
+Coluna.Benders.set_of_cuts(ctx::TestBendersIterationContext) = Coluna.Benders.set_of_cuts(ctx.context)  
+
+Coluna.Benders.set_of_sep_sols(ctx::TestBendersIterationContext) = Coluna.Benders.set_of_sep_sols(ctx.context)
+
+
+Coluna.Benders.build_primal_solution(ctx::TestBendersIterationContext, mast_primal_sol, sep_sp_sols) = Coluna.Benders.build_primal_solution(ctx.context, mast_primal_sol, sep_sp_sols)
+
+## checks cuts
+
+## stop criterion because of opt. sol found is matched
+function benders_default_opt_stop()
+    env, reform = benders_form_location_routing()
+
+    first_stage_sol = Dict(
+        "y1" => 0.5, 
+        "y2" => 0.0, 
+        "y3" => 0.33333
+    )
+    second_stage_sols = Dict(
+        "x11" => 0.5, 
+        "x12" => 0.5, 
+        "x13" => 0.49999, 
+        "x14" => 0.5, 
+        "x31" => 0.33333, 
+        "x32" => 0.33333, 
+        "x33" => 0.16666, 
+        "x34" => 1/3
+    )
+
+    second_stage_dual_vals = Dict(
+        "sp" => 0.0 ## TODO change
+    )
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = TestBendersIterationContext(
+        Coluna.Algorithm.BendersContext(
+            reform, alg
+        ),
+        first_stage_sol,
+        second_stage_sols,
+        second_stage_dual_vals
+    )
+
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_iteration!(ctx, 0, env, 0)
+end
+register!(unit_tests, "benders_default", benders_default_opt_stop, f = true)
+
+## subopt 1st level solution, an optimality cut should be generated
+function benders_default_opt_cut()
+
+end
+
+## 1st level solution makes sp infeasible, an infeasibility cut should be returned 
+function benders_default_infeas_cut()
+
+end
