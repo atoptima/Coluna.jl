@@ -60,6 +60,7 @@ function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, column
 end
 
 ColGen.compute_sp_init_db(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.inner, sp)
+ColGen.compute_sp_init_pb(ctx::ColGenPrinterContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_pb(ctx.inner, sp)
 
 ColGen.set_of_columns(ctx::ColGenPrinterContext) = ColGen.set_of_columns(ctx.inner)
 
@@ -118,7 +119,7 @@ function _get_inc_pb(sol)
 end
 
 function _colgen_iter_str(
-    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64
+    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64, alpha
 )
     phase_string = "  "
     if phase == 1
@@ -163,17 +164,16 @@ function _colgen_iter_str(
     db::Float64 = colgen_iter_output.db
     pb::Float64 = _get_inc_pb(colgen_iter_output.master_ip_primal_sol)
 
-    smoothalpha::Float64 = 0.0 # not implemented yet.
     nb_new_col::Int = ColGen.get_nb_new_cols(colgen_iter_output)
 
     return @sprintf(
         "%s<st=%2i> <it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>",
-        phase_string, stage, iteration, optim_time, mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
+        phase_string, stage, iteration, optim_time, mst_time, sp_time, nb_new_col, alpha, db, mlp, pb
     )
 end
 
-function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, colgen_iter_output)
-    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env)))
+function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output)
+    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), stab.cur_α))
     return
 end
 

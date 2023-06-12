@@ -27,7 +27,7 @@ Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, colgen_iter_output) = nothing
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
 
 abstract type AbstractColGenPhaseOutput end
 
@@ -57,7 +57,7 @@ function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter
         if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
         end
-        after_colgen_iteration(context, phase, stage, env, iteration, colgen_iter_output)
+        after_colgen_iteration(context, phase, stage, env, iteration, stab, colgen_iter_output)
         iteration += 1
     end
     O = colgen_phase_output_type(context)
@@ -69,7 +69,7 @@ function run!(context, env, ip_primal_sol; iter = 1)
     phase = initial_phase(phase_it)
     stage_it = new_stage_iterator(context)
     stage = initial_stage(stage_it)
-    stab = setup_stabilization!(context)
+    stab = setup_stabilization!(context, get_master(context))
     phase_output = nothing
     while !isnothing(phase) && !stop_colgen(context, phase_output) && !isnothing(stage)
         setup_reformulation!(get_reform(context), phase)
@@ -305,12 +305,15 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
     # Stabilization
-    # update_stab_after_rm_solve! 
-    # stabcenter is master_dual_sol
-    # return alpha * stab_center + (1 - alpha) * lp_dual_sol
     mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
 
     # TODO: check the compatibility of the pricing strategy and the stabilization.
+
+    # All generated columns will be stored in the following container. We will insert them
+    # into the master after the optimization of the pricing subproblems.
+    generated_columns = set_of_columns(context)
+
+    valid_db = nothing
 
     misprice = true # because we need to run the pricing at least once.
     # This variable is updated at the end of the pricing loop.
@@ -341,11 +344,6 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # Solve pricing subproblems
         pricing_strategy = get_pricing_strategy(context, phase)
         sp_to_solve_it = pricing_strategy_iterate(pricing_strategy)
-
-        # All generated columns will be stored in the following container. We will insert them
-        # into the master after the optimization of the pricing subproblems.
-        generated_columns = set_of_columns(context)
-
         
         while !isnothing(sp_to_solve_it)
             (sp_id, sp_to_solve), state = sp_to_solve_it
@@ -389,15 +387,13 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
             sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
         end
 
-        master_lp_obj_val = get_obj_val(mast_result)
-
         # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
         valid_db = compute_dual_bound(context, phase, get_obj_val(mast_result), sps_db, mast_dual_sol)
     
         # pseudo dual bound is used for stabilization only.
         pseudo_db = compute_dual_bound(context, phase, get_obj_val(mast_result), sps_pb, mast_dual_sol)
 
-        update_stabilization_after_pricing_optim!(stab, valid_db, pseudo_db, mast_dual_sol)
+        update_stabilization_after_pricing_optim!(stab, master, valid_db, pseudo_db, mast_dual_sol)
 
         # We have finished to solve all pricing subproblems.
         # If we have stabilization, we need to check if we have misprice.
@@ -406,7 +402,8 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # If we don't have misprice, we can stop the pricing loop.
         misprice = check_misprice(stab, generated_columns, mast_dual_sol)
         if misprice
-            mast_dual_sol = update_stabilization_after_misprice!(stab, phase, mast_dual_sol)
+            mast_dual_sol = update_stabilization_after_misprice!(stab, mast_dual_sol)
+            generated_columns = set_of_columns(context) # TODO: not sure because seems redoundant: no cols in set => misprice
         end
     end
 
@@ -415,7 +412,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
     nb_cols_inserted = length(col_ids)
 
-    update_stabilization_after_iter!(stab, pseudo_db)
+    update_stabilization_after_iter!(stab, master, generated_columns)
 
     return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
 end

@@ -494,6 +494,10 @@ function ColGen.compute_sp_init_db(ctx::ColGenContext, sp::Formulation{DwSp})
     return ctx.optim_sense == MinSense ? -Inf : Inf
 end
 
+function ColGen.compute_sp_init_pb(ctx::ColGenContext, sp::Formulation{DwSp})
+    return ctx.optim_sense == MinSense ? Inf : -Inf
+end
+
 struct GeneratedColumn
     column::PrimalSolution{Formulation{DwSp}}
     red_cost::Float64
@@ -536,6 +540,7 @@ end
 
 ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns
 ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_ip_dual_bound(pricing_res.result)
+ColGen.get_primal_bound(pricing_res::ColGenPricingResult) = get_ip_primal_bound(pricing_res.result)
 
 is_improving_red_cost(ctx::ColGenContext, red_cost) = red_cost > 0 + ctx.opt_atol
 is_improving_red_cost_min_sense(ctx::ColGenContext, red_cost) = red_cost < 0 - ctx.opt_atol
@@ -688,7 +693,7 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
-ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, colgen_iter_output) = nothing
+ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
