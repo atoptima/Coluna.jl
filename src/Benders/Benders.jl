@@ -240,7 +240,7 @@ stateDiagram-v2
     Separation --> [*] : unbounded
 ```
 """
-function run_benders_iteration!(context, phase, env, ip_primal_sol)
+function run_benders_iteration!(context, phase, env, ip_primal_sol) ##TODO: remove arg phase from method signature 
     master = get_master(context)
     mast_result = optimize_master_problem!(master, context, env)
     O = benders_iteration_output_type(context)
