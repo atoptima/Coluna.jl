@@ -981,7 +981,7 @@ function benders_default_location_routing_subopt()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 386.0
 end
-register!(unit_tests, "benders_default", benders_default_location_routing_subopt, f = true)
+register!(unit_tests, "benders_default", benders_default_location_routing_subopt)
 
 
 function test_two_identicals_cut_at_two_iterations_failure()
@@ -1081,6 +1081,8 @@ Coluna.Benders.get_reform(ctx::TestBendersIterationContext) = Coluna.Benders.get
 Coluna.Benders.is_minimization(ctx::TestBendersIterationContext) = Coluna.Benders.is_minimization(ctx.context)
 Coluna.Benders.get_benders_subprobs(ctx::TestBendersIterationContext) = Coluna.Benders.get_benders_subprobs(ctx.context)
 
+## where to check stop condition ? 
+
 ## re-def if need to check something
 Coluna.Benders.optimize_master_problem!(master, ctx::TestBendersIterationContext, env) = Coluna.Benders.optimize_master_problem!(master, ctx.context, env)
 
@@ -1121,12 +1123,13 @@ Coluna.Benders.build_primal_solution(ctx::TestBendersIterationContext, mast_prim
 
 ## stop criterion because of opt. sol found is matched
 function benders_default_opt_stop()
-    env, reform = benders_form_location_routing()
-
+    env, reform = benders_form_location_routing_fixed_opt()
+    ## sol fully fixed
+    ##expected sol
     first_stage_sol = Dict(
-        "y1" => 0.5, 
-        "y2" => 0.0, 
-        "y3" => 0.33333
+        "y1" => 0.5,
+        "y2" => 0.0,  
+        "y3" => 0.33333 
     )
     second_stage_sols = Dict(
         "x11" => 0.5, 
@@ -1144,7 +1147,7 @@ function benders_default_opt_stop()
     )
 
     alg = Coluna.Algorithm.BendersCutGeneration(
-        max_nb_iterations = 100
+        max_nb_iterations = 10
     )
     ctx = TestBendersIterationContext(
         Coluna.Algorithm.BendersContext(
@@ -1166,15 +1169,18 @@ function benders_default_opt_stop()
     Coluna.set_optim_start_time!(env)
 
     result = Coluna.Benders.run_benders_iteration!(ctx, 0, env, 0)
+    @show result.ip_primal_sol
 end
 register!(unit_tests, "benders_default", benders_default_opt_stop, f = true)
 
 ## subopt 1st level solution, an optimality cut should be generated
+## should call benders_form_location_routing_subopt with variables fixed
 function benders_default_opt_cut()
 
 end
 
 ## 1st level solution makes sp infeasible, an infeasibility cut should be returned 
+## should call benders_form_location_routing_infeasible
 function benders_default_infeas_cut()
 
 end
