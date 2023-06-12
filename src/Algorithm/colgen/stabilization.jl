@@ -7,6 +7,11 @@
 
 
 """
+Implementation of the "Smoothing with a self adjusting parameter" described in the paper of
+Pessoa et al.
+
+TODO: docstring
+
 - in: stability center
     - dual solution of the previous iteration under Neame rule, 
     - incumbent dual solution under Wentges rule.
@@ -26,7 +31,7 @@ mutable struct ColGenStab{F}
     stab_center_for_next_iteration::Union{Nothing,MathProg.DualSolution{F}} # to keep temporarily stab. center after update
 
     ColGenStab(master::F) where {F} = new{F}(
-        0.5, 0.0, 0.0, 0, MathProg.DualBound(master), MathProg.DualBound(master), nothing, nothing, nothing
+        1, 0.5, 0.0, 0, MathProg.DualBound(master), MathProg.DualBound(master), nothing, nothing, nothing
     )
 end
 
@@ -42,8 +47,9 @@ function ColGen.update_stabilization_after_master_optim!(stab::ColGenStab, phase
         return mast_dual_sol
     end
 
-    # This initialisation is not very clear.
-    # What's the utility of base_α if smooth factor != 1?
+    # TODO: this initialisation is not very clear.
+    # We need a better differenciation between "Smoothing with a self adjusting parameter" and
+    # "Smoothing with a fixed parameter".
     stab.cur_α = stab.smooth_factor === 1.0 ? stab.base_α : stab.smooth_factor
     return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol 
 end
@@ -64,11 +70,18 @@ ColGen.check_misprice(::ColGenStab, generated_cols, mast_dual_sol) = length(gene
 
 function _misprice_schedule(smooth_factor, nb_misprices, cur_α)
     α = 0
-    if smooth_factor < 0
-        α = 1.0 - (nb_misprices) * (1 - smooth_factor)
-    else
-        α = 1.0 - (1.0 - cur_α) * 2
-    end
+
+    # The following code was in the previous implementation but is not very clear.
+    # I don't understand how the smooth_factor can be negative because it's a user 
+    # parameter and it was immutable in the previous implementation.
+    # if smooth_factor < 0
+    #     α = 1.0 - (nb_misprices) * (1 - smooth_factor)
+    # else
+    #     α = 1.0 - (1.0 - cur_α) * 2
+    # end
+
+    # Rule from the paper Pessoa et al. (α-schedule in a mis-pricing sequence, Step 1)
+    α = 1.0 - (nb_misprices) * (1 - smooth_factor)
 
     if nb_misprices > 10 || α <= 0.0
         # After 10 mis-priced iterations, we deactivate stabilization to use the "real"
@@ -88,8 +101,6 @@ end
 f_decr(α) = max(0.0, α - 0.1)
 f_incr(α) = min((1.0 - α) * 0.1, 0.9999)
 
-
-
 function _pure_master_vars(master)
     puremastervars = Vector{Pair{VarId,Float64}}()
     for (varid, var) in getvars(master)
@@ -100,7 +111,6 @@ function _pure_master_vars(master)
     end
     return puremastervars
 end
-
 
 function _primal_solution(master::Formulation, generated_columns, is_minimization)
     sense = MathProg.getobjsense(master)
@@ -113,27 +123,24 @@ function _primal_solution(master::Formulation, generated_columns, is_minimizatio
         push!(var_vals, mult) # always 0 in the previous implementation ?
     end
 
-    for col in generated_columns
-        @show col
+    for (sp_id, sp_primal_sol) in generated_columns.subprob_primal_sols.primal_sols
+        sp = getmodel(sp_primal_sol)
+        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        iszero(ub) && continue
+        mult = get(generated_columns.subprob_primal_sols.improve_master, sp_id, false) ? ub : lb
+        for (sp_var_id, sp_var_val) in sp_primal_sol
+            push!(var_ids, sp_var_id)
+            push!(var_vals, sp_var_val * mult)
+        end
     end
-
-    # for (_, spinfo) in spinfos
-    #     iszero(spinfo.ub) && continue
-
-
-    #     mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
-    #     for (sp_var_id, sp_var_val) in spinfo.bestsol
-    #         push!(var_ids, sp_var_id)
-    #         push!(var_vals, sp_var_val * mult)
-    #     end
-    # end
-    # return sparsevec(var_ids, var_vals)
+    return sparsevec(var_ids, var_vals)
 end
 
 
 function _dynamic_alpha_schedule(
     stab::ColGenStab, smooth_dual_sol, h, primal_solution, is_minimization
-) where {M}    
+)   
     # Calculate the in-sep direction.
     in_sep_direction = smooth_dual_sol - stab.cur_stab_center
     in_sep_dir_norm = norm(in_sep_direction)
@@ -153,11 +160,12 @@ function _dynamic_alpha_schedule(
     return α
 end
 
-function ColGen.update_stabilization_after_iter!(stab::ColGenStab, master, generated_columns)
+function ColGen.update_stabilization_after_iter!(stab::ColGenStab, ctx, master, generated_columns, mast_dual_sol)
     if stab.smooth_factor == 1
-        primal_sol = _primal_solution(master, generated_columns, true)
-        #α = _dynamic_alpha_schedule(stab, 0, pricing_dual_sol, h, primal_sol)
-        stab.base_α = 0.1 #α
+        is_min = ColGen.is_minimization(ctx)
+        primal_sol = _primal_solution(master, generated_columns, is_min)
+        α = _dynamic_alpha_schedule(stab, mast_dual_sol, subgradient_helper(ctx), primal_sol, is_min)
+        stab.base_α = α
     end
 
     if !isnothing(stab.stab_center_for_next_iteration)

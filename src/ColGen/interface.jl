@@ -412,7 +412,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
     nb_cols_inserted = length(col_ids)
 
-    update_stabilization_after_iter!(stab, master, generated_columns)
+    update_stabilization_after_iter!(stab, context, master, generated_columns, mast_dual_sol)
 
     return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
 end

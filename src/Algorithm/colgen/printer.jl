@@ -14,6 +14,8 @@ mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
     end
 end
 
+subgradient_helper(ctx::ColGenPrinterContext) = subgradient_helper(ctx.inner)
+
 ColGen.get_reform(ctx::ColGenPrinterContext) = ColGen.get_reform(ctx.inner)
 ColGen.get_master(ctx::ColGenPrinterContext) = ColGen.get_master(ctx.inner)
 ColGen.is_minimization(ctx::ColGenPrinterContext) = ColGen.is_minimization(ctx.inner)

@@ -48,6 +48,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     end
 end
 
+subgradient_helper(ctx::ColGenContext) = ctx.subgradient_helper
+
 ColGen.get_reform(ctx::ColGenContext) = ctx.reform
 ColGen.get_master(ctx::ColGenContext) = getmaster(ctx.reform)
 ColGen.is_minimization(ctx::ColGenContext) = getobjsense(ctx.reform) == MinSense
@@ -508,19 +510,44 @@ struct GeneratedColumn
     end
 end
 
+
+struct SubprobPrimalSolsSet
+    primal_sols::Dict{MathProg.FormId, MathProg.PrimalSolution{MathProg.Formulation{MathProg.DwSp}}}
+    improve_master::Dict{MathProg.FormId, Bool}
+    function SubprobPrimalSolsSet()
+        return new(Dict{FormId, PrimalSolution{Formulation{DwSp}}}(), Dict{FormId, Bool}())
+    end
+end
+
+function add_primal_sol!(sps::SubprobPrimalSolsSet, primal_sol::PrimalSolution{Formulation{DwSp}}, improves::Bool)
+    form_id = getuid(primal_sol.solution.model)
+    cur_primal_sol = get(sps.primal_sols, form_id, nothing)
+    if isnothing(cur_primal_sol) || isbetter(getvalue(primal_sol), getvalue(cur_primal_sol))
+        sps.primal_sols[form_id] = primal_sol
+        sps.improve_master[form_id] = improves
+        return true
+    end
+    return false
+end
+
 """
     A structure to store a collection of columns
 """
 struct ColumnsSet
+    # Columns that will be added to the master.
     columns::Vector{GeneratedColumn}
-    ColumnsSet() = new(GeneratedColumn[])
+
+    # Columns generated at the current formulation that forms the "current primal solution".
+    # This is used to compute the subgradient for "Smoothing with a self adjusting 
+    # parameter" stabilization.
+    subprob_primal_sols::SubprobPrimalSolsSet
+
+    ColumnsSet() = new(GeneratedColumn[], SubprobPrimalSolsSet())
 end
 Base.iterate(set::ColumnsSet) = iterate(set.columns)
 Base.iterate(set::ColumnsSet, state) = iterate(set.columns, state)
 
-function ColGen.set_of_columns(ctx::ColGenContext)
-    return ColumnsSet()
-end
+ColGen.set_of_columns(::ColGenContext) = ColumnsSet()
 
 struct ColGenPricingResult{F}
     result::OptimizationState{F}
@@ -554,7 +581,9 @@ end
 # cost.
 function ColGen.push_in_set!(ctx::ColGenContext, pool::ColumnsSet, column::GeneratedColumn)
     # We keep only columns that improve reduced cost
-    if has_improving_red_cost(ctx, column)
+    improving = has_improving_red_cost(ctx, column)
+    add_primal_sol!(pool.subprob_primal_sols, column.column, improving)
+    if improving
         push!(pool.columns, column)
         return true
     end
@@ -579,9 +608,6 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     # Master convexity constraints contribution.
     lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
     ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
-
-    # Pure master variables contribution.
-    # TODO (only when stabilization is used otherwise already taken into account by master obj val)
 
     generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
@@ -608,7 +634,31 @@ end
 function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
     sp_contrib = mapreduce(((id, val),) -> val, +, sp_dbs)
     convexity_contrib = _convexity_contrib(ctx, master_dual_sol)
-    return master_lp_obj_val - convexity_contrib + sp_contrib
+
+
+    # Pure master variables contribution.
+    # TODO (only when stabilization is used otherwise already taken into account by master obj val)
+    # puremastvars_contrib = 0.0
+    # master = ColGen.get_master(ctx)
+    # master_coef_matrix = getcoefmatrix(master)
+    # for (varid, mult) in _pure_master_vars(master)
+    #     redcost = getcurcost(master, varid)
+    #     for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
+    #         redcost -= var_coeff * master_dual_sol[constrid]
+    #     end
+    #     min_sense = ColGen.is_minimization(ctx)
+    #     if !min_sense
+    #         redcost *= 1
+    #     end
+    #     mult = if is_improving_red_cost_min_sense(ctx, redcost)
+    #         getcurub(master, varid)
+    #     else
+    #         getcurlb(master, varid)
+    #     end
+    #     puremastvars_contrib += redcost * mult
+    # end
+
+    return master_lp_obj_val - convexity_contrib + sp_contrib #- puremastvars_contrib
 end
 
 # Iteration output
