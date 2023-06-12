@@ -310,41 +310,43 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     # return alpha * stab_center + (1 - alpha) * lp_dual_sol
     mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
 
-    # Compute reduced cost (generic operation) by you must support math operations.
-    c = get_subprob_var_orig_costs(context)
-    A = get_subprob_var_coef_matrix(context)
-    red_costs = c - transpose(A) * mast_dual_sol
-
-    # Updates subproblems reduced costs.
-    for (_, sp) in get_pricing_subprobs(context)
-        update_sp_vars_red_costs!(context, sp, red_costs)
-    end
-
-    # To compute the master dual bound, we need a dual bound to each pricing subproblems.
-    # So we ask for an initial dual bound for each pricing subproblem that we update when
-    # solving the pricing subproblem.
-    # Depending on the pricing strategy, the user can choose to solve only some subproblems.
-    # If the some subproblems have not been solved, we use this initial dual bound to
-    # compute the master dual bound.
-    sps_db = Dict(sp_id => compute_sp_init_db(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
-
-    sps_pb = Dict(sp_id => compute_sp_init_pb(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
-
-    # Solve pricing subproblems
-    pricing_strategy = get_pricing_strategy(context, phase)
-    sp_to_solve_it = pricing_strategy_iterate(pricing_strategy)
-
-    # All generated columns will be stored in the following container. We will insert them
-    # into the master after the optimization of the pricing subproblems.
-    generated_columns = set_of_columns(context)
-
     # TODO: check the compatibility of the pricing strategy and the stabilization.
 
     misprice = true # because we need to run the pricing at least once.
     # This variable is updated at the end of the pricing loop.
     # If there is no stabilization, the pricing loop is run only once.
-
+    
     while misprice
+
+        # Compute reduced cost (generic operation) by you must support math operations.
+        c = get_subprob_var_orig_costs(context)
+        A = get_subprob_var_coef_matrix(context)
+        red_costs = c - transpose(A) * mast_dual_sol
+
+        # Updates subproblems reduced costs.
+        for (_, sp) in get_pricing_subprobs(context)
+            update_sp_vars_red_costs!(context, sp, red_costs)
+        end
+
+        # To compute the master dual bound, we need a dual bound to each pricing subproblems.
+        # So we ask for an initial dual bound for each pricing subproblem that we update when
+        # solving the pricing subproblem.
+        # Depending on the pricing strategy, the user can choose to solve only some subproblems.
+        # If the some subproblems have not been solved, we use this initial dual bound to
+        # compute the master dual bound.
+        sps_db = Dict(sp_id => compute_sp_init_db(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
+
+        sps_pb = Dict(sp_id => compute_sp_init_pb(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
+
+        # Solve pricing subproblems
+        pricing_strategy = get_pricing_strategy(context, phase)
+        sp_to_solve_it = pricing_strategy_iterate(pricing_strategy)
+
+        # All generated columns will be stored in the following container. We will insert them
+        # into the master after the optimization of the pricing subproblems.
+        generated_columns = set_of_columns(context)
+
+        
         while !isnothing(sp_to_solve_it)
             (sp_id, sp_to_solve), state = sp_to_solve_it
             optimizer = get_pricing_subprob_optimizer(stage, sp_to_solve)
@@ -387,6 +389,16 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
             sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
         end
 
+        master_lp_obj_val = get_obj_val(mast_result)
+
+        # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
+        valid_db = compute_dual_bound(context, phase, get_obj_val(mast_result), sps_db, mast_dual_sol)
+    
+        # pseudo dual bound is used for stabilization only.
+        pseudo_db = compute_dual_bound(context, phase, get_obj_val(mast_result), sps_pb, mast_dual_sol)
+
+        update_stabilization_after_pricing_optim!(stab, valid_db, pseudo_db, mast_dual_sol)
+
         # We have finished to solve all pricing subproblems.
         # If we have stabilization, we need to check if we have misprice.
         # If we have misprice, we need to update the stabilization center and solve again
@@ -394,8 +406,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # If we don't have misprice, we can stop the pricing loop.
         misprice = check_misprice(stab, generated_columns, mast_dual_sol)
         if misprice
-            mast_dual_sol = update_stabilization_after_pricing_optim!(stab, phase, mast_dual_sol)
-            sp_to_solve_it = pricing_strategy_iterate(pricing_strategy)
+            mast_dual_sol = update_stabilization_after_misprice!(stab, phase, mast_dual_sol)
         end
     end
 
@@ -404,14 +415,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
     nb_cols_inserted = length(col_ids)
 
-    master_lp_obj_val = get_obj_val(mast_result)
-
-    # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
-    valid_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db, mast_dual_sol)
-
-    # pseudo dual bound is used for stabilization only.
-    pseudo_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_pb, mast_dual_sol)
     update_stabilization_after_iter!(stab, pseudo_db)
 
-    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
+    return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
 end

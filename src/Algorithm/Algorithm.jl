@@ -40,6 +40,7 @@ include("colgenstabilization.jl")
 
 # Column generation
 include("colgen/utils.jl")
+include("colgen/stabilization.jl")
 include("colgen/default.jl")
 include("colgen/printer.jl")
 include("colgen.jl")

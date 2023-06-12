@@ -9,6 +9,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     stages_pricing_solver_ids::Vector{Int}
 
     reduced_cost_helper::ReducedCostsCalculationHelper
+    subgradient_helper::SubgradientCalculationHelper
 
     show_column_already_inserted_warning::Bool
     throw_column_already_inserted_warning::Bool
@@ -27,6 +28,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     # redcost_mem
     function ColGenContext(reform, alg)
         rch = ReducedCostsCalculationHelper(getmaster(reform))
+        sh = SubgradientCalculationHelper(getmaster(reform))
         return new(
             reform, 
             getobjsense(reform), 
@@ -35,6 +37,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             alg.restr_master_optimizer_id,
             alg.stages_pricing_solver_ids,
             rch,
+            sh,
             alg.show_column_already_inserted_warning,
             alg.throw_column_already_inserted_warning,
             alg.max_nb_iterations,
