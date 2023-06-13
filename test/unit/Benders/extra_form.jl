@@ -146,7 +146,7 @@ function benders_form_location_routing_fixed_opt()
             local_art_of_open1, local_art_of_open2, local_art_of_open3, local_art_of_open4, local_art_of_open5, local_art_of_open6, local_art_of_open7, local_art_of_open8, local_art_of_open9, local_art_of_open10, local_art_of_open11, local_art_of_open12, local_art_of_cov1, local_art_of_cov2, local_art_of_cov3, local_art_of_cov4, local_art_of_cov5, local_art_of_limit_nb_routes1, local_art_of_limit_nb_routes2, local_art_of_limit_nb_routes3
 
     bounds
-        -Inf <= z <= Inf
+        175.16666666666666 <= z <= 175.16666666666666
         0.5 <= x11 <= 0.5
         0.5 <= x12 <= 0.5
         0.49999 <= x13 <= 0.49999

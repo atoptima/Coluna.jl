@@ -1071,9 +1071,10 @@ register!(unit_tests, "benders_default", test_two_identicals_cut_at_two_iteratio
 
 struct TestBendersIterationContext <: Coluna.Benders.AbstractBendersContext
     context::ClA.BendersContext
+    master ##Formulation{Benders...}
+    sps ##Dict{Int16, Coluna.ColunaBase.AbstractModel} 
     first_stage_sol::Dict{String, Float64} ## id of variable, value
-    second_stage_sols::Dict{String, Float64} ##id of sp, id of variable, value
-    second_stage_dual_vals::Dict{String, Float64} ##id of sp, value ## TODO: see if useless ?
+    second_stage_sols::Dict{String, Float64} ##id of variable, value
 end
 
 Coluna.Benders.get_master(ctx::TestBendersIterationContext) = Coluna.Benders.get_master(ctx.context)
@@ -1106,7 +1107,30 @@ Coluna.Benders.push_in_set!(ctx::TestBendersIterationContext, set::Coluna.Algori
 
 Coluna.Benders.insert_cuts!(reform, ctx::TestBendersIterationContext, cuts) = Coluna.Benders.insert_cuts!(reform, ctx.context, cuts)
 
-Coluna.Benders.build_primal_solution(ctx::TestBendersIterationContext, mast_primal_sol, sep_sp_sols) = Coluna.Benders.build_primal_solution(ctx.context, mast_primal_sol, sep_sp_sols)
+function Coluna.Benders.build_primal_solution(ctx::TestBendersIterationContext, mast_primal_sol, sep_sp_sols) 
+    output = Coluna.Benders.build_primal_solution(ctx.context, mast_primal_sol, sep_sp_sols)
+    for (varid, val) in mast_primal_sol
+        name = getname(ctx.master, varid)
+        if haskey(ctx.first_stage_sol, name)
+            @test ctx.first_stage_sol[name] ≈ val
+        else
+            @test 0.0 <= val <= 1.0e-4
+        end
+    end
+    for (_, sp) in ctx.sps
+        for sp_sol in sep_sp_sols.sols
+            for (varid, val) in sp_sol
+                name = getname(sp, varid)
+                if haskey(ctx.second_stage_sols, name)
+                    @test ctx.second_stage_sols[name] ≈ val
+                else
+                    @test 0.0 <= val <= 1.0e-4
+                end
+            end
+        end
+    end
+    return output
+end
 
 Coluna.Benders.benders_iteration_output_type(ctx::TestBendersIterationContext) = Coluna.Benders.benders_iteration_output_type(ctx.context)
 
@@ -1117,19 +1141,21 @@ Coluna.Benders.set_of_cuts(ctx::TestBendersIterationContext) = Coluna.Benders.se
 Coluna.Benders.set_of_sep_sols(ctx::TestBendersIterationContext) = Coluna.Benders.set_of_sep_sols(ctx.context)
 
 
-Coluna.Benders.build_primal_solution(ctx::TestBendersIterationContext, mast_primal_sol, sep_sp_sols) = Coluna.Benders.build_primal_solution(ctx.context, mast_primal_sol, sep_sp_sols)
-
 ## checks cuts
 
 ## stop criterion because of opt. sol found is matched
 function benders_default_opt_stop()
     env, reform = benders_form_location_routing_fixed_opt()
+    master = ClMP.getmaster(reform)
+    sps = ClMP.get_benders_sep_sps(reform)
+
     ## sol fully fixed
     ##expected sol
     first_stage_sol = Dict(
         "y1" => 0.5,
         "y2" => 0.0,  
-        "y3" => 0.33333 
+        "y3" => 0.3333,
+        "z" => 175.16666666666666
     )
     second_stage_sols = Dict(
         "x11" => 0.5, 
@@ -1139,11 +1165,7 @@ function benders_default_opt_stop()
         "x31" => 0.33333, 
         "x32" => 0.33333, 
         "x33" => 0.16666, 
-        "x34" => 1/3
-    )
-
-    second_stage_dual_vals = Dict(
-        "sp" => 0.0 ## TODO change
+        "x34" =>  0.33333
     )
 
     alg = Coluna.Algorithm.BendersCutGeneration(
@@ -1153,9 +1175,10 @@ function benders_default_opt_stop()
         Coluna.Algorithm.BendersContext(
             reform, alg
         ),
+        master,
+        sps,
         first_stage_sol,
-        second_stage_sols,
-        second_stage_dual_vals
+        second_stage_sols
     )
 
     master = Coluna.MathProg.getmaster(reform)
@@ -1168,8 +1191,8 @@ function benders_default_opt_stop()
 
     Coluna.set_optim_start_time!(env)
 
-    result = Coluna.Benders.run_benders_iteration!(ctx, 0, env, 0)
-    @show result.ip_primal_sol
+    result = Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    @test result.master ≈ 293.4956666
 end
 register!(unit_tests, "benders_default", benders_default_opt_stop, f = true)
 
