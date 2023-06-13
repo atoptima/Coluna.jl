@@ -1,3 +1,11 @@
+# Coluna 0.6.2
+
+This is a minor update but some changes may affect the integration of external algorithms
+with Coluna.
+
+Changes:
+- Column generation stabilization is back.
+
 # Coluna 0.6.1
 
 This is a minor update but some changes may affect the integration of external algorithms 
