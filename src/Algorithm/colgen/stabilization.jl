@@ -31,7 +31,7 @@ mutable struct ColGenStab{F}
     stab_center_for_next_iteration::Union{Nothing,MathProg.DualSolution{F}} # to keep temporarily stab. center after update
 
     ColGenStab(master::F) where {F} = new{F}(
-        1, 0.5, 0.0, 0, MathProg.DualBound(master), MathProg.DualBound(master), nothing, nothing, nothing
+        1.0, 0.8, 0.0, 0, MathProg.DualBound(master), MathProg.DualBound(master), nothing, nothing, nothing
     )
 end
 
@@ -44,14 +44,18 @@ function ColGen.update_stabilization_after_master_optim!(stab::ColGenStab, phase
 
     if isnothing(stab.cur_stab_center)
         stab.cur_stab_center = mast_dual_sol
-        return mast_dual_sol
+        return false
     end
 
     # TODO: this initialisation is not very clear.
     # We need a better differenciation between "Smoothing with a self adjusting parameter" and
     # "Smoothing with a fixed parameter".
     stab.cur_α = stab.smooth_factor === 1.0 ? stab.base_α : stab.smooth_factor
-    return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol 
+    return stab.cur_α > 0
+end
+
+function ColGen.get_master_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
+    return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol
 end
 
 function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, master, valid_db, pseudo_db, mast_dual_sol)
@@ -66,7 +70,7 @@ function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, mast
     return
 end
 
-ColGen.check_misprice(::ColGenStab, generated_cols, mast_dual_sol) = length(generated_cols.columns) == 0
+ColGen.check_misprice(stab::ColGenStab, generated_cols, mast_dual_sol) = length(generated_cols.columns) == 0 && stab.cur_α > 0.0
 
 function _misprice_schedule(smooth_factor, nb_misprices, cur_α)
     α = 0
@@ -91,11 +95,18 @@ function _misprice_schedule(smooth_factor, nb_misprices, cur_α)
     return α
 end
 
+function ColGen.get_master_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
+    if stab.smooth_factor == 1
+        return mast_dual_sol
+    end
+    return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol
+end
+
 function ColGen.update_stabilization_after_misprice!(stab::ColGenStab, mast_dual_sol)
     stab.nb_misprices += 1
     α = _misprice_schedule(stab.smooth_factor, stab.nb_misprices, stab.cur_α)
     stab.cur_α = α
-    return α * stab.cur_stab_center + (1 - α) * mast_dual_sol
+    return
 end
 
 f_decr(α) = max(0.0, α - 0.1)

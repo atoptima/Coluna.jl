@@ -53,6 +53,8 @@ function ColGen.update_sp_vars_red_costs!(ctx::ColGenPrinterContext, sp::Formula
     return ColGen.update_sp_vars_red_costs!(ctx.inner, sp, red_costs)
 end
 
+ColGen.update_reduced_costs!(ctx::ColGenPrinterContext, phase, red_costs) = ColGen.update_reduced_costs!(ctx.inner, phase, red_costs)
+
 function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, columns)
     col_ids = ColGen.insert_columns!(reform, ctx.inner, phase, columns)
     if ctx.print_column_reduced_cost
@@ -95,15 +97,15 @@ function ColGen.push_in_set!(ctx::ColGenPrinterContext, set, col)
     return ColGen.push_in_set!(ctx.inner, set, col)
 end
 
-function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol)
+function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     ctx.sp_elapsed_time = @elapsed begin
-        output = ColGen.optimize_pricing_problem!(ctx.inner, sp, env, optimizer, master_dual_sol)
+        output = ColGen.optimize_pricing_problem!(ctx.inner, sp, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     end
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::ColGenPrinterContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.inner, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::ColGenPrinterContext, phase, sp_dbs, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.inner, phase, sp_dbs, master_dual_sol)
 end
 
 function ColGen.colgen_iteration_output_type(ctx::ColGenPrinterContext)
@@ -175,7 +177,7 @@ function _colgen_iter_str(
 end
 
 function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output)
-    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), stab.cur_α))
+    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), stab.base_α))
     return
 end
 

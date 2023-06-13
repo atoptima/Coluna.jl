@@ -176,6 +176,11 @@ Dual values of the constraints can be used when the pricing solver supports non-
 @mustimplement "ColGenReducedCosts" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
 
 """
+Updates reduced costs of the master variables.
+"""
+@mustimplement "ColGenReducedCosts" update_reduced_costs!(context, phase, red_costs) = nothing
+
+"""
 Returns the original cost `c` of subproblems variables.
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
@@ -221,7 +226,7 @@ The dual bound is composed of:
 - `master_dbs`: dual values of the pricing subproblems
 - the contribution of the master convexity constraints that you should compute from `mast_dual_sol`.
 """
-@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) = nothing
+@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_dbs, mast_dual_sol) = nothing
 
 abstract type AbstractColGenIterationOutput end
 
@@ -304,8 +309,16 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     # non-robust cuts.
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
+    # Compute reduced cost (generic operation) by you must support math operations.
+    # using the master dual solution.
+    c = get_subprob_var_orig_costs(context)
+    A = get_subprob_var_coef_matrix(context)
+    red_costs = c - transpose(A) * mast_dual_sol
+    update_reduced_costs!(context, phase, red_costs)
+    
     # Stabilization
-    mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
+    stab_changes_mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
+    cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol) 
 
     # TODO: check the compatibility of the pricing strategy and the stabilization.
 
@@ -318,17 +331,20 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     misprice = true # because we need to run the pricing at least once.
     # This variable is updated at the end of the pricing loop.
     # If there is no stabilization, the pricing loop is run only once.
-    
-    while misprice
 
-        # Compute reduced cost (generic operation) by you must support math operations.
-        c = get_subprob_var_orig_costs(context)
-        A = get_subprob_var_coef_matrix(context)
-        red_costs = c - transpose(A) * mast_dual_sol
+    while misprice
+        # We will optimize the pricing subproblem using the master dual solution returned
+        # by the stabilization. We this need to recompute the reduced cost of the subproblem
+        # variables if the stabilization changes the master dual solution.
+        cur_red_costs = if stab_changes_mast_dual_sol
+            c - transpose(A) * cur_mast_dual_sol
+        else
+            red_costs
+        end
 
         # Updates subproblems reduced costs.
         for (_, sp) in get_pricing_subprobs(context)
-            update_sp_vars_red_costs!(context, sp, red_costs)
+            update_sp_vars_red_costs!(context, sp, cur_red_costs)
         end
 
         # To compute the master dual bound, we need a dual bound to each pricing subproblems.
@@ -339,6 +355,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # compute the master dual bound.
         sps_db = Dict(sp_id => compute_sp_init_db(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
 
+        # The primal bound is used to compute the psueudo dual bound (used by stabilization).
         sps_pb = Dict(sp_id => compute_sp_init_pb(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
 
         # Solve pricing subproblems
@@ -348,7 +365,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         while !isnothing(sp_to_solve_it)
             (sp_id, sp_to_solve), state = sp_to_solve_it
             optimizer = get_pricing_subprob_optimizer(stage, sp_to_solve)
-            pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, optimizer, mast_dual_sol)
+            pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, optimizer, mast_dual_sol, stab_changes_mast_dual_sol)
 
             # Iteration continues only if the pricing solution is not infeasible nor unbounded.
             if is_infeasible(pricing_result)
@@ -388,10 +405,10 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         end
 
         # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
-        valid_db = compute_dual_bound(context, phase, get_obj_val(mast_result), sps_db, mast_dual_sol)
+        valid_db = compute_dual_bound(context, phase, sps_db, mast_dual_sol)
     
         # pseudo dual bound is used for stabilization only.
-        pseudo_db = compute_dual_bound(context, phase, get_obj_val(mast_result), sps_pb, mast_dual_sol)
+        pseudo_db = compute_dual_bound(context, phase, sps_pb, mast_dual_sol)
 
         update_stabilization_after_pricing_optim!(stab, master, valid_db, pseudo_db, mast_dual_sol)
 
@@ -402,7 +419,8 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # If we don't have misprice, we can stop the pricing loop.
         misprice = check_misprice(stab, generated_columns, mast_dual_sol)
         if misprice
-            mast_dual_sol = update_stabilization_after_misprice!(stab, mast_dual_sol)
+            update_stabilization_after_misprice!(stab, mast_dual_sol)
+            cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
             generated_columns = set_of_columns(context) # TODO: not sure because seems redoundant: no cols in set => misprice
         end
     end

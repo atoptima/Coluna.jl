@@ -70,7 +70,7 @@ Returns a custom object `PricingResult` that must implement the following functi
 
 TODO: talk about master_dual_sol
 """
-@mustimplement "ColGenPricing" optimize_pricing_problem!(ctx, sp, env, optimizer, mast_dual_sol) = nothing
+@mustimplement "ColGenPricing" optimize_pricing_problem!(ctx, sp, env, optimizer, mast_dual_sol, stab_changes_mast_dual_sol) = nothing
 
 "Array of primal solutions to the pricing subproblem"
 @mustimplement "ColGenPricing" get_primal_sols(pricing_res) = nothing

@@ -4,7 +4,7 @@ function gap_toy_instance()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            branchingtreefile = "playgap.dot"
+            branchingtreefile = "playgap.dot",
         )),
         "default_optimizer" => GLPK.Optimizer
     )
@@ -23,7 +23,7 @@ function gap_toy_instance()
     @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
     @test MOI.get(model, MOI.SolverName()) == "Coluna"
 end
-register!(e2e_tests, "gap", gap_toy_instance)
+register!(e2e_tests, "gap", gap_toy_instance; f = true)
 
 function gap_strong_branching()
     println("\e[45m gap strong branching \e[00m")
