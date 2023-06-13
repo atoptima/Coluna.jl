@@ -302,7 +302,7 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol) ##TODO: remo
             return new_iteration_output(O, is_min_sense, 0, nothing, true, false, nothing)
         end
 
-        second_stage_cost += get_obj_val(sep_result)
+        second_stage_cost += get_obj_val(sep_result) ## update η = sum of the costs of the subproblems given a fixed 1st level solution
 
         # Push generated dual sol and cut in the context.
         nb_cuts_pushed = 0
