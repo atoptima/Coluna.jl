@@ -9,6 +9,7 @@ abstract type AbstractColGenContext end
 include("stages.jl")
 include("phases.jl")
 include("pricing.jl")
+include("stabilization.jl")
 include("interface.jl")
 
 end

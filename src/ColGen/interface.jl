@@ -27,7 +27,7 @@ Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, colgen_iter_output) = nothing
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
 
 abstract type AbstractColGenPhaseOutput end
 
@@ -47,17 +47,17 @@ abstract type AbstractColGenOutput end
 
 @mustimplement "ColGen" stop_colgen(context, phase_output) = nothing
 
-function run_colgen_phase!(context, phase, stage, env, ip_primal_sol; iter = 1)
+function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter = 1)
     iteration = iter
     colgen_iter_output = nothing
     while !stop_colgen_phase(context, phase, env, colgen_iter_output, iteration)
         before_colgen_iteration(context, phase)
-        colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
+        colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         new_ip_primal_sol = get_master_ip_primal_sol(colgen_iter_output)
         if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
         end
-        after_colgen_iteration(context, phase, stage, env, iteration, colgen_iter_output)
+        after_colgen_iteration(context, phase, stage, env, iteration, stab, colgen_iter_output)
         iteration += 1
     end
     O = colgen_phase_output_type(context)
@@ -69,12 +69,13 @@ function run!(context, env, ip_primal_sol; iter = 1)
     phase = initial_phase(phase_it)
     stage_it = new_stage_iterator(context)
     stage = initial_stage(stage_it)
+    stab = setup_stabilization!(context, get_master(context))
     phase_output = nothing
     while !isnothing(phase) && !stop_colgen(context, phase_output) && !isnothing(stage)
         setup_reformulation!(get_reform(context), phase)
         setup_context!(context, phase)
         last_iter = isnothing(phase_output) ? iter : phase_output.nb_iterations
-        phase_output = run_colgen_phase!(context, phase, stage, env, ip_primal_sol; iter = last_iter)
+        phase_output = run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter = last_iter)
         ip_primal_sol = ColGen.get_master_ip_primal_sol(phase_output)
         phase = next_phase(phase_it, phase, phase_output)
         stage = next_stage(stage_it, stage, phase_output)
@@ -175,6 +176,11 @@ Dual values of the constraints can be used when the pricing solver supports non-
 @mustimplement "ColGenReducedCosts" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
 
 """
+Updates reduced costs of the master variables.
+"""
+@mustimplement "ColGenReducedCosts" update_reduced_costs!(context, phase, red_costs) = nothing
+
+"""
 Returns the original cost `c` of subproblems variables.
 to compute reduced cost `̄c = c - transpose(A) * π`.
 """
@@ -220,7 +226,7 @@ The dual bound is composed of:
 - `master_dbs`: dual values of the pricing subproblems
 - the contribution of the master convexity constraints that you should compute from `mast_dual_sol`.
 """
-@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) = nothing
+@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_dbs, mast_dual_sol) = nothing
 
 abstract type AbstractColGenIterationOutput end
 
@@ -256,7 +262,7 @@ _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 """
     run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
 """
-function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
+function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     master = get_master(context)
     is_min_sense = is_minimization(context)
     mast_result = optimize_master_lp_problem!(master, context, env)
@@ -299,83 +305,124 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
         # error or stop? (depends on the context)
     end
 
-    # TODO discussion.
-    # Do we need this method?
-    # I think we can just pass the master LP dual solution to the pricing solver. 
+    # Stores dual solution in the constraint. This is used when the pricing solver supports
+    # non-robust cuts.
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
-    # Stabilization
-    # initialize stabilisation for the iteration
-    # update_stab_after_rm_solve! 
-    # stabcenter is master_dual_sol
-    # return alpha * stab_center + (1 - alpha) * lp_dual_sol
-
-    # With stabilization, you solve several times the suproblem because you can have misprice
-    # loop:
-    #   - solve all subproblems 
-    #   - check if misprice 
-
     # Compute reduced cost (generic operation) by you must support math operations.
+    # using the master dual solution.
     c = get_subprob_var_orig_costs(context)
     A = get_subprob_var_coef_matrix(context)
     red_costs = c - transpose(A) * mast_dual_sol
+    update_reduced_costs!(context, phase, red_costs)
+    
+    # Stabilization
+    stab_changes_mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
+    cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol) 
 
-    # Updates subproblems reduced costs.
-    for (_, sp) in get_pricing_subprobs(context)
-        update_sp_vars_red_costs!(context, sp, red_costs)
-    end
-
-    # To compute the master dual bound, we need a dual bound to each pricing subproblems.
-    # So we ask for an initial dual bound for each pricing subproblem that we update when
-    # solving the pricing subproblem.
-    # Depending on the pricing strategy, the user can choose to solve only some subproblems.
-    # If the some subproblems have not been solved, we use this initial dual bound to
-    # compute the master dual bound.
-    sps_db = Dict(sp_id => compute_sp_init_db(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
-
-    # Solve pricing subproblems
-    pricing_strategy = get_pricing_strategy(context, phase)
-    sp_to_solve_it = pricing_strategy_iterate(pricing_strategy)
+    # TODO: check the compatibility of the pricing strategy and the stabilization.
 
     # All generated columns will be stored in the following container. We will insert them
     # into the master after the optimization of the pricing subproblems.
     generated_columns = set_of_columns(context)
 
-    while !isnothing(sp_to_solve_it)
-        (sp_id, sp_to_solve), state = sp_to_solve_it
-        optimizer = get_pricing_subprob_optimizer(stage, sp_to_solve)
-        pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, optimizer, mast_dual_sol)
+    valid_db = nothing
 
-        # Iteration continues only if the pricing solution is not infeasible nor unbounded.
-        if is_infeasible(pricing_result)
-            # TODO: if the lower multiplicity of the subproblem is zero, we can continue.
-            return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, false, false, true, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
-        elseif is_unbounded(pricing_result)
-            # We do not support unbounded pricing (even if it's theorically possible).
-            # We must stop Coluna here by throwing an exception because we can't claim
-            # the problem is unbounded.
-            throw(UnboundedProblemError("Unbounded subproblem."))
+    misprice = true # because we need to run the pricing at least once.
+    # This variable is updated at the end of the pricing loop.
+    # If there is no stabilization, the pricing loop is run only once.
+
+    while misprice
+        # We will optimize the pricing subproblem using the master dual solution returned
+        # by the stabilization. We this need to recompute the reduced cost of the subproblem
+        # variables if the stabilization changes the master dual solution.
+        cur_red_costs = if stab_changes_mast_dual_sol
+            c - transpose(A) * cur_mast_dual_sol
+        else
+            red_costs
         end
 
-        check_pricing_termination_status(pricing_result)
+        # Updates subproblems reduced costs.
+        for (_, sp) in get_pricing_subprobs(context)
+            update_sp_vars_red_costs!(context, sp, cur_red_costs)
+        end
 
-        primal_sols = get_primal_sols(pricing_result)
-        nb_cols_pushed = 0
-        for primal_sol in primal_sols # multi column generation support.
-            # The implementation  is reponsible for checking if the column is a candidate
-            # for insertion into the master.
-            if push_in_set!(context, generated_columns, primal_sol)
-                nb_cols_pushed += 1
+        # To compute the master dual bound, we need a dual bound to each pricing subproblems.
+        # So we ask for an initial dual bound for each pricing subproblem that we update when
+        # solving the pricing subproblem.
+        # Depending on the pricing strategy, the user can choose to solve only some subproblems.
+        # If the some subproblems have not been solved, we use this initial dual bound to
+        # compute the master dual bound.
+        sps_db = Dict(sp_id => compute_sp_init_db(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
+
+        # The primal bound is used to compute the psueudo dual bound (used by stabilization).
+        sps_pb = Dict(sp_id => compute_sp_init_pb(context, sp) for (sp_id, sp) in get_pricing_subprobs(context))
+
+        # Solve pricing subproblems
+        pricing_strategy = get_pricing_strategy(context, phase)
+        sp_to_solve_it = pricing_strategy_iterate(pricing_strategy)
+        
+        while !isnothing(sp_to_solve_it)
+            (sp_id, sp_to_solve), state = sp_to_solve_it
+            optimizer = get_pricing_subprob_optimizer(stage, sp_to_solve)
+            pricing_result = optimize_pricing_problem!(context, sp_to_solve, env, optimizer, mast_dual_sol, stab_changes_mast_dual_sol)
+
+            # Iteration continues only if the pricing solution is not infeasible nor unbounded.
+            if is_infeasible(pricing_result)
+                # TODO: if the lower multiplicity of the subproblem is zero, we can continue.
+                return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, false, false, true, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
+            elseif is_unbounded(pricing_result)
+                # We do not support unbounded pricing (even if it's theorically possible).
+                # We must stop Coluna here by throwing an exception because we can't claim
+                # the problem is unbounded.
+                throw(UnboundedProblemError("Unbounded subproblem."))
             end
+
+            check_pricing_termination_status(pricing_result)
+
+            primal_sols = get_primal_sols(pricing_result)
+            nb_cols_pushed = 0
+            for primal_sol in primal_sols # multi column generation support.
+                # The implementation  is reponsible for checking if the column is a candidate
+                # for insertion into the master.
+                if push_in_set!(context, generated_columns, primal_sol)
+                    nb_cols_pushed += 1
+                end
+            end
+
+            # Updates the initial bound if the pricing subproblem result has a dual bound.
+            sp_db = get_dual_bound(pricing_result)
+            if !isnothing(sp_db)
+                sps_db[sp_id] = sp_db
+            end
+
+            sp_pb = get_primal_bound(pricing_result)
+            if !isnothing(sp_pb)
+                sps_pb[sp_id] = sp_pb
+            end
+
+            sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
         end
 
-        # Updates the initial bound if the pricing subproblem result has a dual bound.
-        sp_db = get_dual_bound(pricing_result)
-        if !isnothing(sp_db)
-            sps_db[sp_id] = sp_db
-        end
+        # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
+        valid_db = compute_dual_bound(context, phase, sps_db, mast_dual_sol)
+    
+        # pseudo dual bound is used for stabilization only.
+        pseudo_db = compute_dual_bound(context, phase, sps_pb, mast_dual_sol)
 
-        sp_to_solve_it = pricing_strategy_iterate(pricing_strategy, state)
+        update_stabilization_after_pricing_optim!(stab, master, valid_db, pseudo_db, mast_dual_sol)
+
+        # We have finished to solve all pricing subproblems.
+        # If we have stabilization, we need to check if we have misprice.
+        # If we have misprice, we need to update the stabilization center and solve again
+        # the pricing subproblems.
+        # If we don't have misprice, we can stop the pricing loop.
+        misprice = check_misprice(stab, generated_columns, mast_dual_sol)
+        if misprice
+            update_stabilization_after_misprice!(stab, mast_dual_sol)
+            cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
+            generated_columns = set_of_columns(context) # TODO: not sure because seems redoundant: no cols in set => misprice
+        end
     end
 
     # Insert columns into the master.
@@ -383,16 +430,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol)
     col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
     nb_cols_inserted = length(col_ids)
 
-    master_lp_obj_val = get_obj_val(mast_result)
+    update_stabilization_after_iter!(stab, context, master, generated_columns, mast_dual_sol)
 
-    # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
-    valid_db = compute_dual_bound(context, phase, master_lp_obj_val, sps_db, mast_dual_sol)
-
-    pseudo_db = 0 # same but using primal bound of the pricing result.
-    # pseudo_db used only in the stabilization (update_stability_center!)
-
-    # update_stab_after_gencols!
-
-    return new_iteration_output(O, is_min_sense, master_lp_obj_val, valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
+    return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
 end
-
