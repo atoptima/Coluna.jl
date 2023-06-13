@@ -95,13 +95,6 @@ function _misprice_schedule(smooth_factor, nb_misprices, cur_α)
     return α
 end
 
-function ColGen.get_master_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
-    if stab.smooth_factor == 1
-        return mast_dual_sol
-    end
-    return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol
-end
-
 function ColGen.update_stabilization_after_misprice!(stab::ColGenStab, mast_dual_sol)
     stab.nb_misprices += 1
     α = _misprice_schedule(stab.smooth_factor, stab.nb_misprices, stab.cur_α)
@@ -148,10 +141,9 @@ function _primal_solution(master::Formulation, generated_columns, is_minimizatio
     return sparsevec(var_ids, var_vals)
 end
 
-
 function _dynamic_alpha_schedule(
     stab::ColGenStab, smooth_dual_sol, h, primal_solution, is_minimization
-)   
+)
     # Calculate the in-sep direction.
     in_sep_direction = smooth_dual_sol - stab.cur_stab_center
     in_sep_dir_norm = norm(in_sep_direction)
