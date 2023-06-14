@@ -18,7 +18,7 @@ form1() = """
         x1 + x2 + x3 + y1 + y2 + y3 + 2z >= 10
         x1 + 2x2     + y1 + 2y2     + z <= 100
         x1 +     3x3 + y1 +    + 3y3    == 100
-                                    z <= 5   
+                                      z <= 5   
 
     dw_sp
         min
@@ -111,6 +111,78 @@ function test_reduced_costs_calculation_helper()
 end
 register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
+
+# Minimization and test all constraint senses
+form2() = """
+    master
+        min
+        3x1 + 2x2 + 5x3 + 4y1 + 3y2 + 5y3 + z1 + z2
+        s.t.
+        x1 + x2 + x3 + y1 + y2 + y3 + 2z1 + z2 >= 10
+        x1 + 2x2     + y1 + 2y2     + z1       <= 100
+        x1 +     3x3 + y1 +    + 3y3           == 100
+                                      z1  + z2 <= 5   
+
+    dw_sp
+        min
+        x1 + x2 + x3 + y1 + y2 + y3
+        s.t.
+        x1 + x2 + x3 + y1 + y2 + y3 >= 10
+        
+        integer
+            representatives
+                x1, x2, x3, y1, y2, y3
+
+            pure
+                z1, z2
+        
+        bounds
+            x1 >= 0
+            x2 >= 0
+            x3 >= 0
+            y1 >= 0
+            y2 >= 0
+            y3 >= 0
+            z1 >= 0
+            z2 >= 3
+"""
+
+function test_subgradient_calculation_helper()
+    _, master, _, _, _ = reformfromstring(form2())
+
+    vids = get_name_to_varids(master)
+    cids = get_name_to_constrids(master)
+
+    helper = ClA.SubgradientCalculationHelper(master)
+    @test helper.a[cids["c1"]] == 10
+    @test helper.a[cids["c2"]] == 100
+    @test helper.a[cids["c3"]] == 100
+    @test helper.a[cids["c4"]] == 5
+
+    @test helper.A[cids["c1"], vids["x1"]] == 1
+    @test helper.A[cids["c1"], vids["x2"]] == 1
+    @test helper.A[cids["c1"], vids["x3"]] == 1
+    @test helper.A[cids["c1"], vids["y1"]] == 1
+    @test helper.A[cids["c1"], vids["y2"]] == 1
+    @test helper.A[cids["c1"], vids["y3"]] == 1
+    @test helper.A[cids["c1"], vids["z1"]] == 2
+    @test helper.A[cids["c1"], vids["z2"]] == 1
+    @test helper.A[cids["c2"], vids["x1"]] == 1
+    @test helper.A[cids["c2"], vids["x2"]] == 2
+    @test helper.A[cids["c2"], vids["y1"]] == 1
+    @test helper.A[cids["c2"], vids["y2"]] == 2
+    @test helper.A[cids["c2"], vids["z1"]] == 1
+    @test helper.A[cids["c2"], vids["z2"]] == 0
+    @test helper.A[cids["c3"], vids["x1"]] == 1
+    @test helper.A[cids["c3"], vids["x3"]] == 3
+    @test helper.A[cids["c3"], vids["y1"]] == 1
+    @test helper.A[cids["c3"], vids["y3"]] == 3
+    @test helper.A[cids["c3"], vids["z1"]] == 0
+    @test helper.A[cids["c3"], vids["z2"]] == 0
+    @test helper.A[cids["c4"], vids["z1"]] == 1
+    @test helper.A[cids["c4"], vids["z2"]] == 1
+end
+register!(unit_tests, "colgen_default", test_subgradient_calculation_helper)
 
 # All the tests are based on the Generalized Assignment problem.
 # x_mj = 1 if job j is assigned to machine m
