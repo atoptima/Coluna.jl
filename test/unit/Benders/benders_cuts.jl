@@ -89,12 +89,9 @@ function test_benders_form_D()
     @test result.mlp ≈ 3.909090909090909
 
 end
-register!(unit_tests, "benders_default", test_benders_form_D, f = true)
+register!(unit_tests, "benders_default", test_benders_form_D)
 
-function test_benders_feasibility_cut()
 
-end
-register!(unit_tests, "benders_default", test_benders_feasibility_cut)
 
 function get_name_to_constrids(form)
     d = Dict{String, ClMP.ConstrId}()
@@ -113,16 +110,12 @@ function get_name_to_varsids(form)
 end
 
 
-function test_benders_optimality_cut()
-    env, reform = benders_form_D()
+function test_benders_cut_lhs()
+    _, reform = benders_form_D()
     master = Coluna.MathProg.getmaster(reform)
-    @show master
     sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 3
     sp = sps[3]
-    @show sp
     cids = get_name_to_constrids(sp)
-    vids = get_name_to_varsids(sp)
-    @show keys(cids)
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 100,
     )
@@ -140,10 +133,33 @@ function test_benders_optimality_cut()
     )
 
     coeff_cut_lhs = Coluna.Algorithm._compute_cut_lhs(ctx, sp, dual_sol, false) ##opt cut
-    @show coeff_cut_lhs
     @test 9 in values(coeff_cut_lhs)
     @test -1 in values(coeff_cut_lhs)
     @test 1.0 in values(coeff_cut_lhs) ## η
+    coeff_cut_lhs = Coluna.Algorithm._compute_cut_lhs(ctx, sp, dual_sol, true) ##feas cut
+    @test 9 in values(coeff_cut_lhs)
+    @test -1 in values(coeff_cut_lhs)
+    @test 0.0 in values(coeff_cut_lhs) ## η
+
+
+end
+register!(unit_tests, "benders_default", test_benders_cut_lhs)
+
+
+function test_benders_cut_rhs()
+
+    _, reform = benders_form_D()
+    master = Coluna.MathProg.getmaster(reform)
+    sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 3
+    sp = sps[3]
+    cids = get_name_to_constrids(sp)
+    vids = get_name_to_varsids(sp)
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100,
+    )
+    ctx = Coluna.Algorithm.BendersContext(
+        reform, alg, 
+    )
 
     dual_sol  = Coluna.MathProg.DualSolution(
         master,
@@ -156,5 +172,6 @@ function test_benders_optimality_cut()
 
     coeff_cut_rhs = Coluna.Algorithm._compute_cut_rhs_contrib(ctx, sp, dual_sol)
     @test coeff_cut_rhs == 27.0 + (1*10.0 + 1*5.0 + 2*2.0 + 3.0) ## πr + bounding_constraints ##TODO: update when we know how to deal with equalities in the rhs computation
+
 end
-register!(unit_tests, "benders_default", test_benders_optimality_cut, f = true)
+register!(unit_tests, "benders_default", test_benders_cut_rhs)
