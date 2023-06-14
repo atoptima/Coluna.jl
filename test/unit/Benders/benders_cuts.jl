@@ -116,6 +116,7 @@ function test_benders_cut_lhs()
     sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 3
     sp = sps[3]
     cids = get_name_to_constrids(sp)
+    vids = get_name_to_varsids(sp)
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 100,
     )
@@ -133,13 +134,13 @@ function test_benders_cut_lhs()
     )
 
     coeff_cut_lhs = Coluna.Algorithm._compute_cut_lhs(ctx, sp, dual_sol, false) ##opt cut
-    @test 9 in values(coeff_cut_lhs)
-    @test -1 in values(coeff_cut_lhs)
-    @test 1.0 in values(coeff_cut_lhs) ## η
+    @test coeff_cut_lhs[vids["x1"]] ≈ 9.0
+    @test coeff_cut_lhs[vids["x2"]] ≈ -1.0
+    @test coeff_cut_lhs[sp.duty_data.second_stage_cost_var] ≈ 1.0 ## η
     coeff_cut_lhs = Coluna.Algorithm._compute_cut_lhs(ctx, sp, dual_sol, true) ##feas cut
-    @test 9 in values(coeff_cut_lhs)
-    @test -1 in values(coeff_cut_lhs)
-    @test 0.0 in values(coeff_cut_lhs) ## η
+    @test coeff_cut_lhs[vids["x1"]] ≈ 9.0
+    @test coeff_cut_lhs[vids["x2"]] ≈ -1.0
+    @test coeff_cut_lhs[sp.duty_data.second_stage_cost_var] ≈ 0.0 ## η
 
 
 end
