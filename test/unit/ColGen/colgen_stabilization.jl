@@ -4,12 +4,12 @@
 # The goal is to tend to 0.0 after a given number of misprices.
 function test_misprice_schedule()
     smooth_factor = 1
-    nb_misprices = 0
-    α = 0.8
-    for i in 1:10
-        α = Coluna.Algorithm._misprice_schedule(smooth_factor, nb_misprices, α)
-        nb_misprices += 1
-        @show α
+    base_α = 0.8
+    prev_α = 0.8
+    for nb_misprices in 1:11
+        α = Coluna.Algorithm._misprice_schedule(smooth_factor, nb_misprices, base_α)
+        @test (prev_α > α) || (iszero(α) && iszero(prev_α))
+        prev_α = α
     end
     return
 end

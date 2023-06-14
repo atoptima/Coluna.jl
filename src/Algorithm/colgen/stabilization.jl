@@ -72,22 +72,11 @@ end
 
 ColGen.check_misprice(stab::ColGenStab, generated_cols, mast_dual_sol) = length(generated_cols.columns) == 0 && stab.cur_α > 0.0
 
-function _misprice_schedule(smooth_factor, nb_misprices, cur_α)
-    α = 0
-
-    # The following code was in the previous implementation but is not very clear.
-    # I don't understand how the smooth_factor can be negative because it's a user 
-    # parameter and it was immutable in the previous implementation.
-    # if smooth_factor < 0
-    #     α = 1.0 - (nb_misprices) * (1 - smooth_factor)
-    # else
-    #     α = 1.0 - (1.0 - cur_α) * 2
-    # end
-
+function _misprice_schedule(smooth_factor, nb_misprices, base_α)
     # Rule from the paper Pessoa et al. (α-schedule in a mis-pricing sequence, Step 1)
-    α = 1.0 - (nb_misprices) * (1 - smooth_factor)
+    α = 1.0 - (nb_misprices + 1) * (1 - base_α)
 
-    if nb_misprices > 10 || α <= 0.0
+    if nb_misprices > 10 || α <= 1e-3
         # After 10 mis-priced iterations, we deactivate stabilization to use the "real"
         # dual solution.
         α = 0.0
@@ -97,7 +86,7 @@ end
 
 function ColGen.update_stabilization_after_misprice!(stab::ColGenStab, mast_dual_sol)
     stab.nb_misprices += 1
-    α = _misprice_schedule(stab.smooth_factor, stab.nb_misprices, stab.cur_α)
+    α = _misprice_schedule(stab.smooth_factor, stab.nb_misprices, stab.base_α)
     stab.cur_α = α
     return
 end
