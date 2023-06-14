@@ -155,9 +155,9 @@ function test_subgradient_calculation_helper()
 
     helper = ClA.SubgradientCalculationHelper(master)
     @test helper.a[cids["c1"]] == 10
-    @test helper.a[cids["c2"]] == 100
+    @test helper.a[cids["c2"]] == -100
     @test helper.a[cids["c3"]] == 100
-    @test helper.a[cids["c4"]] == 5
+    @test helper.a[cids["c4"]] == -5
 
     @test helper.A[cids["c1"], vids["x1"]] == 1
     @test helper.A[cids["c1"], vids["x2"]] == 1
@@ -167,11 +167,11 @@ function test_subgradient_calculation_helper()
     @test helper.A[cids["c1"], vids["y3"]] == 1
     @test helper.A[cids["c1"], vids["z1"]] == 2
     @test helper.A[cids["c1"], vids["z2"]] == 1
-    @test helper.A[cids["c2"], vids["x1"]] == 1
-    @test helper.A[cids["c2"], vids["x2"]] == 2
-    @test helper.A[cids["c2"], vids["y1"]] == 1
-    @test helper.A[cids["c2"], vids["y2"]] == 2
-    @test helper.A[cids["c2"], vids["z1"]] == 1
+    @test helper.A[cids["c2"], vids["x1"]] == -1
+    @test helper.A[cids["c2"], vids["x2"]] == -2
+    @test helper.A[cids["c2"], vids["y1"]] == -1
+    @test helper.A[cids["c2"], vids["y2"]] == -2
+    @test helper.A[cids["c2"], vids["z1"]] == -1
     @test helper.A[cids["c2"], vids["z2"]] == 0
     @test helper.A[cids["c3"], vids["x1"]] == 1
     @test helper.A[cids["c3"], vids["x3"]] == 3
@@ -179,10 +179,10 @@ function test_subgradient_calculation_helper()
     @test helper.A[cids["c3"], vids["y3"]] == 3
     @test helper.A[cids["c3"], vids["z1"]] == 0
     @test helper.A[cids["c3"], vids["z2"]] == 0
-    @test helper.A[cids["c4"], vids["z1"]] == 1
-    @test helper.A[cids["c4"], vids["z2"]] == 1
+    @test helper.A[cids["c4"], vids["z1"]] == -1
+    @test helper.A[cids["c4"], vids["z2"]] == -1
 end
-register!(unit_tests, "colgen_default", test_subgradient_calculation_helper)
+register!(unit_tests, "colgen_default", test_subgradient_calculation_helper; f = true)
 
 # All the tests are based on the Generalized Assignment problem.
 # x_mj = 1 if job j is assigned to machine m

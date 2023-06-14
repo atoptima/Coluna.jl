@@ -47,7 +47,9 @@ function _submatrix(
     form::Formulation, 
     keep_constr::Function, 
     keep_var::Function,
+    m::Function = (form, is_min, constr_id, var_id) -> 1.0
 )
+    is_min = getobjsense(form) == MinSense
     matrix = getcoefmatrix(form)
     constr_ids = ConstrId[]
     var_ids = VarId[]
@@ -55,9 +57,10 @@ function _submatrix(
     for constr_id in Iterators.filter(keep_constr, Iterators.keys(getconstrs(form)))
         for (var_id, coeff) in @view matrix[constr_id, :]
             if keep_var(var_id)
+                c = m(form, is_min, constr_id, var_id)
                 push!(constr_ids, constr_id)
                 push!(var_ids, var_id)
-                push!(nz, coeff)
+                push!(nz, c * coeff)
             end
         end
     end
@@ -154,18 +157,34 @@ end
 function SubgradientCalculationHelper(master)
     constr_ids = ConstrId[]
     constr_rhs = Float64[]
+
+    m_rhs = (master, is_min, constr_id) -> begin
+        constr_sense = getcursense(master, constr_id)
+        if is_min
+            return constr_sense == Less ? -1.0 : 1.0
+        else
+            return constr_sense == Greater ? -1.0 : 1.0
+        end
+    end
+    m_submatrix = (master, is_min, constr_id, var_id) -> begin
+        m_rhs(master, is_min, constr_id)
+    end
+
+    is_min = getobjsense(master) == MinSense
     for (constr_id, constr) in getconstrs(master)
         if !(getduty(constr_id) <= MasterConvexityConstr) && 
            iscuractive(master, constr) && isexplicit(master, constr)
             push!(constr_ids, constr_id)
-            push!(constr_rhs, getcurrhs(master, constr_id))
+            push!(constr_rhs, m_rhs(master, is_min, constr_id) * getcurrhs(master, constr_id))
         end 
     end
+
     a = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
     A = _submatrix(
         master, 
         constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
-        var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
+        var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar,
+        m_submatrix
     )
     return SubgradientCalculationHelper(a, A)
 end
