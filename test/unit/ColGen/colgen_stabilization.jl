@@ -16,7 +16,7 @@ end
 register!(unit_tests, "colgen_stabilization", test_misprice_schedule; f = true)
 
 function test_primal_solution()
-
+    
 end
 register!(unit_tests, "colgen_stabilization", test_primal_solution; f = true)
 
