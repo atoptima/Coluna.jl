@@ -276,7 +276,7 @@ function _compute_cut_lhs(ctx, sp, dual_sol, feasibility_cut)
 
     if feasibility_cut
         cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0 ## πTx (feasibility cut)
-    else  
+    else
         cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0 ## η + πTx (optimality cut)
     end
     return cut_lhs
