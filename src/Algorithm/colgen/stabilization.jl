@@ -141,33 +141,43 @@ function _primal_solution(master::Formulation, generated_columns, is_minimizatio
     return sparsevec(var_ids, var_vals)
 end
 
-function _dynamic_alpha_schedule(
-    stab::ColGenStab, smooth_dual_sol, h, primal_solution, is_minimization
-)
+function _increase(smooth_dual_sol, cur_stab_center, h, primal_solution, is_minimization)
     # Calculate the in-sep direction.
-    in_sep_direction = smooth_dual_sol - stab.cur_stab_center
+    in_sep_direction = smooth_dual_sol - cur_stab_center
     in_sep_dir_norm = norm(in_sep_direction)
+
+    # if in & sep are the same point, we need to decrease α becase it is the weight of the
+    # stability center (in) in the formula to compute the sep point.
+    if iszero(in_sep_dir_norm)
+        return false
+    end
 
     # Calculate the subgradient
     subgradient = h.a - h.A * primal_solution
     subgradient_norm = norm(subgradient)
 
     # we now calculate the angle between the in-sep direction and the subgradient 
-    angle = (transpose(in_sep_direction) * subgradient) / (in_sep_dir_norm * subgradient_norm)
-    if !is_minimization
-        angle *= -1
-    end
+    cos_angle = (transpose(in_sep_direction) * subgradient) / (in_sep_dir_norm * subgradient_norm)
 
+    if !is_minimization
+        cos_angle *= -1
+    end
+    return cos_angle < 1e-12
+end
+
+function _dynamic_alpha_schedule(
+    α, smooth_dual_sol, cur_stab_center, h, primal_solution, is_minimization
+)
+    increase = _increase(smooth_dual_sol, cur_stab_center, h, primal_solution, is_minimization)
     # we modify the alpha parameter based on the calculated angle
-    α = angle > 1e-12 ? f_decr(stab.base_α) : f_incr(stab.base_α)
-    return α
+    return increase ? f_incr(α) : f_decr(α)
 end
 
 function ColGen.update_stabilization_after_iter!(stab::ColGenStab, ctx, master, generated_columns, mast_dual_sol)
     if stab.smooth_factor == 1
         is_min = ColGen.is_minimization(ctx)
         primal_sol = _primal_solution(master, generated_columns, is_min)
-        α = _dynamic_alpha_schedule(stab, mast_dual_sol, subgradient_helper(ctx), primal_sol, is_min)
+        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
         stab.base_α = α
     end
 
