@@ -54,5 +54,65 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
     MOI.submit(model, BD.PricingDualBound(cbdata), sol_cost) # optimal solution
     return
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">my_pricing_callback (generic function with 1 method)</code></pre><p>The pricing callback is provided to Coluna using the keyword <code>solver</code> in the method <code>specify!</code>.</p><pre><code class="language-julia hljs">subproblems = BD.getsubproblems(dwdec);
-BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback);</code></pre><p>You can then optimize :</p><pre><code class="language- hljs">optimize!(model);
-nothing #hide</code></pre><p>and retrieve the information you need as usual :</p><pre><code class="language- hljs">objective_value(model)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../cuts/">« Valid inequalities</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 14 June 2023 10:24">Wednesday 14 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback);</code></pre><p>You can then optimize :</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.1 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.70&gt; &lt;DB=-199514.2000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.60&gt; &lt;DB=-201270.9100&gt; &lt;mlp=50148.8000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.50&gt; &lt;DB=-203476.6800&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.40&gt; &lt;DB=-164622.6000&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.30&gt; &lt;DB=-137514.8600&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.20&gt; &lt;DB=-134772.5400&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.08&gt; &lt;DB=-155632.1800&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=-149322.1480&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-114080.9940&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.10&gt; &lt;DB=-139224.4500&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=-132689.9920&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-112698.7292&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-86322.5714&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.10&gt; &lt;DB=-91110.0596&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-8417.4153&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  102.7028&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.10&gt; &lt;DB=-1465.1700&gt; &lt;mlp=  231.8000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=   17.4595&gt; &lt;mlp=  221.4480&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 19&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  -38.4237&gt; &lt;mlp=  215.1714&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 20&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=   33.4401&gt; &lt;mlp=  207.8059&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 21&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  139.5862&gt; &lt;mlp=  206.2824&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 22&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  144.3292&gt; &lt;mlp=  204.5708&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 23&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.10&gt; &lt;DB=  106.7130&gt; &lt;mlp=  200.5556&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 24&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  131.7102&gt; &lt;mlp=  195.7076&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 25&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  149.5368&gt; &lt;mlp=  194.0037&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 26&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.10&gt; &lt;DB=  149.1292&gt; &lt;mlp=  188.5000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 27&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  142.3874&gt; &lt;mlp=  187.4000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 28&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  160.3523&gt; &lt;mlp=  183.8875&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 29&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.10&gt; &lt;DB=  130.0125&gt; &lt;mlp=  178.2000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 30&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  159.4275&gt; &lt;mlp=  178.2000&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 31&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  142.8219&gt; &lt;mlp=  175.9500&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 32&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  150.6912&gt; &lt;mlp=  173.4500&gt; &lt;PB=231.8000&gt;
+  &lt;st= 1&gt; &lt;it= 33&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  158.3945&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 34&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.09&gt; &lt;DB=  156.4895&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 35&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.09&gt; &lt;DB=  157.6591&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 36&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  164.2083&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 37&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.10&gt; &lt;DB=  159.2765&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 38&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.09&gt; &lt;DB=  162.0203&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 39&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.09&gt; &lt;DB=  161.8440&gt; &lt;mlp=  170.4000&gt; &lt;PB=170.4000&gt;
+  &lt;st= 1&gt; &lt;it= 40&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.09&gt; &lt;DB=  160.7301&gt; &lt;mlp=  166.5000&gt; &lt;PB=166.5000&gt;
+  &lt;st= 1&gt; &lt;it= 41&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.09&gt; &lt;DB=  164.1182&gt; &lt;mlp=  166.5000&gt; &lt;PB=166.5000&gt;
+  &lt;st= 1&gt; &lt;it= 42&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.09&gt; &lt;DB=  163.5546&gt; &lt;mlp=  166.5000&gt; &lt;PB=166.5000&gt;
+  &lt;st= 1&gt; &lt;it= 43&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  166.5000&gt; &lt;mlp=  166.5000&gt; &lt;PB=166.5000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         1.31s /  57.2%            126MiB /  63.7%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    750ms  100.0%   750ms   80.6MiB  100.0%  80.6MiB
+   SolveLpForm       43   14.9ms    2.0%   346μs   5.50MiB    6.8%   131KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 166.5
+[ Info: Dual bound: 166.5</code></pre><p>and retrieve the information you need as usual :</p><pre><code class="language-julia hljs">objective_value(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">166.5</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../cuts/">« Valid inequalities</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 14 June 2023 14:44">Wednesday 14 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
