@@ -103,7 +103,7 @@ function ColGen.update_stabilization_after_misprice!(stab::ColGenStab, mast_dual
 end
 
 f_decr(α) = max(0.0, α - 0.1)
-f_incr(α) = min((1.0 - α) * 0.1, 0.9999)
+f_incr(α) = min(α + (1.0 - α) * 0.1, 0.9999)
 
 function _pure_master_vars(master)
     puremastervars = Vector{Pair{VarId,Float64}}()

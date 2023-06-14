@@ -208,14 +208,25 @@ function _test_angle_stab_center(master)
     )
 end
 
-# Make sure the angle is well computed.
-# Here we test the can where the in and sep points are the same.
-# In that case, we should decrease the value of α.
-function test_angle_1()
+function _data_for_dynamic_schedule_test()
     _, master, sps, _, _ = reformfromstring(form_primal_solution2())
     sp1, sp2 = sps[2], sps[1]
     cids = get_name_to_constrids(master)
 
+    cur_stab_center = _test_angle_stab_center(master)
+
+    h = Coluna.Algorithm.SubgradientCalculationHelper(master)
+    is_minimization = true
+    primal_sol = _test_angle_primal_sol(master, sp1, sp2)
+    return master, cur_stab_center, h, primal_sol, is_minimization
+end
+
+# Make sure the angle is well computed.
+# Here we test the can where the in and sep points are the same.
+# In that case, we should decrease the value of α.
+function test_angle_1()
+    master, cur_stab_center, h, primal_sol, is_minimization = _data_for_dynamic_schedule_test()
+    cids = get_name_to_constrids(master)
     smooth_dual_sol = Coluna.MathProg.DualSolution(
         master,
         [cids["c1"], cids["c2"], cids["c4"]],
@@ -224,22 +235,17 @@ function test_angle_1()
         0.0,
         Coluna.MathProg.FEASIBLE_SOL
     )
-    cur_stab_center = _test_angle_stab_center(master)
 
-    h = Coluna.Algorithm.SubgradientCalculationHelper(master)
-    is_minimization = true
-    primal_sol = _test_angle_primal_sol(master, sp1, sp2)
     increase = Coluna.Algorithm._increase(smooth_dual_sol, cur_stab_center, h, primal_sol, is_minimization)
     @test increase == false
 end
-register!(unit_tests, "colgen_stabilization", test_angle_1; f = true)
+register!(unit_tests, "colgen_stabilization", test_angle_1)
 
 # Let's consider the following sep point: sep = [5, 7, 0, 3]
 # The direction will be [4, 5, 0, 2] and should lead to a negative cosinus for the angle.
 # In that case, we need to increase the value of α.
 function test_angle_2()
-    _, master, sps, _, _ = reformfromstring(form_primal_solution2())
-    sp1, sp2 = sps[2], sps[1]
+    master, cur_stab_center, h, primal_sol, is_minimization = _data_for_dynamic_schedule_test()
     cids = get_name_to_constrids(master)
 
     smooth_dual_sol = Coluna.MathProg.DualSolution(
@@ -250,22 +256,16 @@ function test_angle_2()
         0.0,
         Coluna.MathProg.FEASIBLE_SOL
     )
-    cur_stab_center = _test_angle_stab_center(master)
-
-    h = Coluna.Algorithm.SubgradientCalculationHelper(master)
-    is_minimization = true
-    primal_sol = _test_angle_primal_sol(master, sp1, sp2)
     increase = Coluna.Algorithm._increase(smooth_dual_sol, cur_stab_center, h, primal_sol, is_minimization)
     @test increase == true
 end
-register!(unit_tests, "colgen_stabilization", test_angle_2; f = true)
+register!(unit_tests, "colgen_stabilization", test_angle_2)
 
 # Let's consider the following sep point: sep = [5, 1, 10, 3]
 # The direction will be [4, 1, 10, 2] and should lead to a positive cosinus for the angle.
 # In that case, we need to decrease the value of α.
 function test_angle_3()
-    _, master, sps, _, _ = reformfromstring(form_primal_solution2())
-    sp1, sp2 = sps[2], sps[1]
+    master, cur_stab_center, h, primal_sol, is_minimization = _data_for_dynamic_schedule_test()
     cids = get_name_to_constrids(master)
 
     smooth_dual_sol = Coluna.MathProg.DualSolution(
@@ -276,19 +276,49 @@ function test_angle_3()
         0.0,
         Coluna.MathProg.FEASIBLE_SOL
     )
-    cur_stab_center = _test_angle_stab_center(master)
-
-    h = Coluna.Algorithm.SubgradientCalculationHelper(master)
-    is_minimization = true
-    primal_sol = _test_angle_primal_sol(master, sp1, sp2)
     increase = Coluna.Algorithm._increase(smooth_dual_sol, cur_stab_center, h, primal_sol, is_minimization)
     @test increase == false
 end
-register!(unit_tests, "colgen_stabilization", test_angle_3; f = true)
+register!(unit_tests, "colgen_stabilization", test_angle_3)
 
 
 function test_dynamic_alpha_schedule()
+    for α in 0.1:0.1:0.9
+        @test Coluna.Algorithm.f_incr(α) > α
+        @test Coluna.Algorithm.f_decr(α) < α
+    end
+    @test Coluna.Algorithm.f_incr(1.0) - 1.0 < 1e-3
+    @test Coluna.Algorithm.f_decr(0.0) < 1e-3
 
+
+    master, cur_stab_center, h, primal_sol, is_minimization = _data_for_dynamic_schedule_test()
+    cids = get_name_to_constrids(master)
+
+    smooth_dual_sol_for_decrease = Coluna.MathProg.DualSolution(
+        master,
+        [cids["c1"], cids["c2"], cids["c3"], cids["c4"]],
+        [5.0, 1.0, 10.0, 3.0],
+        Coluna.MathProg.VarId[], Float64[], Coluna.MathProg.ActiveBound[],
+        0.0,
+        Coluna.MathProg.FEASIBLE_SOL
+    )
+
+    smooth_dual_sol_for_increase = Coluna.MathProg.DualSolution(
+        master,
+        [cids["c1"], cids["c2"], cids["c4"]],
+        [5.0, 7.0, 3.0],
+        Coluna.MathProg.VarId[], Float64[], Coluna.MathProg.ActiveBound[],
+        0.0,
+        Coluna.MathProg.FEASIBLE_SOL
+    )
+
+    α = 0.8
+    @test α > Coluna.Algorithm._dynamic_alpha_schedule(
+        α, smooth_dual_sol_for_decrease, cur_stab_center, h, primal_sol, is_minimization
+    )
+    @test α < Coluna.Algorithm._dynamic_alpha_schedule(
+        α, smooth_dual_sol_for_increase, cur_stab_center, h, primal_sol, is_minimization
+    )
 end
 register!(unit_tests, "colgen_stabilization", test_dynamic_alpha_schedule; f = true)
 
