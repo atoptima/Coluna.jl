@@ -916,11 +916,9 @@ function benders_default_loc_routing()
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     #ClMP.relax_integrality!(master)
-    @show master
     for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
         sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-        @show sp
     end
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 100

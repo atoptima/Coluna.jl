@@ -262,26 +262,31 @@ Benders.is_unbounded(res::BendersSeparationResult) = res.unbounded
 ## feasibility cut: πTx >= πr
 ## optimality cut: η + πTx >= πr
 
+## Depending on the nature of the cut (feasibility of optimality cut), the left hand side of the cut is equal to either 0.η + πT.x or to 1.η + πT.x. In both cases we have to compute the coefficients behind x variables using the matrix T. The coefficients are stored in a dictionnary cut_lhs that matches each var id with its coefficient in the cut. 
+## second_stage_cost_var: id of the variable η representing the cost of the second stage variables
+## T: the matrix which stores the coefficients of x variables in the current subproblem
+## dual sol: the dual solution π of the current subproblem
+## feasibility_cut: boolean set to true if the current cut is a feasibility cut, false otherwise 
 function _compute_cut_lhs(ctx, sp, dual_sol, feasibility_cut)
     cut_lhs = Dict{VarId, Float64}()
-
-    coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol  ## πTx
+    coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol ## πTx
     for (varid, coeff) in zip(findnz(coeffs)...)
         cut_lhs[varid] = coeff
     end
 
     if feasibility_cut
         cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0 ## πTx (feasibility cut)
-    else
+    else  
         cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0 ## η + πTx (optimality cut)
     end
     return cut_lhs
 end
 
+## For both feasibility and optimality cuts, the right-hand side is given by πr with π the dual solution of the current sp and r the right-hand side of the sp linear constraints. However, in the implementation, the bounding constraints are considered separately from the other linear constraints. Thus, we add to πr the contribution of the bounding constraints to the right-hand side of our cut. 
 function _compute_cut_rhs_contrib(ctx, sp, dual_sol)
     spid = getuid(sp)
-    bounds_contrib_to_rhs = 0.0
-    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol)
+    bounds_contrib_to_rhs = 0.0 ##init bounding constraints contribution to the right-hand side of the cut
+    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol) ##compute bounding constraints contribution ; val is the dual value of the bounding constraint, active_bound indicates whoever the bound is a LOWER or a UPPER bound
         if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
             bounds_contrib_to_rhs += val * getperenlb(sp, varid)
         elseif active_bound == MathProg.UPPER
@@ -289,9 +294,10 @@ function _compute_cut_rhs_contrib(ctx, sp, dual_sol)
         end
     end
 
-    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs ## πr + ... ? 
+    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs ## πr + bounding constraints contrib 
     return cut_rhs
 end
+
 
 function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master)
     spid = getuid(sp)

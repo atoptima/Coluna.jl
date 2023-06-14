@@ -145,7 +145,7 @@ function benders_iter_opt_stop()
     result = Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
     @test result.master ≈ 293.4956666
 end
-register!(unit_tests, "benders_default", benders_iter_opt_stop, f = true)
+register!(unit_tests, "benders_default", benders_iter_opt_stop)
 
 ## subopt 1st level solution, an optimality cut should be generated
 ## should call benders_form_location_routing_subopt with variables fixed
