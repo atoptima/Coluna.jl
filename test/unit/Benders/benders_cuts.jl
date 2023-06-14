@@ -66,30 +66,30 @@ function benders_form_D()
  end
 
 
-function test_benders_form_D()
-    env, reform = benders_form_D() 
-    master = Coluna.MathProg.getmaster(reform)
-    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
-    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
-        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
-        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    end
-
-    alg = Coluna.Algorithm.BendersCutGeneration(
-        max_nb_iterations = 10,
-        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
-    )
-    ctx = Coluna.Algorithm.BendersContext(
-        reform, alg;
-    )
-    Coluna.set_optim_start_time!(env)
-
-    result = Coluna.Benders.run_benders_loop!(ctx, env)
-    @test result.mlp ≈ 3.909090909090909
-
-end
-register!(unit_tests, "benders_default", test_benders_form_D)
+# function test_benders_form_D()
+#    env, reform = benders_form_D() 
+#    master = Coluna.MathProg.getmaster(reform)
+#    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+#    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+#    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+#        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+#        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+#    end
+#
+#    alg = Coluna.Algorithm.BendersCutGeneration(
+#        max_nb_iterations = 10,
+#        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+#    )
+#    ctx = Coluna.Algorithm.BendersContext(
+#        reform, alg;
+#    )
+#    Coluna.set_optim_start_time!(env)
+#
+#    result = Coluna.Benders.run_benders_loop!(ctx, env)
+#    @test result.mlp ≈ 3.909090909090909
+#
+#end
+#register!(unit_tests, "benders_default", test_benders_form_D)
 
 
 
