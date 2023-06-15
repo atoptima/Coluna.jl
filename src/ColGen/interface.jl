@@ -289,6 +289,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # will add the violated cut to the master formulation.
         # If the formulation changes, one needs to restart the column generation to update
         # memoization to calculate reduced costs and stabilization.
+        # TODO: the user can get the reformulation from the context.
         new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context), env)
         if new_cut_in_master
             return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
@@ -307,6 +308,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     # Stores dual solution in the constraint. This is used when the pricing solver supports
     # non-robust cuts.
+    # TODO: the user can get the reformulation from the context.
     update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
 
     # Compute reduced cost (generic operation) by you must support math operations.
@@ -427,9 +429,11 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     # Insert columns into the master.
     # The implementation is responsible for checking if the column is "valid".
+    # TODO: the user can get the reformulation from the context.
     col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
     nb_cols_inserted = length(col_ids)
 
+    # TODO: remove the context from the arguments.
     update_stabilization_after_iter!(stab, context, master, generated_columns, mast_dual_sol)
 
     return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)

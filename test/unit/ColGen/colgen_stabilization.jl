@@ -1,4 +1,6 @@
+################################################################################
 # Test the implementation of the stabilization procedure.
+################################################################################
 
 # Make sure the value of α is updated correctly after each misprice.
 # The goal is to tend to 0.0 after a given number of misprices.
@@ -281,7 +283,6 @@ function test_angle_3()
 end
 register!(unit_tests, "colgen_stabilization", test_angle_3)
 
-
 function test_dynamic_alpha_schedule()
     for α in 0.1:0.1:0.9
         @test Coluna.Algorithm.f_incr(α) > α
@@ -322,5 +323,119 @@ function test_dynamic_alpha_schedule()
 end
 register!(unit_tests, "colgen_stabilization", test_dynamic_alpha_schedule)
 
+
+################################################################################
+# Test to make sure the generic code works
+################################################################################
 # Mock implementation of the column generation to make sure the stabilization logic works
 # as expected.
+
+mutable struct ColGenStabFlowStab
+    nb_misprice::Int64
+    nb_update_stab_after_master_done::Int64
+    nb_update_stab_after_pricing_done::Int64
+    nb_check_misprice::Int64
+    nb_misprices_done::Int64
+    nb_update_stab_after_iter_done::Int64
+    ColGenStabFlowStab(nb_misprice) = new(nb_misprice, 0, 0, 0, 0, 0)
+end
+
+struct ColGenStabFlowRes end
+struct ColGenStabFlowOutput end
+struct ColGenStabFlowDualSol end
+struct ColGenStabFlowPrimalSol end
+struct ColGenStabFlowPricingStrategy end
+
+mutable struct ColGenStabFlowCtx <: Coluna.ColGen.AbstractColGenContext
+    nb_compute_dual_bound::Int64
+    ColGenStabFlowCtx() = new(0)
+end
+
+ColGen.get_master(::ColGenStabFlowCtx) = nothing
+ColGen.is_minimization(::ColGenStabFlowCtx) = true
+ColGen.optimize_master_lp_problem!(master, ctx::ColGenStabFlowCtx, env) = ColGenStabFlowRes()
+ColGen.colgen_iteration_output_type(::ColGenStabFlowCtx) = ColGenStabFlowOutput
+ColGen.is_infeasible(::ColGenStabFlowRes) = false
+ColGen.is_unbounded(::ColGenStabFlowRes) = false
+ColGen.get_dual_sol(::ColGenStabFlowRes) = ones(Float64, 3)
+ColGen.get_primal_sol(::ColGenStabFlowRes) = ColGenStabFlowPrimalSol()
+ColGen.get_obj_val(::ColGenStabFlowRes) = 0.0
+ColGen.isbetter(::ColGenStabFlowPrimalSol, p) = false
+ColGen.get_reform(::ColGenStabFlowCtx) = nothing
+ColGen.update_master_constrs_dual_vals!(::ColGenStabFlowCtx, phase, reform, dual_sol) = nothing
+ColGen.get_subprob_var_orig_costs(::ColGenStabFlowCtx) = ones(Float64, 3)
+ColGen.get_subprob_var_coef_matrix(::ColGenStabFlowCtx) = ones(Float64, 3, 3)
+ColGen.update_reduced_costs!(::ColGenStabFlowCtx, phase, red_costs) = nothing
+
+function ColGen.update_stabilization_after_master_optim!(stab::ColGenStabFlowStab, phase, mast_dual_sol)
+    stab.nb_update_stab_after_master_done += 1
+    return true
+end
+
+ColGen.get_master_dual_sol(stab::ColGenStabFlowStab, phase, mast_dual) = [0.5, 0.5, 0.5]
+ColGen.set_of_columns(::ColGenStabFlowCtx) = []
+ColGen.get_pricing_subprobs(::ColGenStabFlowCtx) = []
+ColGen.get_pricing_strategy(::ColGenStabFlowCtx, phase) = ColGenStabFlowPricingStrategy()
+ColGen.pricing_strategy_iterate(::ColGenStabFlowPricingStrategy) = nothing
+ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
+
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, master, valid_db, pseudo_db, mast_dual_sol)
+    @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
+    stab.nb_update_stab_after_pricing_done += 1
+    return true
+end
+
+function ColGen.check_misprice(stab::ColGenStabFlowStab, cols, mast_dual_sol)
+    @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
+    stab.nb_check_misprice += 1
+    return stab.nb_check_misprice <= stab.nb_misprice
+end
+
+function ColGen.update_stabilization_after_misprice!(stab::ColGenStabFlowStab, mast_dual_sol)
+    @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
+    stab.nb_misprices_done += 1
+end
+
+function ColGen.insert_columns!(reform, context::ColGenStabFlowCtx, phase, generated_columns)
+    return []
+end
+
+function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, ctx, master, generated_columns, mast_dual_sol)
+    @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
+    stab.nb_update_stab_after_iter_done += 1
+    return true
+end
+
+ColGen.new_iteration_output(::Type{<:ColGenStabFlowOutput}, args...) = nothing
+
+function test_stabilization_flow_no_misprice()
+    ctx = ColGenStabFlowCtx()
+    phase = nothing
+    stage = nothing
+    env = nothing
+    ip_primal_sol = nothing
+    stab = ColGenStabFlowStab(0)
+    res = Coluna.ColGen.run_colgen_iteration!(ctx, phase, stage, env, ip_primal_sol, stab)
+    @test stab.nb_check_misprice == 1
+    @test stab.nb_misprices_done == 0
+    @test stab.nb_update_stab_after_iter_done == 1
+    @test stab.nb_update_stab_after_master_done == 1
+    @test stab.nb_update_stab_after_pricing_done == 1
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_flow_no_misprice)
+
+function test_stabilization_flow_with_misprice()
+    ctx = ColGenStabFlowCtx()
+    phase = nothing
+    stage = nothing
+    env = nothing
+    ip_primal_sol = nothing
+    stab = ColGenStabFlowStab(10)
+    res = Coluna.ColGen.run_colgen_iteration!(ctx, phase, stage, env, ip_primal_sol, stab)
+    @test stab.nb_check_misprice == 10 + 1
+    @test stab.nb_misprices_done == 10
+    @test stab.nb_update_stab_after_iter_done == 1
+    @test stab.nb_update_stab_after_master_done == 1
+    @test stab.nb_update_stab_after_pricing_done == 10 + 1
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_flow_with_misprice)
