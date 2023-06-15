@@ -109,7 +109,7 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
     #push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
     if stabilization_is_used(algo)
-        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
+        #push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
     end
     return units_usage
 end

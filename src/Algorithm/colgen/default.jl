@@ -529,7 +529,8 @@ end
 function add_primal_sol!(sps::SubprobPrimalSolsSet, primal_sol::PrimalSolution{Formulation{DwSp}}, improves::Bool)
     form_id = getuid(primal_sol.solution.model)
     cur_primal_sol = get(sps.primal_sols, form_id, nothing)
-    if isnothing(cur_primal_sol) || isbetter(getvalue(primal_sol), getvalue(cur_primal_sol))
+    sc = getobjsense(primal_sol.solution.model) == MinSense ? 1 : -1
+    if isnothing(cur_primal_sol) || sc * getvalue(primal_sol) < sc * getvalue(cur_primal_sol)
         sps.primal_sols[form_id] = primal_sol
         sps.improve_master[form_id] = improves
         return true

@@ -937,7 +937,7 @@ function benders_default_loc_routing()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 293.5
 end
-register!(unit_tests, "benders_default", benders_default_loc_routing, f = true)
+register!(unit_tests, "benders_default", benders_default_loc_routing)
 
 
 
@@ -962,7 +962,7 @@ function benders_default_loc_routing_infeasible()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.infeasible == true
 end
-register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible, f = true)
+register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible)
 
 function benders_default_location_routing_subopt()
     env, reform = benders_form_location_routing_subopt()
@@ -985,7 +985,7 @@ function benders_default_location_routing_subopt()
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 386.0
 end
-register!(unit_tests, "benders_default", benders_default_location_routing_subopt, f = true)
+register!(unit_tests, "benders_default", benders_default_location_routing_subopt)
 
 
 function test_two_identicals_cut_at_two_iterations_failure()

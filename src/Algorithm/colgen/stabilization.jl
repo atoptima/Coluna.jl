@@ -1,11 +1,12 @@
-# struct NoColGenStab end
-# ColGen.setup_stabilization(ctx, master) = NoColGenStab()
-# ColGen.update_stabilization_after_master_optim!(::NoColGenStab, phase, mast_dual_sol) = nothing
-# ColGen.check_misprice(::NoColGenStab, generated_cols, mast_dual_sol) = false
-# ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, valid_db, pseudo_db, pricing_dual_sol) = nothing
-# ColGen.update_stabilization_after_iter!(::NoColGenStab) = nothing
-
-
+struct NoColGenStab end
+#ColGen.setup_stabilization(ctx, master) = NoColGenStab()
+ColGen.update_stabilization_after_master_optim!(::NoColGenStab, phase, mast_dual_sol) = false
+ColGen.get_master_dual_sol(::NoColGenStab, phase, mast_dual_sol) = mast_dual_sol
+ColGen.check_misprice(::NoColGenStab, generated_cols, mast_dual_sol) = false
+ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, master, valid_db, pseudo_db, mast_dual_sol) = nothing
+ColGen.update_stabilization_after_misprice!(::NoColGenStab, mast_dual_sol) = nothing
+ColGen.update_stabilization_after_iter!(::NoColGenStab, ctx, master, generated_columns, mast_dual_sol) = nothing
+ColGen.get_output_str(::NoColGenStab) = 0.0
 """
 Implementation of the "Smoothing with a self adjusting parameter" described in the paper of
 Pessoa et al.
@@ -35,8 +36,10 @@ mutable struct ColGenStab{F}
     )
 end
 
-ColGen.setup_stabilization!(ctx, master) = ColGenStab(master)
+ColGen.get_output_str(stab::ColGenStab) = stab.base_α
 
+# ColGen.setup_stabilization!(ctx, master) = ColGenStab(master)
+ColGen.setup_stabilization!(ctx, master) = NoColGenStab()
 
 function ColGen.update_stabilization_after_master_optim!(stab::ColGenStab, phase, mast_dual_sol)
     stab.nb_misprices = 0
