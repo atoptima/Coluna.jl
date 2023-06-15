@@ -133,8 +133,10 @@ struct ColGenIterationTestPricingResult
     dual_bound::Union{Nothing, Float64}
 end
 ColGen.get_primal_sols(res::ColGenIterationTestPricingResult) = res.primal_sols
+ColGen.get_primal_bound(res::ColGenIterationTestPricingResult) = res.primal_bound
 ColGen.get_dual_bound(res::ColGenIterationTestPricingResult) = res.dual_bound
 ColGen.compute_sp_init_db(::ColGenIterationTestContext, sp) = -Inf
+ColGen.compute_sp_init_pb(::ColGenIterationTestContext, sp) = Inf
 ColGen.set_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
 ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status == ClB.INFEASIBLE
 ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.UNBOUNDED
@@ -146,7 +148,7 @@ function ColGen.push_in_set!(ctx::ColGenIterationTestContext, set::Vector{Vector
 end
 
 ## mock of the pricing solver
-function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form, env, optimizer, master_dual_sol)
+function ColGen.optimize_pricing_problem!(ctx::ColGenIterationTestContext, form, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     primal_val = nothing
     dual_val = nothing
     sols = Vector{Float64}[]
@@ -181,6 +183,8 @@ function ColGen.update_sp_vars_red_costs!(::ColGenIterationTestContext, subprob,
     return
 end
 
+ColGen.update_reduced_costs!(::ColGenIterationTestContext, phase, red_costs) = nothing
+
 function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, env)
     if ctx.new_ip_primal_sol
         @assert !ctx.master_has_new_cuts
@@ -208,7 +212,7 @@ function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, gen
     return [1]
 end
 
-function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, mast_lp_obj_val, sp_dbs, mast_dual_sol)
+function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, sp_dbs, mast_dual_sol)
     return 22.5 - 23/4
 end
 
@@ -264,7 +268,7 @@ end
 
 function colgen_iteration_master_ok_pricing_ok()
     ctx = ColGenIterationTestContext()
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp == 22.5
     @test output.db == 22.5 - 23/4
     @test output.nb_new_cols == 1
@@ -283,7 +287,7 @@ function colgen_iteration_master_infeasible()
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
     @test isnothing(output.mlp)
     @test output.db == Inf 
     @test output.nb_new_cols == 0
@@ -302,7 +306,7 @@ function colgen_iteration_pricing_infeasible()
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
     @test isnothing(output.mlp)
     @test output.db == Inf
     @test output.nb_new_cols == 0
@@ -321,7 +325,7 @@ function colgen_iteration_master_unbounded()
         master_solver_has_no_primal_solution = true,
         master_solver_has_no_dual_solution = true
     )
-    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_master_unbounded)
 
@@ -331,7 +335,7 @@ function colgen_iteration_pricing_unbounded()
         pricing_solver_has_no_solution = true,
         pricing_has_no_dual_bound = true
     )
-    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    @test_throws ColGen.UnboundedProblemError ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
 end
 register!(unit_tests, "colgen_iteration", colgen_iteration_pricing_unbounded)
 
@@ -339,7 +343,7 @@ function colgen_finds_ip_primal_sol()
     ctx = ColGenIterationTestContext(
         new_ip_primal_sol = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp == 22.5
     @test output.db == 22.5 - 23/4
     @test output.nb_new_cols == 1
@@ -356,7 +360,7 @@ function colgen_new_cuts_in_master()
     ctx = ColGenIterationTestContext(
         master_has_new_cuts = true
     )
-    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ColGenIterationTestPhase(), ColGenIterationTestStage(), nothing, nothing, Coluna.Algorithm.NoColGenStab())
     @test isnothing(output.mlp)
     @test isnothing(output.db)
     @test output.nb_new_cols == 0
@@ -368,4 +372,3 @@ function colgen_new_cuts_in_master()
     @test isnothing(output.master_ip_primal_sol)
 end
 register!(unit_tests, "colgen_iteration", colgen_new_cuts_in_master)
-

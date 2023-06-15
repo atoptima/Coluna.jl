@@ -177,7 +177,7 @@ function _colgen_iter_str(
 end
 
 function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output)
-    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), stab.base_α))
+    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), ColGen.get_output_str(stab)))
     return
 end
 

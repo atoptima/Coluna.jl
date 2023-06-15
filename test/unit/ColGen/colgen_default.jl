@@ -182,7 +182,7 @@ function test_subgradient_calculation_helper()
     @test helper.A[cids["c4"], vids["z1"]] == -1
     @test helper.A[cids["c4"], vids["z2"]] == -1
 end
-register!(unit_tests, "colgen_default", test_subgradient_calculation_helper; f = true)
+register!(unit_tests, "colgen_default", test_subgradient_calculation_helper)
 
 # All the tests are based on the Generalized Assignment problem.
 # x_mj = 1 if job j is assigned to machine m
@@ -695,6 +695,7 @@ ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::TestColGenIterationC
 ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
 ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
 ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)
+ColGen.update_reduced_costs!(ctx::TestColGenIterationContext, phase, red_costs) = nothing
 ColGen.get_subprob_var_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_orig_costs(ctx.context)
 ColGen.get_subprob_var_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_coef_matrix(ctx.context)
 
@@ -707,6 +708,7 @@ function ColGen.update_sp_vars_red_costs!(ctx::TestColGenIterationContext, sp::F
     return
 end
 
+ColGen.compute_sp_init_pb(ctx::TestColGenIterationContext, sp::Formulation{DwSp}) =  ColGen.compute_sp_init_pb(ctx.context, sp)
 ColGen.compute_sp_init_db(ctx::TestColGenIterationContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.context, sp)
 ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(ctx.context)
 ColGen.push_in_set!(ctx::TestColGenIterationContext, set, col) = ColGen.push_in_set!(ctx.context, set, col)
@@ -716,14 +718,14 @@ function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, 
     return ColGen.insert_columns!(reform, ctx.context, phase, columns)
 end
 
-function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol)
-    output = ColGen.optimize_pricing_problem!(ctx.context, sp, env, optimizer, master_dual_sol)
+function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
+    output = ColGen.optimize_pricing_problem!(ctx.context, sp, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     # test here
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.context, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, sp_dbs, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.context, phase, sp_dbs, master_dual_sol)
 end
 
 function test_colgen_iteration_min_gap()
@@ -783,7 +785,7 @@ function test_colgen_iteration_min_gap()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 79.666666667
     @test output.db ≈ 21.3333333333
     @test output.nb_new_cols == 2
@@ -847,7 +849,7 @@ function test_colgen_iteration_max_gap()
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 87.00
     @test output.db ≈ 110.00
     @test output.nb_new_cols == 2
@@ -915,7 +917,7 @@ function test_colgen_iteration_pure_master_vars()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 52.9500
     @test output.db ≈ 51.5000
     @test output.nb_new_cols == 1
@@ -979,7 +981,7 @@ function test_colgen_iteration_obj_const()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
    
     @test output.mlp ≈ 779.6666666666667 
     @test output.db ≈ 717.6666666766668
@@ -1256,7 +1258,7 @@ function test_colgen_loop()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     ColGen.setup_reformulation!(reform, phase)
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run_colgen_phase!(ctx, phase, ColGenIterationTestStage(), env, nothing)
+    output = ColGen.run_colgen_phase!(ctx, phase, ColGenIterationTestStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
 
     # EXPECTED:
     #    """

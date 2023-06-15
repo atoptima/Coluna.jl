@@ -11,3 +11,5 @@
 @mustimplement "ColGenStab" update_stabilization_after_misprice!(stab, mast_dual_sol) = nothing
 
 @mustimplement "ColGenStab" update_stabilization_after_iter!(stab, ctx, master, generated_columns, mast_dual_sol) = nothing
+
+@mustimplement "ColGenStab" get_output_str(stab) = nothing

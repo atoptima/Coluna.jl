@@ -13,7 +13,7 @@ function test_misprice_schedule()
     end
     return
 end
-register!(unit_tests, "colgen_stabilization", test_misprice_schedule; f = true)
+register!(unit_tests, "colgen_stabilization", test_misprice_schedule)
 
 form_primal_solution() = """
     master
@@ -110,7 +110,7 @@ function test_primal_solution()
     @test primal_sol[vids["z2"]] == 0.0 # TODO: not sure about this test
     return
 end
-register!(unit_tests, "colgen_stabilization", test_primal_solution; f = true)
+register!(unit_tests, "colgen_stabilization", test_primal_solution)
 
 form_primal_solution2() = """
     master
@@ -320,7 +320,7 @@ function test_dynamic_alpha_schedule()
         α, smooth_dual_sol_for_increase, cur_stab_center, h, primal_sol, is_minimization
     )
 end
-register!(unit_tests, "colgen_stabilization", test_dynamic_alpha_schedule; f = true)
+register!(unit_tests, "colgen_stabilization", test_dynamic_alpha_schedule)
 
 # Mock implementation of the column generation to make sure the stabilization logic works
 # as expected.
