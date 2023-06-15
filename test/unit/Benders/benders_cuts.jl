@@ -166,7 +166,7 @@ function test_benders_cut_rhs()
         master,
         [cids["sp_c1"], cids["sp_c2"], cids["sp_c3"]],
         [2.0, 4.0, 1.0], ##dumb dual sol
-        Coluna.MathProg.VarId[vids["y1"], vids["x1"], vids["y2"], vids["x2"]], Float64[10.0, 5.0, 2.0, 3.0], Coluna.MathProg.ActiveBound[MathProg.LOWER, MathProg.UPPER, MathProg.UPPER, MathProg.LOWER_AND_UPPER], ## x2 fixed to 1.0
+        Coluna.MathProg.VarId[vids["y1"], vids["x1"], vids["y2"], vids["x2"]], Float64[10.0, 5.0, 2.0, 3.0], Coluna.MathProg.ActiveBound[MathProg.LOWER, MathProg.UPPER, MathProg.UPPER, MathProg.LOWER], ## x2 fixed to 1.0
         0.0,
         Coluna.MathProg.FEASIBLE_SOL
     )

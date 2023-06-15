@@ -287,7 +287,7 @@ function _compute_cut_rhs_contrib(ctx, sp, dual_sol)
     spid = getuid(sp)
     bounds_contrib_to_rhs = 0.0 ##init bounding constraints contribution to the right-hand side of the cut
     for (varid, (val, active_bound)) in get_var_redcosts(dual_sol) ##compute bounding constraints contribution ; val is the dual value of the bounding constraint, active_bound indicates whoever the bound is a LOWER or a UPPER bound
-        if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
+        if active_bound == MathProg.LOWER 
             bounds_contrib_to_rhs += val * getperenlb(sp, varid)
         elseif active_bound == MathProg.UPPER
             bounds_contrib_to_rhs += val * getperenub(sp, varid)
