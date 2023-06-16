@@ -698,27 +698,27 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, master_dua
 
     # Pure master variables contribution.
     # TODO (only when stabilization is used otherwise already taken into account by master obj val)
-    # puremastvars_contrib = 0.0
-    # master = ColGen.get_master(ctx)
-    # master_coef_matrix = getcoefmatrix(master)
-    # for (varid, mult) in _pure_master_vars(master)
-    #     redcost = getcurcost(master, varid)
-    #     for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
-    #         redcost -= var_coeff * master_dual_sol[constrid]
-    #     end
-    #     min_sense = ColGen.is_minimization(ctx)
-    #     if !min_sense
-    #         redcost *= 1
-    #     end
-    #     mult = if is_improving_red_cost_min_sense(ctx, redcost)
-    #         getcurub(master, varid)
-    #     else
-    #         getcurlb(master, varid)
-    #     end
-    #     puremastvars_contrib += redcost * mult
-    # end
 
-    return master_lp_obj_val - convexity_contrib + sp_contrib #- puremastvars_contrib
+    puremastvars_contrib = 0.0
+    if ctx.stabilization
+        master = ColGen.get_master(ctx)
+        master_coef_matrix = getcoefmatrix(master)
+        for (varid, mult) in _pure_master_vars(master)
+            redcost = getcurcost(master, varid)
+            for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
+                redcost -= var_coeff * master_dual_sol[constrid]
+            end
+            min_sense = ColGen.is_minimization(ctx)
+            improves = min_sense ? is_improving_red_cost_min_sense(ctx, redcost) : is_improving_red_cost(ctx, redcost)
+            mult = if improves
+                getcurub(master, varid)
+            else
+                getcurlb(master, varid)
+            end
+            puremastvars_contrib += redcost * mult
+        end
+    end
+    return master_lp_obj_val - convexity_contrib + sp_contrib + puremastvars_contrib
 end
 
 # Iteration output
