@@ -21,6 +21,8 @@ ColGen.get_master(ctx::ColGenPrinterContext) = ColGen.get_master(ctx.inner)
 ColGen.is_minimization(ctx::ColGenPrinterContext) = ColGen.is_minimization(ctx.inner)
 ColGen.get_pricing_subprobs(ctx::ColGenPrinterContext) = ColGen.get_pricing_subprobs(ctx.inner)
 
+ColGen.setup_stabilization!(ctx::ColGenPrinterContext, master) = ColGen.setup_stabilization!(ctx.inner, master)
+
 ColGen.new_phase_iterator(ctx::ColGenPrinterContext) = ColGen.new_phase_iterator(ctx.inner)
 ColGen.new_stage_iterator(ctx::ColGenPrinterContext) = ColGen.new_stage_iterator(ctx.inner)
 

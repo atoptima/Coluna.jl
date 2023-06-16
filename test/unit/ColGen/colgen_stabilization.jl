@@ -439,3 +439,521 @@ function test_stabilization_flow_with_misprice()
     @test stab.nb_update_stab_after_pricing_done == 10 + 1
 end
 register!(unit_tests, "colgen_stabilization", test_stabilization_flow_with_misprice)
+
+
+################################################################################
+#
+################################################################################
+
+function min_toy_gap_for_stab()
+
+    form = """
+    master
+        min
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 800.0 x_11 + 500.0 x_12 + 1100.0 x_13 + 2100.0 x_14 + 600.0 x_15 + 500.0 x_16 + 1900.0 x_17 + 100.0 x_21 + 1200.0 x_22 + 1100.0 x_23 + 1200.0 x_24 + 1400.0 x_25 + 800.0 x_26 + 500.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        800.0 x_11 + 500.0 x_12 + 1100.0 x_13 + 2100.0 x_14 + 600.0 x_15 + 500.0 x_16 + 1900.0 x_17 + 0.0 PricingSetupVar_sp_5 
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        100.0 x_21 + 1200.0 x_22 + 1100.0 x_23 + 1200.0 x_24 + 1400.0 x_25 + 800.0 x_26 + 500.0 x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function max_toy_gap_for_stab()
+    form = """
+    master
+        max
+        - 10000.0 local_art_of_cov_5 - 10000.0 local_art_of_cov_4 - 10000.0 local_art_of_cov_6 - 10000.0 local_art_of_cov_7 - 10000.0 local_art_of_cov_2 - 10000.0 local_art_of_cov_3 - 10000.0 local_art_of_cov_1 - 10000.0 local_art_of_sp_lb_5 - 10000.0 local_art_of_sp_ub_5 - 10000.0 local_art_of_sp_lb_4 - 10000.0 local_art_of_sp_ub_4 - 100000.0 global_pos_art_var - 100000.0 global_neg_art_var + 53.0 MC_30 + 49.0 MC_31 + 35.0 MC_32 + 45.0 MC_33 + 27.0 MC_34 + 42.0 MC_35 + 45.0 MC_36 + 12.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 - 1.0 local_art_of_cov_1 - 1.0 global_neg_art_var + 1.0 MC_30 + 1.0 MC_34 <= 1.0
+        1.0 x_12 + 1.0 x_22 - 1.0 local_art_of_cov_2 - 1.0 global_neg_art_var + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_36 + 1.0 MC_37 <= 1.0
+        1.0 x_13 + 1.0 x_23 - 1.0 local_art_of_cov_3 - 1.0 global_neg_art_var + 1.0 MC_31 + 1.0 MC_32 + 1.0 MC_33 + 1.0 MC_35  <= 1.0
+        1.0 x_14 + 1.0 x_24 - 1.0 local_art_of_cov_4 - 1.0 global_neg_art_var + 1.0 MC_30 + 1.0 MC_31 + 1.0 MC_36  <= 1.0 
+        1.0 x_15 + 1.0 x_25 - 1.0 local_art_of_cov_5 - 1.0 global_neg_art_var + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35  <= 1.0 
+        1.0 x_16 + 1.0 x_26 - 1.0 local_art_of_cov_6 - 1.0 global_neg_art_var + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_33  <= 1.0
+        1.0 x_17 + 1.0 x_27 - 1.0 local_art_of_cov_7 - 1.0 global_neg_art_var + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_35 + 1.0 MC_36  <= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_36  >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_36  <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_37  >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_37  <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        max
+        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        max
+        x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        columns
+            MC_30, MC_31, MC_32, MC_33, MC_34, MC_35, MC_36, MC_37
+
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+        MC_30 >= 0.0
+        MC_31 >= 0.0
+        MC_32 >= 0.0
+        MC_33 >= 0.0
+        MC_34 >= 0.0
+        MC_35 >= 0.0
+        MC_36 >= 0.0
+        MC_37 >= 0.0
+"""
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function toy_gap_min_with_penalties_for_stab()
+    form = """
+    master
+        min
+        3.15 y_1 + 5.949999999999999 y_2 + 7.699999999999999 y_3 + 11.549999999999999 y_4 + 7.0 y_5 + 4.55 y_6 + 8.399999999999999 y_7 + 10000.0 local_art_of_cov_5 + 10000.0 local_art_of_cov_4 + 10000.0 local_art_of_cov_6 + 10000.0 local_art_of_cov_7 + 10000.0 local_art_of_cov_2 + 10000.0 local_art_of_limit_pen + 10000.0 local_art_of_cov_3 + 10000.0 local_art_of_cov_1 + 10000.0 local_art_of_sp_lb_5 + 10000.0 local_art_of_sp_ub_5 + 10000.0 local_art_of_sp_lb_4 + 10000.0 local_art_of_sp_ub_4 + 100000.0 global_pos_art_var + 100000.0 global_neg_art_var + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 y_1 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 y_2 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 y_3 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 y_4 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 y_5 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
+        1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var <= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var, local_art_of_limit_pen
+        
+        pure
+            y_1, y_2, y_3, y_4, y_5, y_6, y_7
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+        local_art_of_limit_pen >= 0
+        0.0 <= y_1 <= 1.0 
+        0.0 <= y_2 <= 1.0 
+        0.0 <= y_3 <= 1.0 
+        0.0 <= y_4 <= 1.0 
+        0.0 <= y_5 <= 1.0 
+        0.0 <= y_6 <= 1.0 
+        0.0 <= y_7 <= 1.0 
+"""
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function toy_gap_max_with_penalties_for_stab()
+    form = """
+    master
+        max
+        - 3.15 y_1 - 5.949999999999999 y_2 - 7.699999999999999 y_3 - 11.549999999999999 y_4 - 7.0 y_5 - 4.55 y_6 - 8.399999999999999 y_7 - 10000.0 local_art_of_cov_5 - 10000.0 local_art_of_cov_4 - 10000.0 local_art_of_cov_6 - 10000.0 local_art_of_cov_7 - 10000.0 local_art_of_cov_2 - 10000.0 local_art_of_limit_pen - 10000.0 local_art_of_cov_3 - 10000.0 local_art_of_cov_1 - 10000.0 local_art_of_sp_lb_5 - 10000.0 local_art_of_sp_ub_5 - 10000.0 local_art_of_sp_lb_4 - 10000.0 local_art_of_sp_ub_4 - 100000.0 global_pos_art_var - 100000.0 global_neg_art_var - 8.0 x_11 - 5.0 x_12 - 11.0 x_13 - 21.0 x_14 - 6.0 x_15 - 5.0 x_16 - 19.0 x_17 - 1.0 x_21 - 12.0 x_22 - 11.0 x_23 - 12.0 x_24 - 14.0 x_25 - 8.0 x_26 - 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 y_1 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 y_2 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 y_3 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 y_4 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 y_5 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
+        1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var <= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        max
+        - 8.0 x_11 - 5.0 x_12 - 11.0 x_13 - 21.0 x_14 - 6.0 x_15 - 5.0 x_16 - 19.0 x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        max
+        - 1.0 x_21 - 12.0 x_22 - 11.0 x_23 - 12.0 x_24 - 14.0 x_25 - 8.0 x_26 - 5.0 x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    continuous
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var, local_art_of_limit_pen
+        
+        pure
+            y_1, y_2, y_3, y_4, y_5, y_6, y_7
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+        local_art_of_limit_pen >= 0
+        0.0 <= y_1 <= 1.0 
+        0.0 <= y_2 <= 1.0 
+        0.0 <= y_3 <= 1.0 
+        0.0 <= y_4 <= 1.0 
+        0.0 <= y_5 <= 1.0 
+        0.0 <= y_6 <= 1.0 
+        0.0 <= y_7 <= 1.0 
+"""
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function test_stabilization_min_automatic()
+    env, master, sps, reform = min_toy_gap_for_stab()
+        # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 1.0
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+    @test output.mlp ≈ 7033.3333333
+    @test output.db ≈ 7033.3333333
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_min_automatic)
+
+function test_stabilization_max_automatic()
+    env, master, sps, reform = min_toy_gap_for_stab()
+        # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 1.0
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+    @test output.mlp ≈ 7033.3333333
+    @test output.db ≈ 7033.3333333
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_max_automatic)
+
+function test_stabilization_min()
+    env, master, sps, reform = min_toy_gap_for_stab()
+        # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 0.5
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+    @test output.mlp ≈ 7033.3333333
+    @test output.db ≈ 7033.3333333
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_min)
+
+function test_stabilization_max()
+    env, master, sps, reform = min_toy_gap_for_stab()
+        # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 0.5
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+    @test output.mlp ≈ 7033.3333333
+    @test output.db ≈ 7033.3333333
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_max)
+
+function test_stabilization_pure_master_vars_min()
+    env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 0.5
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+
+    @test output.mlp ≈ 52.95
+    @test output.db ≈ 52.95
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min)
+
+function test_stabilization_pure_master_vars_min_automatic()
+    env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 1.0
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+
+    @test output.mlp ≈ 52.95
+    @test output.db ≈ 52.95
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min_automatic)
+
+function test_stabilization_pure_master_vars_max()
+    env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 0.5
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+
+    @test output.mlp ≈ -52.95
+    @test output.db ≈ -52.95
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max)
+
+function test_stabilization_pure_master_vars_max_automatic()
+    env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
+
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+        smoothing_stabilization = 0.5
+    ))
+    Coluna.set_optim_start_time!(env)
+    output = ColGen.run!(ctx, env, nothing)
+
+    @test output.mlp ≈ -52.95
+    @test output.db ≈ -52.95
+end
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max_automatic)

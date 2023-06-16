@@ -21,7 +21,7 @@ TODO: docstring
     π^sep <- α * π^in + (1 - α) * π^out
 """
 mutable struct ColGenStab{F}
-    smooth_factor::Float64 # smoothing factor
+    automatic::Bool
     base_α::Float64 # "global" α parameter
     cur_α::Float64 # α parameter during the current misprice sequence
     nb_misprices::Int # number of misprices during the current misprice sequence
@@ -31,15 +31,12 @@ mutable struct ColGenStab{F}
     cur_stab_center::Union{Nothing,MathProg.DualSolution{F}} # current stability center, correspond to cur_dual_bound
     stab_center_for_next_iteration::Union{Nothing,MathProg.DualSolution{F}} # to keep temporarily stab. center after update
 
-    ColGenStab(master::F) where {F} = new{F}(
-        1.0, 0.8, 0.0, 0, MathProg.DualBound(master), MathProg.DualBound(master), nothing, nothing, nothing
+    ColGenStab(master::F, automatic, init_α) where {F} = new{F}(
+        automatic, init_α, 0.0, 0, MathProg.DualBound(master), MathProg.DualBound(master), nothing, nothing, nothing
     )
 end
 
 ColGen.get_output_str(stab::ColGenStab) = stab.base_α
-
-# ColGen.setup_stabilization!(ctx, master) = ColGenStab(master)
-ColGen.setup_stabilization!(ctx, master) = NoColGenStab()
 
 function ColGen.update_stabilization_after_master_optim!(stab::ColGenStab, phase, mast_dual_sol)
     stab.nb_misprices = 0
@@ -50,10 +47,7 @@ function ColGen.update_stabilization_after_master_optim!(stab::ColGenStab, phase
         return false
     end
 
-    # TODO: this initialisation is not very clear.
-    # We need a better differenciation between "Smoothing with a self adjusting parameter" and
-    # "Smoothing with a fixed parameter".
-    stab.cur_α = stab.smooth_factor === 1.0 ? stab.base_α : stab.smooth_factor
+    stab.cur_α = stab.base_α
     return stab.cur_α > 0
 end
 
@@ -75,7 +69,7 @@ end
 
 ColGen.check_misprice(stab::ColGenStab, generated_cols, mast_dual_sol) = length(generated_cols.columns) == 0 && stab.cur_α > 0.0
 
-function _misprice_schedule(smooth_factor, nb_misprices, base_α)
+function _misprice_schedule(automatic, nb_misprices, base_α)
     # Rule from the paper Pessoa et al. (α-schedule in a mis-pricing sequence, Step 1)
     α = 1.0 - (nb_misprices + 1) * (1 - base_α)
 
@@ -89,7 +83,7 @@ end
 
 function ColGen.update_stabilization_after_misprice!(stab::ColGenStab, mast_dual_sol)
     stab.nb_misprices += 1
-    α = _misprice_schedule(stab.smooth_factor, stab.nb_misprices, stab.base_α)
+    α = _misprice_schedule(stab.automatic, stab.nb_misprices, stab.base_α)
     stab.cur_α = α
     return
 end
@@ -166,7 +160,7 @@ function _dynamic_alpha_schedule(
 end
 
 function ColGen.update_stabilization_after_iter!(stab::ColGenStab, ctx, master, generated_columns, mast_dual_sol)
-    if stab.smooth_factor == 1
+    if stab.automatic
         is_min = ColGen.is_minimization(ctx)
         primal_sol = _primal_solution(master, generated_columns, is_min)
         α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
