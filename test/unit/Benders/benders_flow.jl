@@ -1,168 +1,337 @@
-mutable struct TestBendersFlowContext <: Coluna.Benders.AbstractBendersContext
-    context::ClA.BendersContext
+#################### tests with flags ####################
+
+struct TestBendersMaster
+
+end
+
+struct TestBendersSubproblem
+
+end
+
+mutable struct TestBendersMasterRes ## mock of a master opt. result
     infeasible_master::Bool  
-    unbounded_master::Bool##flag to check that we enter treat_unbounded_master_problem_case!
-    infeasible_sp::Bool ## flag to check that we enter treat_infeasible_separation_problem_case
-    opt_sp::Bool
+    unbounded_master::Bool
+    is_certificate::Bool
+end
+
+function Coluna.Benders.is_unbounded(master_res::TestBendersMasterRes)
+    return master_res.unbounded_master
+end
+
+function Coluna.Benders.is_infeasible(master_res::TestBendersMasterRes)
+    return master_res.infeasible_master
+end
+
+function Coluna.Benders.is_certificate(master_res::TestBendersMasterRes)
+    return master_res.is_certificate
+end
+
+function Coluna.Benders.get_primal_sol(master_res::TestBendersMasterRes)
+    return nothing
+end
+
+function Coluna.Benders.get_obj_val(sep_res::TestBendersMasterRes)
+    return 0.0
 end
 
 
-Coluna.Benders.get_master(ctx::TestBendersFlowContext) = Coluna.Benders.get_master(ctx.context)
-Coluna.Benders.get_reform(ctx::TestBendersFlowContext) = Coluna.Benders.get_reform(ctx.context)
-Coluna.Benders.is_minimization(ctx::TestBendersFlowContext) = Coluna.Benders.is_minimization(ctx.context)
-Coluna.Benders.get_benders_subprobs(ctx::TestBendersFlowContext) = Coluna.Benders.get_benders_subprobs(ctx.context)
-
-
-Coluna.Benders.optimize_master_problem!(master, ctx::TestBendersFlowContext, env) = Coluna.Benders.optimize_master_problem!(master, ctx.context, env)
-
-function Coluna.Benders.treat_unbounded_master_problem_case!(master, ctx::TestBendersFlowContext, env) 
-    output = Coluna.Benders.treat_unbounded_master_problem_case!(master, ctx.context, env)
-    ctx.unbounded_master = true
-    return output
-end
-
-Coluna.Benders.setup_separation_for_unbounded_master_case!(ctx::TestBendersFlowContext, sp, mast_primal_sol) = Coluna.Benders.setup_separation_for_unbounded_master_case!(ctx.context, sp, mast_primal_sol) 
-
-
-function Coluna.Benders.optimize_separation_problem!(ctx::TestBendersFlowContext, sp::Formulation{BendersSp}, env, unbounded_master) 
-    output = Coluna.Benders.optimize_separation_problem!(ctx.context, sp, env, unbounded_master)
-    ctx.opt_sp = true
-    return output
-end
-
-Coluna.Benders.master_is_unbounded(ctx::TestBendersFlowContext, second_stage_cost, unbounded_master_case) = Coluna.Benders.master_is_unbounded(ctx.context, second_stage_cost, unbounded_master_case)
-
-
-function Coluna.Benders.treat_infeasible_separation_problem_case!(ctx::TestBendersFlowContext, sp::Formulation{BendersSp}, env, unbounded_master_case) 
-    output = Coluna.Benders.treat_infeasible_separation_problem_case!(ctx.context, sp, env, unbounded_master_case)
-    ctx.infeasible_sp = true
-    return output
+struct TestBendersSepRes ## mock of a sep. problem opt. result
+    infeasible_sp::Bool 
+    unbounded_sp::Bool
 end
 
 
-Coluna.Benders.push_in_set!(ctx::TestBendersFlowContext, set::Coluna.Algorithm.CutsSet, sep_result::Coluna.Algorithm.BendersSeparationResult) = Coluna.Benders.push_in_set!(ctx.context, set, sep_result)
+function Coluna.Benders.is_infeasible(sep_res::TestBendersSepRes)
+    return sep_res.infeasible_sp
+end
 
-Coluna.Benders.push_in_set!(ctx::TestBendersFlowContext, set::Coluna.Algorithm.SepSolSet, sep_result::Coluna.Algorithm.BendersSeparationResult) = Coluna.Benders.push_in_set!(ctx.context, set, sep_result)
+function Coluna.Benders.is_unbounded(sep_res::TestBendersSepRes)
+    return sep_res.unbounded_sp
+end
 
-Coluna.Benders.insert_cuts!(reform, ctx::TestBendersFlowContext, cuts) = Coluna.Benders.insert_cuts!(reform, ctx.context, cuts)
+function Coluna.Benders.get_obj_val(sep_res::TestBendersSepRes)
+    return 0.0
+end
 
-Coluna.Benders.build_primal_solution(ctx::TestBendersFlowContext, mast_primal_sol, sep_sp_sols) = Coluna.Benders.build_primal_solution(ctx.context, mast_primal_sol, sep_sp_sols)
 
 
-Coluna.Benders.benders_iteration_output_type(ctx::TestBendersFlowContext) = Coluna.Benders.benders_iteration_output_type(ctx.context)
+mutable struct TestBendersFlowFlagContext <: Coluna.Benders.AbstractBendersContext
+    master_opt_res::TestBendersMasterRes
+    sp_opt_res::TestBendersSepRes
+    flag_unbounded_master::Bool ## check we enter treat_unbounded_master_problem_case!
+    flag_unbounded_master_sp::Bool ## check we enter setup_separation_for_unbounded_master_case!
+    flag_infeasible_sp::Bool ## check we enter treat_infeasible_separation_problem_case!
+end
 
-Coluna.Benders.update_sp_rhs!(ctx::TestBendersFlowContext, sp, mast_primal_sol) =
-Coluna.Benders.update_sp_rhs!(ctx.context, sp, mast_primal_sol)
-Coluna.Benders.set_of_cuts(ctx::TestBendersFlowContext) = Coluna.Benders.set_of_cuts(ctx.context)  
+function Coluna.Benders.get_master(ctx::TestBendersFlowFlagContext) 
+    return TestBendersMaster()
+end
 
-Coluna.Benders.set_of_sep_sols(ctx::TestBendersFlowContext) = Coluna.Benders.set_of_sep_sols(ctx.context)
+function Coluna.Benders.get_reform(ctx::TestBendersFlowFlagContext) 
+    return nothing
+end
+
+function Coluna.Benders.is_minimization(ctx::TestBendersFlowFlagContext) 
+    return true
+end
+
+function Coluna.Benders.benders_iteration_output_type(ctx::TestBendersFlowFlagContext) 
+    return Coluna.Algorithm.BendersIterationOutput
+end
+
+
+function Coluna.Benders.optimize_master_problem!(master, ctx::TestBendersFlowFlagContext, env)
+    return ctx.master_opt_res
+end
+
+function Coluna.Benders.treat_unbounded_master_problem_case!(master, ctx::TestBendersFlowFlagContext, env) 
+    ctx.flag_unbounded_master = true
+    ctx.master_opt_res.unbounded_master = false 
+    return ctx.master_opt_res
+end
+
+function Coluna.Benders.get_benders_subprobs(ctx::TestBendersFlowFlagContext) 
+    return [(1, TestBendersSubproblem())]
+end
+
+function Coluna.Benders.setup_separation_for_unbounded_master_case!(ctx::TestBendersFlowFlagContext, sp, mast_primal_sol) 
+    ctx.flag_unbounded_master_sp = true
+    return
+end
+
+function Coluna.Benders.update_sp_rhs!(ctx::TestBendersFlowFlagContext, sp, mast_primal_sol)
+    return
+end
+
+function Coluna.Benders.optimize_separation_problem!(ctx::TestBendersFlowFlagContext, sp, env, unbounded_master)
+    return ctx.sp_opt_res
+end
+
+function Coluna.Benders.treat_infeasible_separation_problem_case!(ctx::TestBendersFlowFlagContext, sp, env, unbounded_master_case) 
+    ctx.flag_infeasible_sp = true
+    return ctx.sp_opt_res
+end
+
+function Coluna.Benders.master_is_unbounded(ctx::TestBendersFlowFlagContext, second_stage_cost, unbounded_master_case)
+    return ctx.master_opt_res.unbounded_master ## TODO check 
+end
+
+function Coluna.Benders.insert_cuts!(reform, ctx::TestBendersFlowFlagContext, cuts) 
+    return []
+end
+
+function Coluna.Benders.build_primal_solution(ctx::TestBendersFlowFlagContext, mast_primal_sol, sep_sp_sols) 
+    return
+end
+
+function Coluna.Benders.set_of_cuts(ctx::TestBendersFlowFlagContext) 
+    return []
+end
+
+function Coluna.Benders.set_of_sep_sols(ctx::TestBendersFlowFlagContext) 
+    return []
+end
+
+function Coluna.Benders.push_in_set!(ctx::TestBendersFlowFlagContext, set, elem)
+    return false
+end
+
+
+function benders_flow_infeasible_master()
+    ctx = TestBendersFlowFlagContext( ## bounded master
+        TestBendersMasterRes(
+            true,
+            false,
+            false
+        ),
+        TestBendersSepRes(
+            false,
+            false
+        ),
+        false,
+        false,
+        false
+    )
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+    @test res.infeasible == true
+
+    @test ctx.flag_unbounded_master == false
+    @test ctx.flag_unbounded_master_sp == false
+    @test ctx.flag_infeasible_sp == false
+
+    ctx = TestBendersFlowFlagContext( ## unbounded master with certificate = true to ensure we stop before entering setup_separation_for_unbounded_master_case!
+        TestBendersMasterRes(
+            true,
+            true,
+            true
+        ),
+        TestBendersSepRes(
+            false,
+            false
+        ),
+        false,
+        false,
+        false
+    )
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+    @test res.infeasible == true
+
+    @test ctx.flag_unbounded_master == true
+    @test ctx.flag_unbounded_master_sp == false
+    @test ctx.flag_infeasible_sp == false
+
+end
+register!(unit_tests, "benders_default", benders_flow_infeasible_master, f=true)
 
 
 function benders_flow_unbounded_master()
-    env, reform, _ = benders_form_unbounded_master()
-    alg = Coluna.Algorithm.BendersCutGeneration()
-    ctx = TestBendersFlowContext(
-        Coluna.Algorithm.BendersContext(
-            reform, alg
+    ctx = TestBendersFlowFlagContext(
+        TestBendersMasterRes(
+            false,
+            true,
+            false ## with certificate = false
         ),
-        false,
+        TestBendersSepRes(
+            false,
+            false
+        ),
         false,
         false,
         false
     )
-    master = Coluna.MathProg.getmaster(reform)
-    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
-    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
-        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
-        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    end
-    Coluna.set_optim_start_time!(env)
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
 
-    result = Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
-    @test ctx.unbounded_master == true
-end
-register!(unit_tests, "benders_default", benders_flow_unbounded_master, f = true)
+    @test ctx.flag_unbounded_master == true
+    @test ctx.flag_unbounded_master_sp == false
+    @test ctx.flag_infeasible_sp == false
 
-
-
-## x2 fixed to zero
-## z cost fixed to dumb value
-function benders_infeasible_sp()
-    form = """
-     master
-         min
-         x1 + 4x2 + z
-         s.t.
-         x1 + x2 >= 1
-  
-     benders_sp
-         min
-         0x1 + 0x2 + 2y1 + 3y2 + y3 + art1 + art2 + z
-         s.t.
-         x1 + x2 + y1 + 2y3 + art1 >= 1 {BendTechConstr}
-         x2 + y2 + art2 >= 2 {BendTechConstr}
- 
-     integer
-         first_stage
-             x1, x2
- 
-     continuous
-         second_stage_cost
-             z
-         second_stage
-             y1, y2, y3
-         second_stage_artificial
-            art1, art2
-     
-     bounds
-         10 <= z <= 10
-         0 <= x1 <= 1
-         0 <= x2 <= 0
-         0 <= y1 <= 1
-         0 <= y2 <= 1
-         0 <= y3 <= 1
-         0 <= art1 <= Inf
-         0 <= art2 <= Inf
-         0 <= art3 <= Inf
-    """
-    env, _, _, _, reform = reformfromstring(form)
-    return env, reform
- 
- end
-
-
- function benders_flow_infeasible_sp()
-    env, reform = benders_infeasible_sp()
-    alg = Coluna.Algorithm.BendersCutGeneration()
-    master = ClMP.getmaster(reform)
-    sps = ClMP.get_benders_sep_sps(reform)
-    @show master
-    for sp in sps
-        @show sp
-    end
-
-    ctx = TestBendersFlowContext(
-        Coluna.Algorithm.BendersContext(
-            reform, alg
+    ctx = TestBendersFlowFlagContext(
+        TestBendersMasterRes(
+            false,
+            true,
+            true ## with certificate = true
         ),
-        false,
+        TestBendersSepRes(
+            false,
+            false
+        ),
         false,
         false,
         false
     )
-    master = Coluna.MathProg.getmaster(reform)
-    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
-    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
-        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
-        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
-    end
-    Coluna.set_optim_start_time!(env)
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
 
-    result = Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
+    @test ctx.flag_unbounded_master == true
+    @test ctx.flag_unbounded_master_sp == true
+    @test ctx.flag_infeasible_sp == false
 
-    @test ctx.opt_sp == true
-    @test ctx.infeasible_sp == true
 end
-register!(unit_tests, "benders_default", benders_flow_infeasible_sp, f = true)
+register!(unit_tests, "benders_default", benders_flow_unbounded_master, f=true)
+
+
+function benders_flow_infeasible_sp()
+    ctx = TestBendersFlowFlagContext( ## bounded sp, bounded master
+        TestBendersMasterRes(
+            false,
+            false,
+            false
+        ),
+        TestBendersSepRes(
+            true,
+            false
+        ),
+        false,
+        false,
+        false
+    )
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+
+    @test ctx.flag_infeasible_sp == true
+    @test ctx.flag_unbounded_master == false
+    @test ctx.flag_unbounded_master_sp == false
+
+    ctx = TestBendersFlowFlagContext( ## bounded sp, unbounded master
+        TestBendersMasterRes(
+            false,
+            true,
+            false
+        ),
+        TestBendersSepRes(
+            true,
+            false
+        ),
+        false,
+        false,
+        false
+    )
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+
+    @test ctx.flag_infeasible_sp == true
+    @test ctx.flag_unbounded_master == true
+    @test ctx.flag_unbounded_master_sp == false
+
+    ctx = TestBendersFlowFlagContext( ## bounded sp, unbounded master with certificate
+        TestBendersMasterRes(
+            false,
+            true,
+            true
+        ),
+        TestBendersSepRes(
+            true,
+            false
+        ),
+        false,
+        false,
+        false
+    )
+    res = Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+
+    @test ctx.flag_infeasible_sp == true
+    @test ctx.flag_unbounded_master == true
+    @test ctx.flag_unbounded_master_sp == true
+
+end
+register!(unit_tests, "benders_default", benders_flow_infeasible_sp, f=true)
+
+## test unbounded sp flow when sp is either feasible or infeasible -> in both cases an error should be thrown
+function benders_flow_unbounded_sp()
+
+    ctx = TestBendersFlowFlagContext( ## feasible unbounded sp
+        TestBendersMasterRes(
+            false,
+            false,
+            false
+        ),
+        TestBendersSepRes(
+            false,
+            true
+        ),
+        false,
+        false,
+        false
+    )
+    
+    @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+
+    ctx = TestBendersFlowFlagContext( ## infeasible unbounded sp
+        TestBendersMasterRes(
+            false,
+            false,
+            false
+        ),
+        TestBendersSepRes(
+            true,
+            true
+        ),
+        false,
+        false,
+        false
+    )
+
+    @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_iteration!(ctx, nothing, nothing, nothing)
+    @test ctx.flag_infeasible_sp == true
+
+end
+register!(unit_tests, "benders_default", benders_flow_unbounded_sp, f=true)
+
+
