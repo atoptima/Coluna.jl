@@ -165,3 +165,15 @@ Coluna.ColGen.compute_sp_init_db
 Coluna.ColGen.compute_dual_bound
 ```
 
+## Stabilization
+
+```@docs
+Coluna.ColGen.setup_stabilization!
+Coluna.ColGen.update_stabilization_after_master_optim!
+Coluna.ColGen.get_master_dual_sol
+Coluna.ColGen.check_misprice
+Coluna.ColGen.update_stabilization_after_pricing_optim!
+Coluna.ColGen.update_stabilization_after_misprice!
+Coluna.ColGen.update_stabilization_after_iter!
+Coluna.ColGen.get_output_str
+```
