@@ -21,6 +21,11 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
 
     incumbent_primal_solution::Union{Nothing,PrimalSolution}
 
+    # stabilization
+    stabilization::Bool
+    self_adjusting_α::Bool
+    init_α::Float64
+
     # # Information to solve the master
     # master_solve_alg
     # master_optimizer_id
@@ -30,9 +35,10 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     function ColGenContext(reform, alg)
         rch = ReducedCostsCalculationHelper(getmaster(reform))
         sh = SubgradientCalculationHelper(getmaster(reform))
+        stabilization, self_adjusting_α, init_α = _stabilization_info(alg)
         return new(
             reform, 
-            getobjsense(reform), 
+            getobjsense(reform),
             0.0,
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
@@ -45,9 +51,21 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             alg.max_nb_iterations,
             alg.opt_rtol,
             alg.opt_atol,
-            nothing
+            nothing,
+            stabilization,
+            self_adjusting_α,
+            init_α
         )
     end
+end
+
+function _stabilization_info(alg)
+    s = alg.smoothing_stabilization
+    if s > 0.0
+        automatic = s == 1
+        return true, automatic, automatic ? 0.5 : s
+    end
+    return false, false, 0.0
 end
 
 subgradient_helper(ctx::ColGenContext) = ctx.subgradient_helper
@@ -56,6 +74,14 @@ ColGen.get_reform(ctx::ColGenContext) = ctx.reform
 ColGen.get_master(ctx::ColGenContext) = getmaster(ctx.reform)
 ColGen.is_minimization(ctx::ColGenContext) = getobjsense(ctx.reform) == MinSense
 ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
+
+# ColGen.setup_stabilization!(ctx, master) = ColGenStab(master)
+function ColGen.setup_stabilization!(ctx::ColGenContext, master)
+    if ctx.stabilization
+        return ColGenStab(master, ctx.self_adjusting_α, ctx.init_α)
+    end
+    return NoColGenStab()
+end
 
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
