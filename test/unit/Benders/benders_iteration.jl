@@ -96,9 +96,10 @@ Coluna.Benders.set_of_sep_sols(ctx::TestBendersIterationContext) = Coluna.Bender
 
 ## stop criterion because of opt. sol found is matched
 function benders_iter_opt_stop()
-    env, reform = benders_form_location_routing_fixed_opt()
+    env, reform = benders_form_location_routing_fixed_opt_continuous()
     master = ClMP.getmaster(reform)
     sps = ClMP.get_benders_sep_sps(reform)
+    ClMP.relax_integrality!(master)
 
     ## sol fully fixed
     ##expected sol
@@ -146,15 +147,3 @@ function benders_iter_opt_stop()
     @test result.master ≈ 293.4956666
 end
 register!(unit_tests, "benders_default", benders_iter_opt_stop)
-
-## subopt 1st level solution, an optimality cut should be generated
-## should call benders_form_location_routing_subopt with variables fixed
-function benders_iter_opt_cut()
-
-end
-
-## 1st level solution makes sp infeasible, an infeasibility cut should be returned 
-## should call benders_form_location_routing_infeasible
-function benders_iter_infeas_cut()
-
-end
