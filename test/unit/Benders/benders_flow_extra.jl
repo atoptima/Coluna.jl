@@ -78,7 +78,7 @@ function benders_flow_form_unbounded_master()
     result = Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
     @test ctx.flag_unbounded_master == true
 end
-register!(unit_tests, "benders_default", benders_flow_form_unbounded_master, f=true)
+register!(unit_tests, "benders_default", benders_flow_form_unbounded_master)
 
 
 
@@ -159,4 +159,4 @@ function benders_infeasible_sp()
 
     @test ctx.flag_infeasible_sp == true
 end
-register!(unit_tests, "benders_default", benders_flow_form_infeasible_sp, f=true)
+register!(unit_tests, "benders_default", benders_flow_form_infeasible_sp)

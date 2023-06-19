@@ -181,7 +181,7 @@ function benders_flow_infeasible_master()
     @test ctx.flag_infeasible_sp == false
 
 end
-register!(unit_tests, "benders_default", benders_flow_infeasible_master, f=true)
+register!(unit_tests, "benders_default", benders_flow_infeasible_master)
 
 
 function benders_flow_unbounded_master()
@@ -226,7 +226,7 @@ function benders_flow_unbounded_master()
     @test ctx.flag_infeasible_sp == false
 
 end
-register!(unit_tests, "benders_default", benders_flow_unbounded_master, f=true)
+register!(unit_tests, "benders_default", benders_flow_unbounded_master)
 
 
 function benders_flow_infeasible_sp()
@@ -291,7 +291,7 @@ function benders_flow_infeasible_sp()
     @test ctx.flag_unbounded_master_sp == true
 
 end
-register!(unit_tests, "benders_default", benders_flow_infeasible_sp, f=true)
+register!(unit_tests, "benders_default", benders_flow_infeasible_sp)
 
 ## test unbounded sp flow when sp is either feasible or infeasible -> in both cases an error should be thrown
 function benders_flow_unbounded_sp()
@@ -332,6 +332,6 @@ function benders_flow_unbounded_sp()
     @test ctx.flag_infeasible_sp == true
 
 end
-register!(unit_tests, "benders_default", benders_flow_unbounded_sp, f=true)
+register!(unit_tests, "benders_default", benders_flow_unbounded_sp)
 
 
