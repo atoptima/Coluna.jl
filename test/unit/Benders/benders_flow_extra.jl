@@ -152,6 +152,7 @@ function benders_infeasible_sp()
     for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
         sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+        Coluna.Algorithm._deactivate_art_vars(sp)
     end
     Coluna.set_optim_start_time!(env)
 
