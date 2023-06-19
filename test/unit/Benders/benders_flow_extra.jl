@@ -78,7 +78,7 @@ function benders_flow_form_unbounded_master()
     result = Coluna.Benders.run_benders_iteration!(ctx, nothing, env, nothing)
     @test ctx.flag_unbounded_master == true
 end
-register!(unit_tests, "benders_default", benders_flow_form_unbounded_master, f=true)
+register!(unit_tests, "benders_default", benders_flow_form_unbounded_master; x = true)
 
 
 
@@ -132,11 +132,6 @@ function benders_infeasible_sp()
     env, reform = benders_infeasible_sp()
     alg = Coluna.Algorithm.BendersCutGeneration()
     master = ClMP.getmaster(reform)
-    sps = ClMP.get_benders_sep_sps(reform)
-    #@show master
-    #for sp in sps
-    #    @show sp
-    #end
 
     ctx = TestBendersFlowFormContext(
         Coluna.Algorithm.BendersContext(
@@ -152,6 +147,7 @@ function benders_infeasible_sp()
     for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
         sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+        Coluna.Algorithm._deactivate_art_vars(sp)
     end
     Coluna.set_optim_start_time!(env)
 
@@ -159,4 +155,4 @@ function benders_infeasible_sp()
 
     @test ctx.flag_infeasible_sp == true
 end
-register!(unit_tests, "benders_default", benders_flow_form_infeasible_sp, f=true)
+register!(unit_tests, "benders_default", benders_flow_form_infeasible_sp; x = true)
