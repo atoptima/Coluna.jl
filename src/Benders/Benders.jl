@@ -240,7 +240,7 @@ stateDiagram-v2
     Separation --> [*] : unbounded
 ```
 """
-function run_benders_iteration!(context, phase, env, ip_primal_sol)
+function run_benders_iteration!(context, phase, env, ip_primal_sol) ##TODO: remove arg phase from method signature 
     master = get_master(context)
     mast_result = optimize_master_problem!(master, context, env)
     O = benders_iteration_output_type(context)
@@ -283,6 +283,7 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
     end
 
     # Solve the separation problems.
+    # Here one subproblem = one dual sol = possibly one cut (multi-cuts approach). 
     generated_cuts = set_of_cuts(context)
     sep_sp_sols = set_of_sep_sols(context)
     second_stage_cost = 0.0
@@ -301,8 +302,9 @@ function run_benders_iteration!(context, phase, env, ip_primal_sol)
             return new_iteration_output(O, is_min_sense, 0, nothing, true, false, nothing)
         end
 
-        second_stage_cost += get_obj_val(sep_result)
+        second_stage_cost += get_obj_val(sep_result) ## update η = sum of the costs of the subproblems given a fixed 1st level solution
 
+        # Push generated dual sol and cut in the context.
         nb_cuts_pushed = 0
         if push_in_set!(context, generated_cuts, sep_result)
             nb_cuts_pushed += 1

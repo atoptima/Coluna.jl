@@ -241,36 +241,63 @@ Benders.get_primal_sol(res::BendersSeparationResult) = res.lp_primal_sol
 Benders.is_infeasible(res::BendersSeparationResult) = res.infeasible
 Benders.is_unbounded(res::BendersSeparationResult) = res.unbounded
 
+## original MIP:
+## min cx + dy s.t.
+##  Ax >= b 
+##  Tx + Qy >= r
+##  x, y >= 0, x ∈ Z^n
+
+## master:
+## min cx + η
+##  Ax >= B
+##  < benders cuts >
+
+## SP: ## depends on master attributes (e.g. unbounded), x* fixed
+## min  dy
+##  Tx* + Qy >= r
+##  y >= 0
+
+## π: dual sol
+## η: contribution to the objective of the second-level variables
+## feasibility cut: πTx >= πr
+## optimality cut: η + πTx >= πr
+
+## Depending on the nature of the cut (feasibility of optimality cut), the left hand side of the cut is equal to either 0.η + πT.x or to 1.η + πT.x. In both cases we have to compute the coefficients behind x variables using the matrix T. The coefficients are stored in a dictionnary cut_lhs that matches each var id with its coefficient in the cut. 
+## second_stage_cost_var: id of the variable η representing the cost of the second stage variables
+## T: the matrix which stores the coefficients of x variables in the current subproblem
+## dual sol: the dual solution π of the current subproblem
+## feasibility_cut: boolean set to true if the current cut is a feasibility cut, false otherwise 
 function _compute_cut_lhs(ctx, sp, dual_sol, feasibility_cut)
     cut_lhs = Dict{VarId, Float64}()
-
-    coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol
+    coeffs = transpose(ctx.rhs_helper.T[getuid(sp)]) * dual_sol ## πTx
     for (varid, coeff) in zip(findnz(coeffs)...)
         cut_lhs[varid] = coeff
     end
 
     if feasibility_cut
-        cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0
+        cut_lhs[sp.duty_data.second_stage_cost_var] = 0.0 ## πTx (feasibility cut)
     else
-        cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0
+        cut_lhs[sp.duty_data.second_stage_cost_var] = 1.0 ## η + πTx (optimality cut)
     end
     return cut_lhs
 end
 
+## For both feasibility and optimality cuts, the right-hand side is given by πr with π the dual solution of the current sp and r the right-hand side of the sp linear constraints. However, in the implementation, the bounding constraints are considered separately from the other linear constraints. Thus, we add to πr the contribution of the bounding constraints to the right-hand side of our cut. 
 function _compute_cut_rhs_contrib(ctx, sp, dual_sol)
     spid = getuid(sp)
-    bounds_contrib_to_rhs = 0.0
-    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol)
-        if active_bound == MathProg.LOWER || active_bound == MathProg.LOWER_AND_UPPER
+    bounds_contrib_to_rhs = 0.0 ##init bounding constraints contribution to the right-hand side of the cut
+    for (varid, (val, active_bound)) in get_var_redcosts(dual_sol) ##compute bounding constraints contribution ; val is the dual value of the bounding constraint, active_bound indicates whoever the bound is a LOWER or a UPPER bound
+        if active_bound == MathProg.LOWER 
             bounds_contrib_to_rhs += val * getperenlb(sp, varid)
         elseif active_bound == MathProg.UPPER
             bounds_contrib_to_rhs += val * getperenub(sp, varid)
         end
     end
 
-    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs
+    cut_rhs = transpose(dual_sol) * ctx.rhs_helper.rhs[spid] + bounds_contrib_to_rhs ## πr + bounding constraints contrib 
     return cut_rhs
 end
+
 
 function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master)
     spid = getuid(sp)
@@ -286,10 +313,10 @@ function Benders.optimize_separation_problem!(ctx::BendersContext, sp::Formulati
         return BendersSeparationResult{Formulation{BendersSp}}(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), false, true, nothing, nothing, false, unbounded_master)
     end
 
-    if getterminationstatus(opt_state) == INFEASIBLE
+    if getterminationstatus(opt_state) == INFEASIBLE ## we then enter treat_infeasible_separation_problem_case! (phase 1)
         return BendersSeparationResult{Formulation{BendersSp}}(estimated_cost, nothing, get_best_lp_primal_sol(opt_state), true, false, nothing, nothing, false, unbounded_master)
     end
-
+    ## create and add cuts to the result 
     dual_sol = get_best_lp_dual_sol(opt_state)
     cost = getvalue(dual_sol)
     min_sense = Benders.is_minimization(ctx)
@@ -304,7 +331,7 @@ function Benders.master_is_unbounded(ctx::BendersContext, second_stage_cost, unb
     estimated_cost = 0
     for (spid, sp) in Benders.get_benders_subprobs(ctx)
         second_stage_cost_var = sp.duty_data.second_stage_cost_var
-        estimated_cost += getcurincval(Benders.get_master(ctx), second_stage_cost_var)
+        estimated_cost += getcurincval(Benders.get_master(ctx), second_stage_cost_var) ## compute cost η considering ALL subproblems
     end
 
     min_sense = Benders.is_minimization(ctx)
@@ -312,6 +339,7 @@ function Benders.master_is_unbounded(ctx::BendersContext, second_stage_cost, unb
     return sc * second_stage_cost < sc * estimated_cost + 1e-5 && unbounded_master_case
 end
 
+## it is a phase 1: add artificial variables in order to find a feasible solution
 function Benders.treat_infeasible_separation_problem_case!(ctx::BendersContext, sp::Formulation{BendersSp}, env, unbounded_master_case)
     second_stage_cost_var = sp.duty_data.second_stage_cost_var
     @assert !isnothing(second_stage_cost_var)

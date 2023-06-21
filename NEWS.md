@@ -1,10 +1,6 @@
 # Coluna 0.6.2
 
-This is a minor update but some changes may affect the integration of external algorithms
-with Coluna.
-
-Changes:
-- Column generation stabilization is back.
+This is a minor update that provides fixes in the Benders cut generation algorithm and documentation for the Benders API.
 
 # Coluna 0.6.1
 
