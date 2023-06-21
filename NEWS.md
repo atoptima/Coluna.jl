@@ -1,3 +1,9 @@
+# Coluna 0.6.3
+
+This is minor update that provides:
+- column generation stabilization (self-adusting smoothing)
+- documentation updates
+
 # Coluna 0.6.2
 
 This is a minor update that provides fixes in the Benders cut generation algorithm and documentation for the Benders API.
