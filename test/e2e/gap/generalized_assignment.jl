@@ -4,7 +4,7 @@ function gap_toy_instance()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            branchingtreefile = "playgap.dot"
+            branchingtreefile = "playgap.dot",
         )),
         "default_optimizer" => GLPK.Optimizer
     )

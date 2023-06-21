@@ -18,7 +18,7 @@ form1() = """
         x1 + x2 + x3 + y1 + y2 + y3 + 2z >= 10
         x1 + 2x2     + y1 + 2y2     + z <= 100
         x1 +     3x3 + y1 +    + 3y3    == 100
-                                    z <= 5   
+                                      z <= 5   
 
     dw_sp
         min
@@ -111,6 +111,78 @@ function test_reduced_costs_calculation_helper()
 end
 register!(unit_tests, "colgen_default", test_reduced_costs_calculation_helper)
 
+
+# Minimization and test all constraint senses
+form2() = """
+    master
+        min
+        3x1 + 2x2 + 5x3 + 4y1 + 3y2 + 5y3 + z1 + z2
+        s.t.
+        x1 + x2 + x3 + y1 + y2 + y3 + 2z1 + z2 >= 10
+        x1 + 2x2     + y1 + 2y2     + z1       <= 100
+        x1 +     3x3 + y1 +    + 3y3           == 100
+                                      z1  + z2 <= 5   
+
+    dw_sp
+        min
+        x1 + x2 + x3 + y1 + y2 + y3
+        s.t.
+        x1 + x2 + x3 + y1 + y2 + y3 >= 10
+        
+        integer
+            representatives
+                x1, x2, x3, y1, y2, y3
+
+            pure
+                z1, z2
+        
+        bounds
+            x1 >= 0
+            x2 >= 0
+            x3 >= 0
+            y1 >= 0
+            y2 >= 0
+            y3 >= 0
+            z1 >= 0
+            z2 >= 3
+"""
+
+function test_subgradient_calculation_helper()
+    _, master, _, _, _ = reformfromstring(form2())
+
+    vids = get_name_to_varids(master)
+    cids = get_name_to_constrids(master)
+
+    helper = ClA.SubgradientCalculationHelper(master)
+    @test helper.a[cids["c1"]] == 10
+    @test helper.a[cids["c2"]] == -100
+    @test helper.a[cids["c3"]] == 100
+    @test helper.a[cids["c4"]] == -5
+
+    @test helper.A[cids["c1"], vids["x1"]] == 1
+    @test helper.A[cids["c1"], vids["x2"]] == 1
+    @test helper.A[cids["c1"], vids["x3"]] == 1
+    @test helper.A[cids["c1"], vids["y1"]] == 1
+    @test helper.A[cids["c1"], vids["y2"]] == 1
+    @test helper.A[cids["c1"], vids["y3"]] == 1
+    @test helper.A[cids["c1"], vids["z1"]] == 2
+    @test helper.A[cids["c1"], vids["z2"]] == 1
+    @test helper.A[cids["c2"], vids["x1"]] == -1
+    @test helper.A[cids["c2"], vids["x2"]] == -2
+    @test helper.A[cids["c2"], vids["y1"]] == -1
+    @test helper.A[cids["c2"], vids["y2"]] == -2
+    @test helper.A[cids["c2"], vids["z1"]] == -1
+    @test helper.A[cids["c2"], vids["z2"]] == 0
+    @test helper.A[cids["c3"], vids["x1"]] == 1
+    @test helper.A[cids["c3"], vids["x3"]] == 3
+    @test helper.A[cids["c3"], vids["y1"]] == 1
+    @test helper.A[cids["c3"], vids["y3"]] == 3
+    @test helper.A[cids["c3"], vids["z1"]] == 0
+    @test helper.A[cids["c3"], vids["z2"]] == 0
+    @test helper.A[cids["c4"], vids["z1"]] == -1
+    @test helper.A[cids["c4"], vids["z2"]] == -1
+end
+register!(unit_tests, "colgen_default", test_subgradient_calculation_helper)
 
 # All the tests are based on the Generalized Assignment problem.
 # x_mj = 1 if job j is assigned to machine m
@@ -623,6 +695,7 @@ ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::TestColGenIterationC
 ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
 ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
 ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)
+ColGen.update_reduced_costs!(ctx::TestColGenIterationContext, phase, red_costs) = nothing
 ColGen.get_subprob_var_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_orig_costs(ctx.context)
 ColGen.get_subprob_var_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_coef_matrix(ctx.context)
 
@@ -635,6 +708,7 @@ function ColGen.update_sp_vars_red_costs!(ctx::TestColGenIterationContext, sp::F
     return
 end
 
+ColGen.compute_sp_init_pb(ctx::TestColGenIterationContext, sp::Formulation{DwSp}) =  ColGen.compute_sp_init_pb(ctx.context, sp)
 ColGen.compute_sp_init_db(ctx::TestColGenIterationContext, sp::Formulation{DwSp}) = ColGen.compute_sp_init_db(ctx.context, sp)
 ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(ctx.context)
 ColGen.push_in_set!(ctx::TestColGenIterationContext, set, col) = ColGen.push_in_set!(ctx.context, set, col)
@@ -644,14 +718,14 @@ function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, 
     return ColGen.insert_columns!(reform, ctx.context, phase, columns)
 end
 
-function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol)
-    output = ColGen.optimize_pricing_problem!(ctx.context, sp, env, optimizer, master_dual_sol)
+function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
+    output = ColGen.optimize_pricing_problem!(ctx.context, sp, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     # test here
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.context, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, sp_dbs, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.context, phase, sp_dbs, master_dual_sol)
 end
 
 function test_colgen_iteration_min_gap()
@@ -711,7 +785,7 @@ function test_colgen_iteration_min_gap()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 79.666666667
     @test output.db ≈ 21.3333333333
     @test output.nb_new_cols == 2
@@ -775,7 +849,7 @@ function test_colgen_iteration_max_gap()
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 87.00
     @test output.db ≈ 110.00
     @test output.nb_new_cols == 2
@@ -843,7 +917,7 @@ function test_colgen_iteration_pure_master_vars()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 52.9500
     @test output.db ≈ 51.5000
     @test output.nb_new_cols == 1
@@ -907,7 +981,7 @@ function test_colgen_iteration_obj_const()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing)
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
    
     @test output.mlp ≈ 779.6666666666667 
     @test output.db ≈ 717.6666666766668
@@ -1184,7 +1258,7 @@ function test_colgen_loop()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     ColGen.setup_reformulation!(reform, phase)
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run_colgen_phase!(ctx, phase, ColGenIterationTestStage(), env, nothing)
+    output = ColGen.run_colgen_phase!(ctx, phase, ColGenIterationTestStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
 
     # EXPECTED:
     #    """
@@ -1309,7 +1383,7 @@ register!(unit_tests, "colgen_default", expected_output_identical_subproblems; x
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
-        # We need subsolvers to optimize the master and subproblems.
+    # We need subsolvers to optimize the master and subproblems.
     # We relax the master formulation.
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
     ClMP.relax_integrality!(master)
