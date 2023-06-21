@@ -48,8 +48,9 @@ The latest minor release `0.6.0` suffers from regressions as some features are n
   - Strong-branching
 - ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but these features may have bugs:
   - Benders cut generation
+  - Stabilization for column generation 
 - ![Dev](https://img.shields.io/badge/-dev-orange) Features in development.
-  - Stabilization for column generation (regression) and benders.
+  - Stabilization for benders.
   - Clean-up of large scales formulation (regression)
   - Preprocessing of formulations and reformulations
 
