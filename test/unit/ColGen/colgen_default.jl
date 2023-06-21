@@ -1383,7 +1383,7 @@ register!(unit_tests, "colgen_default", expected_output_identical_subproblems; x
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
-        # We need subsolvers to optimize the master and subproblems.
+    # We need subsolvers to optimize the master and subproblems.
     # We relax the master formulation.
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
     ClMP.relax_integrality!(master)

@@ -697,8 +697,7 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, master_dua
     convexity_contrib = _convexity_contrib(ctx, master_dual_sol)
 
     # Pure master variables contribution.
-    # TODO (only when stabilization is used otherwise already taken into account by master obj val)
-
+    # TODO (only when stabilization is used otherwise already taken into account by master obj val
     puremastvars_contrib = 0.0
     if ctx.stabilization
         master = ColGen.get_master(ctx)
@@ -718,6 +717,7 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, master_dua
             puremastvars_contrib += redcost * mult
         end
     end
+
     return master_lp_obj_val - convexity_contrib + sp_contrib + puremastvars_contrib
 end
 
