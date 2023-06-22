@@ -154,7 +154,7 @@ See `optimize_master_lp_problem!`.
 Returns a primal solution expressed in the original problem variables if the current master
 LP solution is integer feasible; `nothing` otherwise.
 """
-@mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, reform, env) = nothing
+@mustimplement "ColGenMaster" check_primal_ip_feasibility!(mast_lp_primal_sol, ::AbstractColGenContext, phase, env) = nothing
 
 """
 Returns `true` if the new master IP primal solution is better than the current; `false` otherwise.
@@ -279,7 +279,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # If the formulation changes, one needs to restart the column generation to update
         # memoization to calculate reduced costs and stabilization.
         # TODO: the user can get the reformulation from the context.
-        new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, get_reform(context), env)
+        new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, env)
         if new_cut_in_master
             return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
         end

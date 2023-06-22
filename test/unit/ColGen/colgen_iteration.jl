@@ -185,7 +185,7 @@ end
 
 ColGen.update_reduced_costs!(::ColGenIterationTestContext, phase, red_costs) = nothing
 
-function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, env)
+function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContext, ::ColGenIterationTestPhase, env)
     if ctx.new_ip_primal_sol
         @assert !ctx.master_has_new_cuts
         return [7.0, 7.0, 7.0], false
