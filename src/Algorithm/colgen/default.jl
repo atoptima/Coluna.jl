@@ -461,7 +461,8 @@ end
 _set_column_cost!(master, col_id, phase) = nothing
 _set_column_cost!(master, col_id, ::ColGenPhase1) = setcurcost!(master, col_id, 0.0)
 
-function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
+function ColGen.insert_columns!(ctx::ColGenContext, phase, columns)
+    reform = ColGen.get_reform(ctx)
     primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
     col_ids_to_activate = Set{VarId}()
     master = ColGen.get_master(ctx)

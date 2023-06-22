@@ -396,7 +396,7 @@ function ColGen.update_stabilization_after_misprice!(stab::ColGenStabFlowStab, m
     stab.nb_misprices_done += 1
 end
 
-function ColGen.insert_columns!(reform, context::ColGenStabFlowCtx, phase, generated_columns)
+function ColGen.insert_columns!(context::ColGenStabFlowCtx, phase, generated_columns)
     return []
 end
 

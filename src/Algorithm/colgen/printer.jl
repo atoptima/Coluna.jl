@@ -60,8 +60,8 @@ end
 
 ColGen.update_reduced_costs!(ctx::ColGenPrinterContext, phase, red_costs) = ColGen.update_reduced_costs!(ctx.inner, phase, red_costs)
 
-function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, columns)
-    col_ids = ColGen.insert_columns!(reform, ctx.inner, phase, columns)
+function ColGen.insert_columns!(ctx::ColGenPrinterContext, phase, columns)
+    col_ids = ColGen.insert_columns!(ctx.inner, phase, columns)
     if ctx.print_column_reduced_cost
         _print_column_reduced_costs(ColGen.get_reform(ctx), col_ids)
     end

@@ -206,7 +206,7 @@ end
 
 ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, dual_mast_sol) = nothing
 
-function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, generated_columns)
+function ColGen.insert_columns!(::ColGenIterationTestContext, phase, generated_columns)
     @test length(generated_columns) == 1
     @test generated_columns[1] == [0, 1, 1, 0, 1, 1, 0, 0, 1, 0]
     return [1]

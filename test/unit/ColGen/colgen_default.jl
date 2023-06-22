@@ -714,8 +714,8 @@ ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(c
 ColGen.push_in_set!(ctx::TestColGenIterationContext, set, col) = ColGen.push_in_set!(ctx.context, set, col)
 
 # Columns insertion
-function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, columns)
-    return ColGen.insert_columns!(reform, ctx.context, phase, columns)
+function ColGen.insert_columns!(ctx::TestColGenIterationContext, phase, columns)
+    return ColGen.insert_columns!(ctx.context, phase, columns)
 end
 
 function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
@@ -1051,7 +1051,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    new_cols = ColGen.insert_columns!(ctx, phase, columns)
     @test length(new_cols) == 1
 
     ## Iteration 2
@@ -1068,7 +1068,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col3])
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
-    @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(reform, ctx, phase, columns)
+    @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(ctx, phase, columns)
 end
 register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
 
@@ -1110,7 +1110,7 @@ function test_two_identicals_cols_at_same_iteration_ok()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    new_cols = ColGen.insert_columns!(ctx, phase, columns)
     @test length(new_cols) == 2
 end
 register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
@@ -1159,7 +1159,7 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    new_cols = ColGen.insert_columns!(ctx, phase, columns)
     @test length(new_cols) == 1
 end
 register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)

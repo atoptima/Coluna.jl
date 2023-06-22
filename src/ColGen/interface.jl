@@ -431,11 +431,9 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     # Insert columns into the master.
     # The implementation is responsible for checking if the column is "valid".
-    # TODO: the user can get the reformulation from the context.
-    col_ids = insert_columns!(get_reform(context), context, phase, generated_columns) # TODO: remove phase
+    col_ids = insert_columns!(context, phase, generated_columns)
     nb_cols_inserted = length(col_ids)
 
-    # TODO: remove the context from the arguments.
     update_stabilization_after_iter!(stab, mast_dual_sol)
 
     return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
