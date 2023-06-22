@@ -1,6 +1,6 @@
 #/bin/bash
 
-alias julia='/Applications/Julia-1.8.app/Contents/Resources/julia/bin/julia'
+alias julia='/Applications/Julia-1.9.app/Contents/Resources/julia/bin/julia'
 
 FILE="test/.222-revise-exit-code"
 

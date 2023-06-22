@@ -25,8 +25,95 @@ function gap_toy_instance()
 end
 register!(e2e_tests, "gap", gap_toy_instance)
 
+# This test is very important because it makes sure that the lagrangian dual bound is well 
+# computed when the number of machines restricts the number of assigned jobs.
+function gap_toy_with_pure_master_vars_and_identical_subproblems()
+    println("\e[1;44m --------------- \e[00m")
+    println("\e[1;44m --------------- \e[00m")
+    println("\e[1;44m --------------- \e[00m")
+
+
+    Ma = 1:3;
+    J = 1:15;
+    c = [12.7, 22.5, 8.9, 20.8, 13.6, 12.4, 24.8, 19.1, 11.5, 17.4, 24.7, 6.8, 21.7, 14.3, 10.5];
+    f = [3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000];
+    w = [61, 70, 57, 82, 51, 74, 98, 64, 86, 80, 69, 79, 60, 76, 78];
+    Q = 300;
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
+            branchingtreefile = "playgap.dot",
+            maxnumnodes = 0
+        )),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    gap = BlockModel(coluna)
+
+    @axis(M, Ma)
+
+    @variable(gap, x[m in M, j in J], Bin)
+    @variable(gap, y[j in J], Bin) #equals one if job not assigned
+
+    @constraint(gap, cov[j in J], sum(x[m,j] for m in M) + y[j] >= 1)
+
+    @constraint(gap, knp[m in M],
+        sum(w[j]*x[m,j] for j in J) <= Q)
+
+    @objective(gap, Min,
+        sum(c[j]*x[m,j] for m in M, j in J) +
+        sum(f[j]*y[j] for j in J))
+
+    @dantzig_wolfe_decomposition(gap, dec, M)
+    subproblems = BlockDecomposition.getsubproblems(dec)
+    specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = 1)
+    optimize!(gap)
+
+    println("\e[34m --------------- \e[00m")
+    println("\e[34m --------------- \e[00m")
+    println("\e[34m --------------- \e[00m")
+
+    Ma = 1:1;
+    J = 1:15;
+    c = [12.7, 22.5, 8.9, 20.8, 13.6, 12.4, 24.8, 19.1, 11.5, 17.4, 24.7, 6.8, 21.7, 14.3, 10.5];
+    f = [3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000];
+    w = [61, 70, 57, 82, 51, 74, 98, 64, 86, 80, 69, 79, 60, 76, 78];
+    Q = 300;
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
+            branchingtreefile = "playgap.dot",
+            maxnumnodes = 0
+        )),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    gap = BlockModel(coluna)
+
+    @axis(M, Ma)
+
+    @variable(gap, x[m in M, j in J], Bin)
+    @variable(gap, y[j in J], Bin) #equals one if job not assigned
+
+    @constraint(gap, cov[j in J], sum(x[m,j] for m in M) + y[j] >= 1)
+
+    @constraint(gap, knp[m in M],
+        sum(w[j]*x[m,j] for j in J) <= Q)
+
+    @objective(gap, Min,
+        sum(c[j]*x[m,j] for m in M, j in J) +
+        sum(f[j]*y[j] for j in J))
+
+    @dantzig_wolfe_decomposition(gap, dec, M)
+    subproblems = BlockDecomposition.getsubproblems(dec)
+    specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = 3)
+    optimize!(gap)
+end
+register!(e2e_tests, "gap", gap_toy_with_pure_master_vars_and_identical_subproblems; f = true)
+
 function gap_strong_branching()
-    println("\e[45m gap strong branching \e[00m")
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     coluna = JuMP.optimizer_with_attributes(
@@ -47,7 +134,7 @@ function gap_strong_branching()
 
     # we increase the branching priority of variables which assign jobs to the first two machines
     for machine in 1:2
-        for job in data.jobs
+        for job in J
             BD.branchingpriority!(x[machine,job], 2)
         end
     end  
@@ -132,7 +219,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #         @test ClD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 #     end
 
-#     @testset "pure master variables (GAP with penalties)" begin
+#     @testset "pure master variables (GAP with f)" begin
 #         data = ClD.GeneralizedAssignment.data("smallgap3.txt")
 
 #         coluna = JuMP.optimizer_with_attributes(
@@ -141,7 +228,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #             "default_optimizer" => GLPK.Optimizer
 #         )
 
-#         problem, x, y, dec = ClD.GeneralizedAssignment.model_with_penalties(data, coluna)
+#         problem, x, y, dec = ClD.GeneralizedAssignment.model_with_f(data, coluna)
 #         JuMP.optimize!(problem)
 #         @test JuMP.termination_status(problem) == MOI.OPTIMAL
 #         @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
@@ -210,7 +297,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 
 #     @testset "gap with all phases in col.gen" begin # TODO: replace by unit tests for ColCutGenConquer.
 #         data = ClD.GeneralizedAssignment.data("mediumgapcuts1.txt")
-#         for m in data.machines
+#         for m in M
 #             data.capacity[m] = floor(Int, data.capacity[m] * 0.5)
 #         end
 
@@ -283,14 +370,14 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #         )
 
 #         model = BlockModel(coluna, direct_model = true)
-#         @axis(M, data.machines)
-#         @variable(model, x[m in M, j in data.jobs], Bin)
+#         @axis(M, M)
+#         @variable(model, x[m in M, j in J], Bin)
 #         @constraint(model, cov, sum(x[m,1] for m in M) == 1)  # add only covering constraint of job 1
 #         @constraint(model, knp[m in M],
-#             sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= data.capacity[m]
+#             sum(data.weight[j,m]*x[m,j] for j in J) <= data.capacity[m]
 #         )
 #         @objective(model, Min,
-#             sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs)
+#             sum(c[j,m]*x[m,j] for m in M, j in J)
 #         )
 #         @dantzig_wolfe_decomposition(model, dec, M)
 #         subproblems = BlockDecomposition.getsubproblems(dec)
@@ -302,7 +389,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #             for j in 1:cur_j
 #                 @test sum(callback_value(cb_data, x[m,j]) for m in M) ≈ 1
 #             end
-#             if cur_j < length(data.jobs)
+#             if cur_j < length(J)
 #                 cur_j += 1
 #                 con = @build_constraint(sum(x[m,cur_j] for m in M) == 1)
 #                 MOI.submit(model, MOI.LazyConstraint(cb_data), con)
