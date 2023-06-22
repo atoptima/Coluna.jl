@@ -694,7 +694,7 @@ end
 ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::TestColGenIterationContext, phase, reform, env) = nothing, false
 ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
 ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
-ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)
+ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, master_lp_dual_sol)
 ColGen.update_reduced_costs!(ctx::TestColGenIterationContext, phase, red_costs) = nothing
 ColGen.get_subprob_var_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_orig_costs(ctx.context)
 ColGen.get_subprob_var_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_coef_matrix(ctx.context)

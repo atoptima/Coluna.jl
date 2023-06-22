@@ -44,8 +44,8 @@ function ColGen.optimize_master_lp_problem!(master, ctx::ColGenPrinterContext, e
     return output
 end
 
-function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, phase, reform, master_lp_dual_sol)
-    return ColGen.update_master_constrs_dual_vals!(ctx.inner, phase, reform, master_lp_dual_sol)
+function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, master_lp_dual_sol)
+    return ColGen.update_master_constrs_dual_vals!(ctx.inner, master_lp_dual_sol)
 end
 
 ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx::ColGenPrinterContext, phase, reform, env) = ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx.inner, phase, reform, env)

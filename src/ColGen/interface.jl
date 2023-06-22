@@ -173,7 +173,7 @@ Updates the current master IP primal solution.
 Updates dual value of the master constraints.
 Dual values of the constraints can be used when the pricing solver supports non-robust cuts.
 """
-@mustimplement "ColGenReducedCosts" update_master_constrs_dual_vals!(ctx, phase, reform, mast_lp_dual_sol) = nothing
+@mustimplement "ColGenReducedCosts" update_master_constrs_dual_vals!(ctx, mast_lp_dual_sol) = nothing
 
 """
 Updates reduced costs of the master variables.
@@ -206,16 +206,6 @@ if something unexpected happens.
 """
 @mustimplement "ColGen" insert_columns!(reform, ctx, phase, columns) = nothing
 
-
-function check_master_termination_status(mast_result)
-    if !is_infeasible(mast_result) && !is_unbounded(mast_result)
-        @assert !isnothing(get_dual_sol(mast_result))
-    end
-end
-
-function check_pricing_termination_status(pricing_result)
-    # TODO
-end
 
 """
     compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) -> Float64
@@ -277,8 +267,6 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         throw(UnboundedProblemError("Unbounded master problem."))
     end
 
-    check_master_termination_status(mast_result)
-
     # Master primal solution
     mast_primal_sol = get_primal_sol(mast_result)
     if !isnothing(mast_primal_sol)  && isbetter(mast_primal_sol, ip_primal_sol)
@@ -297,7 +285,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         end
         if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
-            update_inc_primal_sol!(context, ip_primal_sol) # TODO: change method name because the incumbent is maintained by colgen
+            update_inc_primal_sol!(context, ip_primal_sol)
         end
     end
 
@@ -309,15 +297,20 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     # Stores dual solution in the constraint. This is used when the pricing solver supports
     # non-robust cuts.
-    # TODO: the user can get the reformulation from the context.
-    update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol) # TODO: rm phase
+    update_master_constrs_dual_vals!(context, mast_dual_sol)
 
     # Compute reduced cost (generic operation) by you must support math operations.
-    # using the master dual solution. (remove and do this in misprice loop)
+    # We always compute the reduced costs of the subproblem variables against the real master
+    # dual solution because this is the cost of the subproblem variables in the pricing problems
+    # if we don't use stabilization, or because we use this cost to compute the real reduced cost
+    # of the columns when using stabilization.
     c = get_subprob_var_orig_costs(context)
     A = get_subprob_var_coef_matrix(context)
     red_costs = c - transpose(A) * mast_dual_sol
-    update_reduced_costs!(context, phase, red_costs) # buffer cout reduit variable sp 
+
+    # Buffer when using stabilization to compute the real reduced cost
+    # of the column once generated.
+    update_reduced_costs!(context, phase, red_costs)
     
     # Stabilization
     stab_changes_mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
@@ -382,8 +375,6 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
                 throw(UnboundedProblemError("Unbounded subproblem."))
             end
 
-            check_pricing_termination_status(pricing_result) # TODO: remove
-
             primal_sols = get_primal_sols(pricing_result)
             nb_cols_pushed = 0
             for primal_sol in primal_sols # multi column generation support.
@@ -425,7 +416,6 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         if misprice
             update_stabilization_after_misprice!(stab, mast_dual_sol)
             cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
-            generated_columns = set_of_columns(context) # TODO: not sure because seems redoundant: no cols in set => misprice
         end
     end
 

@@ -204,7 +204,7 @@ function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector
     @test sol == [7.0, 7.0, 7.0]
 end
 
-ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, dual_mast_sol) = nothing
+ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, dual_mast_sol) = nothing
 
 function ColGen.insert_columns!(::ColGenIterationTestContext, phase, generated_columns)
     @test length(generated_columns) == 1
