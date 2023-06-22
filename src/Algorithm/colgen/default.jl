@@ -388,7 +388,7 @@ ColGen.get_primal_sol(master_res::ColGenMasterResult) = get_best_lp_primal_sol(m
 ColGen.get_dual_sol(master_res::ColGenMasterResult) = get_best_lp_dual_sol(master_res.result)
 ColGen.get_obj_val(master_res::ColGenMasterResult) = get_lp_primal_bound(master_res.result)
 
-function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, reform, master_lp_dual_sol)
+function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, master_lp_dual_sol)
     master = ColGen.get_master(ctx)
     # Set all dual value of all constraints to 0.
     for constr in Iterators.values(getconstrs(master))
@@ -415,9 +415,9 @@ function _violates_essential_cuts!(master, master_lp_primal_sol, env)
     return cutcb_output.nb_cuts_added > 0
 end
 
-ColGen.check_primal_ip_feasibility!(_, ctx::ColGenContext, ::ColGenPhase1, _, _) = nothing, false
+ColGen.check_primal_ip_feasibility!(_, ctx::ColGenContext, ::ColGenPhase1, _) = nothing, false
 
-function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, reform, env)
+function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, env)
     # Check if feasible.
     if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
         return nothing, false
@@ -461,7 +461,8 @@ end
 _set_column_cost!(master, col_id, phase) = nothing
 _set_column_cost!(master, col_id, ::ColGenPhase1) = setcurcost!(master, col_id, 0.0)
 
-function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
+function ColGen.insert_columns!(ctx::ColGenContext, phase, columns)
+    reform = ColGen.get_reform(ctx)
     primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
     col_ids_to_activate = Set{VarId}()
     master = ColGen.get_master(ctx)
@@ -846,3 +847,25 @@ ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_pr
 ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
 ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 ColGen.get_final_db(output::ColGenPhaseOutput) = output.db
+
+ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+    # At each iteration, we always update α after the first pricing optimization.
+    # We don't update α if we are in a misprice sequence.
+    if stab.automatic && stab.nb_misprices == 0
+        is_min = ColGen.is_minimization(ctx)
+        primal_sol = _primal_solution(master, generated_columns, is_min)
+        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
+        stab.base_α = α
+    end
+    
+    if isbetter(DualBound(master, valid_db), stab.valid_dual_bound)
+        stab.cur_stab_center = mast_dual_sol
+        stab.valid_dual_bound = DualBound(master, valid_db)
+    end
+    if isbetter(DualBound(master, pseudo_db), stab.pseudo_dual_bound)
+        stab.stab_center_for_next_iteration = mast_dual_sol
+        stab.pseudo_dual_bound = DualBound(master, pseudo_db)
+    end
+    return
+end

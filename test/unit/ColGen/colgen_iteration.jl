@@ -185,7 +185,7 @@ end
 
 ColGen.update_reduced_costs!(::ColGenIterationTestContext, phase, red_costs) = nothing
 
-function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, env)
+function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContext, ::ColGenIterationTestPhase, env)
     if ctx.new_ip_primal_sol
         @assert !ctx.master_has_new_cuts
         return [7.0, 7.0, 7.0], false
@@ -204,9 +204,9 @@ function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector
     @test sol == [7.0, 7.0, 7.0]
 end
 
-ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, ::ColGenIterationTestPhase, reform, dual_mast_sol) = nothing
+ColGen.update_master_constrs_dual_vals!(::ColGenIterationTestContext, dual_mast_sol) = nothing
 
-function ColGen.insert_columns!(reform, ::ColGenIterationTestContext, phase, generated_columns)
+function ColGen.insert_columns!(::ColGenIterationTestContext, phase, generated_columns)
     @test length(generated_columns) == 1
     @test generated_columns[1] == [0, 1, 1, 0, 1, 1, 0, 0, 1, 0]
     return [1]
@@ -215,6 +215,8 @@ end
 function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, sp_dbs, mast_dual_sol)
     return 22.5 - 23/4
 end
+
+ColGen.update_stabilization_after_pricing_optim!(::Coluna.Algorithm.NoColGenStab, ::ColGenIterationTestContext, _, _, _, _, _) = nothing
 
 struct TestColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
@@ -265,6 +267,9 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
         master_lp_dual_sol
     )
 end
+
+ColGen.update_stabilization_after_pricing_optim!(::Coluna.Algorithm.NoColGenStab, ::TestColGenIterationContext, _, _, _, _, _) = nothing
+
 
 function colgen_iteration_master_ok_pricing_ok()
     ctx = ColGenIterationTestContext()

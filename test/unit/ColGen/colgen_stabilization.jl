@@ -362,7 +362,7 @@ ColGen.get_primal_sol(::ColGenStabFlowRes) = ColGenStabFlowPrimalSol()
 ColGen.get_obj_val(::ColGenStabFlowRes) = 0.0
 ColGen.isbetter(::ColGenStabFlowPrimalSol, p) = false
 ColGen.get_reform(::ColGenStabFlowCtx) = nothing
-ColGen.update_master_constrs_dual_vals!(::ColGenStabFlowCtx, phase, reform, dual_sol) = nothing
+ColGen.update_master_constrs_dual_vals!(::ColGenStabFlowCtx, dual_sol) = nothing
 ColGen.get_subprob_var_orig_costs(::ColGenStabFlowCtx) = ones(Float64, 3)
 ColGen.get_subprob_var_coef_matrix(::ColGenStabFlowCtx) = ones(Float64, 3, 3)
 ColGen.update_reduced_costs!(::ColGenStabFlowCtx, phase, red_costs) = nothing
@@ -379,7 +379,7 @@ ColGen.get_pricing_strategy(::ColGenStabFlowCtx, phase) = ColGenStabFlowPricingS
 ColGen.pricing_strategy_iterate(::ColGenStabFlowPricingStrategy) = nothing
 ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
 
-function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, master, valid_db, pseudo_db, mast_dual_sol)
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, ctx, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
     @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
     stab.nb_update_stab_after_pricing_done += 1
     return true
@@ -396,11 +396,11 @@ function ColGen.update_stabilization_after_misprice!(stab::ColGenStabFlowStab, m
     stab.nb_misprices_done += 1
 end
 
-function ColGen.insert_columns!(reform, context::ColGenStabFlowCtx, phase, generated_columns)
+function ColGen.insert_columns!(context::ColGenStabFlowCtx, phase, generated_columns)
     return []
 end
 
-function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, ctx, master, generated_columns, mast_dual_sol)
+function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, mast_dual_sol)
     @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
     stab.nb_update_stab_after_iter_done += 1
     return true

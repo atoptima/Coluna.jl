@@ -3,9 +3,8 @@ struct NoColGenStab end
 ColGen.update_stabilization_after_master_optim!(::NoColGenStab, phase, mast_dual_sol) = false
 ColGen.get_master_dual_sol(::NoColGenStab, phase, mast_dual_sol) = mast_dual_sol
 ColGen.check_misprice(::NoColGenStab, generated_cols, mast_dual_sol) = false
-ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, master, valid_db, pseudo_db, mast_dual_sol) = nothing
 ColGen.update_stabilization_after_misprice!(::NoColGenStab, mast_dual_sol) = nothing
-ColGen.update_stabilization_after_iter!(::NoColGenStab, ctx, master, generated_columns, mast_dual_sol) = nothing
+ColGen.update_stabilization_after_iter!(::NoColGenStab, mast_dual_sol) = nothing
 ColGen.get_output_str(::NoColGenStab) = 0.0
 """
 Implementation of the "Smoothing with a self adjusting parameter" described in the paper of
@@ -53,18 +52,6 @@ end
 
 function ColGen.get_master_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
     return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol
-end
-
-function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, master, valid_db, pseudo_db, mast_dual_sol)
-    if isbetter(DualBound(master, valid_db), stab.valid_dual_bound)
-        stab.cur_stab_center = mast_dual_sol
-        stab.valid_dual_bound = DualBound(master, valid_db)
-    end
-    if isbetter(DualBound(master, pseudo_db), stab.pseudo_dual_bound)
-        stab.stab_center_for_next_iteration = mast_dual_sol
-        stab.pseudo_dual_bound = DualBound(master, pseudo_db)
-    end
-    return
 end
 
 ColGen.check_misprice(stab::ColGenStab, generated_cols, mast_dual_sol) = length(generated_cols.columns) == 0 && stab.cur_α > 0.0
@@ -159,14 +146,7 @@ function _dynamic_alpha_schedule(
     return increase ? f_incr(α) : f_decr(α)
 end
 
-function ColGen.update_stabilization_after_iter!(stab::ColGenStab, ctx, master, generated_columns, mast_dual_sol)
-    if stab.automatic
-        is_min = ColGen.is_minimization(ctx)
-        primal_sol = _primal_solution(master, generated_columns, is_min)
-        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
-        stab.base_α = α
-    end
-
+function ColGen.update_stabilization_after_iter!(stab::ColGenStab, mast_dual_sol)
     if !isnothing(stab.stab_center_for_next_iteration)
         stab.cur_stab_center = stab.stab_center_for_next_iteration
         stab.stab_center_for_next_iteration = nothing
