@@ -30,10 +30,10 @@ Updates stabilization after pricing optimization where:
 - `pseudo_db` is the pseudo dual bound of the problem after optimization of the pricing problems
 - `mast_dual_sol` is the dual solution to the master problem
 """
-@mustimplement "ColGenStab" update_stabilization_after_pricing_optim!(stab, master, valid_db, pseudo_db, mast_dual_sol) = nothing
+@mustimplement "ColGenStab" update_stabilization_after_pricing_optim!(stab, ctx, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
 
 """
-Updates stabilization after a misprice. 
+Updates stabilization after a misprice.
 Argument `mast_dual_sol` is the dual solution to the master problem.
 """
 @mustimplement "ColGenStab" update_stabilization_after_misprice!(stab, mast_dual_sol) = nothing

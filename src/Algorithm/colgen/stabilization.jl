@@ -3,7 +3,7 @@ struct NoColGenStab end
 ColGen.update_stabilization_after_master_optim!(::NoColGenStab, phase, mast_dual_sol) = false
 ColGen.get_master_dual_sol(::NoColGenStab, phase, mast_dual_sol) = mast_dual_sol
 ColGen.check_misprice(::NoColGenStab, generated_cols, mast_dual_sol) = false
-ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, master, valid_db, pseudo_db, mast_dual_sol) = nothing
+ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
 ColGen.update_stabilization_after_misprice!(::NoColGenStab, mast_dual_sol) = nothing
 ColGen.update_stabilization_after_iter!(::NoColGenStab, ctx, master, generated_columns, mast_dual_sol) = nothing
 ColGen.get_output_str(::NoColGenStab) = 0.0
@@ -55,7 +55,16 @@ function ColGen.get_master_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
     return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol
 end
 
-function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, master, valid_db, pseudo_db, mast_dual_sol)
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+    # At each iteration, we always update α after the first pricing optimization.
+    # We don't update α if we are in a misprice sequence.
+    if stab.automatic && stab.nb_misprices == 0
+        is_min = ColGen.is_minimization(ctx)
+        primal_sol = _primal_solution(master, generated_columns, is_min)
+        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
+        stab.base_α = α
+    end
+    
     if isbetter(DualBound(master, valid_db), stab.valid_dual_bound)
         stab.cur_stab_center = mast_dual_sol
         stab.valid_dual_bound = DualBound(master, valid_db)
@@ -160,13 +169,6 @@ function _dynamic_alpha_schedule(
 end
 
 function ColGen.update_stabilization_after_iter!(stab::ColGenStab, ctx, master, generated_columns, mast_dual_sol)
-    if stab.automatic
-        is_min = ColGen.is_minimization(ctx)
-        primal_sol = _primal_solution(master, generated_columns, is_min)
-        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
-        stab.base_α = α
-    end
-
     if !isnothing(stab.stab_center_for_next_iteration)
         stab.cur_stab_center = stab.stab_center_for_next_iteration
         stab.stab_center_for_next_iteration = nothing

@@ -22,6 +22,9 @@ ColGen.is_minimization(ctx::ColGenPrinterContext) = ColGen.is_minimization(ctx.i
 ColGen.get_pricing_subprobs(ctx::ColGenPrinterContext) = ColGen.get_pricing_subprobs(ctx.inner)
 
 ColGen.setup_stabilization!(ctx::ColGenPrinterContext, master) = ColGen.setup_stabilization!(ctx.inner, master)
+function ColGen.update_stabilization_after_pricing_optim!(stab, ctx::ColGenPrinterContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+    return ColGen.update_stabilization_after_pricing_optim!(stab, ctx.inner, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+end
 
 ColGen.new_phase_iterator(ctx::ColGenPrinterContext) = ColGen.new_phase_iterator(ctx.inner)
 ColGen.new_stage_iterator(ctx::ColGenPrinterContext) = ColGen.new_stage_iterator(ctx.inner)

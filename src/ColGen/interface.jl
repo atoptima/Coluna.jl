@@ -265,8 +265,9 @@ _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     master = get_master(context)
     is_min_sense = is_minimization(context)
-    mast_result = optimize_master_lp_problem!(master, context, env)
     O = colgen_iteration_output_type(context)
+
+    mast_result = optimize_master_lp_problem!(master, context, env)
 
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
@@ -303,20 +304,20 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     mast_dual_sol = get_dual_sol(mast_result)
     if isnothing(mast_dual_sol)
         error("Cannot continue")
-        # error or stop? (depends on the context)
+        # TODO: user friendly error message.
     end
 
     # Stores dual solution in the constraint. This is used when the pricing solver supports
     # non-robust cuts.
     # TODO: the user can get the reformulation from the context.
-    update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol)
+    update_master_constrs_dual_vals!(context, phase, get_reform(context), mast_dual_sol) # TODO: rm phase
 
     # Compute reduced cost (generic operation) by you must support math operations.
-    # using the master dual solution.
+    # using the master dual solution. (remove and do this in misprice loop)
     c = get_subprob_var_orig_costs(context)
     A = get_subprob_var_coef_matrix(context)
     red_costs = c - transpose(A) * mast_dual_sol
-    update_reduced_costs!(context, phase, red_costs)
+    update_reduced_costs!(context, phase, red_costs) # buffer cout reduit variable sp 
     
     # Stabilization
     stab_changes_mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
@@ -324,8 +325,9 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     # TODO: check the compatibility of the pricing strategy and the stabilization.
 
-    # All generated columns will be stored in the following container. We will insert them
-    # into the master after the optimization of the pricing subproblems.
+    # All generated columns during this iteration will be stored in the following container. 
+    # We will insert them into the master after the optimization of the pricing subproblems.
+    # It is empty.
     generated_columns = set_of_columns(context)
 
     valid_db = nothing
@@ -380,7 +382,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
                 throw(UnboundedProblemError("Unbounded subproblem."))
             end
 
-            check_pricing_termination_status(pricing_result)
+            check_pricing_termination_status(pricing_result) # TODO: remove
 
             primal_sols = get_primal_sols(pricing_result)
             nb_cols_pushed = 0
@@ -412,7 +414,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # pseudo dual bound is used for stabilization only.
         pseudo_db = compute_dual_bound(context, phase, sps_pb, cur_mast_dual_sol)
 
-        update_stabilization_after_pricing_optim!(stab, master, valid_db, pseudo_db, mast_dual_sol)
+        update_stabilization_after_pricing_optim!(stab, context, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
 
         # We have finished to solve all pricing subproblems.
         # If we have stabilization, we need to check if we have misprice.
@@ -430,7 +432,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     # Insert columns into the master.
     # The implementation is responsible for checking if the column is "valid".
     # TODO: the user can get the reformulation from the context.
-    col_ids = insert_columns!(get_reform(context), context, phase, generated_columns)
+    col_ids = insert_columns!(get_reform(context), context, phase, generated_columns) # TODO: remove phase
     nb_cols_inserted = length(col_ids)
 
     # TODO: remove the context from the arguments.
