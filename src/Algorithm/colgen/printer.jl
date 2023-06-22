@@ -109,16 +109,16 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formula
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::ColGenPrinterContext, phase, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.inner, phase, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::ColGenPrinterContext, phase, sp_dbs, generated_columns, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.inner, phase, sp_dbs, generated_columns, master_dual_sol)
 end
 
 function ColGen.colgen_iteration_output_type(ctx::ColGenPrinterContext)
     return ColGen.colgen_iteration_output_type(ctx.inner)
 end
 
-function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, colgen_iteration)
-    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, colgen_iteration)
+function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
+    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
@@ -187,6 +187,9 @@ function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, 
 end
 
 ColGen.stop_colgen(ctx::ColGenPrinterContext, phase_output) = ColGen.stop_colgen(ctx.inner, phase_output)
+
+ColGen.is_better_dual_bound(ctx::ColGenPrinterContext, new_dual_bound, dual_bound) =
+    ColGen.is_better_dual_bound(ctx.inner, new_dual_bound, dual_bound)
 
 ColGen.colgen_output_type(::ColGenPrinterContext) = ColGenOutput
 ColGen.colgen_phase_output_type(::ColGenPrinterContext) = ColGenPhaseOutput

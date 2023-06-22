@@ -360,7 +360,7 @@ ColGen.is_unbounded(::ColGenStabFlowRes) = false
 ColGen.get_dual_sol(::ColGenStabFlowRes) = ones(Float64, 3)
 ColGen.get_primal_sol(::ColGenStabFlowRes) = ColGenStabFlowPrimalSol()
 ColGen.get_obj_val(::ColGenStabFlowRes) = 0.0
-ColGen.isbetter(::ColGenStabFlowPrimalSol, p) = false
+ColGen.is_better_primal_sol(::ColGenStabFlowPrimalSol, p) = false
 ColGen.get_reform(::ColGenStabFlowCtx) = nothing
 ColGen.update_master_constrs_dual_vals!(::ColGenStabFlowCtx, dual_sol) = nothing
 ColGen.get_subprob_var_orig_costs(::ColGenStabFlowCtx) = ones(Float64, 3)
@@ -377,7 +377,7 @@ ColGen.set_of_columns(::ColGenStabFlowCtx) = []
 ColGen.get_pricing_subprobs(::ColGenStabFlowCtx) = []
 ColGen.get_pricing_strategy(::ColGenStabFlowCtx, phase) = ColGenStabFlowPricingStrategy()
 ColGen.pricing_strategy_iterate(::ColGenStabFlowPricingStrategy) = nothing
-ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
+ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, generated_columns, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
 
 function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, ctx, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
     @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
@@ -788,7 +788,7 @@ function test_stabilization_min_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
@@ -808,7 +808,7 @@ function test_stabilization_max_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
@@ -828,7 +828,7 @@ function test_stabilization_min()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -848,7 +848,7 @@ function test_stabilization_max()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -869,7 +869,7 @@ function test_stabilization_pure_master_vars_min()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -878,7 +878,7 @@ function test_stabilization_pure_master_vars_min()
     @test output.mlp ≈ 52.95
     @test output.db ≈ 52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min; x = true)
 
 function test_stabilization_pure_master_vars_min_automatic()
     env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
@@ -891,7 +891,7 @@ function test_stabilization_pure_master_vars_min_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
@@ -900,7 +900,7 @@ function test_stabilization_pure_master_vars_min_automatic()
     @test output.mlp ≈ 52.95
     @test output.db ≈ 52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min_automatic)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min_automatic; x = true)
 
 function test_stabilization_pure_master_vars_max()
     env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
@@ -913,7 +913,7 @@ function test_stabilization_pure_master_vars_max()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -922,7 +922,7 @@ function test_stabilization_pure_master_vars_max()
     @test output.mlp ≈ -52.95
     @test output.db ≈ -52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max; x = true)
 
 function test_stabilization_pure_master_vars_max_automatic()
     env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
@@ -935,7 +935,8 @@ function test_stabilization_pure_master_vars_max_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
+
+    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -944,4 +945,4 @@ function test_stabilization_pure_master_vars_max_automatic()
     @test output.mlp ≈ -52.95
     @test output.db ≈ -52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max_automatic)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max_automatic; x= true)

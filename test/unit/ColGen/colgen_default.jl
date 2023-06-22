@@ -724,8 +724,8 @@ function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::F
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.context, phase, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, sp_dbs, generated_columns, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.context, phase, sp_dbs, generated_columns, master_dual_sol)
 end
 
 function test_colgen_iteration_min_gap()
@@ -851,7 +851,7 @@ function test_colgen_iteration_max_gap()
     end
     output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 87.00
-    @test output.db ≈ 110.00
+    @test output.db ≈ 132.00
     @test output.nb_new_cols == 2
     @test output.infeasible_master == false
     @test output.unbounded_master == false
@@ -919,7 +919,7 @@ function test_colgen_iteration_pure_master_vars()
 
     output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 52.9500
-    @test output.db ≈ 51.5000
+    @test output.db ≈ 28.95
     @test output.nb_new_cols == 1
     @test output.infeasible_master == false
     @test output.unbounded_master == false
@@ -1391,6 +1391,7 @@ function test_colgen()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
+    Coluna.set_optim_start_time!(env)
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
 
     output = ColGen.run!(ctx, env, nothing)

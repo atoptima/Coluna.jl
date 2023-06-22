@@ -197,8 +197,8 @@ function ColGen.check_primal_ip_feasibility!(sol, ctx::ColGenIterationTestContex
     return nothing, false
 end
 
-ColGen.isbetter(::Vector{Float64}, ::Nothing) = true
-ColGen.isbetter(::Vector{Float64}, ::Vector{Float64}) = false
+ColGen.is_better_primal_sol(::Vector{Float64}, ::Nothing) = true
+ColGen.is_better_primal_sol(::Vector{Float64}, ::Vector{Float64}) = false
 
 function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector{Float64})
     @test sol == [7.0, 7.0, 7.0]
@@ -212,7 +212,7 @@ function ColGen.insert_columns!(::ColGenIterationTestContext, phase, generated_c
     return [1]
 end
 
-function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, sp_dbs, mast_dual_sol)
+function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterationTestPhase, sp_dbs, generated_columns, mast_dual_sol)
     return 22.5 - 23/4
 end
 
