@@ -15,6 +15,7 @@ implementation at `src/Algorithm/colgen`.
 
 ## Generic functions
 
+Generic functions are the core of the column generation algorithm.
 There are three generic functions:
     
 ```@docs
@@ -89,6 +90,19 @@ The cost of artificial variables in Phase 3 can be changed using the following m
 missing
 ```
 
+**References:**
+```@docs
+Coluna.ColGen.AbstractColGenPhase
+Coluna.ColGen.AbstractColGenPhaseIterator
+Coluna.ColGen.new_phase_iterator
+Coluna.ColGen.initial_phase
+Coluna.ColGen.decrease_stage
+Coluna.ColGen.next_phase
+Coluna.ColGen.setup_reformulation!
+Coluna.ColGen.setup_context!
+Coluna.ColGen.stop_colgen_phase
+```
+
 ### Stages
 
 A stage is a set of consecutive iterations in which we use a given pricing solver.
@@ -103,6 +117,18 @@ The default implementation implements the interface around the following object:
 
 ```@docs
 Coluna.Algorithm.ColGenStageIterator
+```
+
+**References:**
+```@docs
+Coluna.ColGen.AbstractColGenStage
+Coluna.ColGen.AbstractColGenStageIterator
+Coluna.ColGen.new_stage_iterator
+Coluna.ColGen.initial_stage
+Coluna.ColGen.next_stage
+Coluna.ColGen.get_pricing_subprob_optimizer
+Coluna.ColGen.stage_id
+Coluna.ColGen.is_exact_stage
 ```
 
 ### Column generation iteration
@@ -147,107 +173,6 @@ flowchart TB;
 
 #### Optimize master LP
 
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Check integrality of the master LP solution
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Update incumbent primal solution
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Reduced costs calculation
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Pricing subproblem iterator
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Pricing subproblem optimization
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Set of generated columns
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Dual bound calculation
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Columns insertion
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-#### Iteration output
-
-Lorem ipsum.
-
-Go back to the [column generation iteration overview](#Column-generation-iteration).
-
-### Stabilization
-
-
-
-
-## API
-
-### Phases
-
-Here are the references for the interface:
-
-```@docs
-Coluna.ColGen.AbstractColGenPhase
-Coluna.ColGen.AbstractColGenPhaseIterator
-Coluna.ColGen.new_phase_iterator
-Coluna.ColGen.initial_phase
-Coluna.ColGen.decrease_stage
-Coluna.ColGen.next_phase
-Coluna.ColGen.setup_reformulation!
-Coluna.ColGen.setup_context!
-Coluna.ColGen.stop_colgen_phase
-```
-
-### Stages
-
-Here are the references for the interface:
-
-```@docs
-Coluna.ColGen.AbstractColGenStage
-Coluna.ColGen.AbstractColGenStageIterator
-Coluna.ColGen.new_stage_iterator
-Coluna.ColGen.initial_stage
-Coluna.ColGen.next_stage
-Coluna.ColGen.get_pricing_subprob_optimizer
-Coluna.ColGen.stage_id
-Coluna.ColGen.is_exact_stage
-```
-
-The default implementation of the stages is as follows.
-
-
-### Optimization of the Master
-
 At each iteration, the algorithm requires a dual solution to the master LP to compute the
 reduced cost of subproblem variables.
 
@@ -276,7 +201,31 @@ Coluna.ColGen.isbetter
 Coluna.ColGen.update_inc_primal_sol!
 ```
 
-### Calculation of reduced costs
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Check integrality of the master LP solution
+
+Lorem ipsum.
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Update incumbent primal solution
+
+If the solution to master LP is integer and better than the current best one, 
+we need to update incumbent. This solution is then used by the tree-search algorithm in the 
+bounding mechanism that prunes the nodes.
+
+**References**
+
+```@docs
+Coluna.ColGen.isbetter
+Coluna.ColGen.check_primal_ip_feasibility!
+Coluna.ColGen.update_inc_primal_sol!
+```
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Reduced costs calculation
 
 Reduced costs calculation is written as a math operation in the `run_colgen_iteration!` 
 generic function. As a consequence, the dual solution to the master LP and the 
@@ -291,7 +240,9 @@ Coluna.ColGen.get_subprob_var_coef_matrix
 Coluna.ColGen.update_sp_vars_red_costs!
 ```
 
-### Pricing strategy
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Pricing subproblem iterator
 
 The pricing strategy is basically an iterator used to iterate over the pricing subproblems
 to optimize at each iteration of the column generation. The context can serve as a memory of
@@ -308,7 +259,10 @@ Coluna.ColGen.get_pricing_strategy
 Coluna.ColGen.pricing_strategy_iterate
 ```
 
-### Pricing subproblem optimization
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Pricing subproblem optimization
+
 
 At each iteration, the algorithm requires primal solutions to the pricing subproblems. The generic function supports multi-column generation so you can return any number of solutions.
 
@@ -321,7 +275,7 @@ The reduced cost of a column is split into three contributions:
 
 Therefore, it is very important that you do not discard some columns based only on the primal solution cost because you don't know the contribution of the convexity constraint.
 
-
+**References**:
 ```@docs
 Coluna.ColGen.optimize_pricing_problem!
 Coluna.ColGen.get_primal_sols
@@ -331,24 +285,52 @@ Coluna.ColGen.get_dual_bound
 You must also implement the `Coluna.ColGen.is_optimal`, `Coluna.ColGen.is_infeasible`, and
 `Coluna.ColGen.is_unbounded` for the pricing result.
 
-### Columns management and insertion
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Set of generated columns
+
 
 You can define your data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
 
-Here are the references for the interface:
+**References**:
 
 ```@docs
 Coluna.ColGen.set_of_columns
 Coluna.ColGen.push_in_set!
-Coluna.ColGen.insert_columns!
 ```
 
-### Dual bound calculation
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Dual bound calculation
+
+You can define your data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
+
+**References**:
 
 ```@docs
 Coluna.ColGen.compute_sp_init_db
 Coluna.ColGen.compute_dual_bound
 ```
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Columns insertion
+
+Lorem ipsum.
+
+**Reference**:
+
+```@docs
+Coluna.ColGen.insert_columns!
+```
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+#### Iteration output
+
+Lorem ipsum.
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
 
 ### Stabilization
 
