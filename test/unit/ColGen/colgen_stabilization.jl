@@ -400,7 +400,7 @@ function ColGen.insert_columns!(reform, context::ColGenStabFlowCtx, phase, gener
     return []
 end
 
-function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, ctx, master, generated_columns, mast_dual_sol)
+function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, mast_dual_sol)
     @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
     stab.nb_update_stab_after_iter_done += 1
     return true

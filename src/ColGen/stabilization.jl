@@ -46,7 +46,7 @@ Updates stabilization after an iteration of the column generation algorithm. Arg
 - `generated_columns` is the set of generated columns
 - `mast_dual_sol` is the dual solution to the master problem
 """
-@mustimplement "ColGenStab" update_stabilization_after_iter!(stab, ctx, master, generated_columns, mast_dual_sol) = nothing
+@mustimplement "ColGenStab" update_stabilization_after_iter!(stab, mast_dual_sol) = nothing
 
 "Returns a string with a short information about the stabilization."
 @mustimplement "ColGenStab" get_output_str(stab) = nothing

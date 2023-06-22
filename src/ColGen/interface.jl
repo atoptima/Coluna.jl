@@ -436,7 +436,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     nb_cols_inserted = length(col_ids)
 
     # TODO: remove the context from the arguments.
-    update_stabilization_after_iter!(stab, context, master, generated_columns, mast_dual_sol)
+    update_stabilization_after_iter!(stab, mast_dual_sol)
 
     return new_iteration_output(O, is_min_sense, get_obj_val(mast_result), valid_db, nb_cols_inserted, false, false, false, false, false, false, mast_primal_sol, ip_primal_sol, mast_dual_sol)
 end

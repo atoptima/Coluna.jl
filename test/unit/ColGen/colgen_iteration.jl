@@ -216,6 +216,8 @@ function ColGen.compute_dual_bound(::ColGenIterationTestContext, ::ColGenIterati
     return 22.5 - 23/4
 end
 
+ColGen.update_stabilization_after_pricing_optim!(::Coluna.Algorithm.NoColGenStab, ::ColGenIterationTestContext, _, _, _, _, _) = nothing
+
 struct TestColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
     mlp::Union{Nothing, Float64}
@@ -265,6 +267,9 @@ function ColGen.new_iteration_output(::Type{<:TestColGenIterationOutput},
         master_lp_dual_sol
     )
 end
+
+ColGen.update_stabilization_after_pricing_optim!(::Coluna.Algorithm.NoColGenStab, ::TestColGenIterationContext, _, _, _, _, _) = nothing
+
 
 function colgen_iteration_master_ok_pricing_ok()
     ctx = ColGenIterationTestContext()
