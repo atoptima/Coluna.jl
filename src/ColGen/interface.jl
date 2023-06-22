@@ -314,7 +314,6 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     
     # Stabilization
     stab_changes_mast_dual_sol = update_stabilization_after_master_optim!(stab, phase, mast_dual_sol)
-    cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol) 
 
     # TODO: check the compatibility of the pricing strategy and the stabilization.
 
@@ -330,11 +329,15 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     # If there is no stabilization, the pricing loop is run only once.
 
     while misprice
+        # `sep_mast_dual_sol` is the master dual solution used to optimize the pricing subproblems.
+        # in the current misprice iteration.
+        sep_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
+
         # We will optimize the pricing subproblem using the master dual solution returned
         # by the stabilization. We this need to recompute the reduced cost of the subproblem
         # variables if the stabilization changes the master dual solution.
         cur_red_costs = if stab_changes_mast_dual_sol
-            c - transpose(A) * cur_mast_dual_sol
+            c - transpose(A) * sep_mast_dual_sol
         else
             red_costs
         end
@@ -400,10 +403,10 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         end
 
         # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
-        valid_db = compute_dual_bound(context, phase, sps_db, cur_mast_dual_sol)
+        valid_db = compute_dual_bound(context, phase, sps_db, sep_mast_dual_sol)
     
         # pseudo dual bound is used for stabilization only.
-        pseudo_db = compute_dual_bound(context, phase, sps_pb, cur_mast_dual_sol)
+        pseudo_db = compute_dual_bound(context, phase, sps_pb, sep_mast_dual_sol)
 
         update_stabilization_after_pricing_optim!(stab, context, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
 
@@ -415,7 +418,6 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         misprice = check_misprice(stab, generated_columns, mast_dual_sol)
         if misprice
             update_stabilization_after_misprice!(stab, mast_dual_sol)
-            cur_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
         end
     end
 
