@@ -47,21 +47,28 @@ abstract type AbstractColGenOutput end
 
 @mustimplement "ColGen" stop_colgen(context, phase_output) = nothing
 
+@mustimplement "ColGen" is_better_dual_bound(context, new_dual_bound, dual_bound) = nothing
+
 function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter = 1)
     iteration = iter
     colgen_iter_output = nothing
-    while !stop_colgen_phase(context, phase, env, colgen_iter_output, iteration)
+    incumbent_dual_bound = nothing
+    while !stop_colgen_phase(context, phase, env, colgen_iter_output, incumbent_dual_bound, iteration)
         before_colgen_iteration(context, phase)
         colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         new_ip_primal_sol = get_master_ip_primal_sol(colgen_iter_output)
         if !isnothing(new_ip_primal_sol)
             ip_primal_sol = new_ip_primal_sol
         end
+        dual_bound = ColGen.get_dual_bound(colgen_iter_output)
+        if !isnothing(dual_bound) && (isnothing(incumbent_dual_bound) || is_better_dual_bound(context, dual_bound, incumbent_dual_bound))
+            incumbent_dual_bound = dual_bound
+        end
         after_colgen_iteration(context, phase, stage, env, iteration, stab, colgen_iter_output)
         iteration += 1
     end
     O = colgen_phase_output_type(context)
-    return new_phase_output(O, is_minimization(context), phase, stage, colgen_iter_output, iteration)
+    return new_phase_output(O, is_minimization(context), phase, stage, colgen_iter_output, iteration, incumbent_dual_bound)
 end
 
 function run!(context, env, ip_primal_sol; iter = 1)
@@ -159,7 +166,7 @@ LP solution is integer feasible; `nothing` otherwise.
 """
 Returns `true` if the new master IP primal solution is better than the current; `false` otherwise.
 """
-@mustimplement "ColGenMaster" isbetter(new_ip_primal_sol, ip_primal_sol) = nothing
+@mustimplement "ColGenMaster" is_better_primal_sol(new_ip_primal_sol, ip_primal_sol) = nothing
 
 """
 Updates the current master IP primal solution.
@@ -208,7 +215,7 @@ if something unexpected happens.
 
 
 """
-    compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, mast_dual_sol) -> Float64
+    compute_dual_bound(ctx, phase, master_lp_obj_val, master_dbs, generated_columns, mast_dual_sol) -> Float64
 
 Caculates the dual bound at a given iteration of column generation.
 The dual bound is composed of:
@@ -216,7 +223,7 @@ The dual bound is composed of:
 - `master_dbs`: dual values of the pricing subproblems
 - the contribution of the master convexity constraints that you should compute from `mast_dual_sol`.
 """
-@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_dbs, mast_dual_sol) = nothing
+@mustimplement "ColGen" compute_dual_bound(ctx, phase, master_dbs, generated_columns, mast_dual_sol) = nothing
 
 abstract type AbstractColGenIterationOutput end
 
@@ -243,9 +250,10 @@ abstract type AbstractColGenIterationOutput end
 
 @mustimplement "ColGenIterationOutput" get_master_ip_primal_sol(::AbstractColGenIterationOutput) = nothing
 
-@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, min_sense, phase, stage, ::AbstractColGenIterationOutput, iteration) = nothing
+@mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, min_sense, phase, stage, ::AbstractColGenIterationOutput, iteration, incumbent_dual_bound) = nothing
 
 @mustimplement "ColGenPhaseOutput" get_master_ip_primal_sol(::AbstractColGenPhaseOutput) = nothing
+
 
 _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 
@@ -269,7 +277,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     # Master primal solution
     mast_primal_sol = get_primal_sol(mast_result)
-    if !isnothing(mast_primal_sol)  && isbetter(mast_primal_sol, ip_primal_sol)
+    if !isnothing(mast_primal_sol) && is_better_primal_sol(mast_primal_sol, ip_primal_sol)
         # If the master LP problem has a primal solution, we can try to find a integer feasible
         # solution.
         # If the model has essential cut callbacks and the master LP solution is integral, one
@@ -403,10 +411,10 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         end
 
         # compute valid dual bound using the dual bounds returned by the user (cf pricing result).
-        valid_db = compute_dual_bound(context, phase, sps_db, sep_mast_dual_sol)
+        valid_db = compute_dual_bound(context, phase, sps_db, generated_columns, sep_mast_dual_sol)
     
         # pseudo dual bound is used for stabilization only.
-        pseudo_db = compute_dual_bound(context, phase, sps_pb, sep_mast_dual_sol)
+        pseudo_db = compute_dual_bound(context, phase, sps_pb, generated_columns, sep_mast_dual_sol)
 
         update_stabilization_after_pricing_optim!(stab, context, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
 
