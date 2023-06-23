@@ -707,8 +707,8 @@ function _subprob_contrib(ctx, sp_dbs, generated_columns)
         ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
         db = sp_dbs[id]
         improving = min_sense ? is_improving_red_cost_min_sense(ctx, db) : is_improving_red_cost(ctx, db)
-        mult = improving ? ub : lb
-        return mult * sp_dbs[id]
+        mult = improving ? ub : lb        
+        return mult * db
     end
     return contrib
 end
@@ -716,18 +716,16 @@ end
 function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, generated_columns, master_dual_sol)
     sc = ColGen.is_minimization(ctx) ? 1 : -1
     master_lp_obj_val = if ctx.stabilization
-        sc * (transpose(master_dual_sol) * ctx.subgradient_helper.a)
+        (transpose(master_dual_sol) * ctx.subgradient_helper.a_for_dual)
     else
         getvalue(master_dual_sol) - _convexity_contrib(ctx, master_dual_sol)
     end
-
     sp_contrib = _subprob_contrib(ctx, sp_dbs, generated_columns)
    
     # Pure master variables contribution.
     # TODO (only when stabilization is used otherwise already taken into account by master obj val
     puremastvars_contrib = 0.0
     if ctx.stabilization
-        #println("****")
         master = ColGen.get_master(ctx)
         master_coef_matrix = getcoefmatrix(master)
         for (varid, var) in getvars(master)
@@ -736,16 +734,13 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, generated_
                 for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
                     redcost -= var_coeff * master_dual_sol[constrid]
                 end
-                #@show redcost
                 min_sense = ColGen.is_minimization(ctx)
                 improves = min_sense ? is_improving_red_cost_min_sense(ctx, redcost) : is_improving_red_cost(ctx, redcost)
-                mult = improves ? getcurub(master, varid) : getcurlb(master, varid)
-                #@show mult
+                mult = improves ? getcurub(master, varid) : getcurlb(master, varid) 
                 puremastvars_contrib += redcost * mult
             end
         end
     end
-    #@show puremastvars_contrib
     return master_lp_obj_val + sp_contrib + puremastvars_contrib
 end
 

@@ -614,9 +614,9 @@ function toy_gap_min_with_penalties_for_stab()
         1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
         1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
         1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var <= 1.0
-        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 1.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
-        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 1.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
 
     dw_sp
@@ -859,7 +859,6 @@ end
 register!(unit_tests, "colgen_stabilization", test_stabilization_max)
 
 function test_stabilization_pure_master_vars_min()
-    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -870,7 +869,7 @@ function test_stabilization_pure_master_vars_min()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -882,7 +881,6 @@ end
 register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min)
 
 function test_stabilization_pure_master_vars_min_automatic()
-    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -893,7 +891,7 @@ function test_stabilization_pure_master_vars_min_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
@@ -905,7 +903,6 @@ end
 register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min_automatic)
 
 function test_stabilization_pure_master_vars_max()
-    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -916,7 +913,7 @@ function test_stabilization_pure_master_vars_max()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -928,7 +925,6 @@ end
 register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max)
 
 function test_stabilization_pure_master_vars_max_automatic()
-    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -939,7 +935,7 @@ function test_stabilization_pure_master_vars_max_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
