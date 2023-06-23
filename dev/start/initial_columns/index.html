@@ -43,27 +43,27 @@ initial_columns = [machine1, machine2, machine3];</code></pre><p>We can write th
         MOI.submit(model, BlockDecomposition.InitialColumn(cbdata), vars, vals)
     end
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_columns_callback (generic function with 1 method)</code></pre><p>The initial columns callback is a function. It takes as argument <code>cbdata</code> which is a data structure that allows the user to interact with Coluna within the callback.</p><p>We provide the initial columns callback to Coluna through the following method:</p><pre><code class="language-julia hljs">MOI.set(model, BlockDecomposition.InitialColumnsCallback(), initial_columns_callback)</code></pre><p>You can then optimize:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.6.2 | https://github.com/atoptima/Coluna.jl
+Version 0.6.3 | https://github.com/atoptima/Coluna.jl
 initial columns callback 2
 initial columns callback 3
 initial columns callback 1
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.58 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.50 sec.
 ***************************************************************************************
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   -5.3000&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=    4.9000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
-  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   -5.3000&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=    4.9000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         1.75s /  33.2%            128MiB /  31.5%
+    Tot / % measured:         1.64s /  30.7%            128MiB /  31.5%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1    581ms  100.0%   581ms   40.4MiB  100.0%  40.4MiB
-   SolveLpForm        4    758μs    0.1%   190μs    206KiB    0.5%  51.5KiB
+ Coluna               1    504ms  100.0%   504ms   40.4MiB  100.0%  40.4MiB
+   SolveLpForm        4    739μs    0.1%   185μs    206KiB    0.5%  51.5KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 5.1
