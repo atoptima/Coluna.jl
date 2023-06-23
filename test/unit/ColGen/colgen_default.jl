@@ -851,7 +851,7 @@ function test_colgen_iteration_max_gap()
     end
     output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 87.00
-    @test output.db ≈ 132.00
+    @test output.db ≈ 110.00
     @test output.nb_new_cols == 2
     @test output.infeasible_master == false
     @test output.unbounded_master == false
@@ -919,7 +919,7 @@ function test_colgen_iteration_pure_master_vars()
 
     output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 52.9500
-    @test output.db ≈ 28.95
+    @test output.db ≈ 51.5
     @test output.nb_new_cols == 1
     @test output.infeasible_master == false
     @test output.unbounded_master == false

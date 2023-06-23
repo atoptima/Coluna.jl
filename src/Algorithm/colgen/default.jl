@@ -698,29 +698,15 @@ function _convexity_contrib(ctx, master_dual_sol)
     return contrib
 end
 
-function _subprob_contrib_stab(ctx, sp_dbs, generated_columns)
+function _subprob_contrib(ctx, sp_dbs, generated_columns)
     master = ColGen.get_master(ctx)
     min_sense = ColGen.is_minimization(ctx)
     contrib = mapreduce(+, ColGen.get_pricing_subprobs(ctx)) do it
         id, sp = it
         lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
         ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
-        primal_sol = generated_columns.subprob_primal_sols.primal_sols[id]
-        pb = getvalue(primal_sol)
-        improving = min_sense ? is_improving_red_cost_min_sense(ctx, pb) : is_improving_red_cost(ctx, pb)
-        mult = improving ? ub : lb
-        return mult * sp_dbs[id]
-    end
-    return contrib
-end
-
-function _subprob_contrib(ctx, sp_dbs, generated_columns)
-    master = ColGen.get_master(ctx)
-    contrib = mapreduce(+, ColGen.get_pricing_subprobs(ctx)) do it
-        id, sp = it
-        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
-        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
-        improving = generated_columns.subprob_primal_sols.improve_master[id]
+        db = sp_dbs[id]
+        improving = min_sense ? is_improving_red_cost_min_sense(ctx, db) : is_improving_red_cost(ctx, db)
         mult = improving ? ub : lb
         return mult * sp_dbs[id]
     end
@@ -732,32 +718,34 @@ function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, generated_
     master_lp_obj_val = if ctx.stabilization
         sc * (transpose(master_dual_sol) * ctx.subgradient_helper.a)
     else
-        getvalue(master_dual_sol) #- _convexity_contrib(ctx, master_dual_sol) # TODO: understand what's going on here.
+        getvalue(master_dual_sol) - _convexity_contrib(ctx, master_dual_sol)
     end
 
-    sp_contrib = if ctx.stabilization
-        _subprob_contrib_stab(ctx, sp_dbs, generated_columns)
-    else
-        _subprob_contrib(ctx, sp_dbs, generated_columns)
-    end
-
+    sp_contrib = _subprob_contrib(ctx, sp_dbs, generated_columns)
+   
     # Pure master variables contribution.
     # TODO (only when stabilization is used otherwise already taken into account by master obj val
     puremastvars_contrib = 0.0
     if ctx.stabilization
+        #println("****")
         master = ColGen.get_master(ctx)
         master_coef_matrix = getcoefmatrix(master)
-        for (varid, mult) in _pure_master_vars(master)
-            redcost = getcurcost(master, varid)
-            for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
-                redcost -= var_coeff * master_dual_sol[constrid]
+        for (varid, var) in getvars(master)
+            if getduty(varid) <= MasterPureVar && iscuractive(master, var) && isexplicit(master, var)
+                redcost = getcurcost(master, varid)
+                for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
+                    redcost -= var_coeff * master_dual_sol[constrid]
+                end
+                #@show redcost
+                min_sense = ColGen.is_minimization(ctx)
+                improves = min_sense ? is_improving_red_cost_min_sense(ctx, redcost) : is_improving_red_cost(ctx, redcost)
+                mult = improves ? getcurub(master, varid) : getcurlb(master, varid)
+                #@show mult
+                puremastvars_contrib += redcost * mult
             end
-            min_sense = ColGen.is_minimization(ctx)
-            improves = min_sense ? is_improving_red_cost_min_sense(ctx, redcost) : is_improving_red_cost(ctx, redcost)
-            mult = improves ?  getcurub(master, varid) : getcurlb(master, varid)
-            puremastvars_contrib += redcost * mult
         end
     end
+    #@show puremastvars_contrib
     return master_lp_obj_val + sp_contrib + puremastvars_contrib
 end
 

@@ -859,6 +859,7 @@ end
 register!(unit_tests, "colgen_stabilization", test_stabilization_max)
 
 function test_stabilization_pure_master_vars_min()
+    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -878,9 +879,10 @@ function test_stabilization_pure_master_vars_min()
     @test output.mlp ≈ 52.95
     @test output.db ≈ 52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min; x = true)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min)
 
 function test_stabilization_pure_master_vars_min_automatic()
+    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_min_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -900,9 +902,10 @@ function test_stabilization_pure_master_vars_min_automatic()
     @test output.mlp ≈ 52.95
     @test output.db ≈ 52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min_automatic; x = true)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_min_automatic)
 
 function test_stabilization_pure_master_vars_max()
+    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -922,9 +925,10 @@ function test_stabilization_pure_master_vars_max()
     @test output.mlp ≈ -52.95
     @test output.db ≈ -52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max; x = true)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max)
 
 function test_stabilization_pure_master_vars_max_automatic()
+    println("\e[34m ******* \e[00m")
     env, master, sps, reform = toy_gap_max_with_penalties_for_stab()
 
     # We need subsolvers to optimize the master and subproblems.
@@ -935,7 +939,6 @@ function test_stabilization_pure_master_vars_max_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-
     ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
@@ -945,4 +948,4 @@ function test_stabilization_pure_master_vars_max_automatic()
     @test output.mlp ≈ -52.95
     @test output.db ≈ -52.95
 end
-register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max_automatic; x= true)
+register!(unit_tests, "colgen_stabilization", test_stabilization_pure_master_vars_max_automatic)

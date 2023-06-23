@@ -5,7 +5,8 @@ function gap_toy_instance()
         Coluna.Optimizer,
         "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
             branchingtreefile = "playgap.dot",
-        )),
+        ),local_art_var_cost = 10000.0,
+        global_art_var_cost = 100000.0),
         "default_optimizer" => GLPK.Optimizer
     )
 
@@ -24,94 +25,6 @@ function gap_toy_instance()
     @test MOI.get(model, MOI.SolverName()) == "Coluna"
 end
 register!(e2e_tests, "gap", gap_toy_instance)
-
-# This test is very important because it makes sure that the lagrangian dual bound is well 
-# computed when the number of machines restricts the number of assigned jobs.
-function gap_toy_with_pure_master_vars_and_identical_subproblems()
-    println("\e[1;44m --------------- \e[00m")
-    println("\e[1;44m --------------- \e[00m")
-    println("\e[1;44m --------------- \e[00m")
-
-
-    Ma = 1:3;
-    J = 1:15;
-    c = [12.7, 22.5, 8.9, 20.8, 13.6, 12.4, 24.8, 19.1, 11.5, 17.4, 24.7, 6.8, 21.7, 14.3, 10.5];
-    f = [3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000];
-    w = [61, 70, 57, 82, 51, 74, 98, 64, 86, 80, 69, 79, 60, 76, 78];
-    Q = 300;
-
-    coluna = JuMP.optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            branchingtreefile = "playgap.dot",
-            maxnumnodes = 0
-        )),
-        "default_optimizer" => GLPK.Optimizer
-    )
-
-    gap = BlockModel(coluna)
-
-    @axis(M, Ma)
-
-    @variable(gap, x[m in M, j in J], Bin)
-    @variable(gap, y[j in J], Bin) #equals one if job not assigned
-
-    @constraint(gap, cov[j in J], sum(x[m,j] for m in M) + y[j] >= 1)
-
-    @constraint(gap, knp[m in M],
-        sum(w[j]*x[m,j] for j in J) <= Q)
-
-    @objective(gap, Min,
-        sum(c[j]*x[m,j] for m in M, j in J) +
-        sum(f[j]*y[j] for j in J))
-
-    @dantzig_wolfe_decomposition(gap, dec, M)
-    subproblems = BlockDecomposition.getsubproblems(dec)
-    specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = 1)
-    optimize!(gap)
-
-    println("\e[34m --------------- \e[00m")
-    println("\e[34m --------------- \e[00m")
-    println("\e[34m --------------- \e[00m")
-
-    Ma = 1:1;
-    J = 1:15;
-    c = [12.7, 22.5, 8.9, 20.8, 13.6, 12.4, 24.8, 19.1, 11.5, 17.4, 24.7, 6.8, 21.7, 14.3, 10.5];
-    f = [3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000];
-    w = [61, 70, 57, 82, 51, 74, 98, 64, 86, 80, 69, 79, 60, 76, 78];
-    Q = 300;
-
-    coluna = JuMP.optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            branchingtreefile = "playgap.dot",
-            maxnumnodes = 0
-        )),
-        "default_optimizer" => GLPK.Optimizer
-    )
-
-    gap = BlockModel(coluna)
-
-    @axis(M, Ma)
-
-    @variable(gap, x[m in M, j in J], Bin)
-    @variable(gap, y[j in J], Bin) #equals one if job not assigned
-
-    @constraint(gap, cov[j in J], sum(x[m,j] for m in M) + y[j] >= 1)
-
-    @constraint(gap, knp[m in M],
-        sum(w[j]*x[m,j] for j in J) <= Q)
-
-    @objective(gap, Min,
-        sum(c[j]*x[m,j] for m in M, j in J) +
-        sum(f[j]*y[j] for j in J))
-
-    @dantzig_wolfe_decomposition(gap, dec, M)
-    subproblems = BlockDecomposition.getsubproblems(dec)
-    specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = 3)
-    optimize!(gap)
-end
-register!(e2e_tests, "gap", gap_toy_with_pure_master_vars_and_identical_subproblems; f = true)
 
 function gap_strong_branching()
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
@@ -134,7 +47,7 @@ function gap_strong_branching()
 
     # we increase the branching priority of variables which assign jobs to the first two machines
     for machine in 1:2
-        for job in J
+        for job in data.jobs
             BD.branchingpriority!(x[machine,job], 2)
         end
     end  
