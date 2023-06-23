@@ -788,7 +788,7 @@ function test_stabilization_min_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
@@ -808,7 +808,7 @@ function test_stabilization_max_automatic()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
@@ -828,7 +828,7 @@ function test_stabilization_min()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
@@ -848,7 +848,7 @@ function test_stabilization_max()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    ctx = ClA.ColGenPrinterContext(reform, ClA.ColumnGeneration(
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)

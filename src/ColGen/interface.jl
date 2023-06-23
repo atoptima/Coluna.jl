@@ -61,7 +61,7 @@ function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter
             ip_primal_sol = new_ip_primal_sol
         end
         dual_bound = ColGen.get_dual_bound(colgen_iter_output)
-        if isnothing(incumbent_dual_bound) || is_better_dual_bound(context, dual_bound, incumbent_dual_bound)
+        if !isnothing(dual_bound) && (isnothing(incumbent_dual_bound) || is_better_dual_bound(context, dual_bound, incumbent_dual_bound))
             incumbent_dual_bound = dual_bound
         end
         after_colgen_iteration(context, phase, stage, env, iteration, stab, colgen_iter_output)
