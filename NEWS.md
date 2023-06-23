@@ -1,8 +1,9 @@
 # Coluna 0.6.3
 
-This is minor update that provides:
-- column generation stabilization (self-adusting smoothing)
-- documentation updates
+This is a minor update that provides:
+- improvements in column generation interface and generic functions
+- bugfix in column generation (wrong calculation of the lagrangian dual bound when identical subproblems)
+- column generation stabilization (alpha version)
 
 # Coluna 0.6.2
 
