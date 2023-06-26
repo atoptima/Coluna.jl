@@ -50,7 +50,6 @@ makedocs(
             ],
             "Advanced tutorials" => Any[
                 "Column Generation and Benders on Location Routing" => joinpath("start", "advanced_demo.md"),
-                "Benders on 2-echelons VRP" => joinpath("start", "2echelons_VRP.md"),
                 "Other classic problems" => joinpath("start", "other_pbs.md")
             ]
         ],
