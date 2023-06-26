@@ -25,7 +25,14 @@ solving the subproblems. It's the column generation algorithm.
 Let's consider the following original formulation in which we partition variables into
 two vectors $x_1$ and $x_2$ :
 
-![Original formulation](../assets/img/dw_origform.svg)
+```math
+\begin{aligned}
+\min \quad& c_1' x_1 + c_2' x_2 & \\
+\text{s.t.} \quad& A_1 x_1 + A_2 x_2 \geq b & (1)\\
+& D_1 x_1 \quad \quad \quad \geq d_1 & (2) \\
+& \quad  \quad \quad D_2 x_2 \geq d_2 & (3) \\
+\end{aligned}
+```
 
 When you apply a Dantzig-Wofe decomposition to this formulation, 
 Coluna reformulates it into the following master problem :
