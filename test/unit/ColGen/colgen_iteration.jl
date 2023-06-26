@@ -110,7 +110,6 @@ ColGen.get_dual_sol(res::ColGenIterationTestMasterResult) = res.dual_sol
 ColGen.get_obj_val(res::ColGenIterationTestMasterResult) = res.obj_val
 ColGen.is_infeasible(res::ColGenIterationTestMasterResult) = res.term_status == ClB.INFEASIBLE
 ColGen.is_unbounded(res::ColGenIterationTestMasterResult) = res.term_status == ClB.UNBOUNDED
-ColGen.is_optimal(res::ColGenIterationTestMasterResult) = res.term_status == ClB.OPTIMAL
 
 ## mock of the master lp solver
 function ColGen.optimize_master_lp_problem!(master, ctx::ColGenIterationTestContext, env)
@@ -140,7 +139,6 @@ ColGen.compute_sp_init_pb(::ColGenIterationTestContext, sp) = Inf
 ColGen.set_of_columns(::ColGenIterationTestContext) = Vector{Float64}[]
 ColGen.is_infeasible(res::ColGenIterationTestPricingResult) = res.term_status == ClB.INFEASIBLE
 ColGen.is_unbounded(res::ColGenIterationTestPricingResult) = res.term_status == ClB.UNBOUNDED
-ColGen.is_optimal(res::ColGenIterationTestPricingResult) = res.term_status == ClB.OPTIMAL
 
 function ColGen.push_in_set!(ctx::ColGenIterationTestContext, set::Vector{Vector{Float64}}, col::Vector)
     push!(set, col)

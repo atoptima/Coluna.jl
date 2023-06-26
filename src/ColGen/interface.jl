@@ -150,8 +150,6 @@ Returns subproblem formulations.
 "Returns true if a master or pricing problem result is unbounded; false otherwise."
 @mustimplement "ColGen" is_unbounded(res) = nothing
 
-"Returns true if a master or pricing problem result is optimal; false otherwise."
-@mustimplement "ColGen" is_optimal(res) = nothing
 
 ############################################################################################
 # Master resolution.
