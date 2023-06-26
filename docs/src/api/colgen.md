@@ -106,7 +106,7 @@ Coluna.ColGen.stop_colgen_phase
 ### Stages
 
 A stage is a set of consecutive iterations in which we use a given pricing solver.
-The goal is to solve the pricing subproblem with very fast heuristic solvers at the first stage
+The aim is to speed up the resolution of the pricing problem by first using an approximate but fast pricing algorithm and then switching to increasingly less heuristic algorithms until the last stage where an exact solver is used.
 and an exact solver at the last stage.
 Given a pricing solver, when the column generation does not progress anymore or the pricing
 solver does not return any new column, the default implementation switch to a more exact
