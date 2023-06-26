@@ -309,6 +309,11 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     O = colgen_iteration_output_type(context)
 
     mast_result = optimize_master_lp_problem!(master, context, env)
+    begin # if show_formulations 
+        @info master
+        @info mast_result.result.lp_primal_sols[1]
+        @info mast_result.result.lp_dual_sols[1]
+    end
 
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.

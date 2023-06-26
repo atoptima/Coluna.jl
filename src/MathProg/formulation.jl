@@ -640,9 +640,11 @@ function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
     constr = getconstr(form, constrid)
     print(io, getname(form, constr), " : ")
     for (varid, coeff) in getcoefmatrix(form)[constrid, :]
-        name = getname(form, varid)
-        op = (coeff < 0.0) ? "-" : "+"
-        print(io, op, " ", abs(coeff), " ", name, " ")
+        if getduty(varid) <= AbstractAddedMasterVar || getduty(varid) <= MasterPureVar
+            name = getname(form, varid)
+            op = (coeff < 0.0) ? "-" : "+"
+            print(io, op, " ", abs(coeff), " ", name, " ")
+        end
     end
     op = "<="
     if getcursense(form, constr) == Equal
@@ -680,7 +682,9 @@ function _show_variables(io::IO, form::Formulation)
     vars = getvars(form)
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for varid in ids
-        _show_variable(io, form, vars[varid])
+        if getduty(varid) <= AbstractAddedMasterVar || getduty(varid) <= MasterPureVar
+            _show_variable(io, form, vars[varid])
+        end
     end
 end
 

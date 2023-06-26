@@ -674,6 +674,10 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
         )
     )
     opt_state = run!(alg, env, sp, input) # master & master dual sol for non robust cuts
+    begin # if show_formulations
+        @info sp
+        @info opt_state.ip_primal_sols[1]
+    end
 
     # Reduced cost of a column is composed of
     # (A) the cost of the subproblem variables
