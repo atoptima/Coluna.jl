@@ -1,10 +1,14 @@
-# Decomposition & reformulation
+# Dantzig-Wolfe and Benders decompositions
 
 Coluna is a framework to optimize mixed-integer programs that you can decompose.
 In other words, if you remove the linking constraints or linking variables from you
 program, you'll get sets of constraints (blocks) that you can solve independently.
 
+Decompositions are typically used on programs whose constraints or variables can be divided into a set of "easy" constraints (respectively easy variables) and a set of "hard" constraints (respectively hard variables). Decomposing on constraints leads to Dantzig-Wolfe tranformation while decomposing on variables leads to Benders transformation. Both of these decompositions are implemented in Coluna. 
+
 ## Dantzig-Wolfe
+
+### Classic Dantzig-Wolfe decomposition
 
 Let's consider the following coefficient matrix that has a block diagonal structure
 in gray and some linking constraints in blue :
@@ -46,7 +50,7 @@ Subproblems take the following form (here, it's the first subproblem) :
 
 where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
 
-## Dantzig-Wolfe with identical subproblems (alpha)
+### Dantzig-Wolfe with identical subproblems (alpha)
 
 When some subproblems are identical (same coefficient matrix and right-hand side), 
 you can avoid solving all of them at each iteration by defining only one subproblem and
@@ -165,73 +169,36 @@ in gray and some linking variables in blue :
 
 ![Benders decomposition](../assets/img/bdec.png)
 
-You fix the complicated variables, then you can solve the blocks
-independently.
+The intuition behind Benders decomposition is that some hard problems can become much easier with some of their variables fixed. 
+Benders aims to divide the variables of the problem into two "levels": the 1st level variables which, once fixed, make it easier to find a solution for the remaining variables, the so-called 2nd-level variables.
+
+The question is how to set the 1st level variables. Benders' theory proceeds by successive generation of cuts: given a first-level solution, we ask the following questions:
+
+- Is the subproblem infeasible? If so, then the 1st-level solution is not correct and must be eliminated. A feasibility cut will be derived from the dual subproblem and added to the master.
+- Does the aggregation of the master and subproblem solutions give rise to an optimal solution to the problem? It depends on a criterion that can be computed. If it is the case, we are done, else, we derive an optimality cut from the dual subproblem and add it into the master.
+
+Formally, given an original MIP:
+
+TODO: create and insert draw-handing picture as in DW section
+
+we decompose it into a master problem:
+
+TODO: same with MASTER
+
+and a subproblem:
+
+TODO: same with CGLP
+
+Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. We must retrieve an unbounded ray $$(u^*, u_0^*)$$ from the master and consider the following subproblem instead:
+
+TODO: same with modified CGLP
+
+The rules used to generate the cuts are detailed in [this paper](https://link.springer.com/chapter/10.1007/978-3-030-45771-6_7) 
+
+(or TODO: describe the rules ? or ref to the different methods of the API that implement the cut generation process and should explain how cuts are generated)
+
 
 This decomposition is an alpha feature.
 
-# BlockDecomposition
 
-The index-set of the subproblems is declared through an [`BlockDecomposition.@axis`](@ref). 
-It returns an array.
-Each value of the array is a subproblem index wrapped into a `BlockDecomposition.AxisId`.
-Each time BlockDecomposition finds an `AxisId` in the indices of a variable
-and a constraint, it knows to which subproblem the variable or the constraint belongs.
-
-BlockDecomposition allows the user to perform two types of decomposition using
-[`BlockDecomposition.@dantzig_wolfe_decomposition`](@ref) and [`BlockDecomposition.@benders_decomposition`](@ref).
-
-The macro creates a decomposition tree where the root is the master and the depth
-is the number of nested decompositions. A classic Dantzig-Wolfe or Benders
-decomposition produces a decomposition tree of depth 1.
-At the moment, nested decomposition is not supported.
-
-You can get the subproblem membership of all variables and constraints
-using the method [`BlockDecomposition.annotation`](@ref).
-
-BlockDecomposition does not change the JuMP model.
-It decorates the model with additional information.
-All this information is stored in the `ext` field of the JuMP model.
-
-```@meta
-CurrentModule = BlockDecomposition
-```
-
-# Errors and warnings
-
-```@docs
-MasterVarInDwSp
-VarsOfSameDwSpInMaster
-```
-
-# References
-
-```@docs
-BlockModel
-```
-
-These are the methods to decompose a JuMP model :
-```@docs
-@axis
-@benders_decomposition
-@dantzig_wolfe_decomposition
-```
-
-These are the methods to set additional information to the decomposition (multiplicity and optimizers) :
-
-```@docs
-getmaster
-getsubproblems
-specify!
-```
-
-This method helps you to check your decomposition :
-
-```@docs
-annotation
-```
-
-```@meta
-CurrentModule = nothing
-```
 
