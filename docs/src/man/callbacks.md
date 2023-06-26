@@ -48,7 +48,3 @@ and [facultative cut separation](https://jump.dev/JuMP.jl/stable/tutorials/Mixed
 in the JuMP documentation.
 
 
-## Branching callbacks
-
-TODO
-
