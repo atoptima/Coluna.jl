@@ -49,10 +49,13 @@ makedocs(
             "Advanced tutorial" => joinpath("start", "advanced_demo.md"),
         ],
         "Manual" => Any[
-            "Decomposition" => joinpath("man", "decomposition.md"),
+            "Decomposition" => Any[
+                "Decomposition paradigms" => joinpath("man", "decomposition.md"),
+                "Setup decomposition using BlockDecomposition" => joinpath("man", "blockdecomposition.md")
+            ],
             "Configuration" => joinpath("man", "config.md"),
             "Built-in algorithms for Branch-and-Bound" => joinpath("man", "algorithm.md"),
-            "Callbacks"   => joinpath("man", "callbacks.md"),
+            "User-defined Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
             "Benders" => joinpath("api", "benders.md"),
