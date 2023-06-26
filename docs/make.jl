@@ -51,7 +51,7 @@ makedocs(
         "Manual" => Any[
             "Decomposition" => joinpath("man", "decomposition.md"),
             "Configuration" => joinpath("man", "config.md"),
-            "Algorithms" => joinpath("man", "algorithm.md"),
+            "Built-in algorithms for Branch-and-Bound" => joinpath("man", "algorithm.md"),
             "Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
