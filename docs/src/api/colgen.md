@@ -90,7 +90,7 @@ The cost of artificial variables in Phase 3 can be changed using the following m
 missing
 ```
 
-**References:**
+**References**:
 ```@docs
 Coluna.ColGen.AbstractColGenPhase
 Coluna.ColGen.AbstractColGenPhaseIterator
@@ -119,7 +119,7 @@ The default implementation implements the interface around the following object:
 Coluna.Algorithm.ColGenStageIterator
 ```
 
-**References:**
+**References**:
 ```@docs
 Coluna.ColGen.AbstractColGenStage
 Coluna.ColGen.AbstractColGenStageIterator
@@ -179,7 +179,14 @@ reduced cost of subproblem variables.
 The default implementation optimizes the master with an LP solver through MathOptInterface.
 It returns a primal and a dual solution.
 
-Here are the references for the interface:
+In the default implementation, the master LP output is in the following data structure:
+
+```@docs
+Coluna.Algorithm.ColGenMasterResult
+```
+
+
+**References**:
 
 ```@docs
 Coluna.ColGen.optimize_master_lp_problem!
@@ -191,21 +198,31 @@ Coluna.ColGen.is_infeasible
 Coluna.ColGen.is_unbounded
 ```
 
-Optionally, the algorithm can check the integrality of
-the primal solution to the master LP in order to improve the global primal bound of the branch-cut-price algorithm.
-The default implementation checks the integrality of the primal solution.
-
-```@docs
-Coluna.ColGen.check_primal_ip_feasibility!
-Coluna.ColGen.isbetter
-Coluna.ColGen.update_inc_primal_sol!
-```
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
-#### Check integrality of the master LP solution
+#### Check the integrality of the master LP solution
 
-Lorem ipsum.
+The algorithm checks the integrality of
+the primal solution to the master LP to improve the global primal bound of the branch-cut-price algorithm.
+
+In the default implementation, the integrality check is done using the `MathProg.proj_cols_is_integer` method.
+It implements the procedure described in the paper (TODO).
+Basically, it sorts the column used in the master LP primal solution
+in lexicographic order. 
+It assigns a weight to each column equal to the value of the column in the master LP solution. 
+It then forms columns of weight one by accumulating the columns of the fractional solution. 
+If columns are integral, the solution is integral.
+This is a heuristic procedure so it can miss some integer solutions.
+
+If the solution is integral, the essential cut callback is called to make sure it is feasible.
+
+**References**:
+```@docs
+Coluna.ColGen.check_primal_ip_feasibility!
+Coluna.ColGen.is_better_primal_sol
+Coluna.ColGen.update_inc_primal_sol!
+```
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
@@ -215,7 +232,7 @@ If the solution to master LP is integer and better than the current best one,
 we need to update incumbent. This solution is then used by the tree-search algorithm in the 
 bounding mechanism that prunes the nodes.
 
-**References**
+**References**:
 
 ```@docs
 Coluna.ColGen.isbetter
@@ -273,7 +290,12 @@ The reduced cost of a column is split into three contributions:
 - the contribution of the non-robust constraints (i.e. master constraints that cannot be expressed using subproblem variables except the convexity constraint) that is not supported by MILP solver but that you must take into account in the pricing callback
 - the contribution of the master convexity constraint that is automatically taken into account by Coluna once the primal solution is returned.
 
-Therefore, it is very important that you do not discard some columns based only on the primal solution cost because you don't know the contribution of the convexity constraint.
+Therefore, when you use a pricing callback, you must not discard some columns based only on the primal solution cost because you don't know the contribution of the convexity constraint.
+
+```@docs
+Coluna.Algorithm.GeneratedColumn    
+Coluna.Algorithm.ColGenPricingResult
+```
 
 **References**:
 ```@docs
@@ -292,6 +314,12 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 
 You can define your data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
 
+In the default implementation, we use the following data structure:
+
+```@docs
+Coluna.Algorithm.
+```
+
 **References**:
 
 ```@docs
@@ -303,11 +331,12 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 
 #### Dual bound calculation
 
-You can define your data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
+Lorem ipsum
 
 **References**:
 
 ```@docs
+Coluna.ColGen.compute_sp_init_pb
 Coluna.ColGen.compute_sp_init_db
 Coluna.ColGen.compute_dual_bound
 ```
