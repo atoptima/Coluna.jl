@@ -121,7 +121,7 @@ form2() = """
         x1 + x2 + x3 + y1 + y2 + y3 + 2z1 + z2 >= 10
         x1 + 2x2     + y1 + 2y2     + z1       <= 100
         x1 +     3x3 + y1 +    + 3y3           == 100
-                                      z1  + z2 <= 5   
+                                      z1  + z2 <= 5  
 
     dw_sp
         min
@@ -691,10 +691,10 @@ function ColGen.optimize_master_lp_problem!(master, ctx::TestColGenIterationCont
     return output
 end
 
-ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::TestColGenIterationContext, phase, reform, env) = nothing, false
+ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ::TestColGenIterationContext, phase, env) = nothing, false
 ColGen.is_unbounded(ctx::TestColGenIterationContext) = ColGen.is_unbounded(ctx.context)
 ColGen.is_infeasible(ctx::TestColGenIterationContext) = ColGen.is_infeasible(ctx.context)
-ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, phase, reform, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, phase, reform, master_lp_dual_sol)
+ColGen.update_master_constrs_dual_vals!(ctx::TestColGenIterationContext, master_lp_dual_sol) = ColGen.update_master_constrs_dual_vals!(ctx.context, master_lp_dual_sol)
 ColGen.update_reduced_costs!(ctx::TestColGenIterationContext, phase, red_costs) = nothing
 ColGen.get_subprob_var_orig_costs(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_orig_costs(ctx.context)
 ColGen.get_subprob_var_coef_matrix(ctx::TestColGenIterationContext) = ColGen.get_subprob_var_coef_matrix(ctx.context)
@@ -714,8 +714,8 @@ ColGen.set_of_columns(ctx::TestColGenIterationContext) = ColGen.set_of_columns(c
 ColGen.push_in_set!(ctx::TestColGenIterationContext, set, col) = ColGen.push_in_set!(ctx.context, set, col)
 
 # Columns insertion
-function ColGen.insert_columns!(reform, ctx::TestColGenIterationContext, phase, columns)
-    return ColGen.insert_columns!(reform, ctx.context, phase, columns)
+function ColGen.insert_columns!(ctx::TestColGenIterationContext, phase, columns)
+    return ColGen.insert_columns!(ctx.context, phase, columns)
 end
 
 function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
@@ -724,8 +724,8 @@ function ColGen.optimize_pricing_problem!(ctx::TestColGenIterationContext, sp::F
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.context, phase, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::TestColGenIterationContext, phase, sp_dbs, generated_columns, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.context, phase, sp_dbs, generated_columns, master_dual_sol)
 end
 
 function test_colgen_iteration_min_gap()
@@ -919,7 +919,7 @@ function test_colgen_iteration_pure_master_vars()
 
     output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 52.9500
-    @test output.db ≈ 51.5000
+    @test output.db ≈ 51.5
     @test output.nb_new_cols == 1
     @test output.infeasible_master == false
     @test output.unbounded_master == false
@@ -1051,7 +1051,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    new_cols = ColGen.insert_columns!(ctx, phase, columns)
     @test length(new_cols) == 1
 
     ## Iteration 2
@@ -1068,7 +1068,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
     for (cost, sol) in Iterators.zip(redcosts_spsols, [col3])
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
-    @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(reform, ctx, phase, columns)
+    @test_throws ClA.ColumnAlreadyInsertedColGenWarning ColGen.insert_columns!(ctx, phase, columns)
 end
 register!(unit_tests, "colgen_default", test_two_identicals_cols_at_two_iterations_failure)
 
@@ -1110,7 +1110,7 @@ function test_two_identicals_cols_at_same_iteration_ok()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    new_cols = ColGen.insert_columns!(ctx, phase, columns)
     @test length(new_cols) == 2
 end
 register!(unit_tests, "colgen_default", test_two_identicals_cols_at_same_iteration_ok)
@@ -1159,7 +1159,7 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
         ColGen.push_in_set!(ctx, columns, ClA.GeneratedColumn(sol, cost))
     end
 
-    new_cols = ColGen.insert_columns!(reform, ctx, phase, columns)
+    new_cols = ColGen.insert_columns!(ctx, phase, columns)
     @test length(new_cols) == 1
 end
 register!(unit_tests, "colgen_default", test_deactivated_column_added_twice_at_same_iteration_ok)
@@ -1391,6 +1391,7 @@ function test_colgen()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
+    Coluna.set_optim_start_time!(env)
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
 
     output = ColGen.run!(ctx, env, nothing)

@@ -150,14 +150,17 @@ where :
 Operation `m .* z` "mimics" a solution in the original space.
 """
 struct SubgradientCalculationHelper
+    # Changes the sense of the constraint to put the LP in canonical form. 
+    # (expect == constraints -> needs discussion on how to do that.)
     a::SparseVector{Float64,ConstrId}
+    # Used to compute master contribution in the lagrangian bound.
+    # Keeps the original sense of the constraint because the sign of the dual is the one
+    # in the canonical form.
+    a_for_dual::SparseVector{Float64,ConstrId}
     A::DynamicSparseMatrix{ConstrId,VarId,Float64}
 end
 
 function SubgradientCalculationHelper(master)
-    constr_ids = ConstrId[]
-    constr_rhs = Float64[]
-
     m_rhs = (master, is_min, constr_id) -> begin
         constr_sense = getcursense(master, constr_id)
         if is_min
@@ -170,21 +173,27 @@ function SubgradientCalculationHelper(master)
         m_rhs(master, is_min, constr_id)
     end
 
+    constr_ids = ConstrId[]
+    constr_rhs = Float64[]
+    constr_rhs_dual = Float64[]
+
     is_min = getobjsense(master) == MinSense
     for (constr_id, constr) in getconstrs(master)
         if !(getduty(constr_id) <= MasterConvexityConstr) && 
            iscuractive(master, constr) && isexplicit(master, constr)
             push!(constr_ids, constr_id)
             push!(constr_rhs, m_rhs(master, is_min, constr_id) * getcurrhs(master, constr_id))
+            push!(constr_rhs_dual, getcurrhs(master, constr_id))
         end 
     end
 
     a = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
+    a_dual = sparsevec(constr_ids, constr_rhs_dual, Coluna.MAX_NB_ELEMS)
     A = _submatrix(
         master, 
         constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
         var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar,
         m_submatrix
     )
-    return SubgradientCalculationHelper(a, A)
+    return SubgradientCalculationHelper(a, a_dual, A)
 end

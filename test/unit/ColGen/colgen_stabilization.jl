@@ -360,9 +360,9 @@ ColGen.is_unbounded(::ColGenStabFlowRes) = false
 ColGen.get_dual_sol(::ColGenStabFlowRes) = ones(Float64, 3)
 ColGen.get_primal_sol(::ColGenStabFlowRes) = ColGenStabFlowPrimalSol()
 ColGen.get_obj_val(::ColGenStabFlowRes) = 0.0
-ColGen.isbetter(::ColGenStabFlowPrimalSol, p) = false
+ColGen.is_better_primal_sol(::ColGenStabFlowPrimalSol, p) = false
 ColGen.get_reform(::ColGenStabFlowCtx) = nothing
-ColGen.update_master_constrs_dual_vals!(::ColGenStabFlowCtx, phase, reform, dual_sol) = nothing
+ColGen.update_master_constrs_dual_vals!(::ColGenStabFlowCtx, dual_sol) = nothing
 ColGen.get_subprob_var_orig_costs(::ColGenStabFlowCtx) = ones(Float64, 3)
 ColGen.get_subprob_var_coef_matrix(::ColGenStabFlowCtx) = ones(Float64, 3, 3)
 ColGen.update_reduced_costs!(::ColGenStabFlowCtx, phase, red_costs) = nothing
@@ -377,9 +377,9 @@ ColGen.set_of_columns(::ColGenStabFlowCtx) = []
 ColGen.get_pricing_subprobs(::ColGenStabFlowCtx) = []
 ColGen.get_pricing_strategy(::ColGenStabFlowCtx, phase) = ColGenStabFlowPricingStrategy()
 ColGen.pricing_strategy_iterate(::ColGenStabFlowPricingStrategy) = nothing
-ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
+ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, generated_columns, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
 
-function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, master, valid_db, pseudo_db, mast_dual_sol)
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, ctx, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
     @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
     stab.nb_update_stab_after_pricing_done += 1
     return true
@@ -396,11 +396,11 @@ function ColGen.update_stabilization_after_misprice!(stab::ColGenStabFlowStab, m
     stab.nb_misprices_done += 1
 end
 
-function ColGen.insert_columns!(reform, context::ColGenStabFlowCtx, phase, generated_columns)
+function ColGen.insert_columns!(context::ColGenStabFlowCtx, phase, generated_columns)
     return []
 end
 
-function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, ctx, master, generated_columns, mast_dual_sol)
+function ColGen.update_stabilization_after_iter!(stab::ColGenStabFlowStab, mast_dual_sol)
     @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
     stab.nb_update_stab_after_iter_done += 1
     return true
@@ -614,9 +614,9 @@ function toy_gap_min_with_penalties_for_stab()
         1.0 x_16 + 1.0 x_26 + 1.0 y_6 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var >= 1.0
         1.0 x_17 + 1.0 x_27 + 1.0 y_7 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var >= 1.0
         1.0 y_1 + 1.0 y_2 + 1.0 y_3 + 1.0 y_4 + 1.0 y_5 + 1.0 y_6 + 1.0 y_7 - 1.0 local_art_of_limit_pen - 1.0 global_neg_art_var <= 1.0
-        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 1.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 1.0 {MasterConvexityConstr}
-        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 >= 1.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 <= 1.0 {MasterConvexityConstr}
 
     dw_sp

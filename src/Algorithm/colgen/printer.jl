@@ -22,6 +22,9 @@ ColGen.is_minimization(ctx::ColGenPrinterContext) = ColGen.is_minimization(ctx.i
 ColGen.get_pricing_subprobs(ctx::ColGenPrinterContext) = ColGen.get_pricing_subprobs(ctx.inner)
 
 ColGen.setup_stabilization!(ctx::ColGenPrinterContext, master) = ColGen.setup_stabilization!(ctx.inner, master)
+function ColGen.update_stabilization_after_pricing_optim!(stab, ctx::ColGenPrinterContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+    return ColGen.update_stabilization_after_pricing_optim!(stab, ctx.inner, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+end
 
 ColGen.new_phase_iterator(ctx::ColGenPrinterContext) = ColGen.new_phase_iterator(ctx.inner)
 ColGen.new_stage_iterator(ctx::ColGenPrinterContext) = ColGen.new_stage_iterator(ctx.inner)
@@ -41,11 +44,11 @@ function ColGen.optimize_master_lp_problem!(master, ctx::ColGenPrinterContext, e
     return output
 end
 
-function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, phase, reform, master_lp_dual_sol)
-    return ColGen.update_master_constrs_dual_vals!(ctx.inner, phase, reform, master_lp_dual_sol)
+function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, master_lp_dual_sol)
+    return ColGen.update_master_constrs_dual_vals!(ctx.inner, master_lp_dual_sol)
 end
 
-ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx::ColGenPrinterContext, phase, reform, env) = ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx.inner, phase, reform, env)
+ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx::ColGenPrinterContext, phase, env) = ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx.inner, phase, env)
 ColGen.update_inc_primal_sol!(ctx::ColGenPrinterContext, ip_primal_sol) = ColGen.update_inc_primal_sol!(ctx.inner, ip_primal_sol)
 
 ColGen.get_subprob_var_orig_costs(ctx::ColGenPrinterContext) = ColGen.get_subprob_var_orig_costs(ctx.inner)
@@ -57,8 +60,8 @@ end
 
 ColGen.update_reduced_costs!(ctx::ColGenPrinterContext, phase, red_costs) = ColGen.update_reduced_costs!(ctx.inner, phase, red_costs)
 
-function ColGen.insert_columns!(reform, ctx::ColGenPrinterContext, phase, columns)
-    col_ids = ColGen.insert_columns!(reform, ctx.inner, phase, columns)
+function ColGen.insert_columns!(ctx::ColGenPrinterContext, phase, columns)
+    col_ids = ColGen.insert_columns!(ctx.inner, phase, columns)
     if ctx.print_column_reduced_cost
         _print_column_reduced_costs(ColGen.get_reform(ctx), col_ids)
     end
@@ -106,16 +109,16 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenPrinterContext, sp::Formula
     return output
 end
 
-function ColGen.compute_dual_bound(ctx::ColGenPrinterContext, phase, sp_dbs, master_dual_sol)
-    return ColGen.compute_dual_bound(ctx.inner, phase, sp_dbs, master_dual_sol)
+function ColGen.compute_dual_bound(ctx::ColGenPrinterContext, phase, sp_dbs, generated_columns, master_dual_sol)
+    return ColGen.compute_dual_bound(ctx.inner, phase, sp_dbs, generated_columns, master_dual_sol)
 end
 
 function ColGen.colgen_iteration_output_type(ctx::ColGenPrinterContext)
     return ColGen.colgen_iteration_output_type(ctx.inner)
 end
 
-function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, colgen_iteration)
-    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, colgen_iteration)
+function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
+    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
@@ -184,6 +187,9 @@ function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, 
 end
 
 ColGen.stop_colgen(ctx::ColGenPrinterContext, phase_output) = ColGen.stop_colgen(ctx.inner, phase_output)
+
+ColGen.is_better_dual_bound(ctx::ColGenPrinterContext, new_dual_bound, dual_bound) =
+    ColGen.is_better_dual_bound(ctx.inner, new_dual_bound, dual_bound)
 
 ColGen.colgen_output_type(::ColGenPrinterContext) = ColGenOutput
 ColGen.colgen_phase_output_type(::ColGenPrinterContext) = ColGenPhaseOutput

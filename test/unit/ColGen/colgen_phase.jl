@@ -190,7 +190,7 @@ function stop_colgen_phase_if_colgen_converged_eq()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_eq)
 
@@ -216,7 +216,7 @@ function stop_colgen_phase_if_colgen_converged_min()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_min)
 
@@ -242,7 +242,7 @@ function stop_colgen_phase_if_colgen_converged_max()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_max)
 
@@ -268,7 +268,7 @@ function stop_colgen_phase_if_iterations_limit()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_iterations_limit)
 
@@ -294,7 +294,7 @@ function stop_colgen_phase_if_time_limit()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_time_limit)
 
@@ -320,7 +320,7 @@ function stop_colgen_phase_if_subproblem_infeasible()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_subproblem_infeasible)
 
@@ -346,7 +346,7 @@ function stop_colgen_phase_if_subproblem_unbounded()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_subproblem_unbounded)
 
@@ -372,7 +372,7 @@ function stop_colgen_phase_if_master_unbounded()
         nothing
     )
 
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_master_unbounded)
 
@@ -397,7 +397,7 @@ function stop_colgen_phase_if_no_new_column()
         nothing,
         nothing
     )
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_no_new_column)
 
@@ -422,7 +422,7 @@ function stop_colgen_phase_if_new_cut_in_master()
         nothing,
         nothing
     )
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase3(), env, colgen_iter_output, colgen_iteration)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase3(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_new_cut_in_master)
 
@@ -447,7 +447,7 @@ function continue_colgen_phase_otherwise()
         nothing,
         nothing
     )
-    @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration)
+    @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", continue_colgen_phase_otherwise)
 
@@ -473,7 +473,7 @@ function stop_when_inf_db()
         nothing
     )
 
-    @test_broken ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iteration) 
+    @test_broken ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration) 
 end
 register!(unit_tests, "colgen_phase", stop_when_inf_db)
 
