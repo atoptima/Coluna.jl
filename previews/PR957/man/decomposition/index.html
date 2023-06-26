@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Decomposition paradigms · Coluna User Guide</title><meta name="title" content="Decomposition paradigms · Coluna User Guide"/><meta property="og:title" content="Decomposition paradigms · Coluna User Guide"/><meta property="twitter:title" content="Decomposition paradigms · Coluna User Guide"/><meta name="description" content="Documentation for Coluna User Guide."/><meta property="og:description" content="Documentation for Coluna User Guide."/><meta property="twitter:description" content="Documentation for Coluna User Guide."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna User Guide</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-2" type="checkbox"/><label class="tocitem" for="menuitem-2"><span class="docs-label">Getting started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../start/start/">Column generation</a></li><li><a class="tocitem" href="../../start/cuts/">Valid inequalities</a></li><li><a class="tocitem" href="../../start/pricing/">Pricing callback</a></li><li><a class="tocitem" href="../../start/custom_data/">Custom data</a></li><li><a class="tocitem" href="../../start/initial_columns/">Initial columns callback</a></li><li><a class="tocitem" href="../../start/advanced_demo/">Advanced tutorial</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox" checked/><label class="tocitem" for="menuitem-3"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox" checked/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li class="is-active"><a class="tocitem" href>Decomposition paradigms</a><ul class="internal"><li><a class="tocitem" href="#Dantzig-Wolfe"><span>Dantzig-Wolfe</span></a></li><li><a class="tocitem" href="#Benders-(alpha)"><span>Benders (alpha)</span></a></li></ul></li><li><a class="tocitem" href="../blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../config/">Configuration</a></li><li><a class="tocitem" href="../algorithm/">Built-in algorithms for Branch-and-Bound</a></li><li><a class="tocitem" href="../callbacks/">User-defined Callbacks</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox"/><label class="tocitem" for="menuitem-4"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li><a class="is-disabled">Decomposition</a></li><li class="is-active"><a href>Decomposition paradigms</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Decomposition paradigms</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/man/decomposition.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Dantzig-Wolfe-and-Benders-decompositions"><a class="docs-heading-anchor" href="#Dantzig-Wolfe-and-Benders-decompositions">Dantzig-Wolfe and Benders decompositions</a><a id="Dantzig-Wolfe-and-Benders-decompositions-1"></a><a class="docs-heading-anchor-permalink" href="#Dantzig-Wolfe-and-Benders-decompositions" title="Permalink"></a></h1><p>Coluna is a framework to optimize mixed-integer programs that you can decompose. In other words, if you remove the linking constraints or linking variables from you program, you&#39;ll get sets of constraints (blocks) that you can solve independently.</p><p>Decompositions are typically used on programs whose constraints or variables can be divided into a set of &quot;easy&quot; constraints (respectively easy variables) and a set of &quot;hard&quot; constraints (respectively hard variables). Decomposing on constraints leads to Dantzig-Wolfe tranformation while decomposing on variables leads to Benders transformation. Both of these decompositions are implemented in Coluna. </p><h2 id="Dantzig-Wolfe"><a class="docs-heading-anchor" href="#Dantzig-Wolfe">Dantzig-Wolfe</a><a id="Dantzig-Wolfe-1"></a><a class="docs-heading-anchor-permalink" href="#Dantzig-Wolfe" title="Permalink"></a></h2><h3 id="Classic-Dantzig-Wolfe-decomposition"><a class="docs-heading-anchor" href="#Classic-Dantzig-Wolfe-decomposition">Classic Dantzig-Wolfe decomposition</a><a id="Classic-Dantzig-Wolfe-decomposition-1"></a><a class="docs-heading-anchor-permalink" href="#Classic-Dantzig-Wolfe-decomposition" title="Permalink"></a></h3><p>Let&#39;s consider the following coefficient matrix that has a block diagonal structure in gray and some linking constraints in blue :</p><p><img src="../../assets/img/dwdec.png" alt="Dantzig-Wolfe decomposition"/></p><p>You penalize the violation of the linking constraints in the objective function. You can then solve the blocks independently.</p><p>The Dantzig-Wolfe reformulation gives raise to a master problem with an exponential number of variables. Coluna dynamically generates these variables by solving the subproblems. It&#39;s the column generation algorithm.</p><p>Let&#39;s consider the following original formulation in which we partition variables into two vectors <span>$x_1$</span> and <span>$x_2$</span> :</p><p><img src="../../assets/img/dw_origform.svg" alt="Original formulation"/></p><p>When you apply a Dantzig-Wofe decomposition to this formulation,  Coluna reformulates it into the following master problem :</p><p><img src="../../assets/img/dw_master.svg" alt="Master formulation"/></p><p>where <span>$Q_1$</span> is the index-set of the solutions to the first subproblem and  <span>$Q_2$</span> is the index-set of the solutions to the second subproblem. The set of the solutions to the first and the second subproblems are <span>$\{\tilde{x}^q_1\}_{q \in Q_1}$</span> and <span>$\{\tilde{x}^q_2\}_{q \in Q_2}$</span> respectively. These solutions are expressed in terms of the original variables. The multiplicity of the subproblems is defined in the convexity constraints. Lower and upper multiplicity are <span>$1$</span> by default.</p><p>At the beginning of the column generation algorithm, the master formulation does not have any master columns. Therefore, the master may be infeasible.  To prevent this, Coluna adds a local artifical variable specific to each constraint of the master and a global artificial variable. Costs of articial and global artificial variables can be defined in <a href="man/@ref">Coluna.Params</a>.</p><p>Subproblems take the following form (here, it&#39;s the first subproblem) :</p><p><img src="../../assets/img/dw_sp.svg" alt="Subproblem n°1 formulation"/></p><p>where <span>$\bar{c}$</span> is the reduced cost of the original variables computed by the column generation algorithm.</p><h3 id="Dantzig-Wolfe-with-identical-subproblems-(alpha)"><a class="docs-heading-anchor" href="#Dantzig-Wolfe-with-identical-subproblems-(alpha)">Dantzig-Wolfe with identical subproblems (alpha)</a><a id="Dantzig-Wolfe-with-identical-subproblems-(alpha)-1"></a><a class="docs-heading-anchor-permalink" href="#Dantzig-Wolfe-with-identical-subproblems-(alpha)" title="Permalink"></a></h3><p>When some subproblems are identical (same coefficient matrix and right-hand side),  you can avoid solving all of them at each iteration by defining only one subproblem and setting its multiplicity to the number of time it appears.</p><p>Let us see an example with Dantzig-Wolfe and a variant of the Generalized Assignment Problem.</p><p>Consider a set of machine type <code>T = 1:nb_machine_types</code> and a set of jobs <code>J = 1:nb_jobs</code>. A machine type <code>t</code> has a resource capacity <code>Q[t]</code> and the factory contains <code>U[t]</code> machines of type <code>t</code>. A job <code>j</code> assigned to a machine of type <code>t</code> has a cost <code>c[t,j]</code> and consumes <code>w[t,j]</code> resource units of the machine of type <code>t</code>.</p><p>Consider the following instance :</p><pre><code class="language-julia hljs">nb_machine_types = 2;
+nb_jobs = 10;
+J = 1:nb_jobs;
+Q = [10, 15];
+U = [3, 2];  # 3 machines of type 1 &amp; 2 machines of type 2
+c = [10 11 13 11 12 14 15 8 9 11; 20 21 23 21 22 24 25 18 19 21];
+w = [4 4 5 4 4 3 4 5 6 5; 5 5 6 5 5 4 5 6 7 6];</code></pre><p>Here is the JuMP model to optimize this instance a classic solver : </p><pre><code class="language-julia hljs">using JuMP, GLPK;
+
+T1 = [1, 2, 3]; # U[1] machines
+T2 = [4, 5]; # U[2] machines
+M = union(T1, T2);
+m2t = [1, 1, 1, 2, 2]; # machine id -&gt; type id
+
+model = Model(GLPK.Optimizer);
+@variable(model, x[M, J], Bin); # 1 if job j assigned to machine m
+@constraint(model, cov[j in J], sum(x[m,j] for m in M) == 1);
+@constraint(model, knp[m in M], sum(w[m2t[m],j] * x[m,j] for j in J) &lt;= Q[m2t[m]]);
+@objective(model, Min, sum(c[m2t[m],j] * x[m,j] for m in M, j in J));
+
+optimize!(model);
+objective_value(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">154.0</code></pre><p>You can decompose over the machines by defining an axis on <code>M</code>. However, if you want to take advantage of the identical subproblems, you must  define the formulation as follows : </p><pre><code class="language-julia hljs">using BlockDecomposition, Coluna, JuMP, GLPK;
+const BD = BlockDecomposition
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
+);
+
+@axis(T, 1:nb_machine_types);
+
+model = BlockModel(coluna);
+@variable(model, x[T, J], Bin); # 1 if job j assigned to machine m
+@constraint(model, cov[j in J], sum(x[t,j] for t in T) == 1);
+@constraint(model, knp[t in T], sum(w[t] * x[t,j] for j in J) &lt;= Q[t]);
+@objective(model, Min, sum(c[t,j] * x[t,j] for t in T, j in J));</code></pre><p>We assign jobs to a type of machine and we define one knapsack constraint for each type. This formulation cannot be solved as it stands with a commercial solver.</p><p>Then, we decompose and specify the multiplicity of each knapsack subproblem : </p><pre><code class="language-julia hljs">@dantzig_wolfe_decomposition(model, dec_on_types, T);
+sps = getsubproblems(dec_on_types)
+for t in T
+    specify!(sps[t], lower_multiplicity = 0, upper_multiplicity = U[t]);
+end
+getsubproblems(dec_on_types)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{BlockDecomposition.SubproblemForm}:
+ Subproblem formulation for T = 1 contains :	 0.0 &lt;= multiplicity &lt;= 3.0
+
+ Subproblem formulation for T = 2 contains :	 0.0 &lt;= multiplicity &lt;= 2.0
+</code></pre><p>We see that subproblem for machine type 1 has an upper multiplicity equals to 3, and the second subproblem for machine type 2 has an upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.3 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 4.08 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=19.37&gt; &lt;mst= 1.39&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=19.76&gt; &lt;mst= 0.10&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-49756.0000&gt; &lt;mlp=70057.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=19.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-69744.0000&gt; &lt;mlp=50079.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=19.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-69737.0000&gt; &lt;mlp=50079.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=19.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-79708.5000&gt; &lt;mlp=40090.5000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et=19.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-96311.0000&gt; &lt;mlp=23464.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et=20.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et=20.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et=20.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=Inf&gt;
+***************************************************************************************
+**** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 23.49 sec.
+**** Branching constraint: PricingSetupVar_sp_5&lt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=23.75&gt; &lt;mst= 0.06&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB= 3487.3333&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+# &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB= 3333.3333&gt; &lt;mlp= 3333.3333&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°2, parent N°1, depth 1, 0 untreated node
+**** Local DB = 154.0000, global bounds: [ 3333.3333 , 174.0000 ], time = 24.33 sec.
+**** Branching constraint: PricingSetupVar_sp_5&gt;=2.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°5, parent N°2, depth 2, 1 untreated node
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.38 sec.
+**** Branching constraint: x[2,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-38734.8889&gt; &lt;mlp= 1265.1111&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°7, parent N°5, depth 3, 2 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.38 sec.
+**** Branching constraint: x[1,9]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-56412.6667&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-49801.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°9, parent N°7, depth 4, 3 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.38 sec.
+**** Branching constraint: x[1,2]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°11, parent N°9, depth 5, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.38 sec.
+**** Branching constraint: x[2,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°13, parent N°11, depth 6, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.39 sec.
+**** Branching constraint: x[1,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-43199.3333&gt; &lt;mlp= 1830.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   18.0000&gt; &lt;mlp=  162.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   84.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  129.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°15, parent N°13, depth 7, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.39 sec.
+**** Branching constraint: x[2,7]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°17, parent N°15, depth 8, 7 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.39 sec.
+**** Branching constraint: x[1,10]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-49846.0000&gt; &lt;mlp= 6820.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°16, parent N°15, depth 8, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.43 sec.
+**** Branching constraint: x[1,10]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-29771.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°19, parent N°16, depth 9, 7 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.43 sec.
+**** Branching constraint: x[2,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°21, parent N°19, depth 10, 8 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.44 sec.
+**** Branching constraint: x[2,8]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-4916.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-4876.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-14816.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-15846.0000&gt; &lt;mlp= 4154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-11846.0000&gt; &lt;mlp= 4154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-29777.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°20, parent N°19, depth 10, 7 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.44 sec.
+**** Branching constraint: x[2,8]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-49826.0000&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  129.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°18, parent N°16, depth 9, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.45 sec.
+**** Branching constraint: x[2,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  129.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  129.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°14, parent N°13, depth 7, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.49 sec.
+**** Branching constraint: x[2,7]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   54.0000&gt; &lt;mlp=  162.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°12, parent N°11, depth 6, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.49 sec.
+**** Branching constraint: x[1,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-50957.1111&gt; &lt;mlp= 4042.8889&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°23, parent N°12, depth 7, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.50 sec.
+**** Branching constraint: x[2,1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-24796.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-19890.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-19808.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°25, parent N°23, depth 8, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.50 sec.
+**** Branching constraint: x[1,7]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-54846.0000&gt; &lt;mlp= 1820.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°27, parent N°25, depth 9, 7 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.50 sec.
+**** Branching constraint: x[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   84.0000&gt; &lt;mlp=  164.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°26, parent N°25, depth 9, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.51 sec.
+**** Branching constraint: x[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-36512.6667&gt; &lt;mlp= 1265.1111&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°29, parent N°26, depth 10, 7 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.51 sec.
+**** Branching constraint: x[1,8]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  134.0000&gt; &lt;mlp=  160.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°28, parent N°26, depth 10, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.51 sec.
+**** Branching constraint: x[1,8]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°24, parent N°23, depth 8, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.52 sec.
+**** Branching constraint: x[1,7]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-58179.3333&gt; &lt;mlp= 1820.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°31, parent N°24, depth 9, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.53 sec.
+**** Branching constraint: x[2,8]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-24796.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-4916.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-4876.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-11846.0000&gt; &lt;mlp= 4154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-9866.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et=24.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°30, parent N°24, depth 9, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.53 sec.
+**** Branching constraint: x[2,8]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-41768.0000&gt; &lt;mlp= 2156.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  129.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°33, parent N°30, depth 10, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.54 sec.
+**** Branching constraint: x[2,10]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°32, parent N°30, depth 10, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.54 sec.
+**** Branching constraint: x[2,10]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  113.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°22, parent N°12, depth 7, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.54 sec.
+**** Branching constraint: x[2,1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   39.0000&gt; &lt;mlp=  159.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°35, parent N°22, depth 8, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.55 sec.
+**** Branching constraint: x[1,7]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16522.6667&gt; &lt;mlp= 3497.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°34, parent N°22, depth 8, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.55 sec.
+**** Branching constraint: x[1,7]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-44856.0000&gt; &lt;mlp= 2659.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°37, parent N°34, depth 9, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.56 sec.
+**** Branching constraint: x[2,8]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-16512.6667&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-29823.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°39, parent N°37, depth 10, 6 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.56 sec.
+**** Branching constraint: x[2,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-14856.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-4876.0000&gt; &lt;mlp= 5144.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19786.0000&gt; &lt;mlp= 3487.3333&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-29768.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°38, parent N°37, depth 10, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.57 sec.
+**** Branching constraint: x[2,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-42371.0000&gt; &lt;mlp= 2659.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°36, parent N°34, depth 9, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.57 sec.
+**** Branching constraint: x[2,8]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-29906.0000&gt; &lt;mlp=  162.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-29846.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-29846.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°10, parent N°9, depth 5, 3 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.58 sec.
+**** Branching constraint: x[2,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-39766.0000&gt; &lt;mlp= 3022.5714&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -36.0000&gt; &lt;mlp=  164.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   94.0000&gt; &lt;mlp=  162.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°41, parent N°10, depth 6, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.58 sec.
+**** Branching constraint: x[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   96.2222&gt; &lt;mlp=  160.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   82.5714&gt; &lt;mlp=  159.7143&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+***************************************************************************************
+**** B&amp;B tree node N°40, parent N°10, depth 6, 3 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.59 sec.
+**** Branching constraint: x[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -166.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  104.0000&gt; &lt;mlp=  164.0000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°43, parent N°40, depth 7, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.59 sec.
+**** Branching constraint: x[2,7]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-29806.0000&gt; &lt;mlp= 2656.5000&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°45, parent N°43, depth 8, 5 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 174.0000 ], time = 24.59 sec.
+**** Branching constraint: x[1,1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  160.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   60.6667&gt; &lt;mlp=  160.6667&gt; &lt;PB=174.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°44, parent N°43, depth 8, 4 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 154.0000 ], time = 24.60 sec.
+**** Branching constraint: x[1,1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=154.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°42, parent N°40, depth 7, 3 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 154.0000 ], time = 24.60 sec.
+**** Branching constraint: x[2,7]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-29826.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=154.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  137.3333&gt; &lt;mlp=  157.3333&gt; &lt;PB=154.0000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=154.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°8, parent N°7, depth 4, 2 untreated nodes
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 154.0000 ], time = 24.61 sec.
+**** Branching constraint: x[1,2]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=154.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°6, parent N°5, depth 3, 1 untreated node
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 154.0000 ], time = 24.64 sec.
+**** Branching constraint: x[1,9]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-56917.4286&gt; &lt;mlp= 3007.5714&gt; &lt;PB=154.0000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=154.0000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°4, parent N°2, depth 2, 0 untreated node
+**** Local DB = 154.0000, global bounds: [ 154.0000 , 154.0000 ], time = 24.64 sec.
+**** Branching constraint: x[2,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=154.0000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         96.3s /  25.6%           4.04GiB /  30.5%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    24.7s  100.0%   24.7s   1.23GiB  100.0%  1.23GiB
+   SolveLpForm      128    1.55s    6.3%  12.1ms   56.0MiB    4.5%   448KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 154.0
+[ Info: Dual bound: 154.0</code></pre><p>and retrieve the disaggregated solution</p><pre><code class="language-julia hljs">for t in T
+    assignment_patterns = BD.getsolutions(model, t);
+    for pattern in assignment_patterns
+        nb_times_pattern_used = BD.value(pattern);
+        jobs_in_pattern = [];
+        for j in J
+            if BD.value(pattern, x[t, j]) ≈ 1
+                push!(jobs_in_pattern, j);
+            end
+        end
+        println(&quot;Pattern of machine type $t used $nb_times_pattern_used times : $jobs_in_pattern&quot;);
+    end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Pattern of machine type 1 used 1.0 times : Any[7, 10]
+Pattern of machine type 1 used 1.0 times : Any[4, 5]
+Pattern of machine type 1 used 1.0 times : Any[6, 8]
+Pattern of machine type 2 used 1.0 times : Any[2, 3]
+Pattern of machine type 2 used 1.0 times : Any[1, 9]</code></pre><h2 id="Benders-(alpha)"><a class="docs-heading-anchor" href="#Benders-(alpha)">Benders (alpha)</a><a id="Benders-(alpha)-1"></a><a class="docs-heading-anchor-permalink" href="#Benders-(alpha)" title="Permalink"></a></h2><p>Let&#39;s consider the following coefficient matrix that has a block diagonal structure in gray and some linking variables in blue :</p><p><img src="../../assets/img/bdec.png" alt="Benders decomposition"/></p><p>The intuition behind Benders decomposition is that some hard problems can become much easier with some of their variables fixed.  Benders aims to divide the variables of the problem into two &quot;levels&quot;: the 1st level variables which, once fixed, make it easier to find a solution for the remaining variables, the so-called 2nd-level variables.</p><p>The question is how to set the 1st level variables. Benders&#39; theory proceeds by successive generation of cuts: given a first-level solution, we ask the following questions:</p><ul><li>Is the subproblem infeasible? If so, then the 1st-level solution is not correct and must be eliminated. A feasibility cut will be derived from the dual subproblem and added to the master.</li><li>Does the aggregation of the master and subproblem solutions give rise to an optimal solution to the problem? It depends on a criterion that can be computed. If it is the case, we are done, else, we derive an optimality cut from the dual subproblem and add it into the master.</li></ul><p>Formally, given an original MIP:</p><p>TODO: create and insert draw-handing picture as in DW section</p><p>we decompose it into a master problem:</p><p>TODO: same with MASTER</p><p>and a subproblem:</p><p>TODO: same with CGLP</p><p>Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. We must retrieve an unbounded ray <span>$(u^*, u_0^*)$</span> from the master and consider the following subproblem instead:</p><p>TODO: same with modified CGLP</p><p>The rules used to generate the cuts are detailed in <a href="https://link.springer.com/chapter/10.1007/978-3-030-45771-6_7">this paper</a> </p><p>(or TODO: describe the rules ? or ref to the different methods of the API that implement the cut generation process and should explain how cuts are generated)</p><p>This decomposition is an alpha feature.</p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../start/advanced_demo/">« Advanced tutorial</a><a class="docs-footer-nextpage" href="../blockdecomposition/">Setup decomposition using BlockDecomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Monday 26 June 2023 13:49">Monday 26 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
