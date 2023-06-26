@@ -6,7 +6,10 @@ CurrentModule = Coluna
 
 Branch-and-Bound algorithm aims to find an optimal solution of a MIP by successive divisions of the search space. An introduction to the Branch-and-Bound algorithm can be found here https://en.wikipedia.org/wiki/Branch_and_bound. 
 
-In order to speed up the algorithm, it could be helpful to apply some decompositions s.t. Dantzig-Wolfe or Benders ahead of the Branch-and-Bound tree. However, these decompositions lead to the creation of an exponential number of variables in the formulation. To avoid spending too much time optimizing each node, the alternative is to solve the linear relaxation at each node using Cut, and/or Column Generation (for Dantzig-Wolfe decomposed problems only). This approach leads to algorithms known as Branch-and-Cut (Branch-and-Bound + Cut Generation), Branch-and-Price (Branch-and-Bound + Column Generation) and Branch-and-Cut-and-Price (Branch-and-Bound + Cut and Column Generation).
+Coluna provides a generic Branch-and-Bound algorithm whose three main elements can be easily modified::
+- the conquer strategy: evaluation of the problem at a node of the branch-and-bound tree
+- the branching strategy: ...
+- the explore strategy: the evaluation order of your nodes 
 
 The main loop used for the implementation of such algorithms is implemented by ```Algorithm.TreeSearchAlgorithm```. It is highly customizable so that the user can specify its own strategy to optimize each node (conquer) and to explore the tree:
 
