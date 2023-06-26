@@ -190,13 +190,9 @@ Coluna.Algorithm.ColGenMasterResult
 
 ```@docs
 Coluna.ColGen.optimize_master_lp_problem!
-Coluna.ColGen.get_obj_val
-Coluna.ColGen.get_primal_sol
-Coluna.ColGen.get_dual_sol
-Coluna.ColGen.is_optimal
-Coluna.ColGen.is_infeasible
-Coluna.ColGen.is_unbounded
 ```
+
+You can see the additional methods to implement in the [result data structures](#Result-data-structures) section.
 
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
@@ -221,22 +217,19 @@ If the solution is integral, the essential cut callback is called to make sure i
 ```@docs
 Coluna.ColGen.check_primal_ip_feasibility!
 Coluna.ColGen.is_better_primal_sol
-Coluna.ColGen.update_inc_primal_sol!
 ```
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
 #### Update incumbent primal solution
 
-If the solution to master LP is integer and better than the current best one, 
-we need to update incumbent. This solution is then used by the tree-search algorithm in the 
+If the solution to master LP is integral and better than the current best one, 
+we need to update the incumbent. This solution is then used by the tree-search algorithm in the 
 bounding mechanism that prunes the nodes.
 
 **References**:
 
 ```@docs
-Coluna.ColGen.isbetter
-Coluna.ColGen.check_primal_ip_feasibility!
 Coluna.ColGen.update_inc_primal_sol!
 ```
 
@@ -280,7 +273,6 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 
 #### Pricing subproblem optimization
 
-
 At each iteration, the algorithm requires primal solutions to the pricing subproblems. The generic function supports multi-column generation so you can return any number of solutions.
 
 The default implementation supports optimization of the pricing subproblems using a MILP solver or a pricing callback. Non-robust valid inequalities are not supported by MILP solvers as they change the structure of the subproblems. When using a pricing callback, you must be aware of how Coluna calculates the reduced cost of a column:
@@ -300,25 +292,27 @@ Coluna.Algorithm.ColGenPricingResult
 **References**:
 ```@docs
 Coluna.ColGen.optimize_pricing_problem!
-Coluna.ColGen.get_primal_sols
-Coluna.ColGen.get_dual_bound
 ```
 
-You must also implement the `Coluna.ColGen.is_optimal`, `Coluna.ColGen.is_infeasible`, and
-`Coluna.ColGen.is_unbounded` for the pricing result.
+You can see the additional methods to implement in the [result data structures](#Result-data-structures) section.
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
 #### Set of generated columns
-
 
 You can define your data structure to manage the columns generated at a given iteration. Columns are inserted after the optimization of all pricing subproblems to allow the parallelization of the latter.
 
 In the default implementation, we use the following data structure:
 
 ```@docs
-Coluna.Algorithm.
+Coluna.Algorithm.ColumnsSet
+Coluna.Algorithm.SubprobPrimalSolsSet
 ```
+
+In the default implementation, `push_in_set!` is responsible for checking if the column has improving reduced cost.
+Only columns with improving reduced cost are inserted in the set.
+The `push_in_set!` is also responsible to insert he best primal solution to each pricing problem into the `SubprobPrimalSolsSet` object.
+
 
 **References**:
 
@@ -331,7 +325,36 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 
 #### Dual bound calculation
 
-Lorem ipsum
+In the default implementation, 
+given a vector $\pi \geq 0$ of dual values to the master constraints (1), the Lagrangian 
+dual function is given by:
+
+```math
+L(\pi) = \pi a + \sum_{k \in K} \max_{l_k \leq \mathbf{1} \lambda^k \leq u^k} (c^k - \pi A^k)\lambda^k + \max_{ \bar{l} \leq y \leq \bar{u}} (\bar{c} - \pi \bar{A})y
+```
+
+Let:
+- element $z_k(\pi) \leq \min_i (c^k_i - \pi A^k_i)$ be a lower bound on the solution value of the pricing problem
+- element $\bar{z}_j(\pi) = \bar{c} - \pi \bar{A}$ be the reduced cost of pure master variable $y_j$
+
+Then, the Lagrangian dual function can be lower bounded by:
+
+```math
+L(\pi) \geq \pi a + \sum_{k \in K} \max\{ z_k(\pi) \cdot l_k,  z_k(\pi) \cdot u_k \}  + \sum_{j \in J}  \max\{ \bar{z}_j(\pi) \cdot \bar{l}_j,  \bar{z}_j(\pi) \cdot \bar{u}_j\}
+```
+
+More precisely:
+- the first term is the contribution of the master obtained by removing the contribution of the convexity constraints (computed by `ColGen.Algorithm._convexity_contrib`), and the pure master variables (but you should see the third term) from the master LP solution value
+- the second term is the contribution of the subproblem variables which is the sum of the best solution value of each pricing subproblem multiplied by the lower and upper multiplicity of the subproblem depending on whether the reduced cost is negative or positive (this is computed by `ColGen.Algorithm._subprob_contrib`)
+- the third term is the contribution of the pure master variables which is taken into account by master LP value.
+
+Therefore, we can compute the Lagrangian dual bound as follows:
+
+```julia
+master_lp_obj_val - convexity_contrib + sp_contrib
+```
+
+However, if the smoothing stabilization is active, we compute the dual bound at the sep-point. As a consequence, we can't use the master LP value because it corresponds to the dual solution at the out-point. We therefore need to compute the lagrangian dual bound by strictly applying the above formula.
 
 **References**:
 
@@ -345,7 +368,7 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 
 #### Columns insertion
 
-Lorem ipsum.
+The default implementation inserts into the master all the columns stored in the `ColumnsSet` object.
 
 **Reference**:
 
@@ -361,7 +384,54 @@ Lorem ipsum.
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
+### Result data structures
+
+| Method name      | Master | Pricing    |
+| ---------------- | ------ | ---------- |
+| `is_unbounded`   | X      | X          |
+| `is_infeasible`  | X      | X          |
+| `get_primal_sol` | X      |            |
+| `get_primal_sols`|        | X          |
+| `get_dual_sol`   | X      |            |
+| `get_obj_val`    | X      |            |
+| `get_primal_bound` |        | X          |
+| `get_dual_bound` |        | X          |
+
+
+**References**
+
+```@docs
+Coluna.ColGen.is_unbounded
+Coluna.ColGen.is_infeasible
+Coluna.ColGen.get_primal_sol
+Coluna.ColGen.get_primal_sols
+Coluna.ColGen.get_dual_sol
+Coluna.ColGen.get_obj_val
+Coluna.ColGen.get_primal_bound
+Coluna.ColGen.get_dual_bound
+```
+
 ### Stabilization
+
+Coluna provides a default implementation of the smoothing stabilization with a self-adjusted $\alpha$ parameter, $0 \leq \alpha < 1$.
+
+At each iteration of the column generation algorithm, instead of generating columns for the dual solution to the master LP, we generate columns for a perturbed dual solution defined as follows:
+
+```math
+\pi^{\text{sep}} = \alpha \pi^{\text{in}} + (1-\alpha) \pi^{\text{out}}
+```
+
+where $\pi^{\text{in}}$ is the dual solution that gives the best Lagrangian dual bound so far (also called stabilization center) and $\pi^{\text{out}}$ is the dual solution to the master LP at the current iteration. 
+This solution is returned by the default implementation of `Coluna.ColGen.get_master_dual_sol`.
+
+Some elements of the column generation change when using stabilization.
+
+- Columns are generated using the smoothed dual solution $\pi^{\text{sep}}$ but we still need to compute the reduced cost of the columns using the original dual solution $\pi^{\text{out}}$.
+- The dual bound is computed using the smoothed dual solution $\pi^{\text{sep}}$.
+- The pseudo bound is computed using the smoothed dual solution $\pi^{\text{sep}}$.
+- The smoothed dual bound can result in the generation of no improving columns. This is called a **misprice**. In that case, we need to move away from the stabilization center $\pi^{\text{in}}$ by decreasing $\alpha$.
+
+**Reference**:
 
 ```@docs
 Coluna.ColGen.setup_stabilization!
