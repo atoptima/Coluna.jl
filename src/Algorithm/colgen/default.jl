@@ -363,10 +363,10 @@ end
 # Master resolution
 ###############################################################################
 """
-    ColGenMasterResult{F}
+Output of the `ColGen.optimize_master_lp_problem!` method.
 
-Contains the solution to the master LP.
-- `F` is the formulation type
+Contains `result`, an `OptimizationState` object that is the output of the `SolveLpForm` algorithm
+called to optimize the master LP problem.
 """
 struct ColGenMasterResult{F}
     result::OptimizationState{F}
@@ -539,6 +539,14 @@ function ColGen.compute_sp_init_pb(ctx::ColGenContext, sp::Formulation{DwSp})
     return ctx.optim_sense == MinSense ? Inf : -Inf
 end
 
+"""
+Solution to a pricing subproblem after a given optimization.
+
+It contains:
+- `column`: the solution stored as a `PrimalSolution` object
+- `red_cost`: the reduced cost of the column
+- `min_obj`: a boolean indicating if the objective is to minimize or maximize
+"""
 struct GeneratedColumn
     column::PrimalSolution{Formulation{DwSp}}
     red_cost::Float64
@@ -589,6 +597,14 @@ Base.iterate(set::ColumnsSet, state) = iterate(set.columns, state)
 
 ColGen.set_of_columns(::ColGenContext) = ColumnsSet()
 
+"""
+Output of the default implementation of `ColGen.optimize_pricing_problem!`.
+
+It contains:
+- `result`: the output of the `SolveIpForm` algorithm called to optimize the pricing subproblem
+- `columns`: a vector of `GeneratedColumn` objects obtained by processing of the output of pricing subproblem optimization, it stores the reduced cost of each column
+- `best_red_cost`: the best reduced cost of the columns
+"""
 struct ColGenPricingResult{F}
     result::OptimizationState{F}
     columns::Vector{GeneratedColumn}

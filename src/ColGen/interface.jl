@@ -49,6 +49,23 @@ abstract type AbstractColGenOutput end
 
 @mustimplement "ColGen" is_better_dual_bound(context, new_dual_bound, dual_bound) = nothing
 
+"""
+    run_colgen_phase!(ctx, phase, stage, env, ip_primal_sol, stab; iter = 1) -> AbstractColGenPhaseOutput
+
+Runs a phase of the column generation algorithm.
+
+Arguments are:
+- `ctx`: column generation context
+- `phase`: current column generation phase
+- `stage`: current column generation stage
+- `env`: Coluna environment
+- `ip_primal_sol`: current best primal solution to the master problem
+- `stab`: stabilization
+- `iter`: iteration number (default: 1)
+
+This function is responsible for running the column generation iterations until the phase
+is finished.
+"""
 function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter = 1)
     iteration = iter
     colgen_iter_output = nothing
@@ -71,6 +88,20 @@ function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter
     return new_phase_output(O, is_minimization(context), phase, stage, colgen_iter_output, iteration, incumbent_dual_bound)
 end
 
+"""
+    run!(ctx, env, ip_primal_sol; iter = 1) -> AbstractColGenOutput
+
+Runs the column generation algorithm.
+
+Arguments are:
+- `ctx`: column generation context
+- `env`: Coluna environment
+- `ip_primal_sol`: current best primal solution to the master problem
+- `iter`: iteration number (default: 1)
+
+This function is responsible for initializing the column generation context, the reformulation,
+and the stabilization. We iterate on the loop each time the phase or the stage changes.
+"""
 function run!(context, env, ip_primal_sol; iter = 1)
     phase_it = new_phase_iterator(context)
     phase = initial_phase(phase_it)
@@ -258,7 +289,19 @@ abstract type AbstractColGenIterationOutput end
 _inf(is_min_sense) = is_min_sense ? Inf : -Inf
 
 """
-    run_colgen_iteration!(context, phase, env) -> ColGenIterationOutput
+    run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab) -> AbstractColGenIterationOutput
+
+Runs an iteration of column generation.
+
+Arguments are:
+- `context`: column generation context
+- `phase`: current column generation phase
+- `stage`: current column generation stage
+- `env`: Coluna environment
+- `ip_primal_sol`: current best primal solution to the master problem
+- `stab`: stabilization
+
+
 """
 function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     master = get_master(context)

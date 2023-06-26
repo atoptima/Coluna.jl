@@ -1,4 +1,4 @@
-using Documenter, Coluna, Literate, BlockDecomposition, Parameters
+using Documenter, Coluna, Literate, BlockDecomposition, Parameters, DocumenterMermaid
 
 TUTORIAL_GAP = joinpath(@__DIR__, "src", "start", "start.jl")
 TUTORIAL_CUTS = joinpath(@__DIR__, "src", "start", "cuts.jl")
