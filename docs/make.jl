@@ -40,13 +40,19 @@ makedocs(
     strict = false,
     pages = Any[
         "Introduction"   => "index.md",
-        "Getting started"  => Any[
-            "Column generation" => joinpath("start", "start.md"),
-            "Valid inequalities" => joinpath("start", "cuts.md"),
-            "Pricing callback" => joinpath("start", "pricing.md"),
-            "Custom data" => joinpath("start", "custom_data.md"),
-            "Initial columns callback" => joinpath("start", "initial_columns.md"),
-            "Advanced tutorial" => joinpath("start", "advanced_demo.md"),
+        "Tutorials"  => Any[
+            "Setup Column and Cut Generation" => Any[
+                "Getting started with Column generation" => joinpath("start", "start.md"),
+                "Getting started with Cut Generation" => joinpath("start", "cuts.md"),
+                "Pricing callback" => joinpath("start", "pricing.md"),
+                "Custom data" => joinpath("start", "custom_data.md"),
+                "Initial columns callback" => joinpath("start", "initial_columns.md")
+            ],
+            "Advanced tutorials" => Any[
+                "Column Generation and Benders on Location Routing" => joinpath("start", "advanced_demo.md"),
+                "Benders on 2-echelons VRP" => joinpath("start", "2echelons_VRP.md"),
+                "Other classic problems" => joinpath("start", "other_pbs.md")
+            ]
         ],
         "Manual" => Any[
             "Decomposition" => Any[

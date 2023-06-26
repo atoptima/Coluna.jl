@@ -23,7 +23,7 @@ decomposition to generate a new entering column in the master program.
 This callback is useful when you know an efficient algorithm to solve the subproblems,
 i.e. an algorithm better than solving the subproblem with a MIP solver.
 
-See the example in the manual [Pricing callback](@ref).
+See the example in the [tutorial section](@ref tuto_pricing_callback).
 
 ### Errors and Warnings
 
