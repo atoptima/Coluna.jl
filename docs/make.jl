@@ -52,7 +52,7 @@ makedocs(
             "Decomposition" => joinpath("man", "decomposition.md"),
             "Configuration" => joinpath("man", "config.md"),
             "Built-in algorithms for Branch-and-Bound" => joinpath("man", "algorithm.md"),
-            "Callbacks"   => joinpath("man", "callbacks.md"),
+            "User-defined Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
             "Benders" => joinpath("api", "benders.md"),
