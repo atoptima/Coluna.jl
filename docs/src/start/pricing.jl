@@ -1,4 +1,4 @@
-# # Pricing callback
+# # [Pricing callback](@id tuto_pricing_callback)
 
 # The pricing callback lets you define how to solve the subproblems of a Dantzig-Wolfe 
 # decomposition to generate a new entering column in the master program. 

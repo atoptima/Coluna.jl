@@ -1,4 +1,4 @@
-# # Valid inequalities
+# # [Valid inequalities](@id tuto_cut_callback)
 
 # Now let us consider a variant of the Generalized Assignment Problem in which we have to
 # pay `f[m]` to use machine `m`.
