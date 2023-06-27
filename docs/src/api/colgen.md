@@ -67,7 +67,29 @@ representative variables of the subproblems.
 You can read this section (TODO Natacha) to understand how we map the subproblem solutions
 into master columns.
 
+**References**:
 
+```@docs
+Coluna.ColGen.get_reform
+Coluna.ColGen.get_master
+Coluna.ColGen.get_pricing_subprobs
+Coluna.ColGen.is_minimization
+```
+
+### Main loop
+
+Lorem ipsum 
+
+**References**:
+
+```@docs
+Coluna.ColGen.before_colgen_iteration
+Coluna.ColGen.after_colgen_iteration
+Coluna.ColGen.is_better_dual_bound
+Coluna.ColGen.AbstractColGenOutput
+Coluna.ColGen.colgen_output_type
+Coluna.ColGen.new_output
+```
 
 ### Phases
 
@@ -90,6 +112,8 @@ The cost of artificial variables in Phase 3 can be changed using the following m
 missing
 ```
 
+#### Phase Iterator
+
 **References**:
 ```@docs
 Coluna.ColGen.AbstractColGenPhase
@@ -102,6 +126,20 @@ Coluna.ColGen.setup_reformulation!
 Coluna.ColGen.setup_context!
 Coluna.ColGen.stop_colgen_phase
 ```
+
+#### Phase output
+
+```@docs
+Coluna.ColGen.AbstractColGenPhaseOutput
+Coluna.ColGen.colgen_phase_output_type
+Coluna.ColGen.new_phase_output
+Coluna.ColGen.get_master_ip_primal_sol
+Coluna.ColGen.get_best_ip_primal_master_sol_found
+Coluna.ColGen.get_final_lp_primal_master_sol_found
+Coluna.ColGen.get_final_db
+Coluna.ColGen.stop_colgen
+```
+
 
 ### Stages
 
@@ -245,6 +283,7 @@ Reduced costs calculation also requires the implementation of the two following 
 
 ```@docs
 Coluna.ColGen.update_master_constrs_dual_vals!
+Coluna.ColGen.update_reduced_costs!
 Coluna.ColGen.get_subprob_var_orig_costs
 Coluna.ColGen.get_subprob_var_coef_matrix
 Coluna.ColGen.update_sp_vars_red_costs!
@@ -381,6 +420,17 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 #### Iteration output
 
 Lorem ipsum.
+
+**References**:
+
+```@docs
+Coluna.ColGen.AbstractColGenIterationOutput
+Coluna.ColGen.colgen_iteration_output_type
+Coluna.ColGen.new_iteration_output
+Coluna.ColGen.get_nb_new_cols
+Coluna.ColGen.get_master_ip_primal_sol
+```
+
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
