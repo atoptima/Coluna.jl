@@ -1,4 +1,4 @@
-# # Custom Variables and Cuts
+# # [Custom Variables and Cuts](@id tuto_custom_data)
 #
 # Coluna allows users to attach custom data to variables and constraints. 
 # This data are useful to store information about the variable or constraint in a custom 
