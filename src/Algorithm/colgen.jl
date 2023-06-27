@@ -117,7 +117,6 @@ end
 ############################################################################################
 # Column generation algorithm.
 ############################################################################################
-
 function _colgen_context(algo::ColumnGeneration)
     algo.print && return ColGenPrinterContext
     return ColGenContext
@@ -130,39 +129,39 @@ end
 function _colgen_optstate_output(result, master)
     optstate = OptimizationState(master)
 
-    if result.infeasible
+    if ColGen.is_infeasible(result)
         setterminationstatus!(optstate, INFEASIBLE)
     end
 
     if !isnothing(result.master_lp_primal_sol)
-        set_lp_primal_sol!(optstate, result.master_lp_primal_sol)
+        set_lp_primal_sol!(optstate, ColGen.get_master_lp_primal_sol(result))
     end
 
     if !isnothing(result.master_ip_primal_sol)
-        update_ip_primal_sol!(optstate, result.master_ip_primal_sol)
+        update_ip_primal_sol!(optstate, ColGen.get_master_ip_primal_sol(result))
     end
 
     if !isnothing(result.master_lp_dual_sol)
-        update_lp_dual_sol!(optstate, result.master_lp_dual_sol)
+        update_lp_dual_sol!(optstate, ColGen.get_master_dual_sol(result))
     end
 
     if !isnothing(result.db)
-        set_lp_dual_bound!(optstate, DualBound(master, result.db))
-        set_ip_dual_bound!(optstate, DualBound(master, result.db))
+        set_lp_dual_bound!(optstate, DualBound(master, ColGen.get_dual_bound(result)))
+        set_ip_dual_bound!(optstate, DualBound(master, ColGen.get_dual_bound(result)))
     end
 
     if !isnothing(result.mlp)
-        set_lp_primal_bound!(optstate, PrimalBound(master, result.mlp))
+        set_lp_primal_bound!(optstate, PrimalBound(master, ColGen.get_master_lp_primal_bound(result)))
     end
     return optstate
 end
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+    # We buid 
     C = _colgen_context(algo)
     ctx = _new_context(C, reform, algo)
     result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
 
     master = getmaster(reform)
-    
     return _colgen_optstate_output(result, master)
 end

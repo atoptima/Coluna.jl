@@ -1,3 +1,9 @@
+"""
+    ColGenPrinterContext(reformulation, algo_params) -> ColGenPrinterContext
+
+Creates a context to run the default implementation of the column generation algorithm
+together with a printer that prints information about the algorithm execution.
+"""
 mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
     inner::ColGenContext
     phase::Int
