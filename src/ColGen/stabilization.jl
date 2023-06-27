@@ -18,7 +18,7 @@ column generation iteration, `false` otherwise.
 Returns the dual solution used for the pricing in the current column generation iteration
 (stabilized dual solution).
 """
-@mustimplement "ColGenStab" get_master_dual_sol(stab, phase, mast_dual_sol) = nothing
+@mustimplement "ColGenStab" get_stab_dual_sol(stab, phase, mast_dual_sol) = nothing
 
 "Returns `true` if the stabilized dual solution leads to a misprice, `false` otherwise."
 @mustimplement "ColGenStab" check_misprice(stab, generated_cols, mast_dual_sol) = nothing

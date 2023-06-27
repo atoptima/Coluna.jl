@@ -228,7 +228,6 @@ Coluna.ColGen.next_phase
 Coluna.ColGen.AbstractColGenPhaseOutput
 Coluna.ColGen.colgen_phase_output_type
 Coluna.ColGen.new_phase_output
-Coluna.ColGen.get_master_ip_primal_sol
 ```
 
 ## Stages
@@ -555,7 +554,6 @@ Coluna.ColGen.get_primal_sols
 Coluna.ColGen.get_dual_sol
 Coluna.ColGen.get_obj_val
 Coluna.ColGen.get_primal_bound
-Coluna.ColGen.get_incumbent_dual_bound
 ```
 
 ### Getters for Output data structures
@@ -566,8 +564,8 @@ Coluna.ColGen.get_incumbent_dual_bound
 | `get_master_ip_primal_sol` |    X   | X     | X         |
 | `get_master_lp_primal_sol` |    X   |       |           |
 | `get_master_dual_sol`      |    X   |       |           |
-| `get_dual_bound            |    X   |       |  X        |
-| `get_master_lp_primal_bound |   X   |       |           |
+| `get_dual_bound`            |    X   |       |  X        |
+| `get_master_lp_primal_bound` |   X   |       |           |
 | `is_infeasible`            |    X   |      |         |
 
 **References**:
@@ -591,7 +589,7 @@ At each iteration of the column generation algorithm, instead of generating colu
 ```
 
 where $\pi^{\text{in}}$ is the dual solution that gives the best Lagrangian dual bound so far (also called stabilization center) and $\pi^{\text{out}}$ is the dual solution to the master LP at the current iteration. 
-This solution is returned by the default implementation of `Coluna.ColGen.get_master_dual_sol`.
+This solution is returned by the default implementation of `Coluna.ColGen.get_stab_dual_sol`.
 
 Some elements of the column generation change when using stabilization.
 
@@ -612,7 +610,7 @@ Coluna.Algorithm.SubgradientCalculationHelper
 ```@docs
 Coluna.ColGen.setup_stabilization!
 Coluna.ColGen.update_stabilization_after_master_optim!
-Coluna.ColGen.get_master_dual_sol
+Coluna.ColGen.get_stab_dual_sol
 Coluna.ColGen.check_misprice
 Coluna.ColGen.update_stabilization_after_pricing_optim!
 Coluna.ColGen.update_stabilization_after_misprice!

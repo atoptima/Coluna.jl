@@ -183,7 +183,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     while misprice
         # `sep_mast_dual_sol` is the master dual solution used to optimize the pricing subproblems.
         # in the current misprice iteration.
-        sep_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
+        sep_mast_dual_sol = get_stab_dual_sol(stab, phase, mast_dual_sol)
 
         # We will optimize the pricing subproblem using the master dual solution returned
         # by the stabilization. We this need to recompute the reduced cost of the subproblem

@@ -134,7 +134,7 @@ ColGen.get_master_ip_primal_sol(output::ColGenOutput) = output.master_ip_primal_
 ColGen.get_master_lp_primal_sol(output::ColGenOutput) = output.master_lp_primal_sol
 ColGen.get_master_dual_sol(output::ColGenOutput) = output.master_lp_dual_sol
 ColGen.get_dual_bound(output::ColGenOutput) = output.db
-ColGen.get_master_lp_primal_sol(output::ColGenOutput) = output.mlp
+ColGen.get_master_lp_primal_bound(output::ColGenOutput) = output.mlp
 
 function ColGen.is_better_dual_bound(ctx::ColGenContext, new_dual_bound, dual_bound)
     sc = ColGen.is_minimization(ctx) ? 1 : -1
