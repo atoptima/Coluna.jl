@@ -1,3 +1,8 @@
+"""
+    ColGenContext(reformulation, algo_params) -> ColGenContext
+
+Creates a context to run the default implementation of the column generation algorithm.
+"""
 mutable struct ColGenContext <: ColGen.AbstractColGenContext
     reform::Reformulation
     optim_sense
@@ -98,6 +103,7 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     min_sense::Bool
 end
 
+"Output of the default implementation of the column generation algorithm."
 struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
@@ -136,6 +142,9 @@ end
 ###############################################################################
 # Sequence of phases
 ###############################################################################
+"""
+Type for the default implementation of the sequence of phases.
+"""
 struct ColunaColGenPhaseIterator <: ColGen.AbstractColGenPhaseIterator end
 
 ColGen.new_phase_iterator(::ColGenContext) = ColunaColGenPhaseIterator()
@@ -775,6 +784,7 @@ end
 
 # Iteration output
 
+"Object for the output of an iteration of the column generation default implementation."
 struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
     mlp::Union{Nothing, Float64}
@@ -896,9 +906,6 @@ end
 
 ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 
-ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
-ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol
-ColGen.get_final_db(output::ColGenPhaseOutput) = output.db
 
 ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
 function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)

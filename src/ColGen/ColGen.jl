@@ -4,6 +4,12 @@ module ColGen
 include("../MustImplement/MustImplement.jl")
 using .MustImplement
 
+"""
+Supertype for the objects to which belongs the implementation of the column generation and 
+that stores any kind of information during the execution of the column generation algorithm.
+
+**IMPORTANT**: implementation of the column generation mainly depends on the context type.
+"""
 abstract type AbstractColGenContext end 
 
 include("stages.jl")

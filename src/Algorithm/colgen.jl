@@ -158,6 +158,7 @@ function _colgen_optstate_output(result, master)
 end
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+    # We buid 
     C = _colgen_context(algo)
     ctx = _new_context(C, reform, algo)
     result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
