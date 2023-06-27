@@ -25,18 +25,38 @@ solving the subproblems. It's the column generation algorithm.
 Let's consider the following original formulation in which we partition variables into
 two vectors $x_1$ and $x_2$ :
 
-![Original formulation](../assets/img/dw_origform.svg)
+```math
+\begin{aligned}
+\min \quad& c_1' x_1 + c_2' x_2 & \\
+\text{s.t.} \quad& A_1 x_1 + A_2 x_2 \geq b & (1)\\
+& D_1 x_1 \quad \quad \quad   \geq d_1 & (2) \\
+& \quad   \quad \quad D_2 x_2 \geq d_2 & (3) \\
+\end{aligned}
+```
+
+- $x_1$ and $x_2$ are the original variables of the problem
+- $(1)$ are the linking constraints
+- $(2)$ is the first subproblem
+- $(3)$ is the second subproblem
 
 When you apply a Dantzig-Wofe decomposition to this formulation, 
 Coluna reformulates it into the following master problem :
 
-![Master formulation](../assets/img/dw_master.svg)
+```math
+\begin{aligned}
+\min \quad& \sum\limits_{q \in Q_1} c_1' \tilde{x_1}^q \lambda_q + \sum\limits_{q \in Q_2} c_2' \tilde{x_2}^q \lambda_q\\
+\text{s.t.} \quad& \sum\limits_{q \in Q_1} A_1 \tilde{x_1}^q \lambda_q + \sum\limits_{q \in Q_2} A_2 \tilde{x_2}^q \lambda_q \geq b & (1)\\
+& L_1 \leq \sum\limits_{q \in Q_1} \lambda_q \leq U_1 & (2)\\
+& L_2 \leq \sum\limits_{q \in Q_2} \lambda_q \leq U_2 & (3)\\
+& \lambda_q \geq 0, \quad q \in Q_1 \cup Q_2
+\end{aligned}
+```
 
 where $Q_1$ is the index-set of the solutions to the first subproblem and 
 $Q_2$ is the index-set of the solutions to the second subproblem.
 The set of the solutions to the first and the second subproblems are $\{\tilde{x}^q_1\}_{q \in Q_1}$ and $\{\tilde{x}^q_2\}_{q \in Q_2}$ respectively. These solutions are expressed
 in terms of the original variables.
-The multiplicity of the subproblems is defined in the convexity constraints.
+The multiplicity of the subproblems is defined in the convexity constraints $(2)$ and $(3)$. $(1)$ is called the Master mixed constraint.
 Lower and upper multiplicity are $1$ by default.
 
 At the beginning of the column generation algorithm, the master formulation does
@@ -46,9 +66,16 @@ Costs of articial and global artificial variables can be defined in [Coluna.Para
 
 Subproblems take the following form (here, it's the first subproblem) :
 
-![Subproblem n°1 formulation](../assets/img/dw_sp.svg)
+```math
+\begin{aligned}
+\min \quad& \bar{c_1}' x_1\\
+\text{s.t.} \quad& D_1x_1 \geq d_1 & (1)\\
+& \quad x_1 \geq 0
+\end{aligned}
 
-where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
+```
+
+where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm. $(1)$ is called the Dantzig-Wolfe subproblem "pure constraint". 
 
 ### Dantzig-Wolfe with identical subproblems (alpha)
 
