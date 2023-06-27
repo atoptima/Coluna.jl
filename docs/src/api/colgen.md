@@ -116,7 +116,7 @@ Otherwise, the main loop runs until there is no more phase or stage to execute.
 The method returns:
 
 ```@docs
-Coluna.ColGen.ColGenOutput
+Coluna.Algorithm.ColGenOutput
 ```
 
 **References**:
@@ -146,6 +146,12 @@ The phase loop stops when the `Coluna.ColGen.stop_colgen_phase` method returns `
 - there is no new column generated at the last iteration
 - there is a new constraint or valid inequality in the master
 - the incumbent dual bound and the primal master LP solution value converged
+
+The method returns:
+
+```@docs
+Coluna.Algorithm.ColGenPhaseOutput
+```
 
 **References**:
 
@@ -512,7 +518,7 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 #### Iteration output
 
 ```@docs
-Coluna.ColGen.ColGenIterationOutput
+Coluna.Algorithm.ColGenIterationOutput
 ```
 
 **References**:
@@ -549,21 +555,29 @@ Coluna.ColGen.get_primal_sols
 Coluna.ColGen.get_dual_sol
 Coluna.ColGen.get_obj_val
 Coluna.ColGen.get_primal_bound
-Coluna.ColGen.get_dual_bound
+Coluna.ColGen.get_incumbent_dual_bound
 ```
 
 ### Getters for Output data structures
 
-| Method name      | ColGen | Phase | Iteration |
-| ---------------- | ------ | ----- | --------- |
-| `get_nb_new_cols` |        |       | X         |
-| `get_master_ip_primal_sol` |        | X     | X     |
+| Method name                | ColGen | Phase | Iteration |
+| ----------------           | ------ | ----- | --------- |
+| `get_nb_new_cols`          |        |       | X         |
+| `get_master_ip_primal_sol` |    X   | X     | X         |
+| `get_master_lp_primal_sol` |    X   |       |           |
+| `get_master_dual_sol`      |    X   |       |           |
+| `get_dual_bound            |    X   |       |  X        |
+| `get_master_lp_primal_bound |   X   |       |           |
+| `is_infeasible`            |    X   |      |         |
 
 **References**:
 
 ```@docs
 Coluna.ColGen.get_nb_new_cols
 Coluna.ColGen.get_master_ip_primal_sol
+Coluna.ColGen.get_master_lp_primal_sol
+Coluna.ColGen.get_master_dual_sol
+Coluna.ColGen.get_master_lp_primal_bound
 ```
 
 ### Stabilization

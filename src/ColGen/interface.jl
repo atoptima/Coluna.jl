@@ -214,9 +214,6 @@ Arguments (i.e. `arg...`) of this function are the following:
     dual_sol
 ) = nothing
 
-"Returns the number of new columns inserted into the master."
-@mustimplement "ColGenIterationOutput" get_nb_new_cols(::AbstractColGenIterationOutput) = nothing
-
 ############################################################################################
 # Phase Output
 ############################################################################################
@@ -274,8 +271,21 @@ column generation phase executed.
 # Common to outputs
 ############################################################################################
 
+"Returns the number of new columns inserted into the master at the end of an iteration."
+@mustimplement "ColGenOutputs" get_nb_new_cols(output) = nothing
+
 "Returns the incumbent primal master IP solution at the end of an iteration or a phase."
-@mustimplement "ColGenPhaseOutput" get_master_ip_primal_sol(output) = nothing
+@mustimplement "ColGenOutputs" get_master_ip_primal_sol(output) = nothing
+
+"Returns the primal master LP solution found at the last iteration of the column generation algorithm."
+@mustimplement "ColGenOutputs" get_master_lp_primal_sol(output) = nothing
+
+"Returns the dual master LP solution found at the last iteration of the column generation algorithm."
+@mustimplement "ColGenOutputs" get_master_dual_sol(output) = nothing
+
+"Returns the master LP solution value at the last iteration of the column generation algorithm."
+@mustimplement "ColGenOutputs" get_master_lp_primal_bound(output) = nothing
+
 
 ############################################################################################
 # ColGen Main Loop

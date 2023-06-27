@@ -5,17 +5,17 @@ Creates a context to run the default implementation of the column generation alg
 """
 mutable struct ColGenContext <: ColGen.AbstractColGenContext
     reform::Reformulation
-    optim_sense
-    current_ip_primal_bound
+    optim_sense  # TODO: type
+    current_ip_primal_bound  # TODO: type
 
-    restr_master_solve_alg
+    restr_master_solve_alg  # TODO: type
     restr_master_optimizer_id::Int
 
     stages_pricing_solver_ids::Vector{Int}
 
     reduced_cost_helper::ReducedCostsCalculationHelper
     subgradient_helper::SubgradientCalculationHelper
-    sp_var_redcosts::Union{Nothing,Any}
+    sp_var_redcosts::Union{Nothing,Any} # TODO: type
 
     show_column_already_inserted_warning::Bool
     throw_column_already_inserted_warning::Bool
@@ -31,12 +31,6 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     self_adjusting_α::Bool
     init_α::Float64
 
-    # # Information to solve the master
-    # master_solve_alg
-    # master_optimizer_id
-
-    # # Memoization to compute reduced costs (this is a precompute)
-    # redcost_mem
     function ColGenContext(reform, alg)
         rch = ReducedCostsCalculationHelper(getmaster(reform))
         sh = SubgradientCalculationHelper(getmaster(reform))
@@ -88,6 +82,7 @@ function ColGen.setup_stabilization!(ctx::ColGenContext, master)
     return NoColGenStab()
 end
 
+"Output of the default implementation of a phase of the column generation algorithm."
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
@@ -133,6 +128,13 @@ function ColGen.stop_colgen(ctx::ColGenContext, output::ColGenPhaseOutput)
         output.time_limit_reached || 
         output.nb_iterations >= ctx.nb_colgen_iteration_limit
 end
+
+ColGen.is_infeasible(output::ColGenOutput) = output.infeasible
+ColGen.get_master_ip_primal_sol(output::ColGenOutput) = output.master_ip_primal_sol
+ColGen.get_master_lp_primal_sol(output::ColGenOutput) = output.master_lp_primal_sol
+ColGen.get_master_dual_sol(output::ColGenOutput) = output.master_lp_dual_sol
+ColGen.get_dual_bound(output::ColGenOutput) = output.db
+ColGen.get_master_lp_primal_sol(output::ColGenOutput) = output.mlp
 
 function ColGen.is_better_dual_bound(ctx::ColGenContext, new_dual_bound, dual_bound)
     sc = ColGen.is_minimization(ctx) ? 1 : -1
