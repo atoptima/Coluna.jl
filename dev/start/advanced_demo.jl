@@ -120,7 +120,7 @@ objective_value(model)
 # ## Dantzig-Wolfe decomposition and Branch-and-Price
 
 # One can solve the problem by exploiting its structure with a Dantzig-Wolfe decomposition approach.
-# The subproblem induced by such decomposition amount to generating routes starting from each facility. 
+# The subproblem induced by such decomposition amounts to generate routes starting from each facility. 
 # A possible decomposition is to consider a subproblem associated with each vehicle, generating the vehicle route.
 # However, for a given facility, the vehicles that are identical will give rise to the same subproblem and route solutions.
 # So instead of this decomposition with several identical subproblems for each facility, we define below a single subproblem per facility.
@@ -172,7 +172,7 @@ function create_model(optimizer, pricing_algorithms)
     subproblems = BlockDecomposition.getsubproblems(dec)
     specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_facility, solver=pricing_algorithms)
 
-    ## We define `z` are a subproblem variable common to all subproblems.
+    ## We define `z` as a subproblem variable common to all subproblems.
     ## Each implicit variable `z` replaces a sum of explicit `z'` variables: `z[u,v] = sum(z'[j,u,v] for j in facilities_axis)`
     ## This way the model is simplified, and column generation is accelerated as the reduced cost for pair `z[u,v]` is calculated only once
     ## instead of performing the same reduced cost calculation for variables `z'[j,u,v]`, `j in facilities_axis`.
@@ -429,7 +429,7 @@ JuMP.optimize!(model)
 # These cuts cannot be expressed as a linear combination of the original variables of the model. 
 # Instead, they are expressed with the master columns variables $λ_k$, $k \in K$, where $K$ is the set of generated columns
 # or set of solutions returned by the pricing subproblems. 
-# Subset-row cuts are ``non-robust'' in the sense that they modify the structure of the pricing subproblems, 
+# Subset-row cuts are "non-robust" in the sense that they modify the structure of the pricing subproblems, 
 # and not just the reduced cost of subproblem variables. Thus, the implementation of the pricing callback should 
 # be updated to take into account dual costs associated with non-robust cutting planes. 
 
@@ -464,7 +464,7 @@ end
 
 # We perform the separation by enumeration (i.e. iterating over all subsets of customers of size three).
 
-# The subset-row cust have the following form:
+# The subset-row cut has the following form:
 # ```math
 # \sum_{k \in K} \tilde{\alpha}(C, k) \lambda_{k} \leq 1\; C \subseteq I, |C| = 3,
 # ```
@@ -487,12 +487,12 @@ end
 # First, we attach a custom data structure to master columns `λ_k` associated with a given route `k`.
 # They record the set of customers that are visited by the given route `k`.
 
-# Thus, to each `λ_k`, we associate an `R1cVarData` structure that carries the customers it visits.  
+# Thus, to each `λ_k`, we associate a `R1cVarData` structure that carries the customers it visits.  
 struct R1cVarData <: BlockDecomposition.AbstractCustomData
     visited_locations::Vector{Int}
 end
 
-# Then, we attach an `R1cCutData` custom data structure to the subset-row cuts.
+# Then, we attach a `R1cCutData` custom data structure to the subset-row cuts.
 # It contains the set $C$ of customers characterizing the cut. 
 struct R1cCutData <: BlockDecomposition.AbstractCustomData
     cov_constrs::Vector{Int}
@@ -661,8 +661,7 @@ JuMP.optimize!(model)
 # The idea of the heuristic is very simple:
 
 # - Given a facility `j`, the heuristic finds the closest customer to `j` and adds it to the route.
-# - Then, while the reduced cost keeps improving and the maximum length of the route is not reached, 
-# the heuristic computes and adds to the route the nearest neighbor to the last customer of the route. 
+# - Then, while the reduced cost keeps improving and the maximum length of the route is not reached, the heuristic computes and adds to the route the nearest neighbor to the last customer of the route. 
 
 # We first define an auxiliary function used to compute the route tail's nearest neighbor at each step:
 function add_nearest_neighbor(route::Route, customers, costs)
@@ -782,7 +781,7 @@ JuMP.optimize!(model)
 # Since there is only one subproblem in the second stage, we introduce a fake axis that contains
 # only one element. This approach can be generalized to the case where customer demand uncertainty is expressed with scenarios. 
 # In this case, we would have one subproblem for each scenario, and the axis would have been defined for the set of scenarios.
-# In our case, the set of scenarios consists of one ``fake'' scenario. 
+# In our case, the set of scenarios consists of one "fake" scenario. 
 
 fake = 1
 @axis(axis, collect(fake:fake))
