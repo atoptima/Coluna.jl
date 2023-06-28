@@ -55,16 +55,40 @@ The master has the following form:
 
 ```math
 \begin{aligned}
-\min \quad& obj & \\
-
+\min        \quad& cx + \sum_{k \in K} \eta_k & &\\
+\text{s.t.} \quad& Ax \geq a & & (1) \\
+                 & \text{< benders cuts>} & & (2) \\
+                 & l_1 \leq x \leq u_1 & & (3) \\
+                 & \eta_k \in \mathbb{R} & \forall k \in K \quad& (4)
 \end{aligned}
 ```
+
+where $x$ are first-stage variables, 
+$\eta_k$ is the second-stage cost variable for the subproblem $k$,
+constraints $(1)$ are the first-stage constraints,
+constraints $(2)$ are the Benders cuts,
+constraints $(3)$ are the bounds on the first-stage variables,
+and expression $(4)$ shows that second-stage variables are free.
 
 The subproblems have the following form:
 
 ```math
-
+$$
+\begin{aligned}
+\min        \quad& fy  + \mathbf{1}z' + \mathbf{1}z''              &&&  \\
+\text{s.t.} \quad& Dy + z' \geq d  - B\bar{x} && (5)  \quad& {\color{blue}(\pi)} \\
+                        & Ey + z'' \geq e                  && (6)  \quad& {\color{blue}(\rho)} \\
+                        & l_2 \leq y \leq u_2     && (7)  \quad& {\color{blue}(\sigma)}
+\end{aligned}
+$$
 ```
+
+where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables,
+constraints (5) are the reformulation of linking constraints using the first-stage solution $\bar{x}$,
+constraints (6) are the second-stage constraints,
+and constraints (7) are the bounds on the second-stage variables.
+In blue, we define the dual variables associated to these constraints.
+
 
 **References**:
 
@@ -85,6 +109,12 @@ The loop stops if one of the following conditions is met:
 - the time limit is reached
 - the maximum number of iterations is reached
 - no new cut generated at the last iteration
+
+The default implementation returns:
+
+```@docs
+
+```
 
 **References**:
 
