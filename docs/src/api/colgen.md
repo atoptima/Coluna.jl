@@ -171,12 +171,12 @@ LP solution.
 The default implementation provides three phases:
 
 ```@docs
+Coluna.Algorithm.ColGenPhase0
 Coluna.Algorithm.ColGenPhase1
 Coluna.Algorithm.ColGenPhase2
-Coluna.Algorithm.ColGenPhase3
 ```
 
-Column generation always starts with Phase 3.
+Column generation always starts with Phase 0.
 
 The default implementation of the phase iterator belongs to the following type:
 
@@ -194,7 +194,7 @@ Transitions are the following:
 
 ```mermaid
 flowchart TB;
-    id1(Phase 3)
+    id1(Phase 0)
     id2(Phase 1)
     id3(Phase 2)
     id4(end)

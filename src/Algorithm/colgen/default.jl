@@ -165,13 +165,13 @@ This set is found with phase 1.
 struct ColGenPhase2 <: ColGen.AbstractColGenPhase end
 
 """
-Phase 3 is a mix of phase 1 and phase 2.
+Phase 0 is a mix of phase 1 and phase 2.
 It sets a very large cost to artifical variables to force them to be removed from the master 
 LP solution.
 If the final master LP solution contains artifical variables either the master is infeasible
 or the cost of artificial variables is not large enough. Phase 1 must be run.
 """
-struct ColGenPhase3 <: ColGen.AbstractColGenPhase end
+struct ColGenPhase0 <: ColGen.AbstractColGenPhase end
 
 """
 Thrown when the phase ended with an unexpected output.
@@ -181,7 +181,7 @@ struct UnexpectedEndOfColGenPhase end
 
 # Implementation of ColGenPhase interface
 ## Implementation of `initial_phase`.
-ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
+ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase0()
 
 function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
     master_lp_primal_sol = output.master_lp_primal_sol
@@ -233,7 +233,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::
     return ColGenPhase2()
 end
 
-function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::ColGen.AbstractColGenPhaseOutput)
+function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase0, output::ColGen.AbstractColGenPhaseOutput)
     # Column generation converged.
     if !colgen_mast_lp_sol_has_art_vars(output) && 
         !colgen_master_has_new_cuts(output) && 
@@ -248,7 +248,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::
         colgen_uses_exact_stage(output)
         return ColGenPhase1()
     end
-    return ColGenPhase3()
+    return ColGenPhase0()
 end
 
 # Implementatation of `setup_reformulation!`
@@ -277,8 +277,8 @@ function ColGen.setup_reformulation!(reform, ::ColGenPhase2)
     return
 end
 
-## Phase 3 => make sure artifical variables are active and cost is correct.
-function ColGen.setup_reformulation!(reform, ::ColGenPhase3)
+## Phase 0 => make sure artifical variables are active and cost is correct.
+function ColGen.setup_reformulation!(reform, ::ColGenPhase0)
     master = getmaster(reform)
     for (varid, var) in getvars(master)
         if isanArtificialDuty(getduty(varid))
