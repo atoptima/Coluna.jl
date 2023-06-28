@@ -785,7 +785,7 @@ function test_colgen_iteration_min_gap()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase0(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 79.666666667
     @test output.db ≈ 21.3333333333
     @test output.nb_new_cols == 2
@@ -849,7 +849,7 @@ function test_colgen_iteration_max_gap()
     for sp in sps
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase0(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 87.00
     @test output.db ≈ 110.00
     @test output.nb_new_cols == 2
@@ -917,7 +917,7 @@ function test_colgen_iteration_pure_master_vars()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase0(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
     @test output.mlp ≈ 52.9500
     @test output.db ≈ 51.5
     @test output.nb_new_cols == 1
@@ -981,7 +981,7 @@ function test_colgen_iteration_obj_const()
         pricing_var_reduced_costs,
     )
 
-    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase3(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
+    output = ColGen.run_colgen_iteration!(ctx, ClA.ColGenPhase0(), TestColGenStage(), env, nothing, Coluna.Algorithm.NoColGenStab())
    
     @test output.mlp ≈ 779.6666666666667 
     @test output.db ≈ 717.6666666766668
@@ -1023,7 +1023,7 @@ function test_two_identicals_cols_at_two_iterations_failure()
     env, master, sps, reform = insert_cols_form()
     spform = sps[1]
     spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
-    phase = ClA.ColGenPhase3()
+    phase = ClA.ColGenPhase0()
 
     ## Iteration 1
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration(
@@ -1076,7 +1076,7 @@ function test_two_identicals_cols_at_same_iteration_ok()
     env, master, sps, reform = insert_cols_form()
     spform = sps[1]
     spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
-    phase = ClA.ColGenPhase3()
+    phase = ClA.ColGenPhase0()
 
     redcosts_spsols = [-2.0, -2.0, 2.0]
     col1 = ClMP.PrimalSolution(
@@ -1119,7 +1119,7 @@ function test_deactivated_column_added_twice_at_same_iteration_ok()
     env, master, sps, reform = insert_cols_form()
     spform = sps[1]
     spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
-    phase = ClA.ColGenPhase3()
+    phase = ClA.ColGenPhase0()
 
     ## Add column.
     col1 = ClMP.PrimalSolution(
@@ -1254,7 +1254,7 @@ function test_colgen_loop()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
-    phase = ClA.ColGenPhase3()
+    phase = ClA.ColGenPhase0()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     ColGen.setup_reformulation!(reform, phase)
     Coluna.set_optim_start_time!(env)

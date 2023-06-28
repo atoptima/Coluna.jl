@@ -112,7 +112,7 @@ The default implementation returns:
 
 ```@docs
 Coluna.Algorithm.BendersOutput
-```
+
 
 **References**:
 
@@ -315,6 +315,8 @@ The default implementation inserts into the master all the cuts stored in the ``
 
 **References**:
 
+**References**:
+
 ```@docs
 Coluna.Benders.insert_cuts!
 ```
@@ -326,7 +328,6 @@ Go back to the [cut generation iteration diagram](#Benders-cut-generation-iterat
 Lorem ipsum.
 
 **References**:
-
 ```@docs
 Coluna.Benders.build_primal_solution
 ```
@@ -344,7 +345,6 @@ Coluna.Benders.AbstractBendersIterationOutput
 Coluna.Benders.benders_iteration_output_type
 Coluna.Benders.new_iteration_output
 ```
-
 Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
 
 ### Getters for Result data structures
