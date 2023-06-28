@@ -94,30 +94,58 @@ in gray and some linking variables in blue :
 The intuition behind Benders decomposition is that some hard problems can become much easier with some of their variables fixed. 
 Benders aims to divide the variables of the problem into two "levels": the 1st level variables which, once fixed, make it easier to find a solution for the remaining variables, the so-called 2nd-level variables.
 
-The question is how to set the 1st level variables. Benders' theory proceeds by successive generation of cuts: given a first-level solution, we ask the following questions:
+The question is how to set the 1st level variables. Benders' theory proceeds by successive generation of cuts: given a 1st-level solution, we ask the following questions:
 
 - Is the subproblem infeasible? If so, then the 1st-level solution is not correct and must be eliminated. A feasibility cut will be derived from the dual subproblem and added to the master.
 - Does the aggregation of the master and subproblem solutions give rise to an optimal solution to the problem? It depends on a criterion that can be computed. If it is the case, we are done, else, we derive an optimality cut from the dual subproblem and add it into the master.
 
 Formally, given an original MIP:
 
-TODO: create and insert draw-handing picture as in DW section
+```math
+\begin{aligned}
+\min \quad& cx + dy & \\
+\text{s.t.} \quad& Ax \geq b\\
+& Tx + Qy \geq r\\
+& x, y \geq 0, ~ x \in \mathbb{Z}^n\\
+\end{aligned}
+```
+
+with $x$ the 1st-level variables, and $y$ the 2nd-level variables.
 
 we decompose it into a master problem:
 
-TODO: same with MASTER
+```math
+\begin{aligned}
+\min \quad& cx + \eta & \\
+\text{s.t.} \quad& Ax \geq b\\
+& <~\text{benders cut}~>\\
+& x \in \mathbb{Z}^n\\
+\end{aligned}
+```
 
 and a subproblem:
 
-TODO: same with CGLP
+```math
+\begin{aligned}
+\min \quad& dy & \\
+\text{s.t.} \quad& Qy \geq r - Tx^{*}\\
+& y \geq 0\\
+\end{aligned}
+```
+with $x^*$ a fixed solution for the master problem (i.e. valuations of the 1st-level variables)
 
 Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. We must retrieve an unbounded ray $$(u^*, u_0^*)$$ from the master and consider the following subproblem instead:
 
-TODO: same with modified CGLP
+```math
+\begin{aligned}
+\min \quad& ds & \\
+\text{s.t.} \quad& Tu^{*} + Qs \geq 0\\
+& s \geq 0\\
+\end{aligned}
+```
 
-The rules used to generate the cuts are detailed in [this paper](https://link.springer.com/chapter/10.1007/978-3-030-45771-6_7) 
 
-(or TODO: describe the rules ? or ref to the different methods of the API that implement the cut generation process and should explain how cuts are generated)
+(TODO: ref to the different methods of the API that implement the cut generation process and should explain how cuts are generated)
 
 
 This decomposition is an alpha feature.
