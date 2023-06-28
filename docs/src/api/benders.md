@@ -185,20 +185,14 @@ It returns a primal solution.
 Coluna.Benders.optimize_master_problem!
 ```
 
-If the master is unbounded...
-
-```@docs
-Coluna.Benders.treat_unbounded_master_problem_case!
-```
-
 ### Unbounded master case
 
-Lorem ipsum:
+If the master is unbounded...
 
 **References**:
 
 ```@docs
-
+Coluna.Benders.treat_unbounded_master_problem_case!
 ```
 
 ### Setup separation subproblems
@@ -233,7 +227,9 @@ Lorem ipsum:
 **References**:
 
 ```@docs
-
+Coluna.Benders.set_of_cuts
+Coluna.Benders.set_of_sep_sols
+Coluna.Benders.push_in_set!
 ```
 
 ### Cuts insertion
@@ -243,7 +239,7 @@ Lorem ipsum:
 **References**:
 
 ```@docs
-
+Coluna.Benders.insert_cuts!
 ```
 
 ### Iteration output
@@ -253,7 +249,9 @@ Lorem ipsum:
 **References**:
 
 ```@docs
-
+Coluna.Benders.AbstractBendersIterationOutput
+Coluna.Benders.benders_iteration_output_type
+Coluna.Benders.new_iteration_output
 ```
 
 
