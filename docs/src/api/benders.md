@@ -73,14 +73,12 @@ and expression $(4)$ shows that second-stage variables are free.
 The subproblems have the following form:
 
 ```math
-$$
 \begin{aligned}
 \min        \quad& fy  + \mathbf{1}z' + \mathbf{1}z''              &&&  \\
 \text{s.t.} \quad& Dy + z' \geq d  - B\bar{x} && (5)  \quad& {\color{blue}(\pi)} \\
                         & Ey + z'' \geq e                  && (6)  \quad& {\color{blue}(\rho)} \\
                         & l_2 \leq y \leq u_2     && (7)  \quad& {\color{blue}(\sigma)}
 \end{aligned}
-$$
 ```
 
 where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables,
@@ -157,19 +155,6 @@ flowchart TB;
     click id6 href "#Set-of-generated-cuts" "Link to doc"
     click id7 href "#Cuts-insertion" "Link to doc"
     click id8 href "#Iteration-output" "Link to doc"
-```
-
-The `run_benders_iteration!` generic function calls the following method:
-
-```@docs
-Coluna.Benders.benders_iteration_output_type
-Coluna.Benders.set_of_cuts
-Coluna.Benders.set_of_sep_sols
-Coluna.Benders.push_in_set!
-Coluna.Benders.master_is_unbounded
-Coluna.Benders.insert_cuts!
-Coluna.Benders.build_primal_solution
-Coluna.Benders.new_iteration_output
 ```
 
 ### Master optimization
@@ -253,7 +238,6 @@ Coluna.Benders.AbstractBendersIterationOutput
 Coluna.Benders.benders_iteration_output_type
 Coluna.Benders.new_iteration_output
 ```
-
 
 ### Getters for Result data structures
 
