@@ -3,6 +3,10 @@ module Benders
 include("../MustImplement/MustImplement.jl")
 using .MustImplement
 
+"""
+Supertype for the objects to which belongs the implemntation of the Benders cut generation and
+that stores any kind of information during the execution of the Bender cut generation algorithm.
+"""
 abstract type AbstractBendersContext end
 
 struct UnboundedError <: Exception end
@@ -18,7 +22,6 @@ struct UnboundedError <: Exception end
 
 "Returns the separation subproblems."
 @mustimplement "BendersProbInfo" get_benders_subprobs(context) = nothing
-
 
 
 """
