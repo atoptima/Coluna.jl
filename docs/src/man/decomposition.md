@@ -103,9 +103,10 @@ Formally, given an original MIP:
 
 ```math
 \begin{aligned}
-\min \quad& cx + dy & \\
-\text{s.t.} \quad& Ax \geq b\\
-& Tx + Qy \geq r\\
+\min \quad& cx + fy & \\
+\text{s.t.} \quad& Ax \geq a\\
+& Ey \geq e\\
+& Bx + Dy \geq d\\
 & x, y \geq 0, ~ x \in \mathbb{Z}^n\\
 \end{aligned}
 ```
@@ -116,10 +117,10 @@ we decompose it into a master problem:
 
 ```math
 \begin{aligned}
-\min \quad& cx + \eta & \\
-\text{s.t.} \quad& Ax \geq b\\
-& <~\text{benders cut}~>\\
-& x \in \mathbb{Z}^n\\
+\min \quad& cx + \sum\limits_{k \in K}\eta_k & \\
+\text{s.t.} \quad& Ax \geq a\\
+& <~\text{benders cuts}~>\\
+& \eta_k \in \mathbb{R} \quad \forall k \in K\\
 \end{aligned}
 ```
 
@@ -127,25 +128,15 @@ and a subproblem:
 
 ```math
 \begin{aligned}
-\min \quad& dy & \\
-\text{s.t.} \quad& Qy \geq r - Tx^{*}\\
+\min \quad& fy & \\
+\text{s.t.} \quad& Dy \geq d - B\bar{x}\\
+& Ey \geq e\\
 & y \geq 0\\
 \end{aligned}
 ```
-with $x^*$ a fixed solution for the master problem (i.e. valuations of the 1st-level variables)
+with $\bar{x}$ a fixed solution for the master problem (i.e. valuations of the 1st-level variables)
 
-Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. We must retrieve an unbounded ray $$(u^*, u_0^*)$$ from the master and consider the following subproblem instead:
-
-```math
-\begin{aligned}
-\min \quad& ds & \\
-\text{s.t.} \quad& Tu^{*} + Qs \geq 0\\
-& s \geq 0\\
-\end{aligned}
-```
-
-
-(TODO: ref to the different methods of the API that implement the cut generation process and should explain how cuts are generated)
+Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. See the [API](@ref api_benders) section to get more informations. 
 
 
 This decomposition is an alpha feature.
