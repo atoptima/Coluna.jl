@@ -176,7 +176,7 @@ Coluna.Algorithm.ColGenPhase1
 Coluna.Algorithm.ColGenPhase2
 ```
 
-Column generation always starts with Phase 0 which can be seen as a mix between Phase 1 and Phase 2.
+Column generation always starts with Phase 0.
 
 The default implementation of the phase iterator belongs to the following type:
 
