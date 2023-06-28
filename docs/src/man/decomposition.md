@@ -8,6 +8,7 @@ Decompositions are typically used on programs whose constraints or variables can
 
 ## Dantzig-Wolfe
 
+
 ### Original formulation
 
 Let's consider the following coefficient matrix that has a block diagonal structure
@@ -94,7 +95,6 @@ where:
 - variables $x_1$ are the subproblem variables (duty: `DwSpPricingVar`)
 - constraint $(1)$ is the subproblem constraint (duty: `DwSpPureConstr`)
 - variable $z_1$ is the pricing setup variable (always equal to $1$) (duty: `DwSpSetupVar`)
-
 
 
 ## Benders
