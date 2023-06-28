@@ -37,7 +37,7 @@ makedocs(
     authors = "Atoptima & contributors",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
-        collapselevel = 1,
+        collapselevel = 2,
         assets = ["assets/js/init.js"]
     ),
     strict = false,

@@ -8,6 +8,9 @@ Decompositions are typically used on programs whose constraints or variables can
 
 ## Dantzig-Wolfe
 
+
+### Original formulation
+
 Let's consider the following coefficient matrix that has a block diagonal structure
 in gray and some linking constraints in blue :
 
@@ -36,6 +39,8 @@ two vectors $x_1$ and $x_2$ :
 - constraints $(1)$ are the linking constraints (duty: `OriginalConstr`)
 - constraints $(2)$ shapes the first subproblem (duty: `OriginalConstr`)
 - constraints $(3)$ shapes the second subproblem (duty: `OriginalConstr`)
+
+### Master
 
 When you apply a Dantzig-Wofe decomposition to this formulation, 
 Coluna reformulates it into the following master problem :
@@ -67,7 +72,15 @@ not have any master columns. Therefore, the master may be infeasible.
 To prevent this, Coluna adds a local artificial variable $a$ specific to each constraint of the master and a global artificial variable.
 Costs $f$ of artificial and global artificial variables can be defined in [Coluna.Params](@ref).
 
-Subproblems take the following form (here, it's the first subproblem) :
+Lower and upper multiplicities of subproblems are $1$ by default.
+However, when some subproblems are identical (same coefficient matrix and right-hand side), 
+you can avoid solving all of them at each iteration by defining only one subproblem and
+setting its multiplicity to the number of times it appears. See this [tutorial](@ref tuto_identical_sp) to get an example of Dantzig-Wolfe decomposition with identical subproblems. 
+
+
+### Pricing Subproblem
+
+Subproblems take the following form (here, it's the first subproblem):
 
 ```math
 \begin{aligned}
@@ -84,13 +97,9 @@ where:
 - variable $z_1$ is the pricing setup variable (always equal to $1$) (duty: `DwSpSetupVar`)
 
 
-Lower and upper multiplicities of subproblems are $1$ by default.
-However, when some subproblems are identical (same coefficient matrix and right-hand side), 
-you can avoid solving all of them at each iteration by defining only one subproblem and
-setting its multiplicity to the number of times it appears. See this [tutorial](@ref tuto_identical_sp) to get an example of Dantzig-Wolfe decomposition with identical subproblems. 
+## Benders
 
-
-## Benders (alpha)
+### Original formulation
 
 Let's consider the following coefficient matrix that has a block diagonal structure
 in gray and some linking variables in blue :
@@ -119,6 +128,8 @@ Formally, given an original MIP:
 
 with $x$ the 1st-level variables, and $y$ the 2nd-level variables.
 
+### Master
+
 we decompose it into a master problem:
 
 ```math
@@ -129,6 +140,8 @@ we decompose it into a master problem:
 & \eta_k \in \mathbb{R} \quad \forall k \in K\\
 \end{aligned}
 ```
+
+### Separation subproblem
 
 and a subproblem:
 
