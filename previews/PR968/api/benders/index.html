@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Benders · Coluna User Guide</title><meta name="title" content="Benders · Coluna User Guide"/><meta property="og:title" content="Benders · Coluna User Guide"/><meta property="twitter:title" content="Benders · Coluna User Guide"/><meta name="description" content="Documentation for Coluna User Guide."/><meta property="og:description" content="Documentation for Coluna User Guide."/><meta property="twitter:description" content="Documentation for Coluna User Guide."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna User Guide</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-2" type="checkbox"/><label class="tocitem" for="menuitem-2"><span class="docs-label">Tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox"/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../start/start/">Column generation</a></li><li><a class="tocitem" href="../../start/cuts/">Cut Generation</a></li><li><a class="tocitem" href="../../start/pricing/">Pricing callback</a></li><li><a class="tocitem" href="../../start/identical_sp/">Identical subproblems</a></li><li><a class="tocitem" href="../../start/custom_data/">Custom data</a></li><li><a class="tocitem" href="../../start/initial_columns/">Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../start/advanced_demo/">Column Generation and Benders on Location Routing</a></li><li><a class="tocitem" href="../../start/other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms for Branch-and-Bound</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox" checked/><label class="tocitem" for="menuitem-4"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li class="is-active"><a class="tocitem" href>Benders</a><ul class="internal"><li><a class="tocitem" href="#Context"><span>Context</span></a></li><li><a class="tocitem" href="#Generic-functions"><span>Generic functions</span></a></li><li><a class="tocitem" href="#Reformulation"><span>Reformulation</span></a></li><li><a class="tocitem" href="#Main-loop"><span>Main loop</span></a></li><li><a class="tocitem" href="#Stabilization"><span>Stabilization</span></a></li></ul></li><li><a class="tocitem" href="../branching/">Branching</a></li><li><a class="tocitem" href="../colgen/">ColGen</a></li><li><a class="tocitem" href="../treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">API</a></li><li class="is-active"><a href>Benders</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Benders</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/api/benders.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Benders-cut-generation"><a class="docs-heading-anchor" href="#Benders-cut-generation">Benders cut generation</a><a id="Benders-cut-generation-1"></a><a class="docs-heading-anchor-permalink" href="#Benders-cut-generation" title="Permalink"></a></h1><p>Coluna provides an interface and generic functions to implement a Benders cut generation algorithm.</p><p>In this section, we are first going to present the generic functions, the implementation with some theory backgrounds and then give the references of the interface. The default implementation is based on the paper of </p><p>You can find the generic functions and the interface in the <code>Benders</code> submodule and the  default implementation in the <code>Algorithm</code> submodule at <code>src/Algorithm/benders</code>.</p><h2 id="Context"><a class="docs-heading-anchor" href="#Context">Context</a><a id="Context-1"></a><a class="docs-heading-anchor-permalink" href="#Context" title="Permalink"></a></h2><p>The <code>Benders</code> submodule provides an interface and generic functions to implement a benders cut generation algorithm. The implementation depends on an object called <code>context</code>.</p><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.AbstractBendersContext" href="#Coluna.Benders.AbstractBendersContext"><code>Coluna.Benders.AbstractBendersContext</code></a> — <span class="docstring-category">Type</span></header><section><div><p>Supertype for the objects to which belongs the implemntation of the Benders cut generation and that stores any kind of information during the execution of the Bender cut generation algorithm.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/Benders.jl#L6-L9">source</a></section></article><p>Benders provides two types of context:</p><div class="admonition is-warning"><header class="admonition-header">Missing docstring.</header><div class="admonition-body"><p>Missing docstring for <code>Coluna.Algorithm.BendersContext</code>. Check Documenter&#39;s build log for details.</p></div></div><div class="admonition is-warning"><header class="admonition-header">Missing docstring.</header><div class="admonition-body"><p>Missing docstring for <code>Coluna.Algorithm.BendersPrinterContext</code>. Check Documenter&#39;s build log for details.</p></div></div><h2 id="Generic-functions"><a class="docs-heading-anchor" href="#Generic-functions">Generic functions</a><a id="Generic-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Generic-functions" title="Permalink"></a></h2><p>Generic functions are the core of the Benders cut generation algorithm. There are three generic functions:</p><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.run_benders_loop!" href="#Coluna.Benders.run_benders_loop!"><code>Coluna.Benders.run_benders_loop!</code></a> — <span class="docstring-category">Function</span></header><section><div><p>Main loop of the Benders cut generation algorithm.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/Benders.jl#L16">source</a></section></article><p>See ...</p><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.run_benders_iteration!" href="#Coluna.Benders.run_benders_iteration!"><code>Coluna.Benders.run_benders_iteration!</code></a> — <span class="docstring-category">Function</span></header><section><div><p>Runs one iteration of a Benders cut generation algorithm.</p><p>Benders cut generation implementation must handle the following cases:</p><ul><li>optimize the &quot;classic&quot; separation problem (Separation)</li><li>optimize the feasibility &quot;classic&quot; separation problem (Phase 1 - Separation)</li><li>optimize the separation problem &quot;for the unbounded master&quot; (Separation for unbounded master)</li><li>optimize the feasibility separation problem &quot;for the unbounded master&quot; (Phase 1 - Separation for unbounded master)</li></ul><p>The following diagram is an overview of the transitions between the procedures. If the procedure ends up with &quot;infeasible&quot; or &quot;unbounded&quot;, the transition consists in adding the cut to the master and going back to the master optimization (next iteration).</p><pre><code class="language-mermaid hljs">stateDiagram-v2
+    state &quot;Separation for unbounded master&quot; as unbounded_master
+    state &quot;Phase 1 - Separation for unbounded master&quot; as infeasible_unbounded
+    state &quot;Phase 1 - Separation&quot; as infeasible
+    [*] --&gt; Master
+    Master --&gt; unbounded_master : unbounded
+    unbounded_master --&gt; infeasible_unbounded : infeasible
+    Master --&gt; Separation : optimal
+    Separation --&gt; infeasible : infeasible
+    Master --&gt; [*] : infeasible
+    infeasible_unbounded --&gt; [*] : infeasible/unbounded
+    infeasible --&gt; [*] : infeasible/unbounded
+    Separation --&gt; [*] : unbounded</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/Benders.jl#L32-L60">source</a></section></article><p>See ...</p><p>These functions are independent of any other submodule of Coluna. You can use them to implement your own Benders cut generation algorithm.</p><h2 id="Reformulation"><a class="docs-heading-anchor" href="#Reformulation">Reformulation</a><a id="Reformulation-1"></a><a class="docs-heading-anchor-permalink" href="#Reformulation" title="Permalink"></a></h2><p>The default implementation works with a reformulated problem contained in  <code>MathProg.Reformulation</code> where master and subproblems are <code>MathProg.Formulation</code> objects.</p><p>The master has the following form:</p><p class="math-container">\[\begin{aligned}
+\min        \quad&amp; cx + \sum_{k \in K} \eta_k &amp; &amp;\\
+\text{s.t.} \quad&amp; Ax \geq a &amp; &amp; (1) \\
+                 &amp; \text{&lt; benders cuts&gt;} &amp; &amp; (2) \\
+                 &amp; l_1 \leq x \leq u_1 &amp; &amp; (3) \\
+                 &amp; \eta_k \in \mathbb{R} &amp; \forall k \in K \quad&amp; (4)
+\end{aligned}\]</p><p>where <span>$x$</span> are first-stage variables,  <span>$\eta_k$</span> is the second-stage cost variable for the subproblem <span>$k$</span>, constraints <span>$(1)$</span> are the first-stage constraints, constraints <span>$(2)$</span> are the Benders cuts, constraints <span>$(3)$</span> are the bounds on the first-stage variables, and expression <span>$(4)$</span> shows that second-stage variables are free.</p><p>The subproblems have the following form:</p><p class="math-container">\[\begin{aligned}
+\min        \quad&amp; fy  + \mathbf{1}z&#39; + \mathbf{1}z&#39;&#39;              &amp;&amp;&amp;  \\
+\text{s.t.} \quad&amp; Dy + z&#39; \geq d  - B\bar{x} &amp;&amp; (5)  \quad&amp; {\color{blue}(\pi)} \\
+                        &amp; Ey + z&#39;&#39; \geq e                  &amp;&amp; (6)  \quad&amp; {\color{blue}(\rho)} \\
+                        &amp; l_2 \leq y \leq u_2     &amp;&amp; (7)  \quad&amp; {\color{blue}(\sigma)}
+\end{aligned}\]</p><p>where <span>$y$</span> are second-stage variables, <span>$z&#39;$</span> and <span>$z&#39;&#39;$</span> are artificial variables, constraints (5) are the reformulation of linking constraints using the first-stage solution <span>$\bar{x}$</span>, constraints (6) are the second-stage constraints, and constraints (7) are the bounds on the second-stage variables. In blue, we define the dual variables associated to these constraints.</p><p><strong>References</strong>:</p><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.is_minimization" href="#Coluna.Benders.is_minimization"><code>Coluna.Benders.is_minimization</code></a> — <span class="docstring-category">Function</span></header><section><div><p>Returns <code>true</code> if the objective sense is minimization, <code>false</code> otherwise.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/interface.jl#L4">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.get_reform" href="#Coluna.Benders.get_reform"><code>Coluna.Benders.get_reform</code></a> — <span class="docstring-category">Function</span></header><section><div><p>Returns Benders reformulation.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/interface.jl#L7">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.get_master" href="#Coluna.Benders.get_master"><code>Coluna.Benders.get_master</code></a> — <span class="docstring-category">Function</span></header><section><div><p>Returns the master problem.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/interface.jl#L10">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Coluna.Benders.get_benders_subprobs" href="#Coluna.Benders.get_benders_subprobs"><code>Coluna.Benders.get_benders_subprobs</code></a> — <span class="docstring-category">Function</span></header><section><div><p>Returns the separation subproblems.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/atoptima/Coluna.jl/blob/e938aa555eb5c260433d3df4bb36871101bb38cb/src/Benders/interface.jl#L13">source</a></section></article><h2 id="Main-loop"><a class="docs-heading-anchor" href="#Main-loop">Main loop</a><a id="Main-loop-1"></a><a class="docs-heading-anchor-permalink" href="#Main-loop" title="Permalink"></a></h2><p>This is a description of how the <code>Coluna.Benders.run_benders_loop!</code> generic function behaves with the default implementation.</p><p>The loop stops if one of the following conditions is met:</p><ul><li>the master is infeasible</li><li>a separation subproblem is infeasible</li><li>the time limit is reached</li><li>the maximum number of iterations is reached</li><li>no new cut generated at the last iteration</li></ul><p>The default implementation returns:</p><div class="admonition is-warning"><header class="admonition-header">Missing docstring.</header><div class="admonition-body"><p>Missing docstring for <code>Coluna.Algorithm.BendersOutput</code>. Check Documenter&#39;s build log for details.</p></div></div><p>@docs Coluna.Benders.setup<em>reformulation! Coluna.Benders.stop</em>benders Coluna.Benders.after<em>benders</em>iteration Coluna.Benders.AbstractBendersOutput Coluna.Benders.benders<em>output</em>type Coluna.Benders.new_output</p><pre><code class="nohighlight hljs">
+## Benders cut generation iteration
+
+</code></pre><p>mermaid flowchart TB;     id1(Optimize master)     id2(Treat unbounded master)     id3(Setup separation subproblems)     id4(Separation subproblem iterator)     id5(Optimize separation subproblem)     id6(Push cut into set)     id9(Master is unbounded?)     id10(Error)     id7(Insert cuts)     id11(Build primal solution)     id8(Iteration output)     id1 –unbounded–&gt; id2     id2 –certificate–&gt; id3     id1 – optimal –&gt; id3     id3 –&gt; id4     id4 – subproblem –&gt; id5     id5 –&gt; id6     id6 –&gt; id4     id4 – end –&gt; id9     id9 – yes –&gt; id10     id9 – no –&gt; id7     id7 –&gt; id11     id11 –&gt; id8     click id1 href &quot;#Master-optimization&quot; &quot;Link to doc&quot;     click id2 href &quot;#Unbounded-master-case&quot; &quot;Link to doc&quot;     click id3 href &quot;#Setup-separation-subproblems&quot; &quot;Link to doc&quot;     click id4 href &quot;#Subproblem-iterator&quot; &quot;Link to doc&quot;     click id5 href &quot;#Separation-subproblem-optimization&quot; &quot;Link to doc&quot;     click id6 href &quot;#Set-of-generated-cuts&quot; &quot;Link to doc&quot;     click id9 href &quot;#Unboundeness-check&quot; &quot;Link to doc&quot;     click id11 href &quot;#Current-primal-solution&quot; &quot;Link to doc&quot;     click id7 href &quot;#Cuts-insertion&quot; &quot;Link to doc&quot;     click id8 href &quot;#Iteration-output&quot; &quot;Link to doc&quot;</p><pre><code class="nohighlight hljs">
+### Master optimization
+
+This operation consists in optimize the master problem in order to find a first-level
+solution $\bar{x}$.
+
+In the default implementation, master optimization can be performed using `SolveLpForm`
+(LP solver) or `SolveIpForm` (MILP solver).
+When getting the solution, we store the current value of second stage variables $\bar{\eta}_k$
+as incumbent value (see `Coluna.MathProg.getcurincval`).
+
+It returns an object of the following type:
+</code></pre><p>@docs Coluna.Algorithm.BendersMasterResult</p><pre><code class="nohighlight hljs">
+**References**:
+</code></pre><p>@docs Coluna.Benders.optimize<em>master</em>problem!</p><pre><code class="nohighlight hljs">
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Unbounded master case
+
+Second stage cost $\eta_k$ variables are free.
+As a consequence, the master problem is unbounded when there is no optimality Benders cuts.
+
+In this case, `Coluna.Benders.treat_unbounded_master_problem_case!` is called.
+The main goal of the default implementation of this method is to get the dual infeasibility
+certificate of the master problem.
+
+If the master has been solved with a MIP solver at the previous step, we need to relax
+the integrality constraints to get a dual infeasibility certificate.
+
+If the solver does not provide a dual infeasibility certificate, the implementation
+has an &quot;emergency&quot; routine to provide a first-stage feasible solution by solving the master LP with cost of second stage variables set to zero.
+We recommend using a solver that provides a dual infeasibility certificate and avoiding the &quot;emergency&quot; routine.
+
+
+**References**:
+</code></pre><p>@docs Coluna.Benders.treat<em>unbounded</em>master<em>problem</em>case!</p><pre><code class="nohighlight hljs">
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Setup separation subproblems
+
+The separation subproblems differs depending on wether the master is unbounded or not.
+
+If the master is unbounded, the generic function calls `Coluna.Benders.setup_separation_for_unbounded_master_case!`; otherwise, it calls `Coluna.Benders.update_sp_rhs!`.
+
+Default implementation of `Coluna.Benders.setup_separation_for_unbounded_master_case!`
+gives raise to the formulation proposed in Lemma 2 of Bonami et al.
+
+Default implementation of `Coluna.Benders.update_sp_rhs!` updates the right-hand side of the linking constraints (5).
+
+**References**:
+</code></pre><p>@docs Coluna.Benders.update<em>sp</em>rhs! Coluna.Benders.setup<em>separation</em>for<em>unbounded</em>master_case!</p><pre><code class="nohighlight hljs">
+### Subproblem iterator
+
+Not implemented yet.
+
+### Separation subproblem optimization
+
+The default implementation first optimize the subproblem without the artificial variables
+$z&#39;$ and $z&#39;&#39;$.
+In the case where it finds $(\bar{\pi}, \bar{\rho}, \bar{\sigma})$ an optimal dual solution to the subproblem, the following cut is generated:
+</code></pre><p>math \eta<em>k + \bar{\pi}Bx \geq d\bar{\pi} + \bar{\rho}e + \bar{\sigma</em>{\leq}} l<em>2 + \bar{\sigma</em>{\geq}} u_2</p><pre><code class="nohighlight hljs">
+In the case where it finds the subproblem infeasible, it calls `Coluna.Benders.treat_infeasible_separation_problem_case!`.
+The default implementation of this method activates the artificial variables $z&#39;$ and $z&#39;&#39;$, set the cost of second stage variables to 0, and optimize the subproblem again.
+
+If a solution with no artificial variables is found, the following cut is generated:
+</code></pre><p>math \bar{\pi}Bx \geq d\bar{\pi} + \bar{\rho}e + \bar{\sigma<em>{\leq}} l</em>2 + \bar{\sigma<em>{\geq}} u</em>2</p><pre><code class="nohighlight hljs">
+Both methods return an object of the following type:
+</code></pre><p>@docs Coluna.Algorithm.BendersSeparationResult</p><pre><code class="nohighlight hljs">
+**References**:
+</code></pre><p>@docs Coluna.Benders.optimize<em>separation</em>problem! Coluna.Benders.treat<em>infeasible</em>separation<em>problem</em>case!</p><pre><code class="nohighlight hljs">
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Set of generated cuts
+
+You can define your data structure to manage the cuts generated at a given iteration.
+Columns are inserted after the optimization of all the separation subproblems to allow
+the parallelization of the latter.
+
+In the default implementation, cuts are represented by the following data structure:
+</code></pre><p>@docs Coluna.Algorithm.GeneratedCut</p><pre><code class="nohighlight hljs">
+We use the following data structures to store the cuts and the primal solutions to the subproblems:
+</code></pre><p>@docs Coluna.Algorithm.CutsSet Coluna.Algorithm.SepSolSet</p><pre><code class="nohighlight hljs">
+**References**:
+</code></pre><p>@docs Coluna.Benders.set<em>of</em>cuts Coluna.Benders.set<em>of</em>sep<em>sols Coluna.Benders.push</em>in_set!</p><pre><code class="nohighlight hljs">
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Unboundness check
+
+Lorem ipsum.
+
+**References**:
+</code></pre><p>@docs Coluna.Benders.master<em>is</em>unbounded</p><pre><code class="nohighlight hljs">
+### Cuts insertion
+
+The default implementation inserts into the master all the cuts stored in the `` object.
+
+**References**:
+
+**References**:
+</code></pre><p>@docs Coluna.Benders.insert_cuts!</p><pre><code class="nohighlight hljs">
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Current primal solution
+
+Lorem ipsum.
+
+**References**:</code></pre><p>@docs Coluna.Benders.build<em>primal</em>solution</p><pre><code class="nohighlight hljs">
+### Iteration output
+</code></pre><p>@docs Coluna.Algorithm.BendersIterationOutput</p><pre><code class="nohighlight hljs">
+**References**:
+</code></pre><p>@docs Coluna.Benders.AbstractBendersIterationOutput Coluna.Benders.benders<em>iteration</em>output<em>type Coluna.Benders.new</em>iteration_output</p><pre><code class="nohighlight hljs">Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Getters for Result data structures
+
+| Method name      | Master | Separation |
+| ---------------- | ------ | ---------- |
+| `is_unbounded`   | X      | X          |
+| `is_infeasible`  | X      | X          |
+| `is_certificate` | X      |            |
+| `get_primal_sol` | X      | X          |
+| `get_dual_sol`   | X      |            |
+| `get_obj_val`    | X      | X          |
+</code></pre><p>@docs Coluna.Benders.is<em>unbounded Coluna.Benders.is</em>infeasible Coluna.Benders.is<em>certificate Coluna.Benders.get</em>primal<em>sol Coluna.Benders.get</em>dual<em>sol Coluna.Benders.get</em>obj_val ```</p><p>Go back to the <a href="#Benders-cut-generation-iteration">cut generation iteration diagram</a>.</p><h2 id="Stabilization"><a class="docs-heading-anchor" href="#Stabilization">Stabilization</a><a id="Stabilization-1"></a><a class="docs-heading-anchor-permalink" href="#Stabilization" title="Permalink"></a></h2><p>Not implemented yet.</p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../man/callbacks/">« User-defined Callbacks</a><a class="docs-footer-nextpage" href="../branching/">Branching »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Wednesday 28 June 2023 16:04">Wednesday 28 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
