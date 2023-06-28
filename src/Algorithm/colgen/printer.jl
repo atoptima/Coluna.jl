@@ -37,7 +37,7 @@ ColGen.new_stage_iterator(ctx::ColGenPrinterContext) = ColGen.new_stage_iterator
 
 _phase_type_to_number(::ColGenPhase1) = 1
 _phase_type_to_number(::ColGenPhase2) = 2
-_phase_type_to_number(::ColGenPhase0) = 3
+_phase_type_to_number(::ColGenPhase0) = 0
 function ColGen.setup_context!(ctx::ColGenPrinterContext, phase::ColGen.AbstractColGenPhase)
     ctx.phase = _phase_type_to_number(phase)
     return ColGen.setup_context!(ctx.inner, phase)
