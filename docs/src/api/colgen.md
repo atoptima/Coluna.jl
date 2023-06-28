@@ -556,6 +556,9 @@ Coluna.ColGen.get_obj_val
 Coluna.ColGen.get_primal_bound
 ```
 
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+
 ### Getters for Output data structures
 
 | Method name                | ColGen | Phase | Iteration |
@@ -577,6 +580,9 @@ Coluna.ColGen.get_master_lp_primal_sol
 Coluna.ColGen.get_master_dual_sol
 Coluna.ColGen.get_master_lp_primal_bound
 ```
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
 
 ## Stabilization
 

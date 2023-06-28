@@ -43,7 +43,7 @@ Coluna.Benders.run_benders_iteration!
 ```
 See ...
 
-These functions are independant of any other submodule of Coluna.
+These functions are independent of any other submodule of Coluna.
 You can use them to implement your own Benders cut generation algorithm.
 
 ## Reformulation
@@ -111,7 +111,7 @@ The loop stops if one of the following conditions is met:
 The default implementation returns:
 
 ```@docs
-
+Coluna.Algorithm.BendersOutput
 ```
 
 **References**:
@@ -136,7 +136,10 @@ flowchart TB;
     id4(Separation subproblem iterator)
     id5(Optimize separation subproblem)
     id6(Push cut into set)
-    id7(Insert cut)
+    id9(Master is unbounded?)
+    id10(Error)
+    id7(Insert cuts)
+    id11(Build primal solution)
     id8(Iteration output)
     id1 --unbounded--> id2
     id2 --certificate--> id3
@@ -145,34 +148,63 @@ flowchart TB;
     id4 -- subproblem --> id5
     id5 --> id6
     id6 --> id4
-    id4 -- end --> id7
-    id7 --> id8
+    id4 -- end --> id9
+    id9 -- yes --> id10
+    id9 -- no --> id7
+    id7 --> id11
+    id11 --> id8
     click id1 href "#Master-optimization" "Link to doc"
     click id2 href "#Unbounded-master-case" "Link to doc"
     click id3 href "#Setup-separation-subproblems" "Link to doc"
     click id4 href "#Subproblem-iterator" "Link to doc"
     click id5 href "#Separation-subproblem-optimization" "Link to doc"
     click id6 href "#Set-of-generated-cuts" "Link to doc"
+    click id9 href "#Unboundeness-check" "Link to doc"
+    click id11 href "#Current-primal-solution" "Link to doc"
     click id7 href "#Cuts-insertion" "Link to doc"
     click id8 href "#Iteration-output" "Link to doc"
 ```
 
 ### Master optimization
 
-The Benders cut generation algorithm is an iterative algorithm that consists in fixing a part of the variable
+This operation consists in optimize the master problem in order to find a first-level
+solution $\bar{x}$.
 
-At each iteration, the algorithm fixes the first-level solution.
+In the default implementation, master optimization can be performed using `SolveLpForm`
+(LP solver) or `SolveIpForm` (MILP solver).
+When getting the solution, we store the current value of second stage variables $\bar{\eta}_k$
+as incumbent value (see `Coluna.MathProg.getcurincval`).
 
-The default implementation optimizes the master with an MILP solver through MathOptInterface.
-It returns a primal solution.
+It returns an object of the following type:
+
+```@docs
+Coluna.Algorithm.BendersMasterResult
+```
+
+**References**:
 
 ```@docs
 Coluna.Benders.optimize_master_problem!
 ```
 
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
 ### Unbounded master case
 
-If the master is unbounded...
+Second stage cost $\eta_k$ variables are free.
+As a consequence, the master problem is unbounded when there is no optimality Benders cuts.
+
+In this case, `Coluna.Benders.treat_unbounded_master_problem_case!` is called.
+The main goal of the default implementation of this method is to get the dual infeasibility
+certificate of the master problem.
+
+If the master has been solved with a MIP solver at the previous step, we need to relax
+the integrality constraints to get a dual infeasibility certificate.
+
+If the solver does not provide a dual infeasibility certificate, the implementation
+has an "emergency" routine to provide a first-stage feasible solution by solving the master LP with cost of second stage variables set to zero.
+We recommend using a solver that provides a dual infeasibility certificate and avoiding the "emergency" routine.
+
 
 **References**:
 
@@ -180,14 +212,24 @@ If the master is unbounded...
 Coluna.Benders.treat_unbounded_master_problem_case!
 ```
 
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
 ### Setup separation subproblems
 
-Lorem ipsum.
+The separation subproblems differs depending on wether the master is unbounded or not.
+
+If the master is unbounded, the generic function calls `Coluna.Benders.setup_separation_for_unbounded_master_case!`; otherwise, it calls `Coluna.Benders.update_sp_rhs!`.
+
+Default implementation of `Coluna.Benders.setup_separation_for_unbounded_master_case!`
+gives raise to the formulation proposed in Lemma 2 of Bonami et al.
+
+Default implementation of `Coluna.Benders.update_sp_rhs!` updates the right-hand side of the linking constraints (5).
 
 **References**:
+
 ```@docs
-Coluna.Benders.setup_separation_for_unbounded_master_case!
 Coluna.Benders.update_sp_rhs!
+Coluna.Benders.setup_separation_for_unbounded_master_case!
 ```
 
 ### Subproblem iterator
@@ -196,7 +238,28 @@ Not implemented yet.
 
 ### Separation subproblem optimization
 
-Lorem ipsum
+The default implementation first optimize the subproblem without the artificial variables
+$z'$ and $z''$.
+In the case where it finds $(\bar{\pi}, \bar{\rho}, \bar{\sigma})$ an optimal dual solution to the subproblem, the following cut is generated:
+
+```math
+\eta_k + \bar{\pi}Bx \geq d\bar{\pi} + \bar{\rho}e + \bar{\sigma_{\leq}} l_2 + \bar{\sigma_{\geq}} u_2
+```
+
+In the case where it finds the subproblem infeasible, it calls `Coluna.Benders.treat_infeasible_separation_problem_case!`.
+The default implementation of this method activates the artificial variables $z'$ and $z''$, set the cost of second stage variables to 0, and optimize the subproblem again.
+
+If a solution with no artificial variables is found, the following cut is generated:
+
+```math
+\bar{\pi}Bx \geq d\bar{\pi} + \bar{\rho}e + \bar{\sigma_{\leq}} l_2 + \bar{\sigma_{\geq}} u_2
+```
+
+Both methods return an object of the following type:
+
+```@docs
+Coluna.Algorithm.BendersSeparationResult
+```
 
 **References**:
 
@@ -205,9 +268,26 @@ Coluna.Benders.optimize_separation_problem!
 Coluna.Benders.treat_infeasible_separation_problem_case!
 ```
 
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
 ### Set of generated cuts
 
-Lorem ipsum:
+You can define your data structure to manage the cuts generated at a given iteration.
+Columns are inserted after the optimization of all the separation subproblems to allow
+the parallelization of the latter.
+
+In the default implementation, cuts are represented by the following data structure:
+
+```@docs
+Coluna.Algorithm.GeneratedCut
+```
+
+We use the following data structures to store the cuts and the primal solutions to the subproblems:
+
+```@docs
+Coluna.Algorithm.CutsSet
+Coluna.Algorithm.SepSolSet
+```
 
 **References**:
 
@@ -217,9 +297,21 @@ Coluna.Benders.set_of_sep_sols
 Coluna.Benders.push_in_set!
 ```
 
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Unboundness check
+
+Lorem ipsum.
+
+**References**:
+
+```@docs
+Coluna.Benders.master_is_unbounded
+```
+
 ### Cuts insertion
 
-Lorem ipsum:
+The default implementation inserts into the master all the cuts stored in the `` object.
 
 **References**:
 
@@ -227,9 +319,23 @@ Lorem ipsum:
 Coluna.Benders.insert_cuts!
 ```
 
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
+
+### Current primal solution
+
+Lorem ipsum.
+
+**References**:
+
+```@docs
+Coluna.Benders.build_primal_solution
+```
+
 ### Iteration output
 
-Lorem ipsum:
+```@docs
+Coluna.Algorithm.BendersIterationOutput
+```
 
 **References**:
 
@@ -238,6 +344,8 @@ Coluna.Benders.AbstractBendersIterationOutput
 Coluna.Benders.benders_iteration_output_type
 Coluna.Benders.new_iteration_output
 ```
+
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
 
 ### Getters for Result data structures
 
@@ -258,6 +366,8 @@ Coluna.Benders.get_primal_sol
 Coluna.Benders.get_dual_sol
 Coluna.Benders.get_obj_val
 ```
+
+Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
 
 ## Stabilization
 
