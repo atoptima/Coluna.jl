@@ -106,7 +106,7 @@ Coluna.ColGen.is_minimization
 This is a description of how the `Coluna.ColGen.run!` generic function behaves in the default
 implementation.
 
-The main loop stops when the `Coluna.Colgen.stop_colgen` method returns `true`. This is the case when one of the following conditions holds: 
+The main loop stops when the `Coluna.ColGen.stop_colgen` method returns `true`. This is the case when one of the following conditions holds: 
 - the master or a pricing subproblem is infeasible
 - the time limit is reached
 - the maximum number of iterations is reached
@@ -578,7 +578,7 @@ Coluna.ColGen.get_master_dual_sol
 Coluna.ColGen.get_master_lp_primal_bound
 ```
 
-### Stabilization
+## Stabilization
 
 Coluna provides a default implementation of the smoothing stabilization with a self-adjusted $\alpha$ parameter, $0 \leq \alpha < 1$.
 
