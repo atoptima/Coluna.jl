@@ -2,7 +2,7 @@
 CurrentModule = Coluna
 ```
 
-# Benders cut generation
+# [Benders cut generation](@id api_benders)
 
 Coluna provides an interface and generic functions to implement a Benders cut generation
 algorithm.
