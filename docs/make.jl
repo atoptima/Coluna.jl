@@ -33,7 +33,7 @@ Literate.markdown(TUTORIAL_STORAGE_API, OUTPUT_STORAGE_API, documenter=true)
 makedocs(
     modules = [Coluna, BlockDecomposition],
     checkdocs = :exports,
-    sitename = "Coluna User Guide",
+    sitename = "Coluna.jl",
     authors = "Atoptima & contributors",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",

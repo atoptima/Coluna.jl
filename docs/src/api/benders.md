@@ -112,7 +112,7 @@ The default implementation returns:
 
 ```@docs
 Coluna.Algorithm.BendersOutput
-
+```
 
 **References**:
 
@@ -126,7 +126,6 @@ Coluna.Benders.new_output
 ```
 
 ## Benders cut generation iteration
-
 
 ```mermaid
 flowchart TB;
