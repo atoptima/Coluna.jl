@@ -1,3 +1,7 @@
+# Coluna 0.6.4
+
+This is a minor update that provides documentation and a bug fix in the integration of the column generation algorithm with the branch-and-bound.
+ 
 # Coluna 0.6.3
 
 This is a minor update that provides:
