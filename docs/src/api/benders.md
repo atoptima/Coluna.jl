@@ -238,7 +238,7 @@ gives raise to the formulation proposed in Lemma 2 of Bonami et al:
 
 ```math
 \begin{aligned}
-\min        \quad& fy  + {\color{gray} \mathbf{1}z' + \mathbf{1}z''}              &&&  \\
+(SepB) \equiv \min        \quad& fy  + {\color{gray} \mathbf{1}z' + \mathbf{1}z''}              &&&  \\
 \text{s.t.} \quad& Dy {\color{gray} + z'} \geq -B\bar{x} && (5a)  \quad& {\color{blue}(\pi)} \\
                         & Ey {\color{gray} + z''} \geq 0                  && (6a)  \quad& {\color{blue}(\rho)} \\
                         & y \geq 0     && (7a)  \quad& {\color{blue}(\sigma)}
@@ -309,6 +309,11 @@ Coluna.Algorithm.CutsSet
 Coluna.Algorithm.SepSolSet
 ```
 
+The default implementation of `push_in_set!` has the responsibility to check if the cut is
+violated. Given $\bar{eta}_k$ solution to the restricted master and $\bar{y}$ solution to the separation problem, the cut is considered as violated when:
+- the separation subproblem was infeasible
+- or $\bar{\eta}_k \geq f\bar{y}$ 
+
 **References**:
 
 ```@docs
@@ -324,7 +329,13 @@ Go back to the [cut generation iteration diagram](#Benders-cut-generation-iterat
 !!! info
     This check is performed only when the restricted master is unbounded.
 
+To perform this check, we need a solution to each separation problem.
 
+Let $(\bar{\eta}_k)_{k \in K}$ be the value of second stage variables in the dual infeasibility certificate of the restricted master.
+Let $\bar{y}$ be an optimal solution to the separation problem **(SepB)**.
+
+As indicated by Bonami et al., if $f\bar{y} \leq \sum_{k \in K} \bar{\eta}_k$, then the 
+original problem is unbounded (by definition of an unbounded ray of the original problem).
 
 **References**:
 
@@ -334,11 +345,9 @@ Coluna.Benders.master_is_unbounded
 
 ### Cuts insertion
 
-The default implementation inserts into the master all the cuts stored in the `` object.
+The default implementation inserts into the master all the cuts stored in the `CutsSet` object.
 
-**References**:
-
-**References**:
+**Reference**:
 
 ```@docs
 Coluna.Benders.insert_cuts!

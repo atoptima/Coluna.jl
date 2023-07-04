@@ -1,3 +1,8 @@
+"""
+    BendersContext(reformulation, algo_params) -> BendersContext
+
+Default implementation of the Benders algorithm.
+"""
 struct BendersContext <: Benders.AbstractBendersContext
     reform::Reformulation
     optim_sense
@@ -213,6 +218,15 @@ function Benders.setup_separation_for_unbounded_master_case!(ctx::BendersContext
     return
 end
 
+"""
+Solution to the separation problem together with its corresponding benders cut.
+
+It contains:
+- `min_sense`: `true` if it's a minimization problem; `false` otherwise.
+- `lhs`: the left-hand side of the cut.
+- `rhs`: the right-hand side of the cut.
+- `dual_sol`: an optimal dual solution to the separation problem.
+"""
 struct GeneratedCut{F}
     min_sense::Bool
     lhs::Dict{VarId, Float64}
@@ -220,6 +234,11 @@ struct GeneratedCut{F}
     dual_sol::DualSolution{F}
 end
 
+"""
+Stores a collection of cuts.
+
+It contains `cuts` a vector of `GeneratedCut` objects.
+"""
 struct CutsSet
     cuts::Vector{GeneratedCut}
     CutsSet() = new(GeneratedCut[])
@@ -229,6 +248,12 @@ Base.iterate(set::CutsSet, state) = iterate(set.cuts, state)
 
 Benders.set_of_cuts(::BendersContext) = CutsSet()
 
+"""
+Primal solutions to the separation problems optimized at the current iteration.
+This is used to build a primal solution.
+
+It contains `sols` a vector of primal solutions. 
+"""
 struct SepSolSet{F}
     sols::Vector{MathProg.PrimalSolution{F}}
 end
