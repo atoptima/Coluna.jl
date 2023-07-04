@@ -51,7 +51,7 @@ getsubproblems(dec_on_types)</code></pre><pre class="documenter-example-output">
 
  Subproblem formulation for T = 2 contains :	 0.0 &lt;= multiplicity &lt;= 2.0
 </code></pre><p>We see that subproblem for machine type 1 has an upper multiplicity equals to 3, and the second subproblem for machine type 2 has an upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.6.3 | https://github.com/atoptima/Coluna.jl
+Version 0.6.4 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** B&amp;B tree root node
 **** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
@@ -82,7 +82,13 @@ Version 0.6.3 | https://github.com/atoptima/Coluna.jl
   &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=   94.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
 ┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
-└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:304
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:306
+┌ Warning: The solution to the master is not integral and the projection on the original variables is integral.
+│ Your reformulation involves subproblems with upper multiplicity greater than 1.
+│ Column generation algorithm could not create an integral solution to the master using the column generated.
+│ In order to generate columns that can lead to an integral solution, you may have to use a branching scheme that changes the structure of the subproblems.
+│ This is not provided by the default implementation of the branching algorithm in the current version of Coluna.
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/branching/branchingalgo.jl:111
 ***************************************************************************************
 **** B&amp;B tree node N°4, parent N°3, depth 2, 1 untreated node
 **** Local DB = 114.0000, global bounds: [ 114.0000 , Inf ], time = 0.01 sec.
@@ -96,16 +102,16 @@ Version 0.6.3 | https://github.com/atoptima/Coluna.jl
 **** Local DB = 114.0000, global bounds: [ 114.0000 , 114.0000 ], time = 0.01 sec.
 **** Branching constraint: x[1,6]&gt;=1.0
 ***************************************************************************************
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=114.0000&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=114.0000&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         2.93s /   0.5%            165MiB /   2.6%
+    Tot / % measured:         3.37s /   0.5%            165MiB /   2.6%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1   14.2ms  100.0%  14.2ms   4.29MiB  100.0%  4.29MiB
-   SolveLpForm       19   3.46ms   24.5%   182μs   1.01MiB   23.5%  54.4KiB
+ Coluna               1   16.4ms  100.0%  16.4ms   4.31MiB  100.0%  4.31MiB
+   SolveLpForm       19   4.03ms   24.5%   212μs   1.01MiB   23.4%  54.4KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 114.0
@@ -129,4 +135,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Monday 3 July 2023 10:40">Monday 3 July 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Tuesday 4 July 2023 11:59">Tuesday 4 July 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
