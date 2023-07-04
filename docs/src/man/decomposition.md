@@ -19,7 +19,7 @@ in gray and some linking constraints in blue :
 You penalize the violation of the linking constraints in the
 objective function. You can then solve the blocks independently.
 
-The Dantzig-Wolfe reformulation gives raise to a master problem with an
+The Dantzig-Wolfe reformulation gives rise to a master problem with an
 exponential number of variables. Coluna dynamically generates these variables by
 solving the subproblems. It's the column generation algorithm.
 
@@ -119,46 +119,59 @@ Formally, given an original MIP:
 ```math
 \begin{aligned}
 \min \quad& cx + fy & \\
-\text{s.t.} \quad& Ax \geq a\\
-& Ey \geq e\\
-& Bx + Dy \geq d\\
+\text{s.t.} \quad& Ax \geq a & (2) \\
+& Ey \geq e                  & (3) \\
+& Bx + Dy \geq d             & (4)\\
 & x, y \geq 0, ~ x \in \mathbb{Z}^n\\
 \end{aligned}
 ```
 
-with $x$ the 1st-level variables, and $y$ the 2nd-level variables.
+where:
+- variables $x$ are the 1st-level variables (duty: `OriginalVar`)
+- variables $y$ are the 2nd-level variables (duty: `OriginalVar`)
+- constraints (2) are the 1st-level constraints (duty: `OriginalConstr`)
+- constraints (3) are the 2nd-level constraints (duty: `OriginalConstr`)
+- constraints (4) are the linking constraints (duty: `OriginalConstr`)
 
 ### Master
 
-we decompose it into a master problem:
+When you apply a Benders decomposition to this formulation, 
+Coluna reformulates it into the following master problem :
 
 ```math
 \begin{aligned}
 \min \quad& cx + \sum\limits_{k \in K}\eta_k & \\
-\text{s.t.} \quad& Ax \geq a\\
-& <~\text{benders cuts}~>\\
+\text{s.t.} \quad& Ax \geq a & (5)\\
+& <~\text{benders cuts}~> & (6) \\
 & \eta_k \in \mathbb{R} \quad \forall k \in K\\
 \end{aligned}
 ```
 
+where:
+- variables $x$ are the 1st-level variables (duty: `MasterBendFirstStageVar`)
+- variables $\eta$ are the second stage cost variables (duty: `MasterBendSecondStageCostVar`)
+- constraints (5) are the first-level constraints (duty: `MasterPureConstr`)
+- constraints (6) are the benders cuts (duty: ``)
+
+Note that the $\eta$ variables are free.
+
 ### Separation subproblem
 
-and a subproblem:
+Here is the form of a given separation subproblem:
 
 ```math
 \begin{aligned}
 \min \quad& fy & \\
-\text{s.t.} \quad& Dy \geq d - B\bar{x}\\
-& Ey \geq e\\
-& y \geq 0\\
+\text{s.t.} \quad& Dy \geq d - B\bar{x} & (7) \\
+& Ey \geq e & (8) \\
+& y \geq 0 \\
 \end{aligned}
 ```
-with $\bar{x}$ a fixed solution for the master problem (i.e. valuations of the 1st-level variables)
 
-Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. See the [API](@ref api_benders) section to get more information. 
+where:
+- variables $y$ are the 2nd-level variables (duty: `BendSpSepVar`)
+- values $\bar{x}$ are a solution to the master problem 
+- constraints (7) are the linking constraints with the 1st-level variables fixed to $\bar{x}$ (duty: `BendSpTechnologicalConstr`)
+- constraints (8) are the 2nd-level constraints (duty: `BendSpPureConstr`)
 
-
-This decomposition is an alpha feature.
-
-
-
+Note that in the special case where the master problem is unbounded, the shape of the subproblem is slightly modified. See the [API](@ref api_benders) section to get more information.
