@@ -1,4 +1,4 @@
-for dir in ["gap"]
+for dir in ["gap", "TreeSearch"]
     dirpath = joinpath(@__DIR__, dir)
     for filename in readdir(dirpath)
         include(joinpath(dirpath, filename))
