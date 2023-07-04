@@ -29,35 +29,7 @@ function run_benders_loop!(context, env; iter = 1)
     return new_output(O, benders_iter_output)
 end
 
-"""
-Runs one iteration of a Benders cut generation algorithm.
-
-Benders cut generation implementation must handle the following cases:
-- optimize the "classic" separation problem (Separation)
-- optimize the feasibility "classic" separation problem (Phase 1 - Separation)
-- optimize the separation problem "for the unbounded master" (Separation for unbounded master)
-- optimize the feasibility separation problem "for the unbounded master" (Phase 1 - Separation for unbounded master)
-
-The following diagram is an overview of the transitions between the procedures.
-If the procedure ends up with "infeasible" or "unbounded", the transition consists in
-adding the cut to the master and going back to the master optimization (next iteration).
-
-```mermaid
-stateDiagram-v2
-    state "Separation for unbounded master" as unbounded_master
-    state "Phase 1 - Separation for unbounded master" as infeasible_unbounded
-    state "Phase 1 - Separation" as infeasible
-    [*] --> Master
-    Master --> unbounded_master : unbounded
-    unbounded_master --> infeasible_unbounded : infeasible
-    Master --> Separation : optimal
-    Separation --> infeasible : infeasible
-    Master --> [*] : infeasible
-    infeasible_unbounded --> [*] : infeasible/unbounded
-    infeasible --> [*] : infeasible/unbounded
-    Separation --> [*] : unbounded
-```
-"""
+"Runs one iteration of a Benders cut generation algorithm."
 function run_benders_iteration!(context, phase, env, ip_primal_sol) ##TODO: remove arg phase from method signature 
     master = get_master(context)
     mast_result = optimize_master_problem!(master, context, env)
