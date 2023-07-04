@@ -1,4 +1,4 @@
-# # Identical subproblems
+# # [Identical subproblems](@id tuto_identical_sp)
 
 # Let us see an example of resolution using the advantage of identical subproblems with Dantzig-Wolfe and a variant of the Generalized Assignment Problem.
 
