@@ -87,6 +87,40 @@ Here are their meanings :
     print::Bool = true
 end
 
+############################################################################################
+# Column generation parameters checker.
+# `check_parameter` returns true by default
+############################################################################################1
+# function check_parameter(::ColumnGeneration, ::Val{:restr_master_solve_alg}, value, reform)
+    
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:restr_master_optimizer_id}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:pricing_prob_solve_alg}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:stages_pricing_solver_ids}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:essential_cut_gen_alg}, value, reform)
+
+# end
+
+check_parameter(::ColumnGeneration, ::Val{:max_nb_iterations}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:log_print_frequency}, value, reform) = value > 1
+check_parameter(::ColumnGeneration, ::Val{:redcost_tol}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:cleanup_threshold}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:cleanup_ratio}, value, reform) = 0 < value < 1
+check_parameter(::ColumnGeneration, ::Val{:smoothing_stabilization}, value, reform) =  0 <= value <= 1
+check_parameter(::ColumnGeneration, ::Val{:opt_atol}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:opt_rtol}, value, reform) = value > 0
+
+
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 ############################################################################################
