@@ -1196,7 +1196,7 @@ function test_two_identicals_cut_at_two_iterations_failure()
     cuts = Coluna.Benders.set_of_cuts(ctx)
     for (sol, lhs, rhs) in Iterators.zip([cut1, cut2], [lhs1, lhs2], [rhs1, rhs2])
         cut = ClA.GeneratedCut(true, lhs, rhs, sol)
-        sep_res = ClA.BendersSeparationResult(2.0, 3.0, nothing, false, false, nothing, cut, false, false)
+        sep_res = ClA.BendersSeparationResult(2.0, 3.0, nothing, false, false, nothing, cut, false)
         Coluna.Benders.push_in_set!(ctx, cuts, sep_res)
     end
     Coluna.Benders.insert_cuts!(reform, ctx, cuts)
