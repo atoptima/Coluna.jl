@@ -1,7 +1,7 @@
 struct NoColGenStab end
 #ColGen.setup_stabilization(ctx, master) = NoColGenStab()
 ColGen.update_stabilization_after_master_optim!(::NoColGenStab, phase, mast_dual_sol) = false
-ColGen.get_master_dual_sol(::NoColGenStab, phase, mast_dual_sol) = mast_dual_sol
+ColGen.get_stab_dual_sol(::NoColGenStab, phase, mast_dual_sol) = mast_dual_sol
 ColGen.check_misprice(::NoColGenStab, generated_cols, mast_dual_sol) = false
 ColGen.update_stabilization_after_misprice!(::NoColGenStab, mast_dual_sol) = nothing
 ColGen.update_stabilization_after_iter!(::NoColGenStab, mast_dual_sol) = nothing
@@ -50,7 +50,7 @@ function ColGen.update_stabilization_after_master_optim!(stab::ColGenStab, phase
     return stab.cur_α > 0
 end
 
-function ColGen.get_master_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
+function ColGen.get_stab_dual_sol(stab::ColGenStab, phase, mast_dual_sol)
     return stab.cur_α * stab.cur_stab_center + (1 - stab.cur_α) * mast_dual_sol
 end
 

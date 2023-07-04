@@ -1,16 +1,21 @@
+"""
+    ColGenContext(reformulation, algo_params) -> ColGenContext
+
+Creates a context to run the default implementation of the column generation algorithm.
+"""
 mutable struct ColGenContext <: ColGen.AbstractColGenContext
     reform::Reformulation
-    optim_sense
-    current_ip_primal_bound
+    optim_sense  # TODO: type
+    current_ip_primal_bound  # TODO: type
 
-    restr_master_solve_alg
+    restr_master_solve_alg  # TODO: type
     restr_master_optimizer_id::Int
 
     stages_pricing_solver_ids::Vector{Int}
 
     reduced_cost_helper::ReducedCostsCalculationHelper
     subgradient_helper::SubgradientCalculationHelper
-    sp_var_redcosts::Union{Nothing,Any}
+    sp_var_redcosts::Union{Nothing,Any} # TODO: type
 
     show_column_already_inserted_warning::Bool
     throw_column_already_inserted_warning::Bool
@@ -26,12 +31,6 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
     self_adjusting_α::Bool
     init_α::Float64
 
-    # # Information to solve the master
-    # master_solve_alg
-    # master_optimizer_id
-
-    # # Memoization to compute reduced costs (this is a precompute)
-    # redcost_mem
     function ColGenContext(reform, alg)
         rch = ReducedCostsCalculationHelper(getmaster(reform))
         sh = SubgradientCalculationHelper(getmaster(reform))
@@ -83,6 +82,7 @@ function ColGen.setup_stabilization!(ctx::ColGenContext, master)
     return NoColGenStab()
 end
 
+"Output of the default implementation of a phase of the column generation algorithm."
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
@@ -98,6 +98,7 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     min_sense::Bool
 end
 
+"Output of the default implementation of the column generation algorithm."
 struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
@@ -128,6 +129,13 @@ function ColGen.stop_colgen(ctx::ColGenContext, output::ColGenPhaseOutput)
         output.nb_iterations >= ctx.nb_colgen_iteration_limit
 end
 
+ColGen.is_infeasible(output::ColGenOutput) = output.infeasible
+ColGen.get_master_ip_primal_sol(output::ColGenOutput) = output.master_ip_primal_sol
+ColGen.get_master_lp_primal_sol(output::ColGenOutput) = output.master_lp_primal_sol
+ColGen.get_master_dual_sol(output::ColGenOutput) = output.master_lp_dual_sol
+ColGen.get_dual_bound(output::ColGenOutput) = output.db
+ColGen.get_master_lp_primal_bound(output::ColGenOutput) = output.mlp
+
 function ColGen.is_better_dual_bound(ctx::ColGenContext, new_dual_bound, dual_bound)
     sc = ColGen.is_minimization(ctx) ? 1 : -1
     return sc * new_dual_bound > sc * dual_bound
@@ -136,6 +144,9 @@ end
 ###############################################################################
 # Sequence of phases
 ###############################################################################
+"""
+Type for the default implementation of the sequence of phases.
+"""
 struct ColunaColGenPhaseIterator <: ColGen.AbstractColGenPhaseIterator end
 
 ColGen.new_phase_iterator(::ColGenContext) = ColunaColGenPhaseIterator()
@@ -154,13 +165,13 @@ This set is found with phase 1.
 struct ColGenPhase2 <: ColGen.AbstractColGenPhase end
 
 """
-Phase 3 is a mix of phase 1 and phase 2.
+Phase 0 is a mix of phase 1 and phase 2.
 It sets a very large cost to artifical variables to force them to be removed from the master 
 LP solution.
 If the final master LP solution contains artifical variables either the master is infeasible
 or the cost of artificial variables is not large enough. Phase 1 must be run.
 """
-struct ColGenPhase3 <: ColGen.AbstractColGenPhase end
+struct ColGenPhase0 <: ColGen.AbstractColGenPhase end
 
 """
 Thrown when the phase ended with an unexpected output.
@@ -170,7 +181,7 @@ struct UnexpectedEndOfColGenPhase end
 
 # Implementation of ColGenPhase interface
 ## Implementation of `initial_phase`.
-ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
+ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase0()
 
 function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
     master_lp_primal_sol = output.master_lp_primal_sol
@@ -222,7 +233,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::
     return ColGenPhase2()
 end
 
-function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::ColGen.AbstractColGenPhaseOutput)
+function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase0, output::ColGen.AbstractColGenPhaseOutput)
     # Column generation converged.
     if !colgen_mast_lp_sol_has_art_vars(output) && 
         !colgen_master_has_new_cuts(output) && 
@@ -237,7 +248,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::
         colgen_uses_exact_stage(output)
         return ColGenPhase1()
     end
-    return ColGenPhase3()
+    return ColGenPhase0()
 end
 
 # Implementatation of `setup_reformulation!`
@@ -266,8 +277,8 @@ function ColGen.setup_reformulation!(reform, ::ColGenPhase2)
     return
 end
 
-## Phase 3 => make sure artifical variables are active and cost is correct.
-function ColGen.setup_reformulation!(reform, ::ColGenPhase3)
+## Phase 0 => make sure artifical variables are active and cost is correct.
+function ColGen.setup_reformulation!(reform, ::ColGenPhase0)
     master = getmaster(reform)
     for (varid, var) in getvars(master)
         if isanArtificialDuty(getduty(varid))
@@ -558,7 +569,7 @@ struct GeneratedColumn
 end
 
 """
-Columns generated at the current iterations that forms the "current primal solution".
+Columns generated at the current iteration that forms the "current primal solution".
 This is used to compute the Lagragian dual bound.
 
 It contains:
@@ -775,6 +786,7 @@ end
 
 # Iteration output
 
+"Object for the output of an iteration of the column generation default implementation."
 struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
     mlp::Union{Nothing, Float64}
@@ -896,9 +908,6 @@ end
 
 ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 
-ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
-ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol
-ColGen.get_final_db(output::ColGenPhaseOutput) = output.db
 
 ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
 function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)

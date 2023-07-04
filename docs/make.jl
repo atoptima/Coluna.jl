@@ -33,11 +33,11 @@ Literate.markdown(TUTORIAL_STORAGE_API, OUTPUT_STORAGE_API, documenter=true)
 makedocs(
     modules = [Coluna, BlockDecomposition],
     checkdocs = :exports,
-    sitename = "Coluna User Guide",
+    sitename = "Coluna.jl",
     authors = "Atoptima & contributors",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
-        collapselevel = 1,
+        collapselevel = 2,
         assets = ["assets/js/init.js"]
     ),
     strict = false,
@@ -67,6 +67,7 @@ makedocs(
             "User-defined Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
+            "Verification of algorithms parameters and consistency" => joinpath("api", "check_algos.md"),
             "Benders" => joinpath("api", "benders.md"),
             "Branching" => joinpath("api", "branching.md"),
             "ColGen" => joinpath("api", "colgen.md"),

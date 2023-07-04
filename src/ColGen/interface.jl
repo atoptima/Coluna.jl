@@ -1,13 +1,6 @@
-"""
-Structure where we store performance information about the column generation algorithm.
-We can use these kpis as a stopping criteria for instance.
-"""
-abstract type AbstractColGenKpis end
-
 struct UnboundedProblemError <: Exception
     message::String
 end
-
 
 ############################################################################################
 # Reformulation getters
@@ -43,16 +36,10 @@ See `optimize_master_lp_problem!`.
 """
 @mustimplement "ColGenResultGetter" get_obj_val(master_res) = nothing
 
-"""
-Returns primal solution to the master LP problem. 
-See `optimize_master_lp_problem!`.
-"""
+"Returns primal solution to the master LP problem."
 @mustimplement "ColGenResultGetter" get_primal_sol(master_res) = nothing
 
-"""
-Returns dual solution to the master optimization problem. 
-See `optimize_master_lp_problem!`.
-"""
+"Returns dual solution to the master optimization problem."
 @mustimplement "ColGenResultGetter" get_dual_sol(master_res) = nothing
 
 "Array of primal solutions to the pricing subproblem"
@@ -177,18 +164,39 @@ Inserts columns into the master. Returns the number of columns inserted.
 Implementation is responsible for checking if the column must be inserted and warn the user
 if something unexpected happens.
 """
-@mustimplement "ColGenColInsertion" insert_columns!(reform, ctx, phase, columns) = nothing
+@mustimplement "ColGenColInsertion" insert_columns!(ctx, phase, columns) = nothing
 
 ############################################################################################
 # Iteration Output
 ############################################################################################
-"TODO"
+"Supertype for the objects that contains the output of a column generation iteration."
 abstract type AbstractColGenIterationOutput end
 
-"TODO"
+"""
+    colgen_iteration_output_type(ctx) -> Type{<:AbstractColGenIterationOutput}
+
+Returns the type of the column generation iteration output associated to the context.
+"""
 @mustimplement "ColGenIterationOutput" colgen_iteration_output_type(::AbstractColGenContext) = nothing
 
-"TODO"
+"""
+    new_iteration_output(::Type{<:AbstractColGenIterationOutput}, args...) -> AbstractColGenIterationOutput
+
+Arguments (i.e. `arg...`) of this function are the following:
+- `min_sense`: `true` if the objective is a minimization function; `false` otherwise
+- `mlp`: the optimal solution value of the master LP
+- `db`: the Lagrangian dual bound
+- `nb_new_cols`: the number of columns inserted into the master
+- `new_cut_in_master`: `true` if valid inequalities or new constraints added into the master; `false` otherwise
+- `infeasible_master`: `true` if the master is proven infeasible; `false` otherwise
+- `unbounded_master`: `true` if the master is unbounded; `false` otherwise
+- `infeasible_subproblem`: `true` if a pricing subproblem is proven infeasible; `false` otherwise
+- `unbounded_subproblem`: `true` if a pricing subproblem is unbounded; `false` otherwise
+- `time_limit_reached`: `true` if time limit is reached; `false` otherwise
+- `master_primal_sol`: the primal master LP solution
+- `ip_primal_sol`: the incumbent primal master solution
+- `dual_sol`: the dual master LP solution
+"""
 @mustimplement "ColGenIterationOutput" new_iteration_output(
     ::Type{<:AbstractColGenIterationOutput},
     min_sense,
@@ -206,51 +214,78 @@ abstract type AbstractColGenIterationOutput end
     dual_sol
 ) = nothing
 
-"TODO"
-@mustimplement "ColGenIterationOutput" get_nb_new_cols(::AbstractColGenIterationOutput) = nothing
-
-"TODO"
-@mustimplement "ColGenIterationOutput" get_master_ip_primal_sol(::AbstractColGenIterationOutput) = nothing
-
-
 ############################################################################################
 # Phase Output
 ############################################################################################
-"TODO"
+"Supertype for the objects that contains the output of a column generation phase."
 abstract type AbstractColGenPhaseOutput end
 
-"TODO"
+"""
+    colgen_phase_outputype(ctx) -> Type{<:AbstractColGenPhaseOutput}
+
+Returns the type of the column generation phase output associated to the context.
+"""
 @mustimplement "ColGenPhaseOutput" colgen_phase_output_type(::AbstractColGenContext) = nothing
 
-"TODO"
+"""
+    new_phase_output(OutputType, min_sense, phase, stage, colgen_iter_output, iter, inc_dual_bound) -> OutputType
+
+Returns the column generation phase output.
+
+Arguments of this function are:
+- `OutputType`: the type of the column generation phase output
+- `min_sense`: `true` if it is a minimization problem; `false` otherwise
+- `phase`: the current column generation phase
+- `stage`: the current column generation stage
+- `col_gen_iter_output`: the last column generation iteration output
+- `iter`: the last iteration number
+- `inc_dual_bound`: the current incumbent dual bound
+"""
 @mustimplement "ColGenPhaseOutput" new_phase_output(::Type{<:AbstractColGenPhaseOutput}, min_sense, phase, stage, ::AbstractColGenIterationOutput, iteration, incumbent_dual_bound) = nothing
 
-"TODO"
-@mustimplement "ColGenPhaseOutput" get_master_ip_primal_sol(::AbstractColGenPhaseOutput) = nothing
-
-"TODO"
-@mustimplement "ColGenPhaseOutput" get_best_ip_primal_master_sol_found(colgen_phase_output) = nothing
-
-"TODO"
-@mustimplement "ColGenPhaseOutput" get_final_lp_primal_master_sol_found(colgen_phase_output) = nothing
-
-"TODO"
-@mustimplement "ColGenPhaseOutput" get_final_db(colgen_phase_output) = nothing
-
-"TODO"
+"Returns `true` when the column generation algorithm must stop; `false` otherwise."
 @mustimplement "ColGenPhaseOutput" stop_colgen(context, phase_output) = nothing
 
 ############################################################################################
 # Colgen Output
 ############################################################################################
-"TODO"
+"Supertype for the objects that contains the output of the column generation algorithm."
 abstract type AbstractColGenOutput end
 
-"TODO"
+"""
+    colgen_output_type(ctx) -> Type{<:AbstractColGenOutput}
+
+Returns the type of the column generation output associated to the context.
+"""
 @mustimplement "ColGenOutput" colgen_output_type(::AbstractColGenContext) = nothing
 
-"TODO"
+"""
+    new_output(OutputType, colgen_phase_output) -> OutputType
+
+Returns the column generation output where `colgen_phase_output` is the output of the last
+column generation phase executed.
+"""
 @mustimplement "ColGenOutput" new_output(::Type{<:AbstractColGenOutput}, colgen_phase_output::AbstractColGenPhaseOutput) = nothing
+
+############################################################################################
+# Common to outputs
+############################################################################################
+
+"Returns the number of new columns inserted into the master at the end of an iteration."
+@mustimplement "ColGenOutputs" get_nb_new_cols(output) = nothing
+
+"Returns the incumbent primal master IP solution at the end of an iteration or a phase."
+@mustimplement "ColGenOutputs" get_master_ip_primal_sol(output) = nothing
+
+"Returns the primal master LP solution found at the last iteration of the column generation algorithm."
+@mustimplement "ColGenOutputs" get_master_lp_primal_sol(output) = nothing
+
+"Returns the dual master LP solution found at the last iteration of the column generation algorithm."
+@mustimplement "ColGenOutputs" get_master_dual_sol(output) = nothing
+
+"Returns the master LP solution value at the last iteration of the column generation algorithm."
+@mustimplement "ColGenOutputs" get_master_lp_primal_bound(output) = nothing
+
 
 ############################################################################################
 # ColGen Main Loop
@@ -263,12 +298,6 @@ We strongly advise users against the use of this method to modify the context or
 """
 @mustimplement "ColGen" before_colgen_iteration(ctx::AbstractColGenContext, phase) = nothing
 
-
-"""
-Runs an iteration of column generation.
-"""
-@mustimplement "ColGen" colgen_iteration(ctx::AbstractColGenContext, phase, reform) = nothing
-
 """
 Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
@@ -276,9 +305,8 @@ We strongly advise users against the use of this method to modify the context or
 """
 @mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
 
-"TODO"
+"Returns `true` if `new_dual_bound` is better than `dual_bound`; `false` otherwise."
 @mustimplement "ColGen" is_better_dual_bound(context, new_dual_bound, dual_bound) = nothing
-
 
 ###
 _inf(is_min_sense) = is_min_sense ? Inf : -Inf

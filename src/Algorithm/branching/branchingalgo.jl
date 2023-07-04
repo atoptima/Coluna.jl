@@ -73,6 +73,55 @@ function Branching.new_ip_primal_sols_pool(ctx::BranchingContext, reform::Reform
     return OptimizationState(getmaster(reform))
 end
 
+function _is_integer(sol::PrimalSolution)
+    for (varid, val) in sol
+        integer_val = abs(val - round(val)) < 1e-5
+        if !integer_val
+            return false
+        end
+    end
+    return true
+end
+
+function _has_identical_sps(master::Formulation{DwMaster}, reform::Reformulation)
+    for (sp_id, sp) in get_dw_pricing_sps(reform)
+        lm_constr_id = sp.duty_data.lower_multiplicity_constr_id 
+        um_constr_id = sp.duty_data.upper_multiplicity_constr_id
+        lb = getcurrhs(master, lm_constr_id)
+        ub = getcurrhs(master, um_constr_id)
+        if ub > 1
+            return true
+        end
+    end
+    return false
+end
+
+function _why_no_candidate(master::Formulation{DwMaster}, reform, input, extended_sol, original_sol)
+    integer_orig_sol = _is_integer(original_sol)
+    integer_ext_sol = _is_integer(extended_sol)
+    identical_sp = _has_identical_sps(master, reform)
+    if integer_orig_sol && !integer_ext_sol && identical_sp
+        message =  """
+        The solution to the master is not integral and the projection on the original variables is integral.
+        Your reformulation involves subproblems with upper multiplicity greater than 1.
+        Column generation algorithm could not create an integral solution to the master using the column generated.
+        In order to generate columns that can lead to an integral solution, you may have to use a branching scheme that changes the structure of the subproblems.
+        This is not provided by the default implementation of the branching algorithm in the current version of Coluna.
+        """
+        @warn message
+    end
+    return nothing
+end
+
+function _why_no_candidate(::Formulation{BendersMaster}, reform, input, extended_sol, original_sol)
+    return nothing
+end
+
+function Branching.why_no_candidate(reform::Reformulation, input, extended_sol, original_sol)
+    master = getmaster(reform)
+    return _why_no_candidate(master, reform, input, extended_sol, original_sol)
+end
+
 Branching.new_divide_output(children::Vector{SbNode}, optimization_state) = DivideOutput(children, optimization_state)
 Branching.new_divide_output(::Nothing, optimization_state) = DivideOutput(SbNode[], optimization_state)
 

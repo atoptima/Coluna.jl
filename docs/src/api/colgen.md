@@ -10,8 +10,24 @@ generation algorithm together with a default implementation of this algorithm.
 In this section, we are first going to present the generic functions, the implementation 
 with some theory backgrounds and then give the references of the interface.
 
-You can find the generic functions and the interface at `src/ColGen` and the default 
-implementation at `src/Algorithm/colgen`.
+You can find the generic functions and the interface in the `ColGen` submodule and the default 
+implementation in the `Algorithm` submodule at `src/Algorithm/colgen`.
+
+## Context
+
+The `ColGen` submodule provides an interface and generic functions to implement a column generation algorithm. The implementation depends on 
+an object called `context`.
+
+```@docs
+Coluna.ColGen.AbstractColGenContext
+```
+
+Coluna provides two types of context:
+
+```@docs
+Coluna.Algorithm.ColGenContext
+Coluna.Algorithm.ColGenPrinterContext
+```
 
 ## Generic functions
 
@@ -20,14 +36,23 @@ There are three generic functions:
     
 ```@docs
 Coluna.ColGen.run!
+```
+See the [main loop](#Main-loop) section for more details.
+
+```@docs
 Coluna.ColGen.run_colgen_phase!
+```
+See the [phase loop](#Phase-loop) section for more details.
+
+```@docs
 Coluna.ColGen.run_colgen_iteration!
 ```
+See the [column generation iteration](#Column-generation-iteration) section for more details.
 
 They are independent of any other submodule of Coluna.
 You can use them to implement your own column generation algorithm.
 
-## Default implementation
+## Reformulation
 
 The default implementation works with a reformulated problem contained in 
 `MathProg.Reformulation` where master and subproblems are `MathProg.Formulation` objects.
@@ -76,22 +101,68 @@ Coluna.ColGen.get_pricing_subprobs
 Coluna.ColGen.is_minimization
 ```
 
-### Main loop
+## Main loop
 
-Lorem ipsum 
+This is a description of how the `Coluna.ColGen.run!` generic function behaves in the default
+implementation.
+
+The main loop stops when the `Coluna.ColGen.stop_colgen` method returns `true`. This is the case when one of the following conditions holds: 
+- the master or a pricing subproblem is infeasible
+- the time limit is reached
+- the maximum number of iterations is reached
+
+Otherwise, the main loop runs until there is no more phase or stage to execute.
+
+The method returns:
+
+```@docs
+Coluna.Algorithm.ColGenOutput
+```
 
 **References**:
 
 ```@docs
-Coluna.ColGen.before_colgen_iteration
-Coluna.ColGen.after_colgen_iteration
-Coluna.ColGen.is_better_dual_bound
+Coluna.ColGen.stop_colgen
+Coluna.ColGen.setup_reformulation!
+Coluna.ColGen.setup_context!
 Coluna.ColGen.AbstractColGenOutput
 Coluna.ColGen.colgen_output_type
 Coluna.ColGen.new_output
 ```
 
-### Phases
+## Phase loop
+
+This is a description of how the `Coluna.ColGen.run_colgen_phase!` generic function behaves in the default implementation.
+
+This function is responsible for maintaining the incumbent dual bound and the incumbent master IP primal solution.
+
+The phase loop stops when the `Coluna.ColGen.stop_colgen_phase` method returns `true`. This is the case when one of the following conditions holds:
+- the maximum number of iterations is reached
+- the time limit is reached
+- the master is infeasible
+- the master is unbounded
+- a pricing subproblem is infeasible
+- a pricing subproblem is unbounded
+- there is no new column generated at the last iteration
+- there is a new constraint or valid inequality in the master
+- the incumbent dual bound and the primal master LP solution value converged
+
+The method returns:
+
+```@docs
+Coluna.Algorithm.ColGenPhaseOutput
+```
+
+**References**:
+
+```@docs
+Coluna.ColGen.stop_colgen_phase
+Coluna.ColGen.before_colgen_iteration
+Coluna.ColGen.after_colgen_iteration
+Coluna.ColGen.is_better_dual_bound
+```
+
+### Phase iterator
 
 In the first iterations, the restricted master LP contains a few columns and may be infeasible.
 To prevent this, we introduced artificial variables $v$ and we activate/deactivate these variables
@@ -100,19 +171,46 @@ LP solution.
 The default implementation provides three phases:
 
 ```@docs
+Coluna.Algorithm.ColGenPhase0
 Coluna.Algorithm.ColGenPhase1
 Coluna.Algorithm.ColGenPhase2
-Coluna.Algorithm.ColGenPhase3
 ```
 
-Column generation always starts with Phase 3.
-The cost of artificial variables in Phase 3 can be changed using the following methods:
+Column generation always starts with Phase 0.
+
+The default implementation of the phase iterator belongs to the following type:
 
 ```@docs
-missing
+Coluna.Algorithm.ColunaColGenPhaseIterator
 ```
 
-#### Phase Iterator
+Transitions between the phases depend on four conditions:
+- (A) the presence of artificial variables in the master LP solution
+- (B) the generation of new essential constraints (may happen when a new master IP solution is found)
+- (C) the current stage is exact
+- (D) column generation converged 
+
+Transitions are the following:
+
+```mermaid
+flowchart TB;
+    id1(Phase 0)
+    id2(Phase 1)
+    id3(Phase 2)
+    id4(end)
+    id5(error)
+    id1 --A & !B & C--> id2
+    id1 --!A & !B & C & D--> id4
+    id1 -- otherwise --> id1
+    id2 --!A & !B--> id3
+    id2 --A & C & D--> id4
+    id2 -- otherwise --> id2
+    id3 -- !B & C & D --> id4
+    id3 -- otherwise --> id3
+    id3 -- B --> id2
+    id3 -- A --> id5
+    style id5 stroke:#f66
+```
 
 **References**:
 ```@docs
@@ -122,26 +220,17 @@ Coluna.ColGen.new_phase_iterator
 Coluna.ColGen.initial_phase
 Coluna.ColGen.decrease_stage
 Coluna.ColGen.next_phase
-Coluna.ColGen.setup_reformulation!
-Coluna.ColGen.setup_context!
-Coluna.ColGen.stop_colgen_phase
 ```
 
-#### Phase output
+### Phase output
 
 ```@docs
 Coluna.ColGen.AbstractColGenPhaseOutput
 Coluna.ColGen.colgen_phase_output_type
 Coluna.ColGen.new_phase_output
-Coluna.ColGen.get_master_ip_primal_sol
-Coluna.ColGen.get_best_ip_primal_master_sol_found
-Coluna.ColGen.get_final_lp_primal_master_sol_found
-Coluna.ColGen.get_final_db
-Coluna.ColGen.stop_colgen
 ```
 
-
-### Stages
+## Stages
 
 A stage is a set of consecutive iterations in which we use a given pricing solver.
 The aim is to speed up the resolution of the pricing problem by first using an approximate but fast pricing algorithm and then switching to increasingly less heuristic algorithms until the last stage where an exact solver is used.
@@ -169,7 +258,9 @@ Coluna.ColGen.stage_id
 Coluna.ColGen.is_exact_stage
 ```
 
-### Column generation iteration
+## Column generation iteration
+
+This is a description of how the `Coluna.ColGen.run_colgen_iteration!` generic function behaves in the default implementation.
 
 These are the main steps of a column generation iteration without stabilization.
 Click on the step to go to the relevant section.
@@ -194,7 +285,7 @@ flowchart TB;
     id5 --subproblem--> id6
     id6 --> id7
     id7 --> id5
-    id5 --nothing--> id8
+    id5 --end--> id8
     id8 --> id9
     id9 --> id10
     click id1 href "#Optimize-master-LP" "Link to doc"
@@ -278,6 +369,12 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 Reduced costs calculation is written as a math operation in the `run_colgen_iteration!` 
 generic function. As a consequence, the dual solution to the master LP and the 
 implementation of the two following methods must return data structures that support math operations.
+
+To speed up this operation, we cache data in the following data structure:
+
+```@docs
+Coluna.Algorithm.ReducedCostsCalculationHelper
+```
 
 Reduced costs calculation also requires the implementation of the two following methods:
 
@@ -419,7 +516,9 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 
 #### Iteration output
 
-Lorem ipsum.
+```@docs
+Coluna.Algorithm.ColGenIterationOutput
+```
 
 **References**:
 
@@ -427,14 +526,11 @@ Lorem ipsum.
 Coluna.ColGen.AbstractColGenIterationOutput
 Coluna.ColGen.colgen_iteration_output_type
 Coluna.ColGen.new_iteration_output
-Coluna.ColGen.get_nb_new_cols
-Coluna.ColGen.get_master_ip_primal_sol
 ```
-
 
 Go back to the [column generation iteration overview](#Column-generation-iteration).
 
-### Result data structures
+### Getters for Result data structures
 
 | Method name      | Master | Pricing    |
 | ---------------- | ------ | ---------- |
@@ -448,7 +544,7 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 | `get_dual_bound` |        | X          |
 
 
-**References**
+**References**:
 
 ```@docs
 Coluna.ColGen.is_unbounded
@@ -458,10 +554,36 @@ Coluna.ColGen.get_primal_sols
 Coluna.ColGen.get_dual_sol
 Coluna.ColGen.get_obj_val
 Coluna.ColGen.get_primal_bound
-Coluna.ColGen.get_dual_bound
 ```
 
-### Stabilization
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+
+### Getters for Output data structures
+
+| Method name                | ColGen | Phase | Iteration |
+| ----------------           | ------ | ----- | --------- |
+| `get_nb_new_cols`          |        |       | X         |
+| `get_master_ip_primal_sol` |    X   | X     | X         |
+| `get_master_lp_primal_sol` |    X   |       |           |
+| `get_master_dual_sol`      |    X   |       |           |
+| `get_dual_bound`            |    X   |       |  X        |
+| `get_master_lp_primal_bound` |   X   |       |           |
+| `is_infeasible`            |    X   |      |         |
+
+**References**:
+
+```@docs
+Coluna.ColGen.get_nb_new_cols
+Coluna.ColGen.get_master_ip_primal_sol
+Coluna.ColGen.get_master_lp_primal_sol
+Coluna.ColGen.get_master_dual_sol
+Coluna.ColGen.get_master_lp_primal_bound
+```
+
+Go back to the [column generation iteration overview](#Column-generation-iteration).
+
+## Stabilization
 
 Coluna provides a default implementation of the smoothing stabilization with a self-adjusted $\alpha$ parameter, $0 \leq \alpha < 1$.
 
@@ -472,7 +594,7 @@ At each iteration of the column generation algorithm, instead of generating colu
 ```
 
 where $\pi^{\text{in}}$ is the dual solution that gives the best Lagrangian dual bound so far (also called stabilization center) and $\pi^{\text{out}}$ is the dual solution to the master LP at the current iteration. 
-This solution is returned by the default implementation of `Coluna.ColGen.get_master_dual_sol`.
+This solution is returned by the default implementation of `Coluna.ColGen.get_stab_dual_sol`.
 
 Some elements of the column generation change when using stabilization.
 
@@ -481,12 +603,19 @@ Some elements of the column generation change when using stabilization.
 - The pseudo bound is computed using the smoothed dual solution $\pi^{\text{sep}}$.
 - The smoothed dual bound can result in the generation of no improving columns. This is called a **misprice**. In that case, we need to move away from the stabilization center $\pi^{\text{in}}$ by decreasing $\alpha$.
 
-**Reference**:
+When using self-adjusted stabilization, the smoothing coefficient $\alpha$ is adjusted to make the smoothed dual solution $\pi^{\text{sep}}$ closer to the best possible dual solution on the line between $\pi^{\text{in}}$ and $\pi^{\text{out}}$ (i.e. where the subgradient of the current primal solution is perpendicular to the latter line).
+To compute the subgradient, we use the following data structure:
+
+```@docs
+Coluna.Algorithm.SubgradientCalculationHelper
+```
+
+**References**:
 
 ```@docs
 Coluna.ColGen.setup_stabilization!
 Coluna.ColGen.update_stabilization_after_master_optim!
-Coluna.ColGen.get_master_dual_sol
+Coluna.ColGen.get_stab_dual_sol
 Coluna.ColGen.check_misprice
 Coluna.ColGen.update_stabilization_after_pricing_optim!
 Coluna.ColGen.update_stabilization_after_misprice!

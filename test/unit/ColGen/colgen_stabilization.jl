@@ -372,7 +372,7 @@ function ColGen.update_stabilization_after_master_optim!(stab::ColGenStabFlowSta
     return true
 end
 
-ColGen.get_master_dual_sol(stab::ColGenStabFlowStab, phase, mast_dual) = [0.5, 0.5, 0.5]
+ColGen.get_stab_dual_sol(stab::ColGenStabFlowStab, phase, mast_dual) = [0.5, 0.5, 0.5]
 ColGen.set_of_columns(::ColGenStabFlowCtx) = []
 ColGen.get_pricing_subprobs(::ColGenStabFlowCtx) = []
 ColGen.get_pricing_strategy(::ColGenStabFlowCtx, phase) = ColGenStabFlowPricingStrategy()

@@ -4,6 +4,12 @@ module ColGen
 include("../MustImplement/MustImplement.jl")
 using .MustImplement
 
+"""
+Supertype for the objects to which belongs the implementation of the column generation and 
+that stores any kind of information during the execution of the column generation algorithm.
+
+**IMPORTANT**: implementation of the column generation mainly depends on the context type.
+"""
 abstract type AbstractColGenContext end 
 
 include("stages.jl")
@@ -177,7 +183,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     while misprice
         # `sep_mast_dual_sol` is the master dual solution used to optimize the pricing subproblems.
         # in the current misprice iteration.
-        sep_mast_dual_sol = get_master_dual_sol(stab, phase, mast_dual_sol)
+        sep_mast_dual_sol = get_stab_dual_sol(stab, phase, mast_dual_sol)
 
         # We will optimize the pricing subproblem using the master dual solution returned
         # by the stabilization. We this need to recompute the reduced cost of the subproblem

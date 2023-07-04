@@ -1,3 +1,9 @@
+"""
+    ColGenPrinterContext(reformulation, algo_params) -> ColGenPrinterContext
+
+Creates a context to run the default implementation of the column generation algorithm
+together with a printer that prints information about the algorithm execution.
+"""
 mutable struct ColGenPrinterContext <: ColGen.AbstractColGenContext
     inner::ColGenContext
     phase::Int
@@ -31,7 +37,7 @@ ColGen.new_stage_iterator(ctx::ColGenPrinterContext) = ColGen.new_stage_iterator
 
 _phase_type_to_number(::ColGenPhase1) = 1
 _phase_type_to_number(::ColGenPhase2) = 2
-_phase_type_to_number(::ColGenPhase3) = 3
+_phase_type_to_number(::ColGenPhase0) = 0
 function ColGen.setup_context!(ctx::ColGenPrinterContext, phase::ColGen.AbstractColGenPhase)
     ctx.phase = _phase_type_to_number(phase)
     return ColGen.setup_context!(ctx.inner, phase)
