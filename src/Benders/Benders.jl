@@ -4,7 +4,7 @@ include("../MustImplement/MustImplement.jl")
 using .MustImplement
 
 """
-Supertype for the objects to which belongs the implemntation of the Benders cut generation and
+Supertype for the objects to which belongs the implementation of the Benders cut generation and
 that stores any kind of information during the execution of the Bender cut generation algorithm.
 """
 abstract type AbstractBendersContext end

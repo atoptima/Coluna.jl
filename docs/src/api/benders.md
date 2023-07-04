@@ -105,7 +105,7 @@ The loop stops if one of the following conditions is met:
 - a separation subproblem is infeasible
 - the time limit is reached
 - the maximum number of iterations is reached
-- no new cut generated at the last iteration
+- no new cut is generated
 
 The default implementation returns:
 
@@ -173,7 +173,7 @@ result of previous steps.
 
 ### Master optimization
 
-This operation consists in optimize the master problem in order to find a first-level
+This operation consists in optimizing the master problem in order to find a first-level
 solution $\bar{x}$.
 
 In the default implementation, master optimization can be performed using `SolveLpForm`
@@ -234,7 +234,7 @@ Coluna.Benders.update_sp_rhs!
 ```
 
 Default implementation of `Coluna.Benders.setup_separation_for_unbounded_master_case!`
-gives raise to the formulation proposed in Lemma 2 of Bonami et al:
+gives rise to the formulation proposed in Lemma 2 of Bonami et al:
 
 ```math
 \begin{aligned}
@@ -244,7 +244,7 @@ gives raise to the formulation proposed in Lemma 2 of Bonami et al:
                         & y \geq 0     && (7a)  \quad& {\color{blue}(\sigma)}
 \end{aligned}
 ```
-where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables (in grey because they are deactivated by default), and $\bar{x}$ is the an unbounded ray of the restricted master.
+where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables (in grey because they are deactivated by default), and $\bar{x}$ is an unbounded ray of the restricted master.
 
 **Reference**:
 
@@ -266,8 +266,10 @@ In the case where it finds $(\bar{\pi}, \bar{\rho}, \bar{\sigma})$ an optimal du
 \eta_k + \bar{\pi}Bx \geq d\bar{\pi} + \bar{\rho}e + \bar{\sigma_{\leq}} l_2 + \bar{\sigma_{\geq}} u_2
 ```
 
+with $\bar{\sigma_{\leq}} l_2$ (respectively $\bar{\sigma_{\geq}} u_2$) the dual of the left part (respectively the right part) of constraint $l_2 \leq y \leq u_2$ of the subproblem. 
+
 In the case where it finds the subproblem infeasible, it calls `Coluna.Benders.treat_infeasible_separation_problem_case!`.
-The default implementation of this method activates the artificial variables $z'$ and $z''$, set the cost of second stage variables to 0, and optimize the subproblem again.
+The default implementation of this method activates the artificial variables $z'$ and $z''$, sets the cost of second stage variables to 0, and optimizes the subproblem again.
 
 If a solution with no artificial variables is found, the following cut is generated:
 
@@ -310,7 +312,7 @@ Coluna.Algorithm.SepSolSet
 ```
 
 The default implementation of `push_in_set!` has the responsibility to check if the cut is
-violated. Given $\bar{eta}_k$ solution to the restricted master and $\bar{y}$ solution to the separation problem, the cut is considered as violated when:
+violated. Given $\bar{\eta}_k$ solution to the restricted master and $\bar{y}$ solution to the separation problem, the cut is considered as violated when:
 - the separation subproblem was infeasible
 - or $\bar{\eta}_k \geq f\bar{y}$ 
 
@@ -334,7 +336,7 @@ To perform this check, we need a solution to each separation problem.
 Let $(\bar{\eta}_k)_{k \in K}$ be the value of second stage variables in the dual infeasibility certificate of the restricted master.
 Let $\bar{y}$ be an optimal solution to the separation problem **(SepB)**.
 
-As indicated by Bonami et al., if $f\bar{y} \leq \sum_{k \in K} \bar{\eta}_k$, then the 
+As indicated by Bonami et al., if $f\bar{y} \leq \sum\limits_{k \in K} \bar{\eta}_k$, then the 
 original problem is unbounded (by definition of an unbounded ray of the original problem).
 
 **References**:
