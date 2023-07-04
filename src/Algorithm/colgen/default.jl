@@ -569,7 +569,7 @@ struct GeneratedColumn
 end
 
 """
-Columns generated at the current iterations that forms the "current primal solution".
+Columns generated at the current iteration that forms the "current primal solution".
 This is used to compute the Lagragian dual bound.
 
 It contains:

@@ -294,6 +294,8 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
     return kept_branch_candidates
 end
 
+@mustimplement "Branching" why_no_candidate(reform, input, extended_sol, original_sol) = nothing
+
 function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, extended_sol, original_sol)
     parent = Branching.get_parent(input)
     max_nb_candidates = get_selection_nb_candidates(ctx)
@@ -302,6 +304,7 @@ function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, 
     # We stop branching if no candidate generated.
     if length(candidates) == 0
         @warn "No candidate generated. No children will be generated. However, the node is not conquered."
+        why_no_candidate(reform, input, extended_sol, original_sol)
         return new_divide_output(nothing, nothing)
     end
 

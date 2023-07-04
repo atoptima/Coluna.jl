@@ -74,19 +74,18 @@ The subproblems have the following form:
 
 ```math
 \begin{aligned}
-\min        \quad& fy  + \mathbf{1}z' + \mathbf{1}z''              &&&  \\
-\text{s.t.} \quad& Dy + z' \geq d  - B\bar{x} && (5)  \quad& {\color{blue}(\pi)} \\
-                        & Ey + z'' \geq e                  && (6)  \quad& {\color{blue}(\rho)} \\
+\min        \quad& fy  + {\color{gray} \mathbf{1}z' + \mathbf{1}z''}              &&&  \\
+\text{s.t.} \quad& Dy {\color{gray} + z'} \geq d  - B\bar{x} && (5)  \quad& {\color{blue}(\pi)} \\
+                        & Ey {\color{gray} + z''} \geq e                  && (6)  \quad& {\color{blue}(\rho)} \\
                         & l_2 \leq y \leq u_2     && (7)  \quad& {\color{blue}(\sigma)}
 \end{aligned}
 ```
 
-where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables,
+where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables (in grey because they are deactivated by default),
 constraints (5) are the reformulation of linking constraints using the first-stage solution $\bar{x}$,
 constraints (6) are the second-stage constraints,
 and constraints (7) are the bounds on the second-stage variables.
 In blue, we define the dual variables associated to these constraints.
-
 
 **References**:
 
@@ -127,6 +126,11 @@ Coluna.Benders.new_output
 
 ## Benders cut generation iteration
 
+This is a description of how the `Coluna.Benders.run_benders_iteration!` generic function behaves with the default implementation.
+
+These are the main steps of a Benders cut generation iteration without stabilization.
+Click on the step to go to the corresponding section.
+
 ```mermaid
 flowchart TB;
     id1(Optimize master)
@@ -158,11 +162,14 @@ flowchart TB;
     click id4 href "#Subproblem-iterator" "Link to doc"
     click id5 href "#Separation-subproblem-optimization" "Link to doc"
     click id6 href "#Set-of-generated-cuts" "Link to doc"
-    click id9 href "#Unboundeness-check" "Link to doc"
+    click id9 href "#Unboundedness-check" "Link to doc"
     click id11 href "#Current-primal-solution" "Link to doc"
     click id7 href "#Cuts-insertion" "Link to doc"
     click id8 href "#Iteration-output" "Link to doc"
 ```
+
+In the default implementation, some sections may have different behaviors depending on the 
+result of previous steps.
 
 ### Master optimization
 
@@ -204,7 +211,6 @@ If the solver does not provide a dual infeasibility certificate, the implementat
 has an "emergency" routine to provide a first-stage feasible solution by solving the master LP with cost of second stage variables set to zero.
 We recommend using a solver that provides a dual infeasibility certificate and avoiding the "emergency" routine.
 
-
 **References**:
 
 ```@docs
@@ -215,19 +221,34 @@ Go back to the [cut generation iteration diagram](#Benders-cut-generation-iterat
 
 ### Setup separation subproblems
 
-The separation subproblems differs depending on wether the master is unbounded or not.
-
-If the master is unbounded, the generic function calls `Coluna.Benders.setup_separation_for_unbounded_master_case!`; otherwise, it calls `Coluna.Benders.update_sp_rhs!`.
-
-Default implementation of `Coluna.Benders.setup_separation_for_unbounded_master_case!`
-gives raise to the formulation proposed in Lemma 2 of Bonami et al.
+!!! info
+    The separation subproblems differs depending on whether the restricted master is unbounded or not:
+    - if the restricted master is optimal, the generic function calls `Coluna.Benders.update_sp_rhs!`
+    - if the restricted master is unbounded, the generic function calls `Coluna.Benders.setup_separation_for_unbounded_master_case!`
 
 Default implementation of `Coluna.Benders.update_sp_rhs!` updates the right-hand side of the linking constraints (5).
 
-**References**:
-
+**Reference**:
 ```@docs
 Coluna.Benders.update_sp_rhs!
+```
+
+Default implementation of `Coluna.Benders.setup_separation_for_unbounded_master_case!`
+gives raise to the formulation proposed in Lemma 2 of Bonami et al:
+
+```math
+\begin{aligned}
+(SepB) \equiv \min        \quad& fy  + {\color{gray} \mathbf{1}z' + \mathbf{1}z''}              &&&  \\
+\text{s.t.} \quad& Dy {\color{gray} + z'} \geq -B\bar{x} && (5a)  \quad& {\color{blue}(\pi)} \\
+                        & Ey {\color{gray} + z''} \geq 0                  && (6a)  \quad& {\color{blue}(\rho)} \\
+                        & y \geq 0     && (7a)  \quad& {\color{blue}(\sigma)}
+\end{aligned}
+```
+where $y$ are second-stage variables, $z'$ and $z''$ are artificial variables (in grey because they are deactivated by default), and $\bar{x}$ is the an unbounded ray of the restricted master.
+
+**Reference**:
+
+```@docs
 Coluna.Benders.setup_separation_for_unbounded_master_case!
 ```
 
@@ -288,6 +309,11 @@ Coluna.Algorithm.CutsSet
 Coluna.Algorithm.SepSolSet
 ```
 
+The default implementation of `push_in_set!` has the responsibility to check if the cut is
+violated. Given $\bar{eta}_k$ solution to the restricted master and $\bar{y}$ solution to the separation problem, the cut is considered as violated when:
+- the separation subproblem was infeasible
+- or $\bar{\eta}_k \geq f\bar{y}$ 
+
 **References**:
 
 ```@docs
@@ -298,9 +324,18 @@ Coluna.Benders.push_in_set!
 
 Go back to the [cut generation iteration diagram](#Benders-cut-generation-iteration).
 
-### Unboundness check
+### Unboundedness check
 
-Lorem ipsum.
+!!! info
+    This check is performed only when the restricted master is unbounded.
+
+To perform this check, we need a solution to each separation problem.
+
+Let $(\bar{\eta}_k)_{k \in K}$ be the value of second stage variables in the dual infeasibility certificate of the restricted master.
+Let $\bar{y}$ be an optimal solution to the separation problem **(SepB)**.
+
+As indicated by Bonami et al., if $f\bar{y} \leq \sum_{k \in K} \bar{\eta}_k$, then the 
+original problem is unbounded (by definition of an unbounded ray of the original problem).
 
 **References**:
 
@@ -310,11 +345,9 @@ Coluna.Benders.master_is_unbounded
 
 ### Cuts insertion
 
-The default implementation inserts into the master all the cuts stored in the `` object.
+The default implementation inserts into the master all the cuts stored in the `CutsSet` object.
 
-**References**:
-
-**References**:
+**Reference**:
 
 ```@docs
 Coluna.Benders.insert_cuts!

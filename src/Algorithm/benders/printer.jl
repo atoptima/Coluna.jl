@@ -1,3 +1,9 @@
+"""
+    BendersPrinterContext(reformulation, algo_params) -> BendersPrinterContext
+
+Creates a context to run the default implementation of the Benders algorithm
+together with a printer that prints information about the algorithm execution.
+"""
 mutable struct BendersPrinterContext
     inner::BendersContext
     sp_elapsed_time::Float64
