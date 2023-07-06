@@ -7,7 +7,9 @@ struct ConquerInputFromSb <: AbstractConquerInput
     children_units_to_restore::UnitsUsage
 end
 
-get_node(i::ConquerInputFromSb) = i.children_candidate
+get_records(i::ConquerInputFromSb) = i.children_candidate.records
+get_opt_state(i::ConquerInputFromSb) = i.children_candidate.optstate
+get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
 run_conquer(::ConquerInputFromSb) = true
 

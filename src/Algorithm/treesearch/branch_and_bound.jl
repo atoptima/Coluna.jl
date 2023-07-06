@@ -44,12 +44,17 @@ end
 ############################################################################################
 "Conquer input object created by the branch-and-bound tree search algorithm."
 struct ConquerInputFromBaB <: AbstractConquerInput
-    node::Node
     units_to_restore::UnitsUsage
+    records::Records
+    node_state::OptimizationState
     run_conquer::Bool
+    node_depth::Int
 end
 
-get_node(i::ConquerInputFromBaB) = i.node
+get_records(i::ConquerInputFromBaB) = i.records
+get_opt_state(i::ConquerInputFromBaB) = i.node_state
+get_node_depth(i::ConquerInputFromBaB) = i.node_depth
+
 get_units_to_restore(i::ConquerInputFromBaB) = i.units_to_restore
 run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 
@@ -165,6 +170,15 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     return
 end
 
+
+struct ConquerInputFromBaB <: AbstractConquerInput
+    units_to_restore::UnitsUsage
+    records::Records
+    node_state::OptimizationState
+    run_conquer::Bool
+    node_depth::Int
+end
+
 # Conquer
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
@@ -185,7 +199,13 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     run_conquer = run_conquer || !current.conquerwasrun
     run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
 
-    return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
+    return ConquerInputFromBaB(
+        space.conquer_units_to_restore, 
+        current.records,
+        current.optstate,
+        run_conquer,
+        current.depth
+    )
 end
 
 function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
