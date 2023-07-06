@@ -21,7 +21,6 @@ TreeSearch.get_opt_state(n::Node) = n.optstate # conquer, divide
 
 TreeSearch.isroot(n::Node) = n.depth == 0
 Branching.isroot(n::Node) = TreeSearch.isroot(n)
-TreeSearch.get_records(n::Node) = n.records # conquer
 TreeSearch.set_records!(n::Node, records) = n.records = records
 
 TreeSearch.get_branch_description(n::Node) = n.branchdescription # printer
@@ -51,7 +50,6 @@ struct ConquerInputFromBaB <: AbstractConquerInput
     node_depth::Int
 end
 
-get_records(i::ConquerInputFromBaB) = i.records
 get_opt_state(i::ConquerInputFromBaB) = i.node_state
 get_node_depth(i::ConquerInputFromBaB) = i.node_depth
 
@@ -256,6 +254,11 @@ end
 
 function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untreated_nodes)
     _update_global_dual_bound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
+
+    # We restore the reformulation in the state it was after the creation of the current node (e.g. creation
+    # of the branching constraint) or its partial evaluation (e.g. strong branching).
+    # TODO: We don't need to restore if the formulation has been fully evaluated.
+    restore_from_records!(space.conquer_units_to_restore, current.records)
 
     # we delete solutions from the node optimization state, as they are not needed anymore
     nodestate = TreeSearch.get_opt_state(previous)

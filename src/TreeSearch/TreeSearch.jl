@@ -49,9 +49,6 @@ abstract type AbstractNode end
 
 @mustimplement "Node" set_records!(::AbstractNode, records) = nothing
 
-"Returns a `Records` that allows to restore the state of the formulation at this node."
-@mustimplement "Node" get_records(::AbstractNode) = nothing # conquer
-
 "Returns a `String` to display the branching constraint."
 @mustimplement "Node" get_branch_description(::AbstractNode) = nothing # printer
 

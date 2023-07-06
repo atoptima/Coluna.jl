@@ -7,7 +7,6 @@ struct ConquerInputFromSb <: AbstractConquerInput
     children_units_to_restore::UnitsUsage
 end
 
-get_records(i::ConquerInputFromSb) = i.children_candidate.records
 get_opt_state(i::ConquerInputFromSb) = i.children_candidate.optstate
 get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
@@ -267,7 +266,9 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
     
     child_state = TreeSearch.get_opt_state(child)
     if !ip_gap_closed(child_state)
-        input = ConquerInputFromSb(child, Branching.get_units_to_restore_for_conquer(phase))
+        units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
+        restore_from_records!(units_to_restore, child.records)
+        input = ConquerInputFromSb(child, units_to_restore)
         run!(Branching.get_conquer(phase), env, reform, input)
         TreeSearch.set_records!(child, create_records(reform))
     end
