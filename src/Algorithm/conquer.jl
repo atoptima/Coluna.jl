@@ -56,7 +56,6 @@ end
 
 function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
-    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
     node = getnode(input)    
     node_state = TreeSearch.get_opt_state(node)
     output = run!(algo.benders, env, reform, node_state)
@@ -344,7 +343,6 @@ function run_node_finalizer!(::ColCutGenContext, node_finalizer, env, reform, no
 end
 
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
-    restore_from_records!(get_units_to_restore(input), get_records(input))
     node_state = get_opt_state(input)
 
     time_limit_reached!(node_state, env) && return
@@ -408,8 +406,6 @@ end
 
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
-
-    restore_from_records!(get_units_to_restore(input), get_records(input))
 
     node_state = get_opt_state(input)
     masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), node_state)

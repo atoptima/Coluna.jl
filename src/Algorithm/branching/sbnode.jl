@@ -30,7 +30,6 @@ end
 getdepth(n::SbNode) = n.depth
 
 TreeSearch.get_opt_state(n::SbNode) = n.optstate
-TreeSearch.get_records(n::SbNode) = n.records
 TreeSearch.set_records!(n::SbNode, records) = n.records = records
 TreeSearch.get_parent(n::SbNode) = n.parent
 TreeSearch.get_branch_description(n::SbNode) = n.branchdescription
