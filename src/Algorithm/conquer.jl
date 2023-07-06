@@ -249,13 +249,13 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
 end
 
 # get_heuristics_to_run!
-function get_heuristics_to_run(ctx::ColCutGenContext, node)
+function get_heuristics_to_run(ctx::ColCutGenContext, node_depth)
     return sort!(
         filter(
-            h -> getdepth(node) <= h.max_depth #= & frequency () TODO define a function here =#,
+            h -> node_depth <= h.max_depth #= & frequency () TODO define a function here =#,
             ctx.params.primal_heuristics
         ),
-        by = h -> TreeSearch.isroot(node) ? h.root_priority : h.nonroot_priority,
+        by = h -> node_depth == 0 ? h.root_priority : h.nonroot_priority,
         rev = true
     )
 end
@@ -299,8 +299,8 @@ function run_preprocessing!(::ColCutGenContext, preprocess_algo, env, reform, no
     return true
 end
 
-function run_node_finalizer!(::ColCutGenContext, node_finalizer, env, reform, node, node_state)
-    if getdepth(node) >= node_finalizer.min_depth #= TODO: put in a function =#
+function run_node_finalizer!(::ColCutGenContext, node_finalizer, env, reform, node_depth, node_state)
+    if node_depth >= node_finalizer.min_depth #= TODO: put in a function =#
         if ismanager(node_finalizer.algorithm)
             records = create_records(reform)
         end
@@ -344,9 +344,8 @@ function run_node_finalizer!(::ColCutGenContext, node_finalizer, env, reform, no
 end
 
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
-    node = get_node(input)
-    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
-    node_state = TreeSearch.get_opt_state(node)
+    restore_from_records!(get_units_to_restore(input), get_records(input))
+    node_state = get_opt_state(input)
 
     time_limit_reached!(node_state, env) && return
 
@@ -362,7 +361,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
 
     time_limit_reached!(node_state, env) && return
 
-    heuristics_to_run = get_heuristics_to_run(ctx, node)
+    heuristics_to_run = get_heuristics_to_run(ctx, get_node_depth(input))
     run_conquer = run_heuristics!(ctx, heuristics_to_run, env, reform, node_state)
     !run_conquer && return
 
@@ -371,7 +370,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     # if the gap is still unclosed, try to run the node finalizer
     node_finalizer = ctx.params.node_finalizer
     if !ip_gap_closed(node_state, atol = ctx.params.opt_atol, rtol = ctx.params.opt_rtol) && !isnothing(node_finalizer)
-        run_node_finalizer!(ctx, node_finalizer, env, reform, node, node_state)
+        run_node_finalizer!(ctx, node_finalizer, env, reform, get_node_depth(input), node_state)
     end
 
     time_limit_reached!(node_state, env) && return
@@ -410,10 +409,9 @@ end
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
 
-    node = get_node(input)
-    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
+    restore_from_records!(get_units_to_restore(input), get_records(input))
 
-    node_state = TreeSearch.get_opt_state(node)
+    node_state = get_opt_state(input)
     masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), node_state)
     update!(node_state, masterlp_state)
     if ip_gap_closed(masterlp_state)
