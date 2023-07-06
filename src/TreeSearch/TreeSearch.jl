@@ -43,6 +43,7 @@ abstract type AbstractNode end
 @mustimplement "Node" get_priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
 ##### Additional methods for the node interface (needed by conquer)
+## TODO: move outside TreeSearch module.
 "Returns an `OptimizationState` that contains best bounds and solutions at the node."
 @mustimplement "Node" get_opt_state(::AbstractNode) = nothing # conquer, divide
 
