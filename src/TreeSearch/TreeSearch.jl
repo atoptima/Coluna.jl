@@ -44,9 +44,6 @@ abstract type AbstractNode end
 
 ##### Additional methods for the node interface (needed by conquer)
 ## TODO: move outside TreeSearch module.
-"Returns an `OptimizationState` that contains best bounds and solutions at the node."
-@mustimplement "Node" get_opt_state(::AbstractNode) = nothing # conquer, divide
-
 @mustimplement "Node" set_records!(::AbstractNode, records) = nothing
 
 "Returns a `String` to display the branching constraint."

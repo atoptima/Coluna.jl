@@ -345,25 +345,25 @@ end
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     node_state = get_opt_state(input)
 
-    time_limit_reached!(node_state, env) && return
+    time_limit_reached!(node_state, env) && return node_state
 
     if !isnothing(ctx.params.preprocess)
         run_conquer = run_preprocessing!(ctx, ctx.params.preprocess, env, reform, node_state)
-        !run_conquer && return
+        !run_conquer && return node_state
     end
 
-    time_limit_reached!(node_state, env) && return
+    time_limit_reached!(node_state, env) && return node_state
 
     run_conquer = run_colcutgen!(ctx, env, reform, node_state)
-    !run_conquer && return
+    !run_conquer && return node_state
 
-    time_limit_reached!(node_state, env) && return
+    time_limit_reached!(node_state, env) && return node_state
 
     heuristics_to_run = get_heuristics_to_run(ctx, get_node_depth(input))
     run_conquer = run_heuristics!(ctx, heuristics_to_run, env, reform, node_state)
-    !run_conquer && return
+    !run_conquer && return node_state
 
-    time_limit_reached!(node_state, env) && return
+    time_limit_reached!(node_state, env) && return node_state
 
     # if the gap is still unclosed, try to run the node finalizer
     node_finalizer = ctx.params.node_finalizer
@@ -371,21 +371,20 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
         run_node_finalizer!(ctx, node_finalizer, env, reform, get_node_depth(input), node_state)
     end
 
-    time_limit_reached!(node_state, env) && return
+    time_limit_reached!(node_state, env) && return node_state
 
     if ip_gap_closed(node_state, atol = ctx.params.opt_atol, rtol = ctx.params.opt_rtol)
         setterminationstatus!(node_state, OPTIMAL)
     elseif getterminationstatus(node_state) != TIME_LIMIT && getterminationstatus(node_state) != INFEASIBLE
         setterminationstatus!(node_state, OTHER_LIMIT)
     end
-    return
+    return node_state
 end
 
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
-    !run_conquer(input) && return
+    !run_conquer(input) && return get_opt_state(input)
     ctx = new_context(type_of_context(algo), algo, reform, input)
-    run_colcutgen_conquer!(ctx, env, reform, input)
-    return
+    return run_colcutgen_conquer!(ctx, env, reform, input)
 end
 
 ####################################################################
