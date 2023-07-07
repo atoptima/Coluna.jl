@@ -46,13 +46,9 @@ TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = n.ip_dual
 
 # TODO move
 function Node(node::SbNode)
-    ip_dual_bound = if !isnothing(node.optstate)
-        get_ip_dual_bound(node.optstate)
-    else
-        node.parent.ip_dual_bound
-    end
+    ip_dual_bound = get_ip_dual_bound(node.optstate)
     return Node(
-        node.depth, node.parent, node.branchdescription, node.optstate, ip_dual_bound,
+        node.depth, nothing, node.branchdescription, node.optstate, ip_dual_bound,
         node.records, node.conquerwasrun
     )
 end
@@ -78,16 +74,19 @@ run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
 struct DivideInputFromBaB <: Branching.AbstractDivideInput
-    parent::Node
-    opt_state::OptimizationState
-
-    # Output of the conquer algorithm applied on the node.
-    conquer_opt_state::OptimizationState
+    parent_depth::Int
+    # The conquer output of the parent is very useful to compute scores when trying several
+    # branching candidates. Usually scores measure a progression between the parent full_evaluation
+    # and the children full evaluations. To allow developers to implement several kind of 
+    # scores, we give the full output of the conquer algorithm.
+    parent_conquer_output::OptimizationState
+    parent_records::Records
 end
 
-Branching.get_parent(i::DivideInputFromBaB) = i.parent
-Branching.get_opt_state(i::DivideInputFromBaB) = i.opt_state
-Branching.get_conquer_opt_state(i::DivideInputFromBaB) = i.conquer_opt_state
+Branching.get_parent_depth(i::DivideInputFromBaB) = i.parent_depth
+Branching.get_conquer_opt_state(i::DivideInputFromBaB) = i.parent_conquer_output
+Branching.parent_is_root(i::DivideInputFromBaB) = i.parent_depth == 0
+Branching.parent_records(i::DivideInputFromBaB) = i.parent_records
 
 ############################################################################################
 # SearchSpace
@@ -166,6 +165,7 @@ end
 
 # Send output information of the conquer algorithm to the branch-and-bound.
 function after_conquer!(space::BaBSearchSpace, current, conquer_output)
+    @assert !isnothing(conquer_output)
     treestate = space.optstate
 
     current.records = create_records(space.reformulation)
@@ -221,7 +221,7 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
 end
 
 function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node, conquer_output)
-    return DivideInputFromBaB(node, space.optstate, conquer_output)
+    return DivideInputFromBaB(node.depth, conquer_output, node.records)
 end
 
 function new_children(space::AbstractColunaSearchSpace, branches, node::Node)

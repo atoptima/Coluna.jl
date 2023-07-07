@@ -382,7 +382,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
 end
 
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
-    !run_conquer(input) && return
+    !run_conquer(input) && return get_opt_state(input)
     ctx = new_context(type_of_context(algo), algo, reform, input)
     return run_colcutgen_conquer!(ctx, env, reform, input)
 end

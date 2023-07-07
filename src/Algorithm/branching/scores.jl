@@ -1,18 +1,21 @@
 struct ProductScore <: Branching.AbstractBranchingScore end
 
-function Branching.compute_score(::ProductScore, candidate)
-    parent_lp_dual_bound = get_lp_dual_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    parent_ip_primal_bound = get_ip_primal_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    children_lp_primal_bounds = get_lp_primal_bound.(TreeSearch.get_opt_state.(Branching.get_children(candidate)))
+function Branching.compute_score(::ProductScore, candidate, input)
+    parent = Branching.get_conquer_opt_state(input)
+    parent_lp_dual_bound = get_lp_dual_bound(parent)
+    parent_ip_primal_bound = get_ip_primal_bound(parent)
+    children_lp_primal_bounds = get_lp_primal_bound.(getfield.(Branching.get_children(candidate), Ref(:optstate)))
     return _product_score(parent_lp_dual_bound, parent_ip_primal_bound, children_lp_primal_bounds)
 end
 
 struct TreeDepthScore <: Branching.AbstractBranchingScore end
 
-function Branching.compute_score(::TreeDepthScore, candidate)
-    parent_lp_dual_bound = get_lp_dual_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    parent_ip_primal_bound = get_ip_primal_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    children_lp_primal_bounds = get_lp_primal_bound.(TreeSearch.get_opt_state.(Branching.get_children(candidate)))
+function Branching.compute_score(::TreeDepthScore, candidate, input)
+    parent = Branching.get_conquer_opt_state(input)
+    parent_lp_dual_bound = get_lp_dual_bound(parent)
+    parent_ip_primal_bound = get_ip_primal_bound(parent)
+    children = Branching.get_children(candidate)
+    children_lp_primal_bounds = get_lp_primal_bound.(getfield.(children, :optstate))
     return _tree_depth_score(parent_lp_dual_bound, parent_ip_primal_bound, children_lp_primal_bounds)
 end
 

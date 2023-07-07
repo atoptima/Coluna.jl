@@ -17,9 +17,10 @@ Contains the parent node in the search tree for which children should be generat
 """
 abstract type AbstractDivideInput end
 
-@mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
-@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_parent_depth(i::AbstractDivideInput) = nothing
 @mustimplement "DivideInput" get_conquer_opt_state(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" parent_is_root(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" parent_records(i::AbstractDivideInput) = nothing
 
 """
 Output of a divide algorithm used by the tree search algorithm.
@@ -86,7 +87,7 @@ function select!(rule::AbstractBranchingRule, env, reform, input::Branching.Bran
     select_candidates!(candidates, input.criterion, input.max_nb_candidates)
 
     for candidate in candidates
-        children = generate_children!(candidate, env, reform, input.parent)
+        children = generate_children!(candidate, env, reform, input.input)
         set_children!(candidate, children)
     end
     return BranchingRuleOutput(local_id, candidates)
@@ -221,7 +222,7 @@ function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, i
     for child in get_children(candidate)
         eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform, input)
     end
-    return compute_score(get_score(phase), candidate)
+    return compute_score(get_score(phase), candidate, input)
 end
 
 "Evaluate children of a candidate."
@@ -232,13 +233,13 @@ end
 ##############################################################################
 # Default implementation of the branching algorithm
 ##############################################################################
-function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candidates, reform, env, parent, extended_sol, original_sol)
+function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candidates, reform, env, extended_sol, original_sol, input)
     if isnothing(extended_sol)
         error("Error") #TODO (talk with Ruslan.)
     end
     
     # We sort branching rules by their root/non-root priority.
-    sorted_rules = sort(Branching.get_rules(ctx), rev = true, by = x -> Branching.getpriority(x, isroot(parent)))
+    sorted_rules = sort(Branching.get_rules(ctx), rev = true, by = x -> Branching.getpriority(x, parent_is_root(input)))
     
     kept_branch_candidates = Branching.AbstractBranchingCandidate[]
 
@@ -249,7 +250,7 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
         rule = prioritised_rule.rule
 
         # Priority of the current branching rule.
-        priority = Branching.getpriority(prioritised_rule, isroot(parent))
+        priority = Branching.getpriority(prioritised_rule, parent_is_root(input))
     
         nb_candidates_found = length(kept_branch_candidates)
 
@@ -273,7 +274,7 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
         output = Branching.select!(
             rule, env, reform, Branching.BranchingRuleInput(
                 original_sol, true, max_nb_candidates, Branching.get_selection_criterion(ctx),
-                local_id, Branching.get_int_tol(ctx), priority, parent
+                local_id, Branching.get_int_tol(ctx), priority, input
             )
         )
         append!(kept_branch_candidates, output.candidates)
@@ -283,7 +284,7 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
             output = Branching.select!(
                 rule, env, reform, Branching.BranchingRuleInput(
                     extended_sol, false, max_nb_candidates, Branching.get_selection_criterion(ctx),
-                    local_id, Branching.get_int_tol(ctx), priority, parent
+                    local_id, Branching.get_int_tol(ctx), priority, input
                 )
             )
             append!(kept_branch_candidates, output.candidates)
@@ -298,9 +299,8 @@ end
 @mustimplement "Branching" why_no_candidate(reform, input, extended_sol, original_sol) = nothing
 
 function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, extended_sol, original_sol)
-    parent = Branching.get_parent(input)
     max_nb_candidates = get_selection_nb_candidates(ctx)
-    candidates = candidates_selection(ctx, max_nb_candidates, reform, env, parent, extended_sol, original_sol)
+    candidates = candidates_selection(ctx, max_nb_candidates, reform, env, extended_sol, original_sol, input)
 
     # We stop branching if no candidate generated.
     if length(candidates) == 0

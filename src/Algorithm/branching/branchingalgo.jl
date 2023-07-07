@@ -287,7 +287,7 @@ function Branching.new_ip_primal_sols_pool(ctx::StrongBranchingContext, reform, 
     # Only the ip primal bound is used to avoid inserting integer solutions that are not
     # better than the incumbent.
     # We also use the primal bound to init candidate nodes in the strong branching procedure.
-    input_opt_state = Branching.get_opt_state(input)
+    input_opt_state = Branching.get_conquer_opt_state(input)
     return OptimizationState(
         getmaster(reform);
         ip_primal_bound = get_ip_primal_bound(input_opt_state),
