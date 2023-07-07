@@ -19,6 +19,7 @@ abstract type AbstractDivideInput end
 
 @mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
 @mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_conquer_opt_state(i::AbstractDivideInput) = nothing
 
 """
 Output of a divide algorithm used by the tree search algorithm.
@@ -167,7 +168,7 @@ function perform_strong_branching_inner!(
             nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
-        scores = perform_branching_phase!(candidates, current_phase, ip_primal_sols_found, env, model)
+        scores = perform_branching_phase!(candidates, current_phase, ip_primal_sols_found, env, model, input)
 
         perm = sortperm(scores, rev=true)
         permute!(candidates, perm)
@@ -183,12 +184,12 @@ function perform_strong_branching_inner!(
     return ip_primal_sols_found
 end
 
-function perform_branching_phase!(candidates, phase, ip_primal_sols_found, env, reform)
-    return perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform)
+function perform_branching_phase!(candidates, phase, ip_primal_sols_found, env, reform, input)
+    return perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform, input)
 end
 
 "Performs a branching phase."
-function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform)
+function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform, input)
     
     return map(candidates) do candidate
         # TODO; I don't understand why we need to sort the children here.
@@ -207,24 +208,24 @@ function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found,
         #     by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child))
         # )
 
-        return eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform)
+        return eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform, input)
     end
 end
 
-function eval_candidate!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    return eval_candidate_inner!(candidate, phase, ip_primal_sols_found, env, reform)
+function eval_candidate!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
+    return eval_candidate_inner!(candidate, phase, ip_primal_sols_found, env, reform, input)
 end
 
 "Evaluates a candidate."
-function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
+function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
     for child in get_children(candidate)
-        eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform)
+        eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform, input)
     end
     return compute_score(get_score(phase), candidate)
 end
 
 "Evaluate children of a candidate."
-@mustimplement "StrongBranching" eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform) = nothing
+@mustimplement "StrongBranching" eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform, input) = nothing
 
 @mustimplement "Branching" isroot(node) = nothing
 

@@ -5,8 +5,8 @@
 ### This light node will contain information to generate the real node of the tree search.
 mutable struct SbNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
     depth::Int
-    parent::Union{Nothing, Node}
-    optstate::OptimizationState
+    parent::Node
+    optstate::Union{Nothing,OptimizationState}
     var_name::String
     branchdescription::String
     records::Records
@@ -15,7 +15,7 @@ mutable struct SbNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
         form::AbstractFormulation, parent::N, var_name::String, branch_description::String, records::Records
     ) where {N <: TreeSearch.AbstractNode}
         depth = getdepth(parent) + 1
-        node_state = OptimizationState(form, TreeSearch.get_opt_state(parent), true, true)
+        node_state = nothing
         return new{N}(depth, parent, node_state, var_name, branch_description, records, false)
     end
 end
@@ -29,7 +29,6 @@ end
 
 getdepth(n::SbNode) = n.depth
 
-TreeSearch.get_opt_state(n::SbNode) = n.optstate
 TreeSearch.set_records!(n::SbNode, records) = n.records = records
 TreeSearch.get_parent(n::SbNode) = n.parent
 TreeSearch.get_branch_description(n::SbNode) = n.branchdescription

@@ -6,7 +6,7 @@ end
 Branching.get_children(output::DivideOutput) = output.children
 Branching.get_opt_state(output::DivideOutput) = output.optstate
 
-function get_extended_sol(eform, opt_state)
+function get_extended_sol(reform, opt_state)
     return get_best_lp_primal_sol(opt_state)
 end
 
@@ -31,18 +31,17 @@ end
 function run!(algo::AlgoAPI.AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::Branching.AbstractDivideInput)
     ctx = new_context(branching_context_type(algo), algo, reform)
 
-    parent = Branching.get_parent(input)
-    optstate = TreeSearch.get_opt_state(parent)
-    nodestatus = getterminationstatus(optstate)
+    conquer_opt_state = Branching.get_conquer_opt_state(input)
+    nodestatus = getterminationstatus(conquer_opt_state)
 
     # We don't run the branching algorithm if the node is already conquered
-    if nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(optstate)             
-        #println("Node is already conquered. No children will be generated.")
-        return DivideOutput(SbNode[], optstate)
+    if nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state)             
+        # println("Node is already conquered. No children will be generated.")
+        return DivideOutput(SbNode[], conquer_opt_state)
     end
 
-    extended_sol = get_extended_sol(reform, TreeSearch.get_opt_state(parent))
-    original_sol = get_original_sol(reform, TreeSearch.get_opt_state(parent))
+    extended_sol = get_extended_sol(reform, conquer_opt_state)
+    original_sol = get_original_sol(reform, conquer_opt_state)
 
     return Branching.run_branching!(ctx, env, reform, input, extended_sol, original_sol)
 end

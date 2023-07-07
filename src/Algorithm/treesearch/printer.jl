@@ -197,7 +197,7 @@ function print_log(
     current_node_id = node.tree_order_id
     current_node_depth = getdepth(node.inner)
     current_parent_id = isnothing(TreeSearch.get_parent(node)) ? nothing : TreeSearch.get_parent(node).tree_order_id
-    local_db = getvalue(get_ip_dual_bound(TreeSearch.get_opt_state(node.inner)))
+    local_db = getvalue(node.inner.ip_dual_bound)
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
     global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
     time = elapsed_optim_time(env)

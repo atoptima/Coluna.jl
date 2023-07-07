@@ -250,8 +250,12 @@ function new_context(
     )
 end
 
-function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    child_state = TreeSearch.get_opt_state(child)
+function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)    
+    child_state = OptimizationState(
+        getmaster(reform);
+        ip_primal_bound = get_ip_primal_bound(Branching.get_conquer_opt_state(input)),    
+    )
+    child.optstate = child_state
 
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
     # strong branching procedure but also the best primal bound found so far (in the whole optimization).
@@ -264,7 +268,6 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
     #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
     # end
     
-    child_state = TreeSearch.get_opt_state(child)
     if !ip_gap_closed(child_state)
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
