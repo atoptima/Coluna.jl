@@ -165,6 +165,8 @@ function perform_strong_branching_inner!(
             nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
+        println("\e[45m ****** perform strong branching ****** \e[00m")
+        @show typeof(current_phase.inner.phase_params.conquer_algo)
         scores = perform_branching_phase!(candidates, current_phase, ip_primal_sols_found, env, model, input)
 
         perm = sortperm(scores, rev=true)

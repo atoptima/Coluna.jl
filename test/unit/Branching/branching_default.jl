@@ -127,33 +127,32 @@ function test_strong_branching()
         "MC_37" => [3, 4, 7]
     )
 
-    @show sps[1]
     pool = Coluna.MathProg.get_primal_sol_pool(sps[1])
-    pool_hashtable = Coluna.MathProg._get_primal_sol_pool_hash_table(sps[1])
-    costs_pool = sps[1].duty_data.costs_primalsols_pool
-    custom_pool = sps[1].duty_data.custom_primalsols_pool
 
     col_names =  ["MC_31", "MC_33", "MC_35", "MC_37"]
+    vars_sp1 = Dict{String, Coluna.MathProg.VarId}(Coluna.MathProg.getname(sps[1], var) => varid for (varid, var) in Coluna.MathProg.getvars(sps[1]))
+    @show vars_sp1
     for col_name in col_names
         col_id = Coluna.MathProg.VarId( vars[col_name]; duty = Coluna.MathProg.DwSpPrimalSol)
-        var_ids = [vars["x_2$i"] for i in col_items[col_name]]
+        var_ids = [vars_sp1["x_2$i"] for i in col_items[col_name]]
         var_vals = ones(Float64, length(var_ids))
-        DynamicSparseArrays.addrow!(pool, col_id, var_ids, var_vals)
+        primal_sol = MathProg.PrimalSolution(master, var_ids, var_vals, 0.0, MathProg.FEASIBLE_SOL)
+        @show primal_sol
+        MathProg.push_in_pool!(pool, primal_sol, col_id, 1.0)
     end
 
     # Pool of second subproblem
-    @show sps[2]
     pool = Coluna.MathProg.get_primal_sol_pool(sps[2])
-    pool_hashtable = Coluna.MathProg._get_primal_sol_pool_hash_table(sps[2])
-    costs_pool = sps[2].duty_data.costs_primalsols_pool
-    custom_pool = sps[2].duty_data.custom_primalsols_pool
 
     col_names =["MC_30", "MC_32", "MC_34", "MC_36"]
+    vars_sp2 = Dict{String, Coluna.MathProg.VarId}(Coluna.MathProg.getname(sps[2], var) => varid for (varid, var) in Coluna.MathProg.getvars(sps[2]))
     for col_name in col_names
-        col_id = Coluna.MathProg.VarId( vars[col_name]; duty = Coluna.MathProg.DwSpPrimalSol)
-        var_ids = [vars["x_1$i"] for i in col_items[col_name]]
+        col_id = Coluna.MathProg.VarId(vars[col_name]; duty = Coluna.MathProg.DwSpPrimalSol)
+        vars_sp2 = Dict{String, Coluna.MathProg.VarId}(Coluna.MathProg.getname(sps[1], var) => varid for (varid, var) in Coluna.MathProg.getvars(sps[2]))
+        var_ids = [vars_sp2["x_1$i"] for i in col_items[col_name]]
         var_vals = ones(Float64, length(var_ids))
-        DynamicSparseArrays.addrow!(pool, col_id, var_ids, var_vals)
+        primal_sol = MathProg.PrimalSolution(master, var_ids, var_vals, 0.0, MathProg.FEASIBLE_SOL)
+        MathProg.push_in_pool!(pool, primal_sol, col_id, 1.0)
     end
 
     ### Algorithm
@@ -193,17 +192,17 @@ function test_strong_branching()
         )
     )
 
-    optstate = Coluna.Algorithm.OptimizationState(master)
-    Coluna.Algorithm.update_lp_primal_sol!(optstate, extended_sol)
+    conquer_output = Coluna.Algorithm.OptimizationState(master)
+    Coluna.Algorithm.update_lp_primal_sol!(conquer_output, extended_sol)
     records = Coluna.Algorithm.Records()
     node = Coluna.Algorithm.Node(
-        0, nothing, optstate, "", records, false 
+        0, "", nothing, MathProg.DualBound(reform), records, false 
     )
 
     input = Coluna.Algorithm.DivideInputFromBaB(
-        node, optstate
+        0, conquer_output, records
     )
-    original_sol = Coluna.Algorithm.get_original_sol(reform, optstate)
+    original_sol = Coluna.Algorithm.get_original_sol(reform, conquer_output)
 
     @show extended_sol
     @show original_sol
