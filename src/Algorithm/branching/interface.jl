@@ -4,7 +4,7 @@ struct DivideOutput{N} <: Branching.AbstractDivideOutput
 end
 
 Branching.get_children(output::DivideOutput) = output.children
-Branching.get_opt_state(output::DivideOutput) = output.optstate
+#Branching.get__opt_state(output::DivideOutput) = output.optstate
 
 function get_extended_sol(reform, opt_state)
     return get_best_lp_primal_sol(opt_state)

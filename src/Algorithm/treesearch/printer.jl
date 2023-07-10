@@ -47,11 +47,10 @@ print execution logs.
 """
 struct PrintedNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
     tree_order_id::Int
-    parent::Union{Nothing,PrintedNode}
+    parent_tree_order_id::Union{Int, Nothing}
     inner::Node
 end
 
-TreeSearch.get_parent(n::PrintedNode) = n.parent
 TreeSearch.get_priority(explore::TreeSearch.AbstractExploreStrategy, n::PrintedNode) = TreeSearch.get_priority(explore, n.inner)
 
 function TreeSearch.tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
@@ -90,7 +89,7 @@ function TreeSearch.children(sp::PrinterSearchSpace, current, env, untreated_nod
     return map(
         TreeSearch.children(sp.inner, current.inner, env, Iterators.map(_inner_node, untreated_nodes))
     ) do child
-        return PrintedNode(sp.current_tree_order_id += 1, current, child)
+        return PrintedNode(sp.current_tree_order_id += 1, current.tree_order_id, child)
     end
 end
 
@@ -197,7 +196,7 @@ function print_log(
     is_root_node = iszero(getdepth(node.inner))
     current_node_id = node.tree_order_id
     current_node_depth = getdepth(node.inner)
-    current_parent_id = isnothing(TreeSearch.get_parent(node)) ? nothing : TreeSearch.get_parent(node).tree_order_id
+    current_parent_id = node.parent_tree_order_id
     local_db = getvalue(node.inner.ip_dual_bound)
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
     global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))

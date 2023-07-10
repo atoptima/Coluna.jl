@@ -27,17 +27,9 @@ mutable struct SbNode <: TreeSearch.AbstractNode
     end
 end
 
-# TODO remove
-function to_be_pruned(node::SbNode)
-    nodestate = TreeSearch.get_opt_state(node)
-    getterminationstatus(nodestate) == INFEASIBLE && return true
-    return ip_gap_closed(nodestate)
-end
-
 getdepth(n::SbNode) = n.depth
 
 TreeSearch.set_records!(n::SbNode, records) = n.records = records
-TreeSearch.get_parent(n::SbNode) = n.parent
 TreeSearch.get_branch_description(n::SbNode) = n.branchdescription
 get_var_name(n::SbNode) = n.var_name
 TreeSearch.isroot(n::SbNode) = false
