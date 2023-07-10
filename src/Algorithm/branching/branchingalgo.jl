@@ -7,10 +7,11 @@ struct ConquerInputFromSb <: AbstractConquerInput
     children_units_to_restore::UnitsUsage
 end
 
-get_opt_state(i::ConquerInputFromSb) = i.children_candidate.optstate
+get_conquer_input_ip_primal_bound(i::ConquerInputFromSb) = get_ip_primal_bound(i.children_candidate.optstate)
+get_conquer_input_ip_dual_bound(i::ConquerInputFromSb) = get_ip_dual_bound(i.children_candidate.optstate)
 get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
-run_conquer(::ConquerInputFromSb) = true
+get_run_conquer(::ConquerInputFromSb) = true
 
 ############################################################################################
 # NoBranching
@@ -251,10 +252,7 @@ function new_context(
 end
 
 function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)    
-    child_state = OptimizationState(
-        getmaster(reform);
-        ip_primal_bound = get_ip_primal_bound(Branching.get_conquer_opt_state(input)),    
-    )
+    child_state = OptimizationState(getmaster(reform))
     child.optstate = child_state
 
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 

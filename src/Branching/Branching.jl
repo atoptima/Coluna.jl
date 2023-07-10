@@ -30,10 +30,6 @@ abstract type AbstractDivideOutput end
 
 @mustimplement "DivideOutput" get_children(output::AbstractDivideOutput) = nothing
 
-# TODO: simplify this because we only retrieve ip primal sols found in branching candidates.
-@mustimplement "DivideOutput" get_opt_state(output::AbstractDivideOutput) = nothing
-
-
 ############################################################################################
 # Branching API
 ############################################################################################
@@ -206,7 +202,7 @@ function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found,
         
         # children = sort(
         #     Branching.get_children(candidate),
-        #     by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child))
+        #     by = child -> get_lp_primal_bound(child)
         # )
 
         return eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform, input)
