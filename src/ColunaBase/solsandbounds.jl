@@ -1,32 +1,28 @@
-# alias only used in this file
-const Primal = AbstractPrimalSpace
-const Dual = AbstractDualSpace
-const MinSense = AbstractMinSense
-const MaxSense = AbstractMaxSense
-
 # Bounds
-struct Bound{Space<:AbstractSpace,Sense<:AbstractSense} <: Real
+struct Bound <: Real
+    min::Bool # max if false.
+    primal::Bool # dual if false.
     value::Float64
-    Bound{Space,Sense}(x::Number) where {Space,Sense} = new(x === NaN ? _defaultboundvalue(Space, Sense) : x)
+    Bound(primal::Bool, min::Bool, x::Number) = new(min, primal, x === NaN ? _defaultboundvalue(primal, min) : x)
 end
 
-_defaultboundvalue(::Type{<:Primal}, ::Type{<:MinSense}) = Inf
-_defaultboundvalue(::Type{<:Primal}, ::Type{<:MaxSense}) = -Inf
-_defaultboundvalue(::Type{<:Dual}, ::Type{<:MinSense}) = -Inf
-_defaultboundvalue(::Type{<:Dual}, ::Type{<:MaxSense}) = Inf
+function _defaultboundvalue(primal::Bool, min::Bool)
+    sc1 = min ? 1 : -1
+    sc2 = primal ? 1 : -1
+    return sc1 * sc2 * Inf
+end
 
 """
-    Bound{Space,Sense}()
+    Bound(primal, min)
 
-Create a default bound for a problem with objective sense `Sense<:AbstractSense` in `Space<:AbstractSpace`.  
+Create a default primal bound for a problem with objective sense (min or max) in the space (primal or dual).  
 """
-function Bound{Space,Sense}() where {Space<:AbstractSpace,Sense<:AbstractSense}
-    val = _defaultboundvalue(Space, Sense)
-    return Bound{Space,Sense}(val)
+function Bound(primal, min)
+    val = _defaultboundvalue(primal, min)
+    return Bound(primal, min, val)
 end
 
 getvalue(b::Bound) = b.value
-Base.float(b::Bound) = b.value
 
 """
     isbetter(b1, b2)
@@ -34,24 +30,26 @@ Base.float(b::Bound) = b.value
 Returns true if bound b1 is better than bound b2.
 The function take into account the space (primal or dual) and the objective sense (min, max) of the bounds.
 """
-isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MinSense} = b1.value < b2.value
-isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b1.value > b2.value
-isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.value > b2.value
-isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
+function isbetter(b1::Bound, b2::Bound)
+    @assert b1.min == b2.min && b1.primal == b2.primal
+    sc1 = b1.min ? 1 : -1
+    sc2 = b1.primal ? 1 : -1
+    return sc1 * sc2 * b1.value < sc1 * sc2 * b2.value
+end
 
 """
     best(b1, b2)
 
 Returns the best bound between b1 and b2.
 """
-best(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b1 : b2
+best(b1::Bound, b2::Bound) = isbetter(b1, b2) ? b1 : b2
 
 """
     worst(b1, b2)
 
 Returns the worst bound between b1 and b2.
 """
-worst(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b2 : b1
+worst(b1::Bound, b2::Bound) = isbetter(b1, b2) ? b2 : b1
 
 
 """
@@ -61,20 +59,12 @@ worst(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b2 : b1
 Distance between a primal bound and a dual bound that have the same objective sense.
 Distance is non-positive if dual bound reached primal bound.
 """
-function Base.diff(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
-    return pb.value - db.value
-end
-
-function Base.diff(db::Bound{<:Dual,<:MinSense}, pb::Bound{<:Primal,<:MinSense})
-    return pb.value - db.value
-end
-
-function Base.diff(pb::Bound{<:Primal,<:MaxSense}, db::Bound{<:Dual,<:MaxSense})
-    return db.value - pb.value
-end
-
-function Base.diff(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
-    return db.value - pb.value
+function diff(b1::Bound, b2::Bound)
+    @assert b1.min == b2.min && b1.primal != b2.primal
+    pb = b1.primal ? b1 : b2
+    db = b1.primal ? b2 : b1
+    sc = b1.min ? 1 : -1
+    return sc * (pb.value - db.value)
 end
 
 """
@@ -83,44 +73,31 @@ end
 
 Return relative gap. Gap is non-positive if pb reached db.
 """
-function gap(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
-    return diff(pb, db) / abs(db.value)
-end
-
-function gap(db::Bound{<:Dual,<:MinSense}, pb::Bound{<:Primal,<:MinSense})
-    return diff(pb, db) / abs(db.value)
-end
-
-function gap(pb::Bound{<:Primal,<:MaxSense}, db::Bound{<:Dual,<:MaxSense})
-    return diff(pb, db) / abs(pb.value)
-end
-
-function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
-    return diff(pb, db) / abs(pb.value)
+function gap(b1::Bound, b2::Bound)
+    @assert b1.primal != b2.primal && b1.min == b2.min
+    db = b1.primal ? b2 : b1
+    pb = b1.primal ? b1 : b2
+    den = b1.min ? db : pb
+    return diff(b1, b2) / abs(den.value)
 end
 
 """
-    isunbounded(pb)
-    isunbounded(db)
+    isunbounded(bound)
 
 Return true is the primal bound or the dual bound is unbounded.
 """
-isunbounded(b::Bound{<:Primal,<:MinSense}) = getvalue(b) == -Inf
-isunbounded(b::Bound{<:Dual,<:MinSense}) = getvalue(b) == Inf
-isunbounded(b::Bound{<:Primal,<:MaxSense}) = getvalue(b) == Inf
-isunbounded(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == -Inf
+function isunbounded(bound::Bound)
+    inf = - _defaultboundvalue(bound.primal, bound.min)
+    return getvalue(bound) == inf
+end
 
 
 """
-    isinfeasible(pb)
-    isinfeasible(db)
+    isinfeasible(bound)
 
 Return true is the primal bound or the dual bound is infeasible.
 """
-isinfeasible(b::Bound{<:Primal,<:MinSense}) = isnothing(getvalue(b))
-isinfeasible(b::Bound{<:Dual,<:MinSense}) = isnothing(getvalue(b))
-isinfeasible(b::Bound{<:Primal,<:MaxSense}) = isnothing(getvalue(b))
-isinfeasible(b::Bound{<:Dual,<:MaxSense}) = isnothing(getvalue(b))
+isinfeasible(b::Bound) = isnothing(getvalue(b))
 
 """
     printbounds(db, pb [, io])
@@ -129,40 +106,27 @@ Prints the lower and upper bound according to the objective sense.
 
 Can receive io::IO as an input, to eventually output the print to a file or buffer.
 """
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
-    Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
-end
-
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MaxSense}
-    Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+function printbounds(db::Bound, pb::Bound, io::IO=Base.stdout)
+    @assert !db.primal && pb.primal && db.min == pb.min
+    if db.min
+        Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
+    else
+        Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+    end
 end
 
 function Base.show(io::IO, b::Bound)
     print(io, getvalue(b))
 end
 
-Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractFloat}) = B
-Base.promote_rule(B::Type{<:Bound}, ::Type{<:Integer}) = B
-Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractIrrational}) = B
-Base.promote_rule(::Type{<:Bound{<:Primal,Se}}, ::Type{<:Bound{<:Dual,Se}}) where {Se<:AbstractSense} = Float64
+# If you work with a Bound and another type, the Bound is promoted to the other type.
+Base.promote_rule(::Type{Bound}, F::Type{<:AbstractFloat}) = F
+Base.promote_rule(::Type{Bound}, I::Type{<:Integer}) = I
+Base.promote_rule(::Type{Bound}, I::Type{<:AbstractIrrational}) = I
 
 Base.convert(::Type{<:AbstractFloat}, b::Bound) = b.value
 Base.convert(::Type{<:Integer}, b::Bound) = b.value
 Base.convert(::Type{<:AbstractIrrational}, b::Bound) = b.value
-Base.convert(B::Type{<:Bound}, f::AbstractFloat) = B(f)
-Base.convert(B::Type{<:Bound}, i::Integer) = B(i)
-Base.convert(B::Type{<:Bound}, i::AbstractIrrational) = B(i)
-
-Base.:-(b::B) where {B<:Bound} = B(-b.value)
-Base.:+(b1::B, b2::B) where {B<:Bound} = B(b1.value + b2.value)
-Base.:-(b1::B, b2::B) where {B<:Bound} = B(b1.value - b2.value)
-Base.:*(b1::B, b2::B) where {B<:Bound} = B(b1.value * b2.value)
-Base.:/(b1::B, b2::B) where {B<:Bound} = B(b1.value / b2.value)
-Base.:(==)(b1::B, b2::B) where {B<:Bound} = b1.value == b2.value
-Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
-Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
-Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
-Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value
 
 """
     TerminationStatus

@@ -29,7 +29,7 @@ If you find some enhancements, please contact [guimarqu](https://github.com/guim
 ## Overview
 
 The packed-memory array (`PackedMemoryArray{K,T}`) is a `Vector{Union{Nothing,Tuple{K,T}}}` where `K` is the type of the keys and `T` is the type of the values.
-We keep empty entries (i.e. `Nothing`) in the array to "fastly" add new values later.
+We keep empty entries (i.e. `Nothing`) in the array to add new values later fast.
 Non-empty entries are sorted by ascending key order.
 The array is virtually split into segments of equal size. The goal is to maintain the density (i.e. number of non-empty values/size of the segment) of each segment between pre-defined bounds. We also consider the density of certain unions of segments represented by nodes of the tree in gray.
 The root node of the tree is the union of all segments, thus the whole array.

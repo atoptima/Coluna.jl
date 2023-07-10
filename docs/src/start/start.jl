@@ -1,4 +1,4 @@
-# # Column generation with the Generalized Assignment Problem
+# # [Column generation with the Generalized Assignment Problem](@id tuto_gen_assignement)
 
 # This quick start guide introduces the main features of Coluna through the example of the
 # Generalized Assignment Problem.
@@ -128,7 +128,7 @@ master = getmaster(decomposition)
 subproblems = getsubproblems(decomposition)
 
 # The multiplicity of a subproblem is the number of times that the same independent block
-# shaped by the subproblem appears in the model. This multiplicy also specifies the number of
+# shaped by the subproblem appears in the model. This multiplicity also specifies the number of
 # solutions to the subproblem that can appear in the solution to the original problem.
 
 # In this GAP instance, the upper multiplicity is $1$ because every subproblem is different,
@@ -147,7 +147,7 @@ optimize!(model)
 # You can find more information about the output of the column generation algorithm [ColumnGeneration](@ref).
 
 # Finally, you can retrieve the solution to the original formulation with JuMP methods.
-# For example, if we want to know if the job 3 is assigned to machine 1:
+# For example, if we want to know if job 3 is assigned to machine 1:
 
 value(x[1,3])
 

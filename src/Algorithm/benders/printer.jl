@@ -1,3 +1,9 @@
+"""
+    BendersPrinterContext(reformulation, algo_params) -> BendersPrinterContext
+
+Creates a context to run the default implementation of the Benders algorithm
+together with a printer that prints information about the algorithm execution.
+"""
 mutable struct BendersPrinterContext
     inner::BendersContext
     sp_elapsed_time::Float64
@@ -79,8 +85,8 @@ function Benders.optimize_master_problem!(master, ctx::BendersPrinterContext, en
     return result
 end
 
-function Benders.treat_unbounded_master_problem!(master, ctx::BendersPrinterContext, env)
-    result = Benders.treat_unbounded_master_problem!(master, ctx.inner, env)
+function Benders.treat_unbounded_master_problem_case!(master, ctx::BendersPrinterContext, env)
+    result = Benders.treat_unbounded_master_problem_case!(master, ctx.inner, env)
     if ctx.debug_print_master || ctx.debug_print_master_primal_solution || ctx.debug_print_master_dual_solution
         println(crayon"bold blue", repeat('-', 80), crayon"reset")
         println(crayon"bold underline blue", "Treat unbounded master", crayon"reset")
@@ -93,10 +99,8 @@ function Benders.treat_unbounded_master_problem!(master, ctx::BendersPrinterCont
     return result
 end
 
-Benders.set_second_stage_var_costs_to_zero!(ctx::BendersPrinterContext) = Benders.set_second_stage_var_costs_to_zero!(ctx.inner)
-Benders.reset_second_stage_var_costs!(ctx::BendersPrinterContext) = Benders.reset_second_stage_var_costs!(ctx.inner)
 Benders.update_sp_rhs!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.update_sp_rhs!(ctx.inner, sp, primal_sol)
-Benders.set_sp_rhs_to_zero!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.set_sp_rhs_to_zero!(ctx.inner, sp, primal_sol)
+Benders.setup_separation_for_unbounded_master_case!(ctx::BendersPrinterContext, sp, primal_sol) = Benders.setup_separation_for_unbounded_master_case!(ctx.inner, sp, primal_sol)
 Benders.set_of_cuts(ctx::BendersPrinterContext) = Benders.set_of_cuts(ctx.inner)
 Benders.set_of_sep_sols(ctx::BendersPrinterContext) = Benders.set_of_sep_sols(ctx.inner)
 
@@ -105,12 +109,41 @@ function Benders.optimize_separation_problem!(ctx::BendersPrinterContext, sp::Fo
         println(crayon"bold green", repeat('-', 80), crayon"reset")
     end
     if ctx.debug_print_subproblem
-        print(crayon"bold underline green", "Separation problem:", crayon"!bold !underline")
+        print(crayon"bold underline green", "Separation problem (unbounded master = $unbounded_master):", crayon"!bold !underline")
         @show sp
         print(crayon"reset")
     end
     ctx.sp_elapsed_time = @elapsed begin
     result = Benders.optimize_separation_problem!(ctx.inner, sp, env, unbounded_master)
+    end
+    if ctx.debug_print_subproblem_primal_solution
+        print(crayon"bold underline green", "Separation problem primal solution:", crayon"!bold !underline")
+        @show Benders.get_primal_sol(result)
+        print(crayon"reset")
+    end
+    if ctx.debug_print_subproblem_dual_solution
+        print(crayon"bold underline green", "Separation problem dual solution:", crayon"!bold !underline")
+        @show Benders.get_dual_sol(result)
+        print(crayon"reset")
+    end
+    if ctx.debug_print_subproblem || ctx.debug_print_subproblem_primal_solution || ctx.debug_print_subproblem_dual_solution
+        println(crayon"bold green", repeat('-', 80), crayon"reset")
+    end
+    return result
+end
+
+function Benders.treat_infeasible_separation_problem_case!(ctx::BendersPrinterContext, sp, env, unbounded_master_case)
+    result = Benders.treat_infeasible_separation_problem_case!(ctx.inner, sp, env, unbounded_master_case)
+    if ctx.debug_print_subproblem || ctx.debug_print_subproblem_primal_solution || ctx.debug_print_subproblem_dual_solution
+        println(crayon"bold green", repeat('-', 80), crayon"reset")
+    end
+    if ctx.debug_print_subproblem
+        print(crayon"bold underline green", "Phase 1 Separation problem (unbounded_master = $unbounded_master_case):", crayon"!bold !underline")
+        @show sp
+        print(crayon"reset")
+    end
+    ctx.sp_elapsed_time = @elapsed begin
+    result = Benders.treat_infeasible_separation_problem_case!(ctx.inner, sp, env, unbounded_master_case)
     end
     if ctx.debug_print_subproblem_primal_solution
         print(crayon"bold underline green", "Separation problem primal solution:", crayon"!bold !underline")
@@ -160,3 +193,5 @@ end
 function Benders.build_primal_solution(context::BendersPrinterContext, mast_primal_sol, sep_sp_sols)
     return Benders.build_primal_solution(context.inner, mast_primal_sol, sep_sp_sols)
 end
+
+Benders.master_is_unbounded(ctx::BendersPrinterContext, second_stage_cost, unbounded_master_case) = Benders.master_is_unbounded(ctx.inner, second_stage_cost, unbounded_master_case)

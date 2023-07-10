@@ -7,9 +7,11 @@ struct ConquerInputFromSb <: AbstractConquerInput
     children_units_to_restore::UnitsUsage
 end
 
-get_node(i::ConquerInputFromSb) = i.children_candidate
+get_conquer_input_ip_primal_bound(i::ConquerInputFromSb) = get_ip_primal_bound(i.children_candidate.optstate)
+get_conquer_input_ip_dual_bound(i::ConquerInputFromSb) = get_ip_dual_bound(i.children_candidate.optstate)
+get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
-run_conquer(::ConquerInputFromSb) = true
+get_run_conquer(::ConquerInputFromSb) = true
 
 ############################################################################################
 # NoBranching
@@ -71,6 +73,55 @@ Branching.get_rules(ctx::BranchingContext) = ctx.rules
 function Branching.new_ip_primal_sols_pool(ctx::BranchingContext, reform::Reformulation, input)
     # Optimization state with no information.
     return OptimizationState(getmaster(reform))
+end
+
+function _is_integer(sol::PrimalSolution)
+    for (varid, val) in sol
+        integer_val = abs(val - round(val)) < 1e-5
+        if !integer_val
+            return false
+        end
+    end
+    return true
+end
+
+function _has_identical_sps(master::Formulation{DwMaster}, reform::Reformulation)
+    for (sp_id, sp) in get_dw_pricing_sps(reform)
+        lm_constr_id = sp.duty_data.lower_multiplicity_constr_id 
+        um_constr_id = sp.duty_data.upper_multiplicity_constr_id
+        lb = getcurrhs(master, lm_constr_id)
+        ub = getcurrhs(master, um_constr_id)
+        if ub > 1
+            return true
+        end
+    end
+    return false
+end
+
+function _why_no_candidate(master::Formulation{DwMaster}, reform, input, extended_sol, original_sol)
+    integer_orig_sol = _is_integer(original_sol)
+    integer_ext_sol = _is_integer(extended_sol)
+    identical_sp = _has_identical_sps(master, reform)
+    if integer_orig_sol && !integer_ext_sol && identical_sp
+        message =  """
+        The solution to the master is not integral and the projection on the original variables is integral.
+        Your reformulation involves subproblems with upper multiplicity greater than 1.
+        Column generation algorithm could not create an integral solution to the master using the column generated.
+        In order to generate columns that can lead to an integral solution, you may have to use a branching scheme that changes the structure of the subproblems.
+        This is not provided by the default implementation of the branching algorithm in the current version of Coluna.
+        """
+        @warn message
+    end
+    return nothing
+end
+
+function _why_no_candidate(::Formulation{BendersMaster}, reform, input, extended_sol, original_sol)
+    return nothing
+end
+
+function Branching.why_no_candidate(reform::Reformulation, input, extended_sol, original_sol)
+    master = getmaster(reform)
+    return _why_no_candidate(master, reform, input, extended_sol, original_sol)
 end
 
 Branching.new_divide_output(children::Vector{SbNode}, optimization_state) = DivideOutput(children, optimization_state)
@@ -200,8 +251,9 @@ function new_context(
     )
 end
 
-function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    child_state = TreeSearch.get_opt_state(child)
+function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)    
+    child_state = OptimizationState(getmaster(reform))
+    child.optstate = child_state
 
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
     # strong branching procedure but also the best primal bound found so far (in the whole optimization).
@@ -214,9 +266,10 @@ function _eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhase
     #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
     # end
     
-    child_state = TreeSearch.get_opt_state(child)
     if !ip_gap_closed(child_state)
-        input = ConquerInputFromSb(child, Branching.get_units_to_restore_for_conquer(phase))
+        units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
+        restore_from_records!(units_to_restore, child.records)
+        input = ConquerInputFromSb(child, units_to_restore)
         run!(Branching.get_conquer(phase), env, reform, input)
         TreeSearch.set_records!(child, create_records(reform))
     end
@@ -232,7 +285,7 @@ function Branching.new_ip_primal_sols_pool(ctx::StrongBranchingContext, reform, 
     # Only the ip primal bound is used to avoid inserting integer solutions that are not
     # better than the incumbent.
     # We also use the primal bound to init candidate nodes in the strong branching procedure.
-    input_opt_state = Branching.get_opt_state(input)
+    input_opt_state = Branching.get_conquer_opt_state(input)
     return OptimizationState(
         getmaster(reform);
         ip_primal_bound = get_ip_primal_bound(input_opt_state),

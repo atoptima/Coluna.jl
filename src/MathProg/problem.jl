@@ -32,25 +32,25 @@ set_initial_primal_bound!(p::Problem, value::Real) = p.initial_primal_bound = va
 set_initial_dual_bound!(p::Problem, value::Real) = p.initial_dual_bound = value
 
 function get_initial_primal_bound(p::Problem)
-    if p.original_formulation === nothing
+    if isnothing(p.original_formulation)
         error("Cannot retrieve initial primal bound because the problem does not have original formulation.")
     end
-    S = getobjsense(get_original_formulation(p))
-    if p.initial_primal_bound !== nothing
-        return PrimalBound{S}(p.initial_primal_bound)
+    min = getobjsense(get_original_formulation(p)) == MinSense
+    if !isnothing(p.initial_primal_bound)
+        return ColunaBase.Bound(true, min, p.initial_primal_bound)
     end
-    return PrimalBound{S}()
+    return ColunaBase.Bound(true, min)
 end
 
 function get_initial_dual_bound(p::Problem)
-    if p.original_formulation === nothing
+    if isnothing(p.original_formulation)
         error("Cannot retrieve initial dual bound because the problem does not have original formulation.")
     end
-    S = getobjsense(get_original_formulation(p))
-    if p.initial_dual_bound !== nothing
-        return DualBound{S}(p.initial_dual_bound)
+    min = getobjsense(get_original_formulation(p)) == MinSense
+    if !isnothing(p.initial_dual_bound)
+        return ColunaBase.Bound(false, min, p.initial_dual_bound)
     end
-    return DualBound{S}()
+    return ColunaBase.Bound(false, min)
 end
 
 """

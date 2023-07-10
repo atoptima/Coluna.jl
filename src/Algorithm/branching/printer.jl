@@ -46,9 +46,10 @@ function Branching.perform_branching_phase!(candidates, phase::PhasePrinter, sb_
     return scores
 end
 
-function Branching.eval_child_of_candidate!(child, phase::PhasePrinter, sb_state, env, reform)
-    _eval_child_of_candidate!(child, phase.inner, sb_state, env, reform)
-    @printf "**** SB Phase %i evaluation of candidate %+10s" phase.phase_index get_var_name(child)
-    @printf " (branch %+20s), value = %6.2f\n" TreeSearch.get_branch_description(child) getvalue(get_lp_primal_bound(TreeSearch.get_opt_state(child)))
-    return
-end
+Branching.eval_child_of_candidate!(node, phase::PhasePrinter, env, reform) =
+    Branching.eval_child_of_candidate!(node, phase.inner, env, reform)
+
+Branching.get_units_to_restore_for_conquer(phase::PhasePrinter) =
+    Branching.get_units_to_restore_for_conquer(phase.inner)
+
+Branching.get_conquer(phase::PhasePrinter) = Branching.get_conquer(phase.inner)

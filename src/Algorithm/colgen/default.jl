@@ -1,14 +1,21 @@
+"""
+    ColGenContext(reformulation, algo_params) -> ColGenContext
+
+Creates a context to run the default implementation of the column generation algorithm.
+"""
 mutable struct ColGenContext <: ColGen.AbstractColGenContext
     reform::Reformulation
-    optim_sense
-    current_ip_primal_bound
+    optim_sense  # TODO: type
+    current_ip_primal_bound  # TODO: type
 
-    restr_master_solve_alg
+    restr_master_solve_alg  # TODO: type
     restr_master_optimizer_id::Int
 
     stages_pricing_solver_ids::Vector{Int}
 
     reduced_cost_helper::ReducedCostsCalculationHelper
+    subgradient_helper::SubgradientCalculationHelper
+    sp_var_redcosts::Union{Nothing,Any} # TODO: type
 
     show_column_already_inserted_warning::Bool
     throw_column_already_inserted_warning::Bool
@@ -19,37 +26,63 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
 
     incumbent_primal_solution::Union{Nothing,PrimalSolution}
 
-    # # Information to solve the master
-    # master_solve_alg
-    # master_optimizer_id
+    # stabilization
+    stabilization::Bool
+    self_adjusting_α::Bool
+    init_α::Float64
 
-    # # Memoization to compute reduced costs (this is a precompute)
-    # redcost_mem
     function ColGenContext(reform, alg)
         rch = ReducedCostsCalculationHelper(getmaster(reform))
+        sh = SubgradientCalculationHelper(getmaster(reform))
+        stabilization, self_adjusting_α, init_α = _stabilization_info(alg)
         return new(
             reform, 
-            getobjsense(reform), 
+            getobjsense(reform),
             0.0,
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
             alg.stages_pricing_solver_ids,
             rch,
+            sh,
+            nothing,
             alg.show_column_already_inserted_warning,
             alg.throw_column_already_inserted_warning,
             alg.max_nb_iterations,
             alg.opt_rtol,
             alg.opt_atol,
-            nothing
+            nothing,
+            stabilization,
+            self_adjusting_α,
+            init_α
         )
     end
 end
+
+function _stabilization_info(alg)
+    s = alg.smoothing_stabilization
+    if s > 0.0
+        automatic = s == 1
+        return true, automatic, automatic ? 0.5 : s
+    end
+    return false, false, 0.0
+end
+
+subgradient_helper(ctx::ColGenContext) = ctx.subgradient_helper
 
 ColGen.get_reform(ctx::ColGenContext) = ctx.reform
 ColGen.get_master(ctx::ColGenContext) = getmaster(ctx.reform)
 ColGen.is_minimization(ctx::ColGenContext) = getobjsense(ctx.reform) == MinSense
 ColGen.get_pricing_subprobs(ctx::ColGenContext) = get_dw_pricing_sps(ctx.reform)
 
+# ColGen.setup_stabilization!(ctx, master) = ColGenStab(master)
+function ColGen.setup_stabilization!(ctx::ColGenContext, master)
+    if ctx.stabilization
+        return ColGenStab(master, ctx.self_adjusting_α, ctx.init_α)
+    end
+    return NoColGenStab()
+end
+
+"Output of the default implementation of a phase of the column generation algorithm."
 struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
@@ -65,6 +98,7 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     min_sense::Bool
 end
 
+"Output of the default implementation of the column generation algorithm."
 struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
@@ -95,9 +129,24 @@ function ColGen.stop_colgen(ctx::ColGenContext, output::ColGenPhaseOutput)
         output.nb_iterations >= ctx.nb_colgen_iteration_limit
 end
 
+ColGen.is_infeasible(output::ColGenOutput) = output.infeasible
+ColGen.get_master_ip_primal_sol(output::ColGenOutput) = output.master_ip_primal_sol
+ColGen.get_master_lp_primal_sol(output::ColGenOutput) = output.master_lp_primal_sol
+ColGen.get_master_dual_sol(output::ColGenOutput) = output.master_lp_dual_sol
+ColGen.get_dual_bound(output::ColGenOutput) = output.db
+ColGen.get_master_lp_primal_bound(output::ColGenOutput) = output.mlp
+
+function ColGen.is_better_dual_bound(ctx::ColGenContext, new_dual_bound, dual_bound)
+    sc = ColGen.is_minimization(ctx) ? 1 : -1
+    return sc * new_dual_bound > sc * dual_bound
+end
+
 ###############################################################################
 # Sequence of phases
 ###############################################################################
+"""
+Type for the default implementation of the sequence of phases.
+"""
 struct ColunaColGenPhaseIterator <: ColGen.AbstractColGenPhaseIterator end
 
 ColGen.new_phase_iterator(::ColGenContext) = ColunaColGenPhaseIterator()
@@ -110,19 +159,19 @@ struct ColGenPhase1 <: ColGen.AbstractColGenPhase end
 
 """
 Phase 2 solves the master LP without artificial variables.
-To starts, it requires a set of columns that forms a feasible solution to the LP master.
+To start, it requires a set of columns that forms a feasible solution to the LP master.
 This set is found with phase 1.
 """
 struct ColGenPhase2 <: ColGen.AbstractColGenPhase end
 
 """
-Phase 3 is a mix of phase 1 and phase 2.
-It sets a very large cost to artifical variable to force them to be removed from the master 
+Phase 0 is a mix of phase 1 and phase 2.
+It sets a very large cost to artifical variables to force them to be removed from the master 
 LP solution.
 If the final master LP solution contains artifical variables either the master is infeasible
 or the cost of artificial variables is not large enough. Phase 1 must be run.
 """
-struct ColGenPhase3 <: ColGen.AbstractColGenPhase end
+struct ColGenPhase0 <: ColGen.AbstractColGenPhase end
 
 """
 Thrown when the phase ended with an unexpected output.
@@ -132,7 +181,7 @@ struct UnexpectedEndOfColGenPhase end
 
 # Implementation of ColGenPhase interface
 ## Implementation of `initial_phase`.
-ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase3()
+ColGen.initial_phase(::ColunaColGenPhaseIterator) = ColGenPhase0()
 
 function colgen_mast_lp_sol_has_art_vars(output::ColGenPhaseOutput)
     master_lp_primal_sol = output.master_lp_primal_sol
@@ -184,7 +233,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase2, output::
     return ColGenPhase2()
 end
 
-function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::ColGen.AbstractColGenPhaseOutput)
+function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase0, output::ColGen.AbstractColGenPhaseOutput)
     # Column generation converged.
     if !colgen_mast_lp_sol_has_art_vars(output) && 
         !colgen_master_has_new_cuts(output) && 
@@ -199,7 +248,7 @@ function ColGen.next_phase(::ColunaColGenPhaseIterator, ::ColGenPhase3, output::
         colgen_uses_exact_stage(output)
         return ColGenPhase1()
     end
-    return ColGenPhase3()
+    return ColGenPhase0()
 end
 
 # Implementatation of `setup_reformulation!`
@@ -228,8 +277,8 @@ function ColGen.setup_reformulation!(reform, ::ColGenPhase2)
     return
 end
 
-## Phase 3 => make sure artifical variables are active and cost is correct.
-function ColGen.setup_reformulation!(reform, ::ColGenPhase3)
+## Phase 0 => make sure artifical variables are active and cost is correct.
+function ColGen.setup_reformulation!(reform, ::ColGenPhase0)
     master = getmaster(reform)
     for (varid, var) in getvars(master)
         if isanArtificialDuty(getduty(varid))
@@ -325,14 +374,13 @@ end
 # Master resolution
 ###############################################################################
 """
-    ColGenMasterResult{F,S}
+Output of the `ColGen.optimize_master_lp_problem!` method.
 
-Contains the solution to the master LP.
-- `F` is the formulation type
-- `S` is the objective sense Type
+Contains `result`, an `OptimizationState` object that is the output of the `SolveLpForm` algorithm
+called to optimize the master LP problem.
 """
-struct ColGenMasterResult{F,S}
-    result::OptimizationState{F,S}
+struct ColGenMasterResult{F}
+    result::OptimizationState{F}
 end
 
 # TODO: not type stable !!
@@ -356,7 +404,7 @@ ColGen.get_primal_sol(master_res::ColGenMasterResult) = get_best_lp_primal_sol(m
 ColGen.get_dual_sol(master_res::ColGenMasterResult) = get_best_lp_dual_sol(master_res.result)
 ColGen.get_obj_val(master_res::ColGenMasterResult) = get_lp_primal_bound(master_res.result)
 
-function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, reform, master_lp_dual_sol)
+function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, master_lp_dual_sol)
     master = ColGen.get_master(ctx)
     # Set all dual value of all constraints to 0.
     for constr in Iterators.values(getconstrs(master))
@@ -369,6 +417,11 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenContext, phase, refo
     return
 end
 
+function ColGen.update_reduced_costs!(ctx::ColGenContext, phase, red_costs)
+    ctx.sp_var_redcosts = red_costs
+    return
+end
+
 function _violates_essential_cuts!(master, master_lp_primal_sol, env)
     cutcb_input = CutCallbacksInput(master_lp_primal_sol)
     cutcb_output = run!(
@@ -378,9 +431,9 @@ function _violates_essential_cuts!(master, master_lp_primal_sol, env)
     return cutcb_output.nb_cuts_added > 0
 end
 
-ColGen.check_primal_ip_feasibility!(_, ctx::ColGenContext, ::ColGenPhase1, _, _) = nothing, false
+ColGen.check_primal_ip_feasibility!(_, ctx::ColGenContext, ::ColGenPhase1, _) = nothing, false
 
-function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, reform, env)
+function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenContext, phase, env)
     # Check if feasible.
     if contains(master_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
         return nothing, false
@@ -396,8 +449,8 @@ function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenCo
     return master_lp_primal_sol, new_cut_in_master
 end
 
-ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Nothing) = true
-function ColGen.isbetter(new_ip_primal_sol::PrimalSolution, ip_primal_sol::PrimalSolution)
+ColGen.is_better_primal_sol(new_ip_primal_sol::PrimalSolution, ip_primal_sol::Nothing) = true
+function ColGen.is_better_primal_sol(new_ip_primal_sol::PrimalSolution, ip_primal_sol::PrimalSolution)
     new_val = ColunaBase.getvalue(new_ip_primal_sol)
     cur_val = ColunaBase.getvalue(ip_primal_sol)
     sc = MathProg.getobjsense(ColunaBase.getmodel(new_ip_primal_sol)) == MinSense ? 1 : -1
@@ -424,7 +477,8 @@ end
 _set_column_cost!(master, col_id, phase) = nothing
 _set_column_cost!(master, col_id, ::ColGenPhase1) = setcurcost!(master, col_id, 0.0)
 
-function ColGen.insert_columns!(reform, ctx::ColGenContext, phase, columns)
+function ColGen.insert_columns!(ctx::ColGenContext, phase, columns)
+    reform = ColGen.get_reform(ctx)
     primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
     col_ids_to_activate = Set{VarId}()
     master = ColGen.get_master(ctx)
@@ -492,6 +546,18 @@ function ColGen.compute_sp_init_db(ctx::ColGenContext, sp::Formulation{DwSp})
     return ctx.optim_sense == MinSense ? -Inf : Inf
 end
 
+function ColGen.compute_sp_init_pb(ctx::ColGenContext, sp::Formulation{DwSp})
+    return ctx.optim_sense == MinSense ? Inf : -Inf
+end
+
+"""
+Solution to a pricing subproblem after a given optimization.
+
+It contains:
+- `column`: the solution stored as a `PrimalSolution` object
+- `red_cost`: the reduced cost of the column
+- `min_obj`: a boolean indicating if the objective is to minimize or maximize
+"""
 struct GeneratedColumn
     column::PrimalSolution{Formulation{DwSp}}
     red_cost::Float64
@@ -503,21 +569,68 @@ struct GeneratedColumn
 end
 
 """
-    A structure to store a collection of columns
+Columns generated at the current iteration that forms the "current primal solution".
+This is used to compute the Lagragian dual bound.
+
+It contains:
+- `primal_sols` a dictionary that maps a formulation id to the best primal solution found by the pricing subproblem associated to this formulation
+- `improve_master` a dictionary that maps a formulation id to a boolean indicating if the best primal solution found by the pricing subproblem associated to this formulation has negative reduced cost
+
+This structure also helps to compute the subgradient of the Lagrangian function.
+"""
+struct SubprobPrimalSolsSet
+    primal_sols::Dict{MathProg.FormId, MathProg.PrimalSolution{MathProg.Formulation{MathProg.DwSp}}}
+    improve_master::Dict{MathProg.FormId, Bool}
+    function SubprobPrimalSolsSet()
+        return new(Dict{FormId, PrimalSolution{Formulation{DwSp}}}(), Dict{FormId, Bool}())
+    end
+end
+
+function add_primal_sol!(sps::SubprobPrimalSolsSet, primal_sol::PrimalSolution{Formulation{DwSp}}, improves::Bool)
+    form_id = getuid(primal_sol.solution.model)
+    cur_primal_sol = get(sps.primal_sols, form_id, nothing)
+    sc = getobjsense(primal_sol.solution.model) == MinSense ? 1 : -1
+    if isnothing(cur_primal_sol) || sc * getvalue(primal_sol) < sc * getvalue(cur_primal_sol)
+        sps.primal_sols[form_id] = primal_sol
+        sps.improve_master[form_id] = improves
+        return true
+    end
+    return false
+end
+
+"""
+Stores a collection of columns.
+
+It contains:
+- `columns`: a vector of `GeneratedColumn` objects by all pricing subproblems that will be inserted into the master
+- `subprob_primal_solutions`: an object that stores the best columns generated by each pricing subproblem at this iteration.
 """
 struct ColumnsSet
+    # Columns that will be added to the master.
     columns::Vector{GeneratedColumn}
-    ColumnsSet() = new(GeneratedColumn[])
+
+    # Columns generated at the current iterations that forms the "current primal solution".
+    # This is used to compute the subgradient for "Smoothing with a self adjusting 
+    # parameter" stabilization.
+    subprob_primal_sols::SubprobPrimalSolsSet
+
+    ColumnsSet() = new(GeneratedColumn[], SubprobPrimalSolsSet())
 end
 Base.iterate(set::ColumnsSet) = iterate(set.columns)
 Base.iterate(set::ColumnsSet, state) = iterate(set.columns, state)
 
-function ColGen.set_of_columns(ctx::ColGenContext)
-    return ColumnsSet()
-end
+ColGen.set_of_columns(::ColGenContext) = ColumnsSet()
 
-struct ColGenPricingResult{F,S}
-    result::OptimizationState{F,S}
+"""
+Output of the default implementation of `ColGen.optimize_pricing_problem!`.
+
+It contains:
+- `result`: the output of the `SolveIpForm` algorithm called to optimize the pricing subproblem
+- `columns`: a vector of `GeneratedColumn` objects obtained by processing of the output of pricing subproblem optimization, it stores the reduced cost of each column
+- `best_red_cost`: the best reduced cost of the columns
+"""
+struct ColGenPricingResult{F}
+    result::OptimizationState{F}
     columns::Vector{GeneratedColumn}
     best_red_cost::Float64
 end
@@ -534,6 +647,7 @@ end
 
 ColGen.get_primal_sols(pricing_res::ColGenPricingResult) = pricing_res.columns
 ColGen.get_dual_bound(pricing_res::ColGenPricingResult) = get_ip_dual_bound(pricing_res.result)
+ColGen.get_primal_bound(pricing_res::ColGenPricingResult) = get_ip_primal_bound(pricing_res.result)
 
 is_improving_red_cost(ctx::ColGenContext, red_cost) = red_cost > 0 + ctx.opt_atol
 is_improving_red_cost_min_sense(ctx::ColGenContext, red_cost) = red_cost < 0 - ctx.opt_atol
@@ -547,14 +661,34 @@ end
 # cost.
 function ColGen.push_in_set!(ctx::ColGenContext, pool::ColumnsSet, column::GeneratedColumn)
     # We keep only columns that improve reduced cost
-    if has_improving_red_cost(ctx, column)
+    improving = has_improving_red_cost(ctx, column)
+    add_primal_sol!(pool.subprob_primal_sols, column.column, improving)
+    if improving
         push!(pool.columns, column)
         return true
     end
     return false
 end
 
-function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol)
+"""
+The contribution of the subproblem variables to the reduced cost of a column is
+computed using the master dual solution.
+When we use a smoothed dual solution, we need to recompute the reduced cost of the
+subproblem variables using the non-smoothed dual solution (out point).
+We then use this reduced cost to compute the contribution of the subproblem variables.
+"""
+function _subprob_var_contrib(ctx::ColGenContext, col, stab_changes_mast_dual_sol)
+    if stab_changes_mast_dual_sol
+        cost = 0.0
+        for (var_id, val) in col
+            cost += ctx.sp_var_redcosts[var_id] * val
+        end
+        return cost
+    end
+    return getvalue(col)
+end
+
+function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     input = OptimizationState(sp)
     alg = SolveIpForm(
         optimizer_id = optimizer,
@@ -569,43 +703,90 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     # (A) the cost of the subproblem variables
     # (B) the contribution of the master convexity constraints.
 
-    # Master convexity constraints contribution.
+    # Master convexity constraints contribution is the same for all columns generated by a
+    # given subproblem.
     lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
     ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
 
-    # Pure master variables contribution.
-    # TODO (only when stabilization is used otherwise already taken into account by master obj val)
-
+    # Compute the reduced cost of each column and keep the best reduced cost value.
+    is_min = ColGen.is_minimization(ctx)
+    sc = is_min ? 1 : -1
+    best_red_cost = is_min ? Inf : -Inf
     generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
-        red_cost = getvalue(col) - lb_dual - ub_dual
+        subprob_var_contrib = _subprob_var_contrib(ctx, col, stab_changes_mast_dual_sol)
+        red_cost = subprob_var_contrib - lb_dual - ub_dual
         push!(generated_columns, GeneratedColumn(col, red_cost))
+        if sc * best_red_cost > sc * red_cost
+            best_red_cost = red_cost
+        end
     end
 
-    best_red_cost = getvalue(get_ip_dual_bound(opt_state)) - lb_dual - ub_dual
     return ColGenPricingResult(opt_state, generated_columns, best_red_cost)
 end
 
 function _convexity_contrib(ctx, master_dual_sol)
     master = ColGen.get_master(ctx)
-    return mapreduce(+, ColGen.get_pricing_subprobs(ctx)) do it
+    contrib = mapreduce(+, ColGen.get_pricing_subprobs(ctx)) do it
         _, sp = it
         lb_dual = master_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
         ub_dual = master_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
-        lb =  1 #getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
-        ub = 1 #getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
         return lb_dual * lb + ub_dual * ub
     end
+    return contrib
 end
 
-function ColGen.compute_dual_bound(ctx::ColGenContext, phase, master_lp_obj_val, sp_dbs, master_dual_sol)
-    sp_contrib = mapreduce(((id, val),) -> val, +, sp_dbs)
-    convexity_contrib = _convexity_contrib(ctx, master_dual_sol)
-    return master_lp_obj_val - convexity_contrib + sp_contrib
+function _subprob_contrib(ctx, sp_dbs, generated_columns)
+    master = ColGen.get_master(ctx)
+    min_sense = ColGen.is_minimization(ctx)
+    contrib = mapreduce(+, ColGen.get_pricing_subprobs(ctx)) do it
+        id, sp = it
+        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        db = sp_dbs[id]
+        improving = min_sense ? is_improving_red_cost_min_sense(ctx, db) : is_improving_red_cost(ctx, db)
+        mult = improving ? ub : lb        
+        return mult * db
+    end
+    return contrib
+end
+
+function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, generated_columns, master_dual_sol)
+    sc = ColGen.is_minimization(ctx) ? 1 : -1
+    master_lp_obj_val = if ctx.stabilization
+        (transpose(master_dual_sol) * ctx.subgradient_helper.a_for_dual)
+    else
+        getvalue(master_dual_sol) - _convexity_contrib(ctx, master_dual_sol)
+    end
+    sp_contrib = _subprob_contrib(ctx, sp_dbs, generated_columns)
+   
+    # Pure master variables contribution.
+    # TODO (only when stabilization is used otherwise already taken into account by master obj val
+    puremastvars_contrib = 0.0
+    if ctx.stabilization
+        master = ColGen.get_master(ctx)
+        master_coef_matrix = getcoefmatrix(master)
+        for (varid, var) in getvars(master)
+            if getduty(varid) <= MasterPureVar && iscuractive(master, var) && isexplicit(master, var)
+                redcost = getcurcost(master, varid)
+                for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
+                    redcost -= var_coeff * master_dual_sol[constrid]
+                end
+                min_sense = ColGen.is_minimization(ctx)
+                improves = min_sense ? is_improving_red_cost_min_sense(ctx, redcost) : is_improving_red_cost(ctx, redcost)
+                mult = improves ? getcurub(master, varid) : getcurlb(master, varid) 
+                puremastvars_contrib += redcost * mult
+            end
+        end
+    end
+    return master_lp_obj_val + sp_contrib + puremastvars_contrib
 end
 
 # Iteration output
 
+"Object for the output of an iteration of the column generation default implementation."
 struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
     mlp::Union{Nothing, Float64}
@@ -660,6 +841,7 @@ end
 
 ColGen.get_nb_new_cols(output::ColGenIterationOutput) = output.nb_new_cols
 ColGen.get_master_ip_primal_sol(output::ColGenIterationOutput) = output.master_ip_primal_sol
+ColGen.get_dual_bound(output::ColGenIterationOutput) = output.db
 
 #############################################################################
 # Column generation loop
@@ -669,10 +851,10 @@ ColGen.get_master_ip_primal_sol(output::ColGenIterationOutput) = output.master_i
 _gap(mlp, db) = (mlp - db) / abs(db)
 _colgen_gap_closed(mlp, db, atol, rtol) = _gap(mlp, db) < 0 || isapprox(mlp, db, atol = atol, rtol = rtol)
 
-ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, colgen_iteration) = false
-function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, colgen_iteration)
+ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, inc_dual_bound, colgen_iteration) = false
+function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, inc_dual_bound, colgen_iteration)
     mlp = colgen_iter_output.mlp
-    db = colgen_iter_output.db
+    db = inc_dual_bound
     sc = colgen_iter_output.min_sense ? 1 : -1
     return colgen_iteration >= ctx.nb_colgen_iteration_limit ||
         colgen_iter_output.time_limit_reached ||
@@ -686,17 +868,17 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
-ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, colgen_iter_output) = nothing
+ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase, stage, colgen_iter_output::ColGenIterationOutput, iteration)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase, stage, colgen_iter_output::ColGenIterationOutput, iteration, inc_dual_bound)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
         colgen_iter_output.master_lp_dual_sol,
         colgen_iter_output.mlp,
-        colgen_iter_output.db,
+        inc_dual_bound,
         colgen_iter_output.new_cut_in_master,
         colgen_iter_output.nb_new_cols <= 0,
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem,
@@ -707,13 +889,13 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase, 
     )
 end
 
-function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput, iteration)
+function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase::ColGenPhase1, stage, colgen_iter_output::ColGenIterationOutput, iteration, inc_dual_bound)
     return ColGenPhaseOutput(
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
         colgen_iter_output.master_lp_dual_sol,
         colgen_iter_output.mlp,
-        colgen_iter_output.db,
+        inc_dual_bound,
         colgen_iter_output.new_cut_in_master,
         colgen_iter_output.nb_new_cols <= 0,
         colgen_iter_output.infeasible_master || colgen_iter_output.infeasible_subproblem || abs(colgen_iter_output.mlp) > 1e-5,
@@ -726,6 +908,25 @@ end
 
 ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 
-ColGen.get_best_ip_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_lp_primal_sol
-ColGen.get_final_lp_primal_master_sol_found(output::ColGenPhaseOutput) = output.master_ip_primal_sol
-ColGen.get_final_db(output::ColGenPhaseOutput) = output.db
+
+ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+    # At each iteration, we always update α after the first pricing optimization.
+    # We don't update α if we are in a misprice sequence.
+    if stab.automatic && stab.nb_misprices == 0
+        is_min = ColGen.is_minimization(ctx)
+        primal_sol = _primal_solution(master, generated_columns, is_min)
+        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
+        stab.base_α = α
+    end
+    
+    if isbetter(DualBound(master, valid_db), stab.valid_dual_bound)
+        stab.cur_stab_center = mast_dual_sol
+        stab.valid_dual_bound = DualBound(master, valid_db)
+    end
+    if isbetter(DualBound(master, pseudo_db), stab.pseudo_dual_bound)
+        stab.stab_center_for_next_iteration = mast_dual_sol
+        stab.pseudo_dual_bound = DualBound(master, pseudo_db)
+    end
+    return
+end

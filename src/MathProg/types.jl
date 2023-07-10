@@ -3,9 +3,6 @@ abstract type AbstractVcData end
 abstract type AbstractOptimizer end
 
 # Interface (src/interface.jl)
-struct Primal <: Coluna.AbstractPrimalSpace end
-struct Dual <: Coluna.AbstractDualSpace end
-
 struct MinSense <: Coluna.AbstractMinSense end
 struct MaxSense <: Coluna.AbstractMaxSense end
 
@@ -71,7 +68,8 @@ const MoiVarIndex = MOI.VariableIndex
 MoiVarIndex() = MOI.VariableIndex(-1)
 
 # Bounds on variables
-const MoiVarBound = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}
+const MoiVarLowerBound = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{Float64}}
+const MoiVarUpperBound = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}
 
 # Variable kinds
 const MoiInteger = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}

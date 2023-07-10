@@ -1,24 +1,37 @@
 ############################################################################################
-# Node
+# Node.
 ############################################################################################
-"Branch-and-bound node."
+"""
+Branch-and-bound node. It stores only local information about the node.
+Global information about the branch-and-bound belong to the search space object.
+"""
 mutable struct Node <: TreeSearch.AbstractNode
     depth::Int
-    parent::Union{Nothing, Node}
-    optstate::OptimizationState
     branchdescription::String
+
+    # The Node instance may have been created after its partial evaluation
+    # (e.g. strong branching). In this case, we store an OptimizationState in the node
+    # with the result of its partial evaluation.
+    # We then retrieve from this OptimizationState a possible new incumbent primal
+    # solution and communicate the latter to the branch-and-bound algorithm. 
+    conquer_output::Union{Nothing, OptimizationState}
+
+    # Current local dual bound at the node:
+    # - dual bound of the parent node if the node has not been evaluated yet.
+    # - dual bound of the conquer if the node has been evaluated.
+    ip_dual_bound::Bound
+    
+    # Information to restore the reformulation after the creation of the node (e.g. creation
+    # of the branching constraint) or its partial evaluation (e.g. strong branching).
     records::Records
-    conquerwasrun::Bool
+
+    conquerwasrun::Bool # TODO: rename: full_evaluation (?)
 end
 
 getdepth(n::Node) = n.depth
 
-TreeSearch.get_parent(n::Node) = n.parent # divide
-TreeSearch.get_opt_state(n::Node) = n.optstate # conquer, divide
-
 TreeSearch.isroot(n::Node) = n.depth == 0
 Branching.isroot(n::Node) = TreeSearch.isroot(n)
-TreeSearch.get_records(n::Node) = n.records # conquer
 TreeSearch.set_records!(n::Node, records) = n.records = records
 
 TreeSearch.get_branch_description(n::Node) = n.branchdescription # printer
@@ -26,12 +39,13 @@ TreeSearch.get_branch_description(n::Node) = n.branchdescription # printer
 # Priority of nodes depends on the explore strategy.
 TreeSearch.get_priority(::TreeSearch.AbstractExploreStrategy, ::Node) = error("todo")
 TreeSearch.get_priority(::TreeSearch.DepthFirstStrategy, n::Node) = -n.depth
-TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
+TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = n.ip_dual_bound
 
 # TODO move
 function Node(node::SbNode)
+    ip_dual_bound = get_ip_dual_bound(node.optstate)
     return Node(
-        node.depth, node.parent, node.optstate, node.branchdescription,
+        node.depth, node.branchdescription, node.optstate, ip_dual_bound,
         node.records, node.conquerwasrun
     )
 end
@@ -41,26 +55,36 @@ end
 ############################################################################################
 "Conquer input object created by the branch-and-bound tree search algorithm."
 struct ConquerInputFromBaB <: AbstractConquerInput
-    node::Node
     units_to_restore::UnitsUsage
+    node_state::OptimizationState # Node state after its creation or its partial evaluation.
     run_conquer::Bool
+    node_depth::Int
 end
 
-get_node(i::ConquerInputFromBaB) = i.node
+get_conquer_input_ip_primal_bound(i::ConquerInputFromBaB) = get_ip_primal_bound(i.node_state)
+get_conquer_input_ip_dual_bound(i::ConquerInputFromBaB) = get_ip_dual_bound(i.node_state)
+get_node_depth(i::ConquerInputFromBaB) = i.node_depth
 get_units_to_restore(i::ConquerInputFromBaB) = i.units_to_restore
-run_conquer(i::ConquerInputFromBaB) = i.run_conquer
+get_run_conquer(i::ConquerInputFromBaB) = i.run_conquer
 
 ############################################################################################
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
 struct DivideInputFromBaB <: Branching.AbstractDivideInput
-    parent::Node
-    opt_state::OptimizationState
+    parent_depth::Int
+    # The conquer output of the parent is very useful to compute scores when trying several
+    # branching candidates. Usually scores measure a progression between the parent full_evaluation
+    # and the children full evaluations. To allow developers to implement several kind of 
+    # scores, we give the full output of the conquer algorithm.
+    parent_conquer_output::OptimizationState
+    parent_records::Records
 end
 
-Branching.get_parent(i::DivideInputFromBaB) = i.parent
-Branching.get_opt_state(i::DivideInputFromBaB) = i.opt_state
+Branching.get_parent_depth(i::DivideInputFromBaB) = i.parent_depth
+Branching.get_conquer_opt_state(i::DivideInputFromBaB) = i.parent_conquer_output
+Branching.parent_is_root(i::DivideInputFromBaB) = i.parent_depth == 0
+Branching.parent_records(i::DivideInputFromBaB) = i.parent_records
 
 ############################################################################################
 # SearchSpace
@@ -133,27 +157,29 @@ end
 function TreeSearch.new_root(sp::BaBSearchSpace, input)
     nodestate = OptimizationState(getmaster(sp.reformulation), input, false, false)
     return Node(
-        0, nothing, nodestate, "", create_records(sp.reformulation), false
+        0, "", nothing, get_ip_dual_bound(nodestate), create_records(sp.reformulation), false
     )
 end
 
-function after_conquer!(space::BaBSearchSpace, current, output)
-    nodestate = current.optstate
+# Send output information of the conquer algorithm to the branch-and-bound.
+function after_conquer!(space::BaBSearchSpace, current, conquer_output)
+    @assert !isnothing(conquer_output)
     treestate = space.optstate
 
     current.records = create_records(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
 
-    add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
+    # Retrieve IP primal solutions found at the node and store them as solution to the original
+    # problem (i.e. solutions of the Branch-and-Bound).
+    add_ip_primal_sols!(treestate, get_ip_primal_sols(conquer_output)...)
 
-    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node.
-    best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
+    # Branch & Bound returns the primal LP & the dual solution found at the root node.
+    best_lp_primal_sol = get_best_lp_primal_sol(conquer_output)
     if TreeSearch.isroot(current) && !isnothing(best_lp_primal_sol)
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end
-
-    best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
+    best_lp_dual_sol = get_best_lp_dual_sol(conquer_output)
     if TreeSearch.isroot(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
@@ -163,7 +189,11 @@ end
 # Conquer
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
-    node_state = current.optstate
+    
+    node_state = OptimizationState(
+        getmaster(space.reformulation);
+        ip_dual_bound = current.ip_dual_bound
+    )
 
     best_ip_primal_sol = get_best_ip_primal_sol(space_state)
     if !isnothing(best_ip_primal_sol)
@@ -180,55 +210,75 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     run_conquer = run_conquer || !current.conquerwasrun
     run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
 
-    return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
+    return ConquerInputFromBaB(
+        space.conquer_units_to_restore, 
+        node_state,
+        run_conquer,
+        current.depth
+    )
 end
 
-function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
-    return DivideInputFromBaB(node, space.optstate)
+function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node, conquer_output)
+    return DivideInputFromBaB(node.depth, conquer_output, node.records)
 end
 
-function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    candidates_opt_state = Branching.get_opt_state(candidates)
+function new_children(space::AbstractColunaSearchSpace, branches, node::Node)
+    @show typeof(branches)
+    candidates_opt_state = nothing # Branching.get__opt_state(branches)
     if !isnothing(candidates_opt_state)
         add_ip_primal_sols!(space.optstate, get_ip_primal_sols(candidates_opt_state)...)
     end
-    set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
+    set_ip_dual_bound!(space.optstate, node.ip_dual_bound)
 
-    children = map(Branching.get_children(candidates)) do child
+    children = map(Branching.get_children(branches)) do child
         return Node(child)
     end
     return children
 end
 
-function _updatedualbound!(space, reform::Reformulation, untreated_nodes)
+# Retrieves the current dual bound of unevaluated or partially evaluated nodes
+# and keeps the worst one.
+function _update_global_dual_bound!(space, reform::Reformulation, untreated_nodes)
     treestate = space.optstate
 
+    init_db = if length(untreated_nodes) == 0 && length(get_ip_primal_sols(treestate)) == 0
+        # If there is no more untreated nodes but the branch and bound did not find any
+        # feasible solutions, we use the current ip dual bound to compute the final dual bound.
+        # This case happens, when the original variables do not allow us to fully explore the
+        # search space (e.g. identical subproblems).
+        DualBound(reform, getvalue(get_ip_dual_bound(treestate)))
+    else
+        # Otherwise, we know that the global dual bound cannot be "better" than the incumbent
+        # primal bound.
+        DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
+    end
+
     worst_bound = mapreduce(
-        node -> get_ip_dual_bound(TreeSearch.get_opt_state(node)),
+        node -> node.ip_dual_bound,
         worst,
         untreated_nodes;
-        init = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
+        init = init_db
     )
 
+    # The global dual bound of the branch-and-bound is a dual bound of the original problem (MIP).
     set_ip_dual_bound!(treestate, worst_bound)
     return
 end
 
 function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untreated_nodes)
-    _updatedualbound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
+    _update_global_dual_bound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
 
-    # we delete solutions from the node optimization state, as they are not needed anymore
-    nodestate = TreeSearch.get_opt_state(previous)
-    empty_ip_primal_sols!(nodestate)
-    empty_lp_primal_sols!(nodestate)
-    empty_lp_dual_sols!(nodestate)
+    # We restore the reformulation in the state it was after the creation of the current node (e.g. creation
+    # of the branching constraint) or its partial evaluation (e.g. strong branching).
+    # TODO: We don't need to restore if the formulation has been fully evaluated.
+    restore_from_records!(space.conquer_units_to_restore, current.records)
 end
 
 function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
-    _updatedualbound!(space, space.reformulation, untreated_nodes)
+    _update_global_dual_bound!(space, space.reformulation, untreated_nodes)
 
     if isempty(untreated_nodes) # it means that the BB tree has been fully explored
-        if length(get_ip_primal_sols(space.optstate)) >= 1
+        if length(get_lp_primal_sols(space.optstate)) >= 1
             if ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
                 setterminationstatus!(space.optstate, OPTIMAL)
             else

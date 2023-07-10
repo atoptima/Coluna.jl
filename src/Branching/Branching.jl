@@ -17,8 +17,10 @@ Contains the parent node in the search tree for which children should be generat
 """
 abstract type AbstractDivideInput end
 
-@mustimplement "DivideInput" get_parent(i::AbstractDivideInput) = nothing
-@mustimplement "DivideInput" get_opt_state(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_parent_depth(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_conquer_opt_state(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" parent_is_root(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" parent_records(i::AbstractDivideInput) = nothing
 
 """
 Output of a divide algorithm used by the tree search algorithm.
@@ -27,10 +29,6 @@ Should contain the vector of generated nodes.
 abstract type AbstractDivideOutput end
 
 @mustimplement "DivideOutput" get_children(output::AbstractDivideOutput) = nothing
-
-# TODO: simplify this because we only retrieve ip primal sols found in branching candidates.
-@mustimplement "DivideOutput" get_opt_state(output::AbstractDivideOutput) = nothing
-
 
 ############################################################################################
 # Branching API
@@ -62,7 +60,7 @@ abstract type AbstractDivideContext end
 @mustimplement "Branching" get_selection_criterion(::AbstractDivideContext) = nothing
 
 # find better name
-@mustimplement "Branching" projection_is_possible(::AbstractDivideContext, reform) = nothing
+@mustimplement "Branching" projection_on_master_is_possible(ctx, reform) = nothing
 
 # branching output
 """
@@ -85,7 +83,7 @@ function select!(rule::AbstractBranchingRule, env, reform, input::Branching.Bran
     select_candidates!(candidates, input.criterion, input.max_nb_candidates)
 
     for candidate in candidates
-        children = generate_children!(candidate, env, reform, input.parent)
+        children = generate_children!(candidate, env, reform, input.input)
         set_children!(candidate, children)
     end
     return BranchingRuleOutput(local_id, candidates)
@@ -167,7 +165,7 @@ function perform_strong_branching_inner!(
             nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
-        scores = perform_branching_phase!(candidates, current_phase, ip_primal_sols_found, env, model)
+        scores = perform_branching_phase!(candidates, current_phase, ip_primal_sols_found, env, model, input)
 
         perm = sortperm(scores, rev=true)
         permute!(candidates, perm)
@@ -183,12 +181,13 @@ function perform_strong_branching_inner!(
     return ip_primal_sols_found
 end
 
-function perform_branching_phase!(candidates, phase, ip_primal_sols_found, env, reform)
-    return perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform)
+function perform_branching_phase!(candidates, phase, ip_primal_sols_found, env, reform, input)
+    return perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform, input)
 end
 
 "Performs a branching phase."
-function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform)
+function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform, input)
+    
     return map(candidates) do candidate
         # TODO; I don't understand why we need to sort the children here.
         # Looks like eval_children_of_candidiate! and the default implementation of
@@ -196,44 +195,47 @@ function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found,
         # Moreover, given the generic implementation of perform_branching_phase!,
         # it's not clear to me how the order of the children can affect the result.
         # At the end, only the score matters and AFAIK, the score is also independent of the order.
+
+        # The reason of sorting (by Ruslan) : Ideally, we need to estimate the score of the candidate after 
+        # the first branch is solved if the score estimation is worse than the best score found so far, we discard the candidate
+        # and do not evaluate the second branch. As estimation of score is not implemented, sorting is useless for now. 
         
         # children = sort(
         #     Branching.get_children(candidate),
-        #     by = child -> get_lp_primal_bound(TreeSearch.get_opt_state(child))
+        #     by = child -> get_lp_primal_bound(child)
         # )
-        children = Branching.get_children(candidate)
-        eval_children_of_candidate!(children, phase, ip_primal_sols_found, env, reform)
-        return compute_score(get_score(phase), candidate)
+
+        return eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform, input)
     end
 end
 
-function eval_children_of_candidate!(children, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    return eval_children_of_candidate_inner!(children, phase, ip_primal_sols_found, env, reform)
+function eval_candidate!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
+    return eval_candidate_inner!(candidate, phase, ip_primal_sols_found, env, reform, input)
 end
 
 "Evaluates a candidate."
-function eval_children_of_candidate_inner!(children, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    for child in children
-        eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform)
+function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
+    for child in get_children(candidate)
+        eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform, input)
     end
-    return
+    return compute_score(get_score(phase), candidate, input)
 end
 
 "Evaluate children of a candidate."
-@mustimplement "StrongBranching" eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform) = nothing
+@mustimplement "StrongBranching" eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform, input) = nothing
 
 @mustimplement "Branching" isroot(node) = nothing
 
 ##############################################################################
 # Default implementation of the branching algorithm
 ##############################################################################
-function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candidates, reform, env, parent, extended_sol, original_sol)
+function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candidates, reform, env, extended_sol, original_sol, input)
     if isnothing(extended_sol)
         error("Error") #TODO (talk with Ruslan.)
     end
     
     # We sort branching rules by their root/non-root priority.
-    sorted_rules = sort(Branching.get_rules(ctx), rev = true, by = x -> Branching.getpriority(x, isroot(parent)))
+    sorted_rules = sort(Branching.get_rules(ctx), rev = true, by = x -> Branching.getpriority(x, parent_is_root(input)))
     
     kept_branch_candidates = Branching.AbstractBranchingCandidate[]
 
@@ -244,7 +246,7 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
         rule = prioritised_rule.rule
 
         # Priority of the current branching rule.
-        priority = Branching.getpriority(prioritised_rule, isroot(parent))
+        priority = Branching.getpriority(prioritised_rule, parent_is_root(input))
     
         nb_candidates_found = length(kept_branch_candidates)
 
@@ -268,17 +270,17 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
         output = Branching.select!(
             rule, env, reform, Branching.BranchingRuleInput(
                 original_sol, true, max_nb_candidates, Branching.get_selection_criterion(ctx),
-                local_id, Branching.get_int_tol(ctx), priority, parent
+                local_id, Branching.get_int_tol(ctx), priority, input
             )
         )
         append!(kept_branch_candidates, output.candidates)
         local_id = output.local_id
 
-        if projection_is_possible(ctx, reform) && !isnothing(extended_sol)
+        if projection_on_master_is_possible(ctx, reform) && !isnothing(extended_sol)
             output = Branching.select!(
                 rule, env, reform, Branching.BranchingRuleInput(
                     extended_sol, false, max_nb_candidates, Branching.get_selection_criterion(ctx),
-                    local_id, Branching.get_int_tol(ctx), priority, parent
+                    local_id, Branching.get_int_tol(ctx), priority, input
                 )
             )
             append!(kept_branch_candidates, output.candidates)
@@ -290,14 +292,16 @@ function candidates_selection(ctx::Branching.AbstractDivideContext, max_nb_candi
     return kept_branch_candidates
 end
 
+@mustimplement "Branching" why_no_candidate(reform, input, extended_sol, original_sol) = nothing
+
 function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, extended_sol, original_sol)
-    parent = Branching.get_parent(input)
     max_nb_candidates = get_selection_nb_candidates(ctx)
-    candidates = candidates_selection(ctx, max_nb_candidates, reform, env, parent, extended_sol, original_sol)
+    candidates = candidates_selection(ctx, max_nb_candidates, reform, env, extended_sol, original_sol, input)
 
     # We stop branching if no candidate generated.
     if length(candidates) == 0
         @warn "No candidate generated. No children will be generated. However, the node is not conquered."
+        why_no_candidate(reform, input, extended_sol, original_sol)
         return new_divide_output(nothing, nothing)
     end
     return advanced_select!(ctx, candidates, env, reform, input)

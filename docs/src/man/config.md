@@ -38,7 +38,7 @@ objectivedualbound!
 ```
 
 ```@meta
-CurrentModule = nothin
+CurrentModule = nothing
 ```
 
 ### From MathOptInterface

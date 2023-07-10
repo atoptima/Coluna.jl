@@ -203,9 +203,9 @@ end
 Error thrown when transmitting a dual bound larger than the primal bound of the 
 best solution to the pricing subproblem found in a run of the pricing callback.
 """
-struct IncorrectPricingDualBound{Sense}
-    pb::PrimalBound{Sense}
-    db::DualBound{Sense}
+struct IncorrectPricingDualBound
+    pb::ColunaBase.Bound
+    db::ColunaBase.Bound
 end
 
 """

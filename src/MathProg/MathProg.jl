@@ -26,6 +26,7 @@ include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("manager.jl")
+include("pool.jl")
 include("duties.jl")
 include("formulation.jl")
 include("varconstr.jl")
@@ -50,11 +51,10 @@ export no_optimizer_builder, set_original_formulation!,
        getobjsense, getoptimizer, getoptimizers,
        update!,
        getduty,
-       computereducedrhs,
        find_owner_formulation,
        getsortuid,
-       contains, setprimalbound!, get_original_formulation,
-       getoriginformuid, getspsol, sync_solver!, getinner,
+       contains, get_original_formulation,
+       getoriginformuid, sync_solver!, getinner,
        get_primal_solutions, get_dual_solutions, constraint_primal
 
 # Below this line, clean up has been done :
@@ -71,12 +71,11 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, getprimalsolcosts,
-    getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
+    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, get_dual_sol_pool,
+    setvar!, setconstr!,
     set_robust_constr_generator!, get_robust_constr_generators,
-    setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
-    push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
+    push_optimizer!, getobjconst, setobjconst!,
     insert_column!, get_column_from_pool, getfixedvars
 
 # Duties of formulations
@@ -91,7 +90,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, isfixed, fix!, unfix!,
+    isexplicit, getname, getbranchingpriority, reset!, setperenkind!, isfixed, fix!, unfix!,
     getcustomdata
 
 # Types & methods related to solutions & bounds

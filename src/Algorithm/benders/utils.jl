@@ -14,7 +14,7 @@ function _add_subproblem!(rhs, T, spid, sp)
     constr_ids = ConstrId[]
     constr_rhs = Float64[]
     for (constr_id, constr) in getconstrs(sp)
-        if getduty(constr_id) <= BendSpTechnologicalConstr && iscuractive(sp, constr) && isexplicit(sp, constr)
+        if iscuractive(sp, constr) && isexplicit(sp, constr)
             push!(constr_ids, constr_id)
             push!(constr_rhs, getperenrhs(sp, constr_id))
         end 

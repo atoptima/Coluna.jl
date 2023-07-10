@@ -89,7 +89,7 @@ function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
         if duty <= MasterCol
             origin_form_uid = getoriginformuid(varid)
             spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
-            column = @view get_primal_sol_pool(spform)[varid,:]
+            column = @view get_primal_sol_pool(spform).solutions[varid,:]
             if !haskey(columns, origin_form_uid)
                 columns[origin_form_uid] = DynamicMatrixColView{VarId, VarId, Float64}[]
                 values[origin_form_uid] = Float64[]
@@ -149,6 +149,6 @@ end
 
 projection_is_possible(master::Formulation{BendersMaster}) = false
 
-function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{BendersMaster})
+function proj_cols_on_rep(sol::PrimalSolution{Formulation{BendersMaster}})
     return sol
 end

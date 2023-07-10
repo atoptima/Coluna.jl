@@ -6,7 +6,7 @@
 
 
 # !!! warning
-#    Missing intro, missing finding best solution.
+#    Missing intro, missing finding the best solution.
 
 # ## Introduction
 
@@ -39,12 +39,12 @@
 
 using Coluna;
 
-# and we define some shortcuts for the sake of brievety.
+# and we define some shortcuts for the sake of conciseness.
 
 const ClB = Coluna.ColunaBase;
 const ClA = Coluna.Algorithm;
 
-# We consider a data structure that maintain a model.
+# We consider a data structure that maintains a model.
 
 struct Formulation <: ClB.AbstractModel
     var_names::Vector{String}
@@ -53,13 +53,13 @@ struct Formulation <: ClB.AbstractModel
 end
 
 # The model has 3 integer variables.
-# The following arrays contain theirs names, costs, and initial bounds.
+# The following arrays contain their names, costs, and initial bounds.
 
 names = ["x1", "x2", "x3"];
 costs = [-1, 1, -0.5];
 initial_bounds = [(0,2), (0.9,2), (-1,0.5)];
 
-# We instanciate the model.
+# We instantiate the model.
 formulation = Formulation(names, costs, initial_bounds);
 
 # ### Storage
@@ -70,7 +70,7 @@ formulation = Formulation(names, costs, initial_bounds);
 
 # Each time, the tree search algorithm will evaluate a node, it will need to know the state
 # of the formulation (e.g. domains of variables) at this node.
-# To this purpose, we will use the storage.
+# For this purpose, we will use the storage.
 
 # We create a storage unit for variable domains
 struct VarDomainStorageUnit <: ClB.AbstractRecordUnit end
@@ -85,8 +85,8 @@ struct VarDomainRecord <: ClB.AbstractRecord
 end
 
 
-# There is a one-to-one correspondance between storage unit types and record types. 
-# This correspondance is implemented by the two following methods:
+# There is a one-to-one correspondence between storage unit types and record types. 
+# This correspondence is implemented by the two following methods:
 ClB.record_type(::Type{VarDomainStorageUnit}) = VarDomainRecord
 ClB.storage_unit_type(::Type{VarDomainRecord}) = VarDomainStorageUnit
 
@@ -95,7 +95,7 @@ function ClB.record(::Type{VarDomainRecord}, id::Int, form::Formulation, ::VarDo
     return VarDomainRecord(copy(form.var_domains))
 end
 
-# We implement the method that restore the variables' domains of the formulation from a 
+# We implement the method that restores the variables' domains of the formulation from a 
 # given record.
 function ClB.restore_from_record!(form::Formulation, ::VarDomainStorageUnit, record::VarDomainRecord)
     for (var_pos, (lb, ub)) in enumerate(record.var_domains)
@@ -264,20 +264,20 @@ Coluna.TreeSearch.tree_search(Coluna.TreeSearch.DepthFirstStrategy(), search_spa
 
 # ## API
 
-# To summarize from a developer point of view, there is a one-to-one correspondance between
+# To summarize from a developer's point of view, there is a one-to-one correspondence between
 # storage unit types and record types. 
-# this correspondance is implemented by methods 
+# this correspondence is implemented by methods 
 # `record_type(StorageUnitType)` and `storage_unit_type(RecordType)`.
 
 # The developer must also implement methods `storage_unit(StorageUnitType)` and
 # `record(RecordType, id, model, storage_unit)` that must call constructors of the custom 
-# storage unit and the one of its associated records. 
+# storage unit and one of its associated records. 
 # Arguments of `record` allow the developer to record the state of entities from 
 # both the storage unit and the model.
 
 # At last, he must implement `restore_from_record!(storage_unit, model, record)` to restore the
 # state of the entities represented by the storage unit.
-# Entities can be in the storage unit, the model, or in both of them.
+# Entities can be in the storage unit, the model, or both of them.
 
 # ```@docs
 #     ColunaBase.record_type

@@ -2,14 +2,11 @@
 EditURL = "<unknown>/src/api/storage.jl"
 ```
 
-```@meta
-CurrentModule = Coluna.Algorithm
-DocTestSetup = quote
-    using Coluna.Algorithm, Coluna.ColunaBase
-end
-```
-
 # Storage API
+
+```@meta
+      CurrentModule = Coluna
+```
 
 !!! warning
    Missing intro, missing finding best solution.
@@ -28,8 +25,8 @@ them at specific steps of the calculation flow to restore them later. The storag
 provides two methods to do both actions:
 
 ```@docs
-    create_record
-    restore_from_record!
+    ColunaBase.create_record
+    ColunaBase.restore_from_record!
 ```
 
 ## Example
@@ -148,7 +145,7 @@ There is a tutorial about the tree search interface.
 We define the node data structure.
 
 ````@example storage
-mutable struct Node <: ClA.AbstractNode
+mutable struct Node <: Coluna.TreeSearch.AbstractNode
     depth::Int
     id::Int
     branch_description::String
@@ -160,8 +157,8 @@ mutable struct Node <: ClA.AbstractNode
     end
 end
 
-ClA.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.get_parent(node::Node) = node.parent
+Coluna.TreeSearch.get_root(node::Node) = isnothing(node.parent) ? node : Coluna.Treesearch.root(node.parent)
+Coluna.TreeSearch.get_parent(node::Node) = node.parent
 ````
 
 We define the search space data structure.
@@ -169,13 +166,14 @@ Note that we keep the storage in the search space because we have access to this
 data structure throughout the whole tree search execution.
 
 ````@example storage
-mutable struct FullExplSearchSpace <: ClA.AbstractSearchSpace
+mutable struct FullExplSearchSpace <: Coluna.TreeSearch.AbstractSearchSpace
     nb_nodes_generated::Int
     formulation::Formulation
+    solution::Tuple{Vector{Float64},Float64}
     storage::ClB.Storage{Formulation}
     record_ids_per_node::Dict{Int, Any}
     function FullExplSearchSpace(form::Formulation)
-        return new(0, form, ClB.Storage(form), Dict{Int,Any}())
+        return new(0, form, ([],Inf), ClB.Storage(form), Dict{Int,Any}())
     end
 end
 ````
@@ -183,9 +181,9 @@ end
 We implement the method that returns the root node.
 
 ````@example storage
-function ClA.new_root(space::FullExplSearchSpace, _)
+function Coluna.TreeSearch.new_root(space::FullExplSearchSpace, _)
     space.nb_nodes_generated += 1
-    return Node(nothing, 0, "", nothing)
+    return Node(nothing, 1, "", nothing)
 end
 ````
 
@@ -205,6 +203,32 @@ function print_form(form, current)
     println(t, node, branch, domains)
 end;
 nothing #hide
+````
+
+We write a function to calculate the solution at the current formulation of a node.
+
+````@example storage
+function compute_sol(space::FullExplSearchSpace, current)
+    model = space.formulation
+    sol = Float64[]
+    sol_cost = 0.0
+    for (cost, (ub, lb)) in Iterators.zip(model.var_costs, model.var_domains)
+        var_val = (ub + lb) / 2.0
+        sol_cost += var_val * cost
+        push!(sol, var_val)
+    end
+    return sol, sol_cost
+end
+````
+
+We write a method that updates the best-found solution when the node solution is better.
+
+````@example storage
+function update_best_sol!(space::FullExplSearchSpace, solution::Tuple{Vector{Float64},Float64})
+    if last(solution) < last(space.solution)
+        space.solution = solution
+    end
+end
 ````
 
 Let's now talk about how we will store and restore the state of the formulation in our
@@ -236,6 +260,12 @@ function evaluate_current_node(space::FullExplSearchSpace, current)
 
     # Print the current formulation
     print_form(space.formulation, current)
+
+    # Compute solution
+    sol = compute_sol(space, current)
+
+    # Update best solution
+    update_best_sol!(space, sol)
 
     # Record current state of the formulation and keep the record in the current node.
     # This is not necessary here but the formulation often changes during evaluation.
@@ -279,7 +309,7 @@ We define the method `children` of the tree search API.
 It evaluates the current node and then generates its children.
 
 ````@example storage
-function ClA.children(space::FullExplSearchSpace, current, _, _)
+function Coluna.TreeSearch.children(space::FullExplSearchSpace, current, _, _)
     evaluate_current_node(space, current)
     return create_children(space, current)
 end
@@ -288,21 +318,20 @@ end
 We don't define specific stopping criterion.
 
 ````@example storage
-ClA.stop(::FullExplSearchSpace) = false
+Coluna.TreeSearch.stop(::FullExplSearchSpace, _) = false
 ````
 
-We return the node id where we found the best solution and the record at each node
-to make sure the example worked.
+We return the best solution and the record at each node to make sure the example worked.
 
 ````@example storage
-ClA.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node
+Coluna.TreeSearch.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution
 ````
 
 We run the example.
 
 ````@example storage
 search_space = FullExplSearchSpace(formulation)
-ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
+Coluna.TreeSearch.tree_search(Coluna.TreeSearch.DepthFirstStrategy(), search_space, nothing, nothing)
 ````
 
 ## API
@@ -323,11 +352,11 @@ state of the entities represented by the storage unit.
 Entities can be in the storage unit, the model, or in both of them.
 
 ```@docs
-    record_type
-    storage_unit_type
-    storage_unit
-    record
-    restore_from_record!
+    ColunaBase.record_type
+    ColunaBase.storage_unit_type
+    ColunaBase.storage_unit
+    ColunaBase.record
+    ColunaBase.restore_from_record!
 ```
 
 ---

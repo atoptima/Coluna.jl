@@ -1,6 +1,6 @@
-# # Pricing callback
+# # [Pricing callback](@id tuto_pricing_callback)
 
-# The pricing callback let you define how to solve the subproblems of a Dantzig-Wolfe 
+# The pricing callback lets you define how to solve the subproblems of a Dantzig-Wolfe 
 # decomposition to generate a new entering column in the master program. 
 # This callback is useful when you know an efficient algorithm to solve the subproblems, 
 # i.e. an algorithm better than solving the subproblem with a MIP solver.
@@ -57,7 +57,7 @@ function solve_knapsack(cost, weight, capacity)
     return filter(i -> x_val[i] ≈ 1, collect(items))
 end
 
-# You can replace the content of the function by any algorithm that solves the knapsack
+# You can replace the content of the function with any algorithm that solves the knapsack
 # problem (such as algorithms provided by the unregistered package 
 # [Knapsacks](https://github.com/rafaelmartinelli/Knapsacks.jl)).
 
@@ -103,6 +103,6 @@ BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback);
 
 optimize!(model);
 
-# and retrieve information you need as usual :
+# and retrieve the information you need as usual :
 
 objective_value(model)

@@ -1,61 +1,18 @@
-# function benders_simple_example()
-#     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
-#     origform = Coluna.MathProg.create_formulation!(env, Coluna.MathProg.Original())
+function _get_benders_var_ids(reform::Reformulation)
+    varids = Dict{String,VarId}()
 
-#     # Variables
-#     vars = Dict{String, Coluna.MathProg.VarId}()
-#     variables_infos = [
-#         ("x1", 1.0, Coluna.MathProg.Integ),
-#         ("x2", 4.0, Coluna.MathProg.Integ),
-#         ("y1", 2.0, Coluna.MathProg.Continuous),
-#         ("y2", 3.0, Coluna.MathProg.Continuous)
-#     ]
-#     for (name, cost, kind) in variables_infos
-#         vars[name] = Coluna.MathProg.getid(Coluna.MathProg.setvar!(
-#             origform, name, Coluna.MathProg.OriginalVar; cost = cost, lb = 0.0, kind = kind
-#         ))
-#     end
+    master = Coluna.MathProg.getmaster(reform)
+    for (varid, _) in Coluna.MathProg.getvars(master)
+        varids[Coluna.MathProg.getname(master, varid)] = varid
+    end
 
-#     # Constraints
-#     constrs = Dict{String, Coluna.MathProg.ConstrId}()
-#     constraints_infos = [
-#         ("c1", 2.0, Coluna.MathProg.Greater, Dict(vars["x1"] => -1.0, vars["x2"] => 4.0, vars["y1"] => 2.0, vars["y2"] => 3.0)),
-#         ("c2", 3.0, Coluna.MathProg.Greater, Dict(vars["x1"] => 1.0, vars["x2"] => 3.0, vars["y1"] => 1.0, vars["y2"] => 1.0)),
-#     ]
-#     for (name, rhs, sense, members) in constraints_infos
-#         constrs[name] = Coluna.MathProg.getid(Coluna.MathProg.setconstr!(
-#             origform, name, Coluna.MathProg.OriginalConstr; rhs = rhs, sense = sense, members = members
-#         ))
-#     end
-
-#     @show origform
-
-#     # Decomposition tree
-#     m = JuMP.Model()
-#     BlockDecomposition.@axis(axis, [1])
-#     tree = BlockDecomposition.Tree(m, BlockDecomposition.Benders, axis)
-#     mast_ann = tree.root.master
-#     sp_ann = BlockDecomposition.Annotation(tree, BlockDecomposition.BendersSepSp, BlockDecomposition.Benders, [])
-#     BlockDecomposition.create_leaf!(BlockDecomposition.getroot(tree), axis[1], sp_ann)
-
-#     # Benders annotations
-#     ann = Coluna.Annotations()
-#     ann.tree = tree
-#     Coluna.store!(ann, mast_ann, Coluna.MathProg.getvar(origform, vars["x1"]))
-#     Coluna.store!(ann, mast_ann, Coluna.MathProg.getvar(origform, vars["x2"]))
-#     Coluna.store!(ann, sp_ann, Coluna.MathProg.getvar(origform, vars["y1"]))
-#     Coluna.store!(ann, sp_ann, Coluna.MathProg.getvar(origform, vars["y2"]))
-#     Coluna.store!(ann, sp_ann, Coluna.MathProg.getconstr(origform, constrs["c1"]))
-#     Coluna.store!(ann, sp_ann, Coluna.MathProg.getconstr(origform, constrs["c2"]))
-
-#     problem = Coluna.MathProg.Problem(env)
-#     Coluna.MathProg.set_original_formulation!(problem, origform)
-
-#     Coluna.reformulate!(problem, ann, env)
-#     reform = Coluna.MathProg.get_reformulation(problem)
-#     return env, reform
-# end
-
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        for (varid, _) in Coluna.MathProg.getvars(sp)
+            varids[Coluna.MathProg.getname(sp, varid)] = varid
+        end
+    end
+    return varids
+end
 
 function benders_form_A()
     # using JuMP, GLPK
@@ -103,58 +60,8 @@ function benders_form_A()
         y2 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
-
-
-# function benders_form_B()
-#     #using JuMP, GLPK
-#     #m = Model(GLPK.Optimizer)
-#     #@variable(m, x[1:2] >= 0)
-#     #@variable(m, y[1:2] >= 0)
-#     #@constraint(m, -x[1] + x[2] + y[1] - 0.5y[2] >= 4)
-#     #@constraint(m, 2x[1] + 1.5x[2] + y[1] + y[2] >= 5)
-#     #@objective(m, Min, x[1] + 2x[2] + 1.5y[1] + y[2])
-#     #optimize!(m)
-#     #objective_value(m)
-#     #value.(x)
-#     #value.(y)
-#     form = """
-#     master
-#         min
-#         x1 + 2x2 + 1.5y1 + 1y2 + z
-#         s.t.
-#         x1 + x2 >= 0
-
-#     benders_sp
-#         min
-#         0x1 + 0x2 + 1.5y1 + y2 + z
-#         s.t.
-#         -x1 + x2 + y1 - 0.5y2 >= 4 {BendTechConstr}
-#         2x1 + 1.5x2 + y1 + y2 >= 5 {BendTechConstr}
-#         y1 + y2 >= 0
-
-#     integer
-#         first_stage
-#             x1, x2
-
-#     continuous
-#         second_stage_cost
-#             z
-#         second_stage
-#             y1, y2
-    
-#     bounds
-#         -Inf <= z <= Inf
-#         x1 >= 0
-#         x2 >= 0
-#         y1 >= 0
-#         y2 >= 0
-#     """
-#     env, _, _, _, reform = reformfromstring(form)
-#     return env, reform
-# end
-
 
 function benders_form_B()
     #using JuMP, GLPK
@@ -201,7 +108,7 @@ function benders_form_B()
         y2 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
 
 function benders_form_C()
@@ -257,7 +164,7 @@ function benders_form_C()
         y4 >= 0
    """
    env, _, _, _, reform = reformfromstring(form)
-   return env, reform
+   return env, reform, _get_benders_var_ids(reform)
 
 end
 
@@ -306,7 +213,7 @@ function benders_form_max()
         y2 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
 
 function benders_form_infeasible_master()
@@ -358,7 +265,7 @@ function benders_form_infeasible_master()
         y2 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 
 end
 
@@ -417,7 +324,7 @@ function benders_form_infeasible_sp()
         a4 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
 
 function benders_form_lower_bound()
@@ -467,7 +374,7 @@ function benders_form_lower_bound()
         y2 >= 5
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
 
 function benders_form_upper_bound()
@@ -520,7 +427,7 @@ function benders_form_upper_bound()
         a3 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
 
 function benders_form_unbounded_master()
@@ -535,7 +442,7 @@ function benders_form_unbounded_master()
         min
         0x1 + 0x2 + 2y1 + 3y2 + z
         s.t.
-        -x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
+        x1 + 4x2 + 2y1 + 3y2 >= 2 {BendTechConstr}
         x1 + 3x2 + y1 + y2 >= 3 {BendTechConstr}
         y1 + y2 >= 0
 
@@ -557,7 +464,7 @@ function benders_form_unbounded_master()
         y2 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 
 end
 
@@ -595,16 +502,13 @@ function benders_form_unbounded_sp()
         y2 >= 0
     """
     env, _, _, _, reform = reformfromstring(form)
-    return env, reform
+    return env, reform, _get_benders_var_ids(reform)
 end
 
 # A with continuous first stage finds optimal solution
-# TODO: check output
-# x1 =  0.8571428571428571, x2 = 0.7142857142857143
-# y1 = 0.0, y2 = 0.0
 function benders_iter_default_A_continuous()
     #env, reform = benders_simple_example()
-    env, reform = benders_form_A()
+    env, reform, varids = benders_form_A()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -625,17 +529,17 @@ function benders_iter_default_A_continuous()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 3.7142857142857144
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.8571428571428571
+    @test result.ip_primal_sol[varids["x2"]] ≈ 0.7142857142857143
+    @test result.ip_primal_sol[varids["y1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_iter_default_A_continuous)
 
 # A with integer first stage finds optimal solution
-# expected output:
-# mlp = 4.0
-# x1 = 0.0, x2 = 1.0
-# y1 = 0.0, y2 = 0.0
 function benders_iter_default_A_integer()
     #env, reform = benders_simple_example()
-    env, reform = benders_form_A()
+    env, reform, varids = benders_form_A()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -656,17 +560,17 @@ function benders_iter_default_A_integer()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 4.0
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["x2"]] ≈ 1.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_iter_default_A_integer)
 
-
 # B with continuous first stage finds optimal solution
-# TODO: check output
-# x1 = 0.33333333333333337, x2 = 0.0
-# y1 = 4.333333333333333, y2 = 0.0
 function benders_iter_default_B_continuous()
     #env, reform = benders_simple_example()
-    env, reform = benders_form_B()
+    env, reform, varids = benders_form_B()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -687,17 +591,17 @@ function benders_iter_default_B_continuous()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 6.833333333333333
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.33333333333333337
+    @test result.ip_primal_sol[varids["x2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 4.333333333333333
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_iter_default_B_continuous)
 
 # B with integer first stage finds optimal solution
-# expected output:
-# mlp = 7
-# x1 = 0.0, x2 = 2.0
-# y1 =  2, y2 = 0
 function benders_iter_default_B_integer()
     #env, reform = benders_simple_example()
-    env, reform = benders_form_B()
+    env, reform, varids = benders_form_B()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -718,17 +622,16 @@ function benders_iter_default_B_integer()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 7
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["x2"]] ≈ 2.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 2.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_iter_default_B_integer)
 
-# C with continuous first stage
-# Error occurs during test, TODO fix
-# expected output:
-# mlp = 15.25
-# x1 = 2.5, x2 = 0.0
-# y1 = y2 = y3 = 0.0, y4 = 0.5
+# C with continuous first stage finds optimal solution
 function benders_sp_C_continuous()
-    env, reform = benders_form_C()
+    env, reform, varids = benders_form_C()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -749,17 +652,18 @@ function benders_sp_C_continuous()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 15.25
+    @test result.ip_primal_sol[varids["x1"]] ≈ 2.5
+    @test result.ip_primal_sol[varids["x2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y3"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y4"]] ≈ 0.5
 end
 register!(unit_tests, "benders_default", benders_sp_C_continuous)
 
-# C with integer first stage
-# Error occurs during test, TODO fix
-# expected output:
-# mlp = 15.25
-# x1 = 2.0, x2 = 0.0
-# y1 = 2.0, y2 = 0.0, y3 = 0.0, y4 = 1.0
+# C with integer first stage finds optimal solution
 function benders_sp_C_integer()
-    env, reform = benders_form_C()
+    env, reform, varids = benders_form_C()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -780,17 +684,17 @@ function benders_sp_C_integer()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 15.5
+    @test result.ip_primal_sol[varids["x1"]] ≈ 2.0
+    @test result.ip_primal_sol[varids["x2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 2.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y3"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y4"]] ≈ 1.0
 end
 register!(unit_tests, "benders_default", benders_sp_C_integer)
 
-
-# test FAIL
-# expected output:
-# x1 =  0.33333333333333337, x2 = 0.0
-# y1 = 4.333333333333333, y2 = 0.0
-# mlp = -6.833333333333333
 function benders_default_max_form_continuous()
-    env, reform = benders_form_max()
+    env, reform, varids = benders_form_max()
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
@@ -810,17 +714,15 @@ function benders_default_max_form_continuous()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ -6.833333333333333
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.33333333333333337
+    @test result.ip_primal_sol[varids["x2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 4.333333333333333
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_default_max_form_continuous)
 
-
-# test FAIL
-# expected output:
-# x1 =  0.0, x2 = 2.0
-# y1 = 2.0000000000000004, y2 = 0.0
-# mlp = -7
 function benders_default_max_form_integer()
-    env, reform = benders_form_max()
+    env, reform, varids = benders_form_max()
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
@@ -840,14 +742,16 @@ function benders_default_max_form_integer()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ -7
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["x2"]] ≈ 2.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 2.0000000000000004
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_default_max_form_integer)
 
-
 # A formulation with infeasible master constraint
-# test FAIL + I can't see the master constraints with @show master
 function benders_default_infeasible_master()
-    env, reform = benders_form_infeasible_master()
+    env, reform, _ = benders_form_infeasible_master()
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
@@ -871,11 +775,37 @@ function benders_default_infeasible_master()
 end
 register!(unit_tests, "benders_default", benders_default_infeasible_master)
 
-# A formulation with infeasible sp constraint
-# ERROR during test, but maybe I don't check the infeasibility of the sp in a proper way ?
-function benders_default_infeasible_sp()
-    env, reform = benders_form_infeasible_sp()
+# A formulation with infeasible master constraint
+function benders_default_infeasible_master_integer()
+    env, reform, _ = benders_form_infeasible_master()
     master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+        
+    )
+    ctx = Coluna.Algorithm.BendersContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible == true
+
+end
+register!(unit_tests, "benders_default", benders_default_infeasible_master_integer)
+
+# A formulation with infeasible sp constraint
+function benders_default_infeasible_sp()
+    env, reform, _ = benders_form_infeasible_sp()
+    master = Coluna.MathProg.getmaster(reform)    
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     ClMP.relax_integrality!(master)
@@ -887,7 +817,7 @@ function benders_default_infeasible_sp()
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 10
     )
-    ctx = Coluna.Algorithm.BendersPrinterContext(
+    ctx = Coluna.Algorithm.BendersContext(
         reform, alg;
     )
     Coluna.set_optim_start_time!(env)
@@ -898,14 +828,36 @@ function benders_default_infeasible_sp()
 end
 register!(unit_tests, "benders_default", benders_default_infeasible_sp)
 
+# A formulation with infeasible sp constraint
+function benders_default_infeasible_sp_integer()
+    env, reform, _ = benders_form_infeasible_sp()
+    master = Coluna.MathProg.getmaster(reform)    
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+        
+    )
+    ctx = Coluna.Algorithm.BendersContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible == true
+
+end
+register!(unit_tests, "benders_default", benders_default_infeasible_sp_integer)
 
 # form A with lower bound on y variables equal to 5
-# test FAIL, expected output:
-# x1 = x2 = 0.0
-# y1 = y2 = 5.0
-# mlp = 25.0
 function benders_min_lower_bound()
-    env, reform = benders_form_lower_bound()
+    env, reform, varids = benders_form_lower_bound()
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
@@ -925,18 +877,17 @@ function benders_min_lower_bound()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ 25
-
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["x2"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 5.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 5.0
 end
 register!(unit_tests, "benders_default", benders_min_lower_bound)
 
 
 # max form B with upper bound on y variables equal to 1
-# test FAIL, expected output:
-# x1 = 0, x2 = 3
-# y1 = 1, y2 = 0
-# mlp = -7.5
 function benders_max_upper_bound()
-    env, reform = benders_form_upper_bound()
+    env, reform, varids = benders_form_upper_bound()
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
@@ -947,7 +898,7 @@ function benders_max_upper_bound()
     end
 
     alg = Coluna.Algorithm.BendersCutGeneration(
-        max_nb_iterations = 10
+        max_nb_iterations = 10,
     )
     ctx = Coluna.Algorithm.BendersContext(
         reform, alg;
@@ -956,13 +907,16 @@ function benders_max_upper_bound()
 
     result = Coluna.Benders.run_benders_loop!(ctx, env)
     @test result.mlp ≈ -7.5
+    @test result.ip_primal_sol[varids["x1"]] ≈ 0.0
+    @test result.ip_primal_sol[varids["x2"]] ≈ 3.0
+    @test result.ip_primal_sol[varids["y1"]] ≈ 1.0
+    @test result.ip_primal_sol[varids["y2"]] ≈ 0.0
 end
 register!(unit_tests, "benders_default", benders_max_upper_bound)
 
-
-#TODO check if benders throws error
+# benders throws error
 function benders_default_unbounded_master()
-    env, reform = benders_form_unbounded_master()
+    env, reform, _ = benders_form_unbounded_master()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -977,26 +931,42 @@ function benders_default_unbounded_master()
         max_nb_iterations = 10
     )
     ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg;
-        print = true,
-        debug_print_master = true,
-        debug_print_master_primal_solution = true,
-        debug_print_master_dual_solution = true,
-        debug_print_subproblem = true,
-        debug_print_subproblem_primal_solution = true,
-        debug_print_subproblem_dual_solution = true,
-        debug_print_generated_cuts = true,
+        print = false
     )
     Coluna.set_optim_start_time!(env)
 
     @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_master; x = true)
+register!(unit_tests, "benders_default", benders_default_unbounded_master)
 
+# benders throws error
+function benders_default_unbounded_master_integer()
+    env, reform, _ = benders_form_unbounded_master()
 
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
 
-# TODO: check if benders throws error
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg;
+        print = false
+    )
+    Coluna.set_optim_start_time!(env)
+
+    @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
+end
+register!(unit_tests, "benders_default", benders_default_unbounded_master_integer)
+
+# benders throws error
 function benders_default_unbounded_sp()
-    env, reform = benders_form_unbounded_sp()
+    env, reform, _ = benders_form_unbounded_sp()
 
     master = Coluna.MathProg.getmaster(reform)
     master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
@@ -1010,9 +980,235 @@ function benders_default_unbounded_sp()
     alg = Coluna.Algorithm.BendersCutGeneration(
         max_nb_iterations = 10
     )
-    ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg)
+    ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg; print = false)
     Coluna.set_optim_start_time!(env)
 
     @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
 end
-register!(unit_tests, "benders_default", benders_default_unbounded_sp; x = true)
+register!(unit_tests, "benders_default", benders_default_unbounded_sp)
+
+# benders throws error
+function benders_default_unbounded_sp_integer()
+    env, reform, _ = benders_form_unbounded_sp()
+
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (sp_id, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 10,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(reform, alg; print = false)
+    Coluna.set_optim_start_time!(env)
+
+    @test_throws Coluna.Benders.UnboundedError Coluna.Benders.run_benders_loop!(ctx, env)
+end
+register!(unit_tests, "benders_default", benders_default_unbounded_sp_integer)
+
+
+
+function benders_default_loc_routing_continuous()
+    env, reform = benders_form_location_routing()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 293.5
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing_continuous)
+
+function benders_default_loc_routing()
+    env, reform = benders_form_location_routing()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 385.0
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing)
+
+
+
+function benders_default_loc_routing_infeasible_continuous()
+    env, reform = benders_form_location_routing_infeasible()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible == true
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible_continuous)
+
+function benders_default_loc_routing_infeasible()
+    env, reform = benders_form_location_routing_infeasible()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.infeasible == true
+end
+register!(unit_tests, "benders_default", benders_default_loc_routing_infeasible)
+
+function benders_default_location_routing_subopt_continuous()
+    env, reform = benders_form_location_routing_subopt()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    ClMP.relax_integrality!(master)
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 386.0
+end
+register!(unit_tests, "benders_default", benders_default_location_routing_subopt_continuous)
+
+function benders_default_location_routing_subopt()
+    env, reform = benders_form_location_routing_subopt()
+    master = Coluna.MathProg.getmaster(reform)
+    master.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    for (_, sp) in Coluna.MathProg.get_benders_sep_sps(reform)
+        sp.optimizers = Coluna.MathProg.AbstractOptimizer[] # dirty
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 100,
+        restr_master_solve_alg = Coluna.Algorithm.SolveIpForm()
+    )
+    ctx = Coluna.Algorithm.BendersPrinterContext(
+        reform, alg;
+    )
+    Coluna.set_optim_start_time!(env)
+
+    result = Coluna.Benders.run_benders_loop!(ctx, env)
+    @test result.mlp ≈ 517.0
+end
+register!(unit_tests, "benders_default", benders_default_location_routing_subopt)
+
+
+function test_two_identicals_cut_at_two_iterations_failure()
+    env, reform = benders_form_A()
+    master = ClMP.getmaster(reform)
+    sps = ClMP.get_benders_sep_sps(reform)
+    spform = sps[3]
+    spconstrids = Dict(CL.getname(spform, constr) => constrid for (constrid, constr) in CL.getconstrs(spform))
+    spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
+
+    alg = Coluna.Algorithm.BendersCutGeneration(
+        max_nb_iterations = 2
+    )
+    ctx = Coluna.Algorithm.BendersContext(
+        reform, alg;
+    )
+
+    cut1 = ClMP.DualSolution(
+        spform,
+        map(x -> spconstrids[x], ["sp_c1", "sp_c2", "sp_c3"]),
+        [1.5, 2.0, 4.0],
+        map(x -> spvarids[x], ["y1", "y2"]),
+        [1.0, 1.0],
+        [ClMP.LOWER, ClMP.UPPER],
+        1.0,
+        ClB.FEASIBLE_SOL
+    )
+    lhs1 = Dict{ClMP.VarId, Float64}()
+    rhs1 = 1.0
+    cut2 = ClMP.DualSolution(
+        spform,
+        map(x -> spconstrids[x], ["sp_c1", "sp_c2", "sp_c3"]),
+        [1.5, 2.0, 4.0],
+        map(x -> spvarids[x], ["y1", "y2"]),
+        [1.0, 1.0],
+        [ClMP.LOWER, ClMP.UPPER],
+        1.0,
+        ClB.FEASIBLE_SOL
+    )
+    lhs2 = Dict{ClMP.VarId, Float64}()
+    rhs2 = 1.5
+
+    cuts = Coluna.Benders.set_of_cuts(ctx)
+    for (sol, lhs, rhs) in Iterators.zip([cut1, cut2], [lhs1, lhs2], [rhs1, rhs2])
+        cut = ClA.GeneratedCut(true, lhs, rhs, sol)
+        sep_res = ClA.BendersSeparationResult(2.0, 3.0, nothing, false, false, cut, false, false)
+        Coluna.Benders.push_in_set!(ctx, cuts, sep_res)
+    end
+    Coluna.Benders.insert_cuts!(reform, ctx, cuts)
+    @test_throws Coluna.Algorithm.CutAlreadyInsertedBendersWarning Coluna.Benders.insert_cuts!(reform, ctx, cuts)
+
+    # Coluna.set_optim_start_time!(env)
+    # result = Coluna.Benders.run_benders_loop!(ctx, env)
+
+    # @test result.mlp ≈ 3.7142857142857144
+end
+register!(unit_tests, "benders_default", test_two_identicals_cut_at_two_iterations_failure)
+
+
+
+

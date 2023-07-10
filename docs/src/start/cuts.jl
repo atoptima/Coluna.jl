@@ -1,4 +1,4 @@
-# # Valid inequalities
+# # [Valid inequalities](@id tuto_cut_callback)
 
 # Now let us consider a variant of the Generalized Assignment Problem in which we have to
 # pay `f[m]` to use machine `m`.
@@ -74,8 +74,7 @@ H
 
 # Let `ȳ` be the solution to the linear relaxation of the problem.
 # Let us try to express `ȳ` as a linear expression of the configurations.
-# If `ȳ ∈ conv H`, we can derive a cut because the optimal integer solution to the problem
-# use one of the configuration of H.
+# If `ȳ ∈ conv H`, we can derive a cut because the optimal integer solution to the problem uses one of the configurations of H.
 
 # We need MathOptInterface to define the cut callback: 
 
@@ -85,8 +84,8 @@ using MathOptInterface
 # `max sum(χ[k] for k in 1:length(H))` such that `sum(χ[k]* h for (k,h) in enumerate(H)) <= ̄ȳ`.
 # If the objective value is less than 1, we must add a cut.
 
-# Since the separation algorithm is a linear program, strong dualities applies.
-# So we seperate these cuts with the dual.
+# Since the separation algorithm is a linear program, strong duality applies.
+# So we separate these cuts with the dual.
 
 fc_sep_m = Model(GLPK.Optimizer)
 @variable(fc_sep_m, ψ[m in M] >= 0) # one variable for each constraint

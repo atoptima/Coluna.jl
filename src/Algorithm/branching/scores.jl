@@ -1,18 +1,21 @@
 struct ProductScore <: Branching.AbstractBranchingScore end
 
-function Branching.compute_score(::ProductScore, candidate)
-    parent_lp_dual_bound = get_lp_dual_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    parent_ip_primal_bound = get_ip_primal_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    children_lp_primal_bounds = get_lp_primal_bound.(TreeSearch.get_opt_state.(Branching.get_children(candidate)))
+function Branching.compute_score(::ProductScore, candidate, input)
+    parent = Branching.get_conquer_opt_state(input)
+    parent_lp_dual_bound = get_lp_dual_bound(parent)
+    parent_ip_primal_bound = get_ip_primal_bound(parent)
+    children_lp_primal_bounds = get_lp_primal_bound.(getfield.(Branching.get_children(candidate), Ref(:optstate)))
     return _product_score(parent_lp_dual_bound, parent_ip_primal_bound, children_lp_primal_bounds)
 end
 
 struct TreeDepthScore <: Branching.AbstractBranchingScore end
 
-function Branching.compute_score(::TreeDepthScore, candidate)
-    parent_lp_dual_bound = get_lp_dual_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    parent_ip_primal_bound = get_ip_primal_bound(TreeSearch.get_opt_state(Branching.get_parent(candidate)))
-    children_lp_primal_bounds = get_lp_primal_bound.(TreeSearch.get_opt_state.(Branching.get_children(candidate)))
+function Branching.compute_score(::TreeDepthScore, candidate, input)
+    parent = Branching.get_conquer_opt_state(input)
+    parent_lp_dual_bound = get_lp_dual_bound(parent)
+    parent_ip_primal_bound = get_ip_primal_bound(parent)
+    children = Branching.get_children(candidate)
+    children_lp_primal_bounds = get_lp_primal_bound.(getfield.(children, :optstate))
     return _tree_depth_score(parent_lp_dual_bound, parent_ip_primal_bound, children_lp_primal_bounds)
 end
 
@@ -24,12 +27,12 @@ function _product_score(
     children_lp_primal_bounds::Vector
 )
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_delta = diff(parent_ip_primal_bound, parent_lp_dual_bound)
+    parent_delta = ColunaBase.diff(parent_ip_primal_bound, parent_lp_dual_bound)
 
     all_branches_above_delta = true
     deltas = zeros(Float64, length(children_lp_primal_bounds))
     for (i, child_lp_primal_bound) in enumerate(children_lp_primal_bounds)
-        node_delta = diff(child_lp_primal_bound, parent_lp_dual_bound)
+        node_delta = ColunaBase.diff(child_lp_primal_bound, parent_lp_dual_bound)
         if node_delta < parent_delta
             all_branches_above_delta = false
         end
@@ -98,12 +101,12 @@ function _tree_depth_score(
     end
 
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_delta = diff(parent_ip_primal_bound, parent_lp_dual_bound)
+    parent_delta = ColunaBase.diff(parent_ip_primal_bound, parent_lp_dual_bound)
 
     deltas = zeros(Float64, nb_children)
     nb_zero_deltas = 0
     for (i, child_lp_primal_bound) in enumerate(children_lp_primal_bounds)
-        node_delta = diff(child_lp_primal_bound, parent_lp_dual_bound)
+        node_delta = ColunaBase.diff(child_lp_primal_bound, parent_lp_dual_bound)
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
         end

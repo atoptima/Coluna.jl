@@ -21,7 +21,8 @@ function update_bounds_in_optimizer!(form::Formulation, optimizer::MoiOptimizer,
     inner = getinner(optimizer)
     moi_record = getmoirecord(var)
     moi_kind = getkind(moi_record)
-    moi_bounds = getbounds(moi_record)
+    moi_lower_bound = getlowerbound(moi_record)
+    moi_upper_bound = getupperbound(moi_record)
     moi_index = getindex(moi_record)
     if getcurkind(form, var) == Binary && moi_index.value != -1
         MOI.delete(inner, moi_kind)
@@ -29,14 +30,22 @@ function update_bounds_in_optimizer!(form::Formulation, optimizer::MoiOptimizer,
             inner, MOI.VariableIndex(moi_index), MOI.Integer()
         ))
     end
-    if moi_bounds.value != -1
-        MOI.set(inner, MOI.ConstraintSet(), moi_bounds,
-            MOI.Interval(getcurlb(form, var), getcurub(form, var))
+    if moi_lower_bound.value != -1
+        MOI.set(inner, MOI.ConstraintSet(), moi_lower_bound,
+            MOI.GreaterThan(getcurlb(form, var))
         )
     else
-        setbounds!(moi_record, MOI.add_constraint(
-            inner, MOI.VariableIndex(moi_index),
-            MOI.Interval(getcurlb(form, var), getcurub(form, var))
+        setlowerbound!(moi_record, MOI.add_constraint(
+            inner, MOI.VariableIndex(moi_index), MOI.GreaterThan(getcurlb(form, var))
+        ))
+    end
+    if moi_upper_bound.value != -1
+        MOI.set(inner, MOI.ConstraintSet(), moi_upper_bound,
+            MOI.LessThan(getcurub(form, var))
+        )
+    else
+        setupperbound!(moi_record, MOI.add_constraint(
+            inner, MOI.VariableIndex(moi_index), MOI.LessThan(getcurub(form, var))
         ))
     end
     return
@@ -78,11 +87,16 @@ function enforce_bounds_in_optimizer!(
     form::Formulation, optimizer::MoiOptimizer, var::Variable
 )
     moirecord = getmoirecord(var)
-    moi_bounds = MOI.add_constraint(
+    moi_lower_bound = MOI.add_constraint(
         getinner(optimizer), getindex(moirecord),
-        MOI.Interval(getcurlb(form, var), getcurub(form, var))
+        MOI.GreaterThan(getcurlb(form, var))
     )
-    setbounds!(moirecord, moi_bounds)
+    moi_upper_bound = MOI.add_constraint(
+        getinner(optimizer), getindex(moirecord),
+        MOI.LessThan(getcurub(form, var))
+    )
+    setlowerbound!(moirecord, moi_lower_bound)
+    setupperbound!(moirecord, moi_upper_bound)
     return
 end
 
@@ -174,8 +188,10 @@ function remove_from_optimizer!(::Formulation, optimizer::MoiOptimizer, var::Var
     inner = getinner(optimizer)
     moirecord = getmoirecord(var)
     @assert getindex(moirecord).value != -1
-    MOI.delete(inner, getbounds(moirecord))
-    setbounds!(moirecord, MoiVarBound())
+    MOI.delete(inner, getlowerbound(moirecord))
+    MOI.delete(inner, getupperbound(moirecord))
+    setlowerbound!(moirecord, MoiVarLowerBound())
+    setupperbound!(moirecord, MoiVarUpperBound())
     if getkind(moirecord).value != -1
         MOI.delete(inner, getkind(moirecord))
     end
@@ -200,40 +216,6 @@ function _getcolunakind(record::MoiVarRecord)
     record.kind isa MoiBinary && return Binary
     return Integ
 end
-
-function _getreducedcost(form::Formulation, optimizer, var::Variable)
-    varname = getname(form, var)
-    opt = typeof(optimizer)
-    @warn """
-        Cannot retrieve reduced cost of variable $varname from formulation solved with optimizer of type $opt. 
-        Method returns nothing.
-    """
-    return
-end
-
-function getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variable)
-    sign = getobjsense(form) == MinSense ? 1.0 : -1.0
-    inner = getinner(optimizer)
-    if MOI.get(inner, MOI.ResultCount()) < 1
-        @warn """
-            No dual solution stored in the optimizer of formulation. Cannot retrieve reduced costs.
-            Method returns nothing.
-        """
-        return
-    end
-    if !iscuractive(form, var) || !isexplicit(form, var)
-        varname = getname(form, var)
-        @warn """
-            Cannot retrieve reduced cost of variable $varname because the variable must be active and explicit.
-            Method returns nothing.
-        """
-        return
-    end
-    bounds_interval_idx = getbounds(getmoirecord(var))
-    dualval = MOI.get(inner, MOI.ConstraintDual(1), bounds_interval_idx)
-    return sign * dualval
-end
-getreducedcost(form::Formulation, optimizer::MoiOptimizer, varid::VarId) = getreducedcost(form, optimizer, getvar(form, varid))
 
 function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
@@ -315,49 +297,32 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         activebounds = ActiveBound[]
         for (varid, var) in getvars(form)
             moi_var_index = getindex(getmoirecord(var))
-            moi_bounds_index = getbounds(getmoirecord(var))
-            MOI.is_valid(inner, moi_var_index) && MOI.is_valid(inner, moi_bounds_index) || continue
-            basis_status = MOI.get(inner, MOI.VariableBasisStatus(res_idx), getindex(getmoirecord(var)))
-            val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_bounds_index)
-
-            # Variables with non-zero dual values have at least one active bound.
-            # Otherwise, we print a warning message.
-            if basis_status == MOI.NONBASIC_AT_LOWER
-                solcost += val * getcurlb(form, varid)
+            moi_lower_bound_index = getlowerbound(getmoirecord(var))
+            if MOI.is_valid(inner, moi_var_index) && MOI.is_valid(inner, moi_lower_bound_index)
+                val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_lower_bound_index)
                 if abs(val) > Coluna.TOL
+                    solcost += val * getcurlb(form, varid)
                     push!(varids, varid)
                     push!(varvals, sense * val)
                     push!(activebounds, LOWER)
                 end
-            elseif basis_status == MOI.NONBASIC_AT_UPPER
-                solcost += val * getcurub(form, varid)
+            end
+
+            moi_upper_bound_index = getupperbound(getmoirecord(var))
+            if MOI.is_valid(inner, moi_var_index) && MOI.is_valid(inner, moi_upper_bound_index)
+                val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_upper_bound_index)
                 if abs(val) > Coluna.TOL
+                    solcost += val * getcurub(form, varid)
                     push!(varids, varid)
                     push!(varvals, sense * val)
                     push!(activebounds, UPPER)
                 end
-            elseif basis_status == MOI.NONBASIC
-                @assert getcurlb(form, varid) == getcurlb(form, varid)
-                solcost += val * getcurub(form, varid)
-                if abs(val) > Coluna.TOL
-                    push!(varids, varid)
-                    push!(varvals, sense * val)
-                    push!(activebounds, LOWER_AND_UPPER)
-                end
-            elseif abs(val) > Coluna.TOL
-                @warn """
-                    Basis status of variable $(getname(form, varid)) that has a non-zero dual value is not treated.
-                    Basis status is $basis_status & dual value is $val.
-                """
             end
         end
         fixed_obj = 0.0
         for var_id in getfixedvars(form)
             cost = getcurcost(form, var_id)
             if abs(cost) > Coluna.TOL
-                push!(varids, var_id)
-                push!(varvals, sense * cost)
-                push!(activebounds, LOWER_AND_UPPER)
                 fixed_obj += cost * getcurlb(form, var_id)
             end
         end

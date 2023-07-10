@@ -1,6 +1,3 @@
-const PrimalBound{S} = Bound{Primal, S}
-const DualBound{S} = Bound{Dual, S}
-
 """
     PrimalBound(formulation)
     PrimalBound(formulation, value)
@@ -10,25 +7,19 @@ Create a new primal bound for the formulation `formulation`.
 The value of the primal bound is infinity if you do not specify any initial value.
 """
 function PrimalBound(form::AbstractFormulation)
-    Se = getobjsense(form)
-    return Bound{Primal,Se}()
+    min = getobjsense(form) == MinSense
+    return ColunaBase.Bound(true, min)
 end
 
 function PrimalBound(form::AbstractFormulation, val)
-    Se = getobjsense(form)
-    return Bound{Primal,Se}(val)
+    min = getobjsense(form) == MinSense
+    return ColunaBase.Bound(true, min, val)
 end
 
-function PrimalBound(form::AbstractFormulation, pb::PrimalBound{S}) where {S}
-    Se = getobjsense(form)
-    if Se != S
-        msg = """
-        Cannot create primal bound.
-        Sense of the formulation is $Se and sense of the bound is $S.
-        """
-        error(msg)
-    end
-    return Bound{Primal,Se}(getvalue(pb))
+function PrimalBound(form::AbstractFormulation, pb::ColunaBase.Bound)
+    min = getobjsense(form) == MinSense
+    @assert pb.primal && pb.min == min
+    return ColunaBase.Bound(true, min, ColunaBase.getvalue(pb))
 end
 
 PrimalBound(::AbstractFormulation, ::Nothing) = nothing
@@ -42,35 +33,30 @@ Create a new dual bound for the formulation `formulation`.
 The value of the dual bound is infinity if you do not specify any initial value.
 """
 function DualBound(form::AbstractFormulation)
-    Se = getobjsense(form)
-    return Bound{Dual,Se}()
+    min = getobjsense(form) == MinSense
+    return ColunaBase.Bound(false, min)
 end
 
 function DualBound(form::AbstractFormulation, val::Real)
-    Se = getobjsense(form)
-    return Bound{Dual,Se}(val)
+    min = getobjsense(form) == MinSense
+    return ColunaBase.Bound(false, min, val)
 end
 
 DualBound(::AbstractFormulation, ::Nothing) = nothing
 
-function DualBound(form::AbstractFormulation, db::DualBound{S}) where {S}
-    Se = getobjsense(form)
-    if Se != S
-        msg = """
-        Cannot create primal bound.
-        Sense of the formulation is $Se and sense of the bound is $S.
-        """
-        error(msg)
-    end
-    return Bound{Dual,Se}(getvalue(db))
+function DualBound(form::AbstractFormulation, db::ColunaBase.Bound)
+    min = getobjsense(form) == MinSense
+    @assert !db.primal && db.min == min
+    return ColunaBase.Bound(false, min, ColunaBase.getvalue(db))
 end
 
 # ObjValues
-mutable struct ObjValues{S}
-    lp_primal_bound::Union{Nothing,PrimalBound{S}}
-    lp_dual_bound::Union{Nothing,DualBound{S}}
-    ip_primal_bound::Union{Nothing,PrimalBound{S}}
-    ip_dual_bound::Union{Nothing,DualBound{S}}
+mutable struct ObjValues
+    min::Bool
+    lp_primal_bound::Union{Nothing,ColunaBase.Bound}
+    lp_dual_bound::Union{Nothing,ColunaBase.Bound}
+    ip_primal_bound::Union{Nothing,ColunaBase.Bound}
+    ip_dual_bound::Union{Nothing,ColunaBase.Bound}
 end
 
 "A convenient structure to maintain and return incumbent bounds."
@@ -81,20 +67,20 @@ function ObjValues(
     lp_primal_bound = nothing,
     lp_dual_bound = nothing
 ) where {M<:AbstractFormulation}
-    S = getobjsense(form)
-    ov = ObjValues{S}(
-        PrimalBound(form), DualBound(form), PrimalBound(form), DualBound(form)
+    min = getobjsense(form) == MinSense
+    ov = ObjValues(
+        min, PrimalBound(form), DualBound(form), PrimalBound(form), DualBound(form)
     )
-    if ip_primal_bound !== nothing
+    if !isnothing(ip_primal_bound)
         ov.ip_primal_bound = PrimalBound(form, ip_primal_bound)
     end
-    if ip_dual_bound !== nothing
+    if !isnothing(ip_dual_bound)
         ov.ip_dual_bound = DualBound(form, ip_dual_bound)
     end
-    if lp_primal_bound !== nothing
+    if !isnothing(lp_primal_bound)
         ov.lp_primal_bound = PrimalBound(form, lp_primal_bound)
     end
-    if lp_dual_bound !== nothing
+    if !isnothing(lp_dual_bound)
         ov.lp_dual_bound = DualBound(form, lp_dual_bound)
     end
     return ov
@@ -128,33 +114,37 @@ function _gap_closed(
 end
 
 ## Bound updates
-function _update_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    if isbetter(b, ov.lp_primal_bound)
-        ov.lp_primal_bound = b
+function _update_lp_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
+    @assert pb.primal && pb.min == ov.min
+    if ColunaBase.isbetter(pb, ov.lp_primal_bound)
+        ov.lp_primal_bound = pb
         return true
     end
     return false
 end
 
-function _update_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    if isbetter(b, ov.lp_dual_bound)
-        ov.lp_dual_bound = b
+function _update_lp_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
+    @assert !db.primal && db.min == ov.min
+    if ColunaBase.isbetter(db, ov.lp_dual_bound)
+        ov.lp_dual_bound = db
         return true
     end
     return false
 end
 
-function _update_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    if isbetter(b, ov.ip_primal_bound)
-        ov.ip_primal_bound = b
+function _update_ip_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
+    @assert pb.primal && pb.min == ov.min
+    if ColunaBase.isbetter(pb, ov.ip_primal_bound)
+        ov.ip_primal_bound = pb
         return true
     end
     return false
 end
 
-function _update_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    if isbetter(b, ov.ip_dual_bound)
-        ov.ip_dual_bound = b
+function _update_ip_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
+    @assert !db.primal && db.min == ov.min
+    if ColunaBase.isbetter(db, ov.ip_dual_bound)
+        ov.ip_dual_bound = db
         return true
     end
     return false

@@ -177,7 +177,7 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
         if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar
             # then for all columns having its own variables
             for (_, spform) in get_dw_pricing_sps(form.parent_formulation)
-                for (col_id, col_coeff) in @view get_primal_sol_pool(spform)[:,varid]
+                for (col_id, col_coeff) in @view get_primal_sol_pool(spform).solutions[:,varid]
                     coef_matrix[constrid, col_id] += col_coeff * var_coeff
                 end
             end
@@ -484,41 +484,8 @@ end
 ############################################################################################
 ############################################################################################
 
-get_primal_sol_pool(form::Formulation{DwSp}) = form.duty_data.primalsols_pool
-_get_primal_sol_pool_hash_table(form::Formulation{DwSp}) = form.duty_data.hashtable_primalsols_pool
-
-############################################################################################
-# Pool of solutions
-# We consider that the pool is a dynamic sparse matrix.
-############################################################################################
-
-# Returns nothing if there is no identical solutions in pool; the id of the
-# identical solution otherwise.
-function _get_same_sol_in_pool(pool_sols, pool_hashtable, sol)
-    sols_with_same_members = getsolids(pool_hashtable, sol)
-    for existing_sol_id in sols_with_same_members
-        existing_sol = @view pool_sols[existing_sol_id,:]
-        if existing_sol == sol
-            return existing_sol_id
-        end
-    end
-    return nothing
-end
-
-# We only keep variables that have certain duty in the representation of the 
-# solution stored in the pool. The second argument allows us to dispatch because
-# filter may change depending on the duty of the formulation.
-function _sol_repr_for_pool(primal_sol::PrimalSolution, ::DwSp)
-    var_ids = VarId[]
-    vals = Float64[]
-    for (var_id, val) in primal_sol
-        if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
-            push!(var_ids, var_id)
-            push!(vals, val)
-        end
-    end
-    return var_ids, vals
-end
+get_primal_sol_pool(form::Formulation{DwSp}) = form.duty_data.pool
+get_dual_sol_pool(form::Formulation{BendersSp}) = form.duty_data.pool
 
 function initialize_solution_pool!(form::Formulation{DwSp}, initial_columns_callback::Function)
     master = getmaster(form)
@@ -556,8 +523,7 @@ subproblem; `nothing` otherwise.
 function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
     spform = primal_sol.solution.model
     pool = get_primal_sol_pool(spform)
-    pool_hashtable = _get_primal_sol_pool_hash_table(spform)
-    return _get_same_sol_in_pool(pool, pool_hashtable, primal_sol)
+    return get_from_pool(pool, primal_sol)
 end
 
 """
@@ -588,11 +554,6 @@ function insert_column!(
         primal_sol
     )
 
-    pool = get_primal_sol_pool(spform)
-    pool_hashtable = _get_primal_sol_pool_hash_table(spform)
-    costs_pool = spform.duty_data.costs_primalsols_pool
-    custom_pool = spform.duty_data.custom_primalsols_pool
-
     # Compute coefficient members of the column in the matrix.
     members = _col_members(primal_sol, getcoefmatrix(master_form))
 
@@ -616,155 +577,14 @@ function insert_column!(
 
     # Store the solution in the pool if asked.
     if store_in_sp_pool
+        pool = get_primal_sol_pool(spform)
         col_id = VarId(getid(col); duty = DwSpPrimalSol)
-        var_ids, vals = _sol_repr_for_pool(primal_sol, spform.duty_data)
-        addrow!(pool, col_id, var_ids, vals)
-        costs_pool[col_id] = new_col_peren_cost
-        if primal_sol.custom_data !== nothing
-            custom_pool[col_id] = primal_sol.custom_data
-        end
-        savesolid!(pool_hashtable, col_id, primal_sol)
+        push_in_pool!(pool, primal_sol, col_id, new_col_peren_cost)
     end
     return getid(col)
 end
 
 ############################################################################################
-############################################################################################
-# Methods specific to a Formulation with BendersSp duty
-############################################################################################
-############################################################################################
-getdualsolmatrix(form::Formulation) = form.manager.dual_sols
-getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
-
-
-function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::ConstrId)
-    rhs = 0.0
-    for (constrid, constrval) in dualsol
-        rhs += getperenrhs(form, constrid) * constrval
-        if getduty(constrid) <= AbstractBendSpMasterConstr
-            form.manager.dual_sols[constrid, dualsol_id] = constrval
-        end
-    end
-    for (varid, varval) in get_var_redcosts(dualsol)
-        redcost, activebound = varval
-        bound = activebound == LOWER ? getcurlb(form, varid) : getcurub(form, varid)
-        rhs += bound * redcost
-        if getduty(varid) <= AbstractBendSpMasterConstr
-            form.manager.dual_sols_varbounds[varid, dualsol_id] = varval
-        end
-    end
-    form.manager.dual_sol_rhss[dualsol_id] = rhs
-    return dualsol_id
-end
-
-function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,ConstrId}
-    ### check if dualsol exists  take place here along the coeff update
-    dual_sols = getdualsolmatrix(form)
-    dual_sols_varbounds = form.manager.dual_sols_varbounds
-    dual_sol_rhss = getdualsolrhss(form)
-
-    for (cur_sol_id, cur_rhs) in dual_sol_rhss
-        factor = 1.0
-        if getvalue(new_dual_sol) != cur_rhs
-            factor = cur_rhs / getvalue(new_dual_sol)
-        end
-
-        # TODO : implement broadcasting for PMA in DynamicSparseArrays
-        is_identical = true
-        cur_dual_sol = @view dual_sols[:,cur_sol_id]
-        for (constr_id, constr_val) in cur_dual_sol
-            if factor * new_dual_sol.solution.sol[constr_id] != constr_val
-                is_identical = false
-                break
-            end
-        end
-
-        cur_dual_sol_varbounds = @view dual_sols_varbounds[:,cur_sol_id]
-        for (var_id, var_val) in cur_dual_sol_varbounds
-            if factor * get_var_redcosts(new_dual_sol)[var_id][1] != var_val[1] || get_var_redcosts(new_dual_sol)[var_id][2] != var_val[2]
-                is_identical = false
-                break
-            end
-        end
-
-        is_identical && return (false, cur_sol_id)
-    end
-
-    ### else not identical to any existing dual sol
-    new_dual_sol_id = ConstrId(BendSpDualSol, form.env.constr_counter += 1, getuid(form))
-    _adddualsol!(form, new_dual_sol, new_dual_sol_id)
-    return (true, new_dual_sol_id)
-end
-
-function setcut_from_sp_dualsol!(
-    masterform::Formulation{BendersMaster},
-    spform::Formulation{BendersSp},
-    dual_sol_id::ConstrId,
-    name::String,
-    duty::Duty{Constraint};
-    kind::ConstrKind = Essential,
-    sense::ConstrSense = Greater,
-    inc_val::Float64 = -1.0,
-    is_active::Bool = true,
-    is_explicit::Bool = true,
-    moi_index::MoiConstrIndex = MoiConstrIndex()
-)
-    rhs = getdualsolrhss(spform)[dual_sol_id]
-    benders_cut_id = ConstrId(dual_sol_id; duty = duty)
-    benders_cut_data = ConstrData(
-        rhs, Essential, sense, inc_val, is_active, is_explicit
-    )
-
-    benders_cut = Constraint(
-        benders_cut_id, name;
-        constr_data = benders_cut_data,
-        moi_index = moi_index
-    )
-
-    master_coef_matrix = getcoefmatrix(masterform)
-    sp_coef_matrix = getcoefmatrix(spform)
-    sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
-
-    for (constr_id, constr_val) in sp_dual_sol
-        if getduty(constr_id) <= AbstractBendSpMasterConstr
-            for (var_id, coef) in @view sp_coef_matrix[constr_id,:]
-                master_var_id = nothing
-                if getduty(var_id) <= BendSpPosSlackFirstStageVar
-                    orig_var_id = get(spform.duty_data.slack_to_first_stage, var_id, nothing)
-                    if orig_var_id === nothing
-                        error("""
-                            A subproblem first level slack variable is not mapped to a first level variable. 
-                            Please open an issue at https://github.com/atoptima/Coluna.jl/issues.
-                        """)
-                    end
-                    master_var_id = getid(getvar(masterform, orig_var_id))
-                elseif getduty(var_id) <= BendSpSlackSecondStageCostVar
-                    master_var_id = var_id # identity
-                end
-
-                if master_var_id !== nothing
-                    master_coef_matrix[benders_cut_id, master_var_id] += constr_val * coef
-                end
-            end
-        end
-    end
-
-    # sp_dual_sol = spform.manager.dual_sols_varbounds[:,dual_sol_id]
-    # for (var_id, var_val) in sp_dual_sol
-    #     var_val, active_bound = var_val
-    #     if getduty(var_id) <= AbstractBendSpVar
-    #         orig_var_id
-    #     end
-    # end
-
-    _addconstr!(masterform.manager, benders_cut)
-
-    if isexplicit(masterform, benders_cut)
-        add!(masterform.buffer, getid(benders_cut))
-    end
-    return benders_cut
-end
-
 
 function set_robust_constr_generator!(form::Formulation, kind::ConstrKind, alg::Function)
     constrgen = RobustConstraintsGenerator(0, kind, alg)
@@ -774,7 +594,6 @@ end
 
 get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
 
-
 function set_objective_sense!(form::Formulation, min::Bool)
     if min
         form.obj_sense = MinSense
@@ -783,17 +602,6 @@ function set_objective_sense!(form::Formulation, min::Bool)
     end
     form.buffer.changed_obj_sense = true
     return
-end
-
-# TODO : remove (unefficient & specific to Benders)
-function computereducedrhs(form::Formulation{BendersSp}, constrid::ConstrId, primalsol::PrimalSolution)
-    constrrhs = getperenrhs(form,constrid)
-    coefficient_matrix = getcoefmatrix(form)
-    for (varid, primal_val) in primalsol
-        coeff = coefficient_matrix[constrid, varid]
-        constrrhs -= primal_val * coeff
-    end
-    return constrrhs
 end
 
 function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)

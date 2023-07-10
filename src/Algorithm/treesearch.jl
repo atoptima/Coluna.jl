@@ -133,7 +133,7 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
     # run the divide algorithm.
     divide_alg = get_divide(space)
-    divide_input = get_input(divide_alg, space, current)
+    divide_input = get_input(divide_alg, space, current, conquer_output)
     branches = run!(divide_alg, env, reform, divide_input)
     return new_children(space, branches, current)
 end

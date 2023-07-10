@@ -44,7 +44,7 @@ subproblems = getsubproblems(decomposition)
 specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = 1)
 
 
-# Let's consider that the following assignement patterns are good candidates:
+# Let's consider that the following assignment patterns are good candidates:
 
 machine1 = [[1,2,4], [1,3,4], [2,3,4], [2,3,5]];
 machine2 = [[1,2], [1,5], [2,5], [3,4]];
