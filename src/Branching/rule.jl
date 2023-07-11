@@ -25,7 +25,7 @@ end
 Input of a branching rule (branching separation algorithm)
 Contains current solution, max number of candidates and local candidate id.
 """
-struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node,Solution}
+struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,DivideInput,Solution}
     solution::Solution 
     isoriginalsol::Bool
     max_nb_candidates::Int64
@@ -33,7 +33,7 @@ struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node,So
     local_id::Int64
     int_tol::Float64
     minimum_priority::Float64
-    parent::Node
+    input::DivideInput
 end
 
 """

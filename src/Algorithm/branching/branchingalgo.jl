@@ -7,9 +7,11 @@ struct ConquerInputFromSb <: AbstractConquerInput
     children_units_to_restore::UnitsUsage
 end
 
-get_node(i::ConquerInputFromSb) = i.children_candidate
+get_conquer_input_ip_primal_bound(i::ConquerInputFromSb) = get_ip_primal_bound(i.children_candidate.optstate)
+get_conquer_input_ip_dual_bound(i::ConquerInputFromSb) = get_ip_dual_bound(i.children_candidate.optstate)
+get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
-run_conquer(::ConquerInputFromSb) = true
+get_run_conquer(::ConquerInputFromSb) = true
 
 ############################################################################################
 # NoBranching
@@ -249,8 +251,9 @@ function new_context(
     )
 end
 
-function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform)
-    child_state = TreeSearch.get_opt_state(child)
+function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)    
+    child_state = OptimizationState(getmaster(reform))
+    child.optstate = child_state
 
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
     # strong branching procedure but also the best primal bound found so far (in the whole optimization).
@@ -263,10 +266,15 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
     #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
     # end
     
-    child_state = TreeSearch.get_opt_state(child)
     if !ip_gap_closed(child_state)
-        input = ConquerInputFromSb(child, Branching.get_units_to_restore_for_conquer(phase))
-        run!(Branching.get_conquer(phase), env, reform, input)
+        units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
+        restore_from_records!(units_to_restore, child.records)
+        input = ConquerInputFromSb(child, units_to_restore)
+        conquer_output = run!(Branching.get_conquer(phase), env, reform, input)
+        child.optstate = conquer_output
+        # @show child.optstate
+        # update!(child_state, conquer_output)
+        # @show child_state
         TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true
@@ -281,7 +289,7 @@ function Branching.new_ip_primal_sols_pool(ctx::StrongBranchingContext, reform, 
     # Only the ip primal bound is used to avoid inserting integer solutions that are not
     # better than the incumbent.
     # We also use the primal bound to init candidate nodes in the strong branching procedure.
-    input_opt_state = Branching.get_opt_state(input)
+    input_opt_state = Branching.get_conquer_opt_state(input)
     return OptimizationState(
         getmaster(reform);
         ip_primal_bound = get_ip_primal_bound(input_opt_state),

@@ -89,7 +89,7 @@ struct Node <: Coluna.TreeSearch.AbstractNode
     var_ubs::Vector{Int}
     parent::Union{Nothing, Node}
 
-    ## The constructor just build the solution.
+    ## The constructor just builds the solution.
     function Node(
         parent::Union{Nothing, Node} = nothing,
         var_index::Union{Nothing,Int} = nothing,
@@ -123,10 +123,8 @@ end
 Coluna.TreeSearch.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
 Coluna.TreeSearch.get_parent(node::Node) = node.parent
 
-
 # Then, we define the search spaces. Take a look at the API section to see
 # the list of methods you need to implement.
-
 
 const LOG_ = true;
 
@@ -416,7 +414,6 @@ output = ClA.run!(BinaryTree(), env, model, input)
 # Additional methods needed for Coluna's algorithms:
 # ```@docs
 # Coluna.TreeSearch.get_opt_state
-# Coluna.TreeSearch.get_records
 # Coluna.TreeSearch.get_branch_description
 # Coluna.TreeSearch.isroot
 # ```

@@ -20,7 +20,7 @@ const ClB = Coluna.ColunaBase
 const ClMP = Coluna.MathProg
 const ClA = Coluna.Algorithm
 
-using Coluna.ColunaBase, Coluna.MathProg, Coluna.ColGen
+using Coluna.ColunaBase, Coluna.MathProg, Coluna.ColGen, Coluna.Branching
 
 include("TestRegistry/TestRegistry.jl")
 using .TestRegistry
@@ -40,6 +40,7 @@ const MODULES = [
     Coluna.MathProg,
     Coluna.Algorithm,
     Coluna.ColGen,
+    Coluna.Branching,
     Parser
 ]
 
