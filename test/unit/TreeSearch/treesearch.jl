@@ -6,18 +6,30 @@ mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
     inner::Coluna.Algorithm.PrinterSearchSpace
 end
 
-## contains the original conquer input and some extra information used for test
+## contains the original conquer input and some extra information used for testing
 struct TestConquerInputFromBab <: Coluna.Algorithm.AbstractConquerAlgorithm
     inner::Coluna.Algorithm.ConquerInputFromBaB
-    node_id::Int ## TODO see if other type 
+    node_id::Int  
 end
+
+## contains the original divide input and some extra information used for testing
+struct TestDivideInputFromBab
+    inner::Coluna.Algorithm.DivideInputFromBaB
+    node_id::Int
+end
+
 
 ## deterministic conquer, a map with all the nodes id matched to their optimisation state
 struct DeterministicConquer <: Coluna.Algorithm.AbstractConquerAlgorithm
     conquer::Dict{Int, Coluna.OptimizationState} ## match each node id with its optimisation state
 end
 
-# redefine the interface to be able to test the implementation : no tests for the moment 
+## deterministic divide, match each node to the nodes that should be generated from it as children
+struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
+    divide::Dict{Int, Union{Nothing, Vector{Coluna.Algorithm.PrintedNode}}}
+end
+
+#######  redefine the interface to be able to test the implementation : no tests for the moment 
 
 function Coluna.TreeSearch.search_space_type(alg::Coluna.Algorithm.TreeSearchAlgorithm)
     println("\e[33m hello from search space type \e[00m")
@@ -59,6 +71,8 @@ end
 function Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace)
     println("\e[33m hello from get_reformulation \e[00m")
     return Coluna.Algorithm.get_reformulation(space.inner.inner)
+
+
 end
 ##################### deterministic conquer #####################
 
@@ -69,7 +83,7 @@ end
 
 ## to modify to add the node id to the conquer
 function Coluna.Algorithm.get_input(alg::DeterministicConquer, space::TestBaBSearchSpace, node::Coluna.Algorithm.PrintedNode)
-    println("\e[33m hello from get_input \e[00m")
+    println("\e[33m hello from conquer get_input \e[00m")
     inner = Coluna.Algorithm.get_input(alg, space.inner.inner, node.inner)
     return TestConquerInputFromBab(inner, node.tree_order_id)
 end
@@ -78,27 +92,43 @@ end
 function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input::TestConquerInputFromBab)
     println("\e[33m hello from run conquer \e[00m")
     conquer_output = alg.conquer[input.node_id]
-    return conquer_output
+    return (input.node_id, conquer_output) ## pass node id as a conquer output
 end 
 
 function Coluna.Algorithm.after_conquer!(space::TestBaBSearchSpace, current, conquer_output)
-    @show typeof(current)
     println("\e[33m hello from after conquer \e[00m")
+    (_, conquer_output) = conquer_output
     return Coluna.Algorithm.after_conquer!(space.inner.inner, current.inner, conquer_output)
 end
 
-##################### divide ##################### 
+##################### deterministic divide ##################### 
 
 function Coluna.Algorithm.get_divide(space::TestBaBSearchSpace)
     println("\e[33m hello from get divide \e[00m")
+    @show typeof(Coluna.Algorithm.get_divide(space.inner.inner))
     return Coluna.Algorithm.get_divide(space.inner.inner)
 end
 
 function Coluna.Algorithm.get_input(alg::Coluna.AlgoAPI.AbstractDivideAlgorithm, space::TestBaBSearchSpace, node::Coluna.Algorithm.PrintedNode, conquer_output)
-    println("\e[33m hello from get input \e[00m")
+    println("\e[33m hello from divide get input \e[00m")
     @show typeof(conquer_output)
-    return Coluna.Algorithm.get_input(alg, space.inner.inner, node.inner, conquer_output)
+    (node_id, conquer_output) = conquer_output
+    @show typeof(conquer_output)
+    @show node_id
+    return TestDivideInputFromBab(
+        Coluna.Algorithm.get_input(alg, space.inner.inner, node.inner, conquer_output),
+        node_id
+    )
 end
+
+
+## must return "branches"
+function Coluna.Algorithm.run!(::DeterministicDivide, env, reform, input)
+    println("\e[33m hello from run divide \e[00m")
+    @show typeof(input)
+    return nothing ## TODO: find a way to create the children here and pass it to new_children ; must also be wrapped to be PrintedNode
+end
+
 
 
 ####################  to be later put in a test ####################  
@@ -122,7 +152,11 @@ conquermock = DeterministicConquer(
         1 => Coluna.Algorithm.OptimizationState(Coluna.getmaster(reform))
     )
 )
-dividealg = Coluna.Algorithm.ClassicBranching()
+dividealg = DeterministicDivide(
+    Dict(
+        1 => nothing 
+    )
+)
 
 treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
     conqueralg = conquermock,
