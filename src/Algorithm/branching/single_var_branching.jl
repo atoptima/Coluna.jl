@@ -109,13 +109,14 @@ function Branching.apply_branching_rule(::SingleVarBranchingRule, env::Env, refo
 
     master = getmaster(reform)
 
+    @assert !isnothing(input.solution)
+
     # We do not consider continuous variables and variables with integer value in the
     # current solution as branching candidates.
     candidate_vars = Iterators.filter(
         ((var_id, val),) -> !is_cont_var(master, var_id) && !is_int_val(val, input.int_tol),
         input.solution
     )
-
     max_priority = mapreduce(
         ((var_id, _),) -> getbranchingpriority(master, var_id),
         max,

@@ -270,7 +270,11 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
         input = ConquerInputFromSb(child, units_to_restore)
-        run!(Branching.get_conquer(phase), env, reform, input)
+        conquer_output = run!(Branching.get_conquer(phase), env, reform, input)
+        child.optstate = conquer_output
+        # @show child.optstate
+        # update!(child_state, conquer_output)
+        # @show child_state
         TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true
