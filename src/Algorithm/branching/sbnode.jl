@@ -6,8 +6,9 @@
 mutable struct SbNode <: TreeSearch.AbstractNode
     depth::Int
 
-    # Receives the current incumben primal bound of the B&B tree and will be updated using
+    # Receives the current incumbent primal bound of the B&B tree and will be updated using
     # the output of the conquer algorithms called by the strong branching.
+    # There information are printed by the StrongBranchingPrinter.
     # These information will be then transfered to the B&B algorithm when instantating the
     # node of the tree search.
     optstate::OptimizationState

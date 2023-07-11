@@ -345,7 +345,6 @@ end
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     # We initialize the output of the conquer algorithm using the input given by the algorithm
     # that calls the conquer strategy. This output will be updated by the conquer algorithm.
-    @show typeof(input)
     conquer_output = OptimizationState(
         getmaster(reform);
         ip_primal_bound = get_conquer_input_ip_primal_bound(input),

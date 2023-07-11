@@ -304,7 +304,6 @@ function run_branching!(ctx, env, reform, input::Branching.AbstractDivideInput, 
         why_no_candidate(reform, input, extended_sol, original_sol)
         return new_divide_output(nothing, nothing)
     end
-
     return advanced_select!(ctx, candidates, env, reform, input)
 end
 
