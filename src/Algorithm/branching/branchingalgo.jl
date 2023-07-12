@@ -183,13 +183,13 @@ end
 # StrongBranching does not use any storage unit itself, 
 # therefore get_units_usage() is not defined for it
 
-function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
-    child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
-    for phase in algo.phases
-        push!(child_algos, (phase.conquer_algo, reform))
+function get_child_algorithms(algo::StrongBranching, reform::Reformulation)
+    child_algos = Dict()
+    for (i, phase) in enumerate(algo.phases)
+        child_algos["phase$i"] = (phase.conquer_algo, reform)
     end
-    for prioritised_rule in algo.rules
-        push!(child_algos, (prioritised_rule.rule, reform))
+    for (i, prioritised_rule) in enumerate(algo.rules)
+        child_algos["rule$i"] = (prioritised_rule.rule, reform)
     end
     return child_algos
 end

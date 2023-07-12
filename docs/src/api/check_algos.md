@@ -1,7 +1,23 @@
 # Verification of algorithms parameters and consistency
 
-The algorithms used in Coluna usually have many parameters and are sometimes interdependent and nested. As a result, it is crucial to perform checks when the user parameters the solver.
+The algorithms used in Coluna usually have many parameters and are sometimes interdependent and nested.
+As a result, it is crucial to perform checks when the user parameters the solver.
 In this section, we describe the strategies put in place to ensure the consistency of the parameters and algorithms used.
+
+## Init
+
+```@docs
+Coluna.Algorithm.check_alg_parameters
+```
+
+## API
+
+```@docs
+Coluna.Algorithm.get_child_algorithms
+```
+
+
+# Draft below
 
 ## Abstract types 
 

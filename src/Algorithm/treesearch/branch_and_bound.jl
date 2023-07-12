@@ -223,7 +223,6 @@ function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, nod
 end
 
 function new_children(space::AbstractColunaSearchSpace, branches, node::Node)
-    @show typeof(branches)
     candidates_opt_state = nothing # Branching.get__opt_state(branches)
     if !isnothing(candidates_opt_state)
         add_ip_primal_sols!(space.optstate, get_ip_primal_sols(candidates_opt_state)...)

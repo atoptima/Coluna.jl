@@ -87,19 +87,56 @@ Here are their meanings :
     print::Bool = true
 end
 
+############################################################################################
+# Column generation parameters checker.
+# `check_parameter` returns true by default
+############################################################################################1
+# function check_parameter(::ColumnGeneration, ::Val{:restr_master_solve_alg}, value, reform)
+    
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:restr_master_optimizer_id}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:pricing_prob_solve_alg}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:stages_pricing_solver_ids}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:essential_cut_gen_alg}, value, reform)
+
+# end
+
+check_parameter(::ColumnGeneration, ::Val{:max_nb_iterations}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:log_print_frequency}, value, reform) = value > 1
+check_parameter(::ColumnGeneration, ::Val{:redcost_tol}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:cleanup_threshold}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:cleanup_ratio}, value, reform) = 0 < value < 1
+check_parameter(::ColumnGeneration, ::Val{:smoothing_stabilization}, value, reform) =  0 <= value <= 1
+check_parameter(::ColumnGeneration, ::Val{:opt_atol}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:opt_rtol}, value, reform) = value > 0
+
+
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 ############################################################################################
 # Implementation of Algorithm interface.
 ############################################################################################
 
-function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    child_algs = Tuple{AlgoAPI.AbstractAlgorithm,AbstractModel}[]
-    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
-    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
+    child_algs = Dict{String, Tuple{AlgoAPI.AbstractAlgorithm, MathProg.Formulation}}(
+        "restr_master_solve_alg" => (algo.restr_master_solve_alg, getmaster(reform)),
+        "essential_cut_gen_alg" => (algo.essential_cut_gen_alg, getmaster(reform))
+    ) 
+
     for (id, spform) in get_dw_pricing_sps(reform)
-        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
+        child_algs["pricing_prob_solve_alg_sp$id"] = (algo.pricing_prob_solve_alg, spform)
     end
+
     return child_algs
 end
 
