@@ -53,7 +53,7 @@ Coluna.TreeSearch.tree_search_output(space::CustomSearchSpaceAe1, _) = space.vis
 
 function test_dfs()
     search_space = CustomSearchSpaceAe1(2, 3, 11)
-    visit_order = ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
+    visit_order = Coluna.TreeSearch.tree_search(Coluna.TreeSearch.DepthFirstStrategy(), search_space, nothing, nothing)
     @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
     return
 end
@@ -62,7 +62,7 @@ register!(unit_tests, "explore", test_dfs)
 
 function test_bfs()
     search_space = CustomSearchSpaceAe1(2, 3, 11)
-    visit_order = ClA.tree_search(CustomBestFirstSearch(), search_space, nothing, nothing)
+    visit_order = Coluna.TreeSearch.tree_search(CustomBestFirstSearch(), search_space, nothing, nothing)
     @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
 end
 register!(unit_tests, "explore", test_bfs)
