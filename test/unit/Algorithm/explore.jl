@@ -1,4 +1,4 @@
-struct NodeAe1 <: ClA.AbstractNode
+struct NodeAe1 <: TreeSearch.AbstractNode
     id::Int
     depth::Int
     parent::Union{Nothing, NodeAe1}
@@ -51,16 +51,18 @@ end
 
 TreeSearch.tree_search_output(space::CustomSearchSpaceAe1, _) = space.visit_order
 
-@testset "Algorithm - treesearch exploration" begin
-    @testset "Depth-First Search" begin
-        search_space = CustomSearchSpaceAe1(2, 3, 11)
-        visit_order = ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
-        @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
-    end
-
-    @testset "Best-First Search" begin
-        search_space = CustomSearchSpaceAe1(2, 3, 11)
-        visit_order = ClA.tree_search(CustomBestFirstSearch(), search_space, nothing, nothing)
-        @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
-    end
+function test_dfs()
+    search_space = CustomSearchSpaceAe1(2, 3, 11)
+    visit_order = ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
+    @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
+    return
 end
+register!(unit_tests, "explore", test_dfs)
+
+
+function test_bfs()
+    search_space = CustomSearchSpaceAe1(2, 3, 11)
+    visit_order = ClA.tree_search(CustomBestFirstSearch(), search_space, nothing, nothing)
+    @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
+end
+register!(unit_tests, "explore", test_bfs)
