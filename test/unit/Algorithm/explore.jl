@@ -1,4 +1,4 @@
-struct NodeAe1 <: TreeSearch.AbstractNode
+struct NodeAe1 <: Coluna.TreeSearch.AbstractNode
     id::Int
     depth::Int
     parent::Union{Nothing, NodeAe1}
@@ -9,9 +9,9 @@ struct NodeAe1 <: TreeSearch.AbstractNode
     end
 end
 
-TreeSearch.get_root(node::NodeAe1) = isnothing(node.parent) ? node : ClA.root(node.parent)
+Coluna.TreeSearch.get_root(node::NodeAe1) = isnothing(node.parent) ? node : ClA.root(node.parent)
 
-mutable struct CustomSearchSpaceAe1 <: ClA.AbstractSearchSpace
+mutable struct CustomSearchSpaceAe1 <: Coluna.TreeSearch.AbstractSearchSpace
     nb_branches::Int
     max_depth::Int
     max_nb_of_nodes::Int
@@ -23,18 +23,18 @@ mutable struct CustomSearchSpaceAe1 <: ClA.AbstractSearchSpace
     end
 end
 
-function TreeSearch.new_root(space::CustomSearchSpaceAe1, input)
+function Coluna.TreeSearch.new_root(space::CustomSearchSpaceAe1, input)
     space.nb_nodes_generated += 1
     return NodeAe1(1)
 end
 
-TreeSearch.stop(sp::CustomSearchSpaceAe1, _) = false
+Coluna.TreeSearch.stop(sp::CustomSearchSpaceAe1, _) = false
 
-struct CustomBestFirstSearch <: ClA.AbstractBestFirstSearch end
+struct CustomBestFirstSearch <: Coluna.TreeSearch.AbstractBestFirstSearch end
 
-TreeSearch.get_priority(::CustomBestFirstSearch, node::NodeAe1) = -node.id
+Coluna.TreeSearch.get_priority(::CustomBestFirstSearch, node::NodeAe1) = -node.id
 
-function TreeSearch.children(space::CustomSearchSpaceAe1, current, _, _)
+function Coluna.TreeSearch.children(space::CustomSearchSpaceAe1, current, _, _)
     children = NodeAe1[]
     push!(space.visit_order, current.id)
     if current.depth != space.max_depth &&
@@ -49,7 +49,7 @@ function TreeSearch.children(space::CustomSearchSpaceAe1, current, _, _)
     return children
 end
 
-TreeSearch.tree_search_output(space::CustomSearchSpaceAe1, _) = space.visit_order
+Coluna.TreeSearch.tree_search_output(space::CustomSearchSpaceAe1, _) = space.visit_order
 
 function test_dfs()
     search_space = CustomSearchSpaceAe1(2, 3, 11)

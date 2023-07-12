@@ -2,8 +2,8 @@
 #                      ParameterizedHeuristic
 ####################################################################
 
-struct ParameterizedHeuristic{OptimAlgorithm}
-    algorithm::OptimAlgorithm
+struct ParameterizedHeuristic{A <: AlgoAPI.AbstractAlgorithm}
+    algorithm::A
     root_priority::Float64
     nonroot_priority::Float64
     frequency::Integer

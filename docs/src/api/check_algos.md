@@ -4,6 +4,11 @@ The algorithms used in Coluna usually have many parameters and are sometimes int
 As a result, it is crucial to perform checks when the user parameters the solver.
 In this section, we describe the strategies put in place to ensure the consistency of the parameters and algorithms used.
 
+## Init
+
+```@docs
+Coluna.Algorithm.check_alg_parameters
+```
 
 ## API
 

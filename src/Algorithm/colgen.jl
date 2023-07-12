@@ -128,7 +128,7 @@ stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabiliza
 ############################################################################################
 
 function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
-    child_algs = Dict(
+    child_algs = Dict{String, Tuple{AlgoAPI.AbstractAlgorithm, MathProg.Formulation}}(
         "restr_master_solve_alg" => (algo.restr_master_solve_alg, getmaster(reform)),
         "essential_cut_gen_alg" => (algo.essential_cut_gen_alg, getmaster(reform))
     ) 

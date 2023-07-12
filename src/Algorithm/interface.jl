@@ -93,7 +93,7 @@ function _collect_units_to_restore!(
         push!(global_units_usage.units_used, (unit_model, unit_type))
     end
 
-    for (childalgo, childmodel) in get_child_algorithms(algo, model)
+    for (childalgo, childmodel) in values(get_child_algorithms(algo, model))
         if !ismanager(childalgo)
             _collect_units_to_restore!(global_units_usage, childalgo, childmodel)
         end
@@ -119,7 +119,7 @@ function collect_units_to_create!(
         push!(units_to_create[unit_model], unit_pair)
     end
 
-    child_algos = get_child_algorithms(algo, model)
+    child_algos = values(get_child_algorithms(algo, model))
     for (childalgo, childmodel) in child_algos
         collect_units_to_create!(units_to_create, childalgo, childmodel)
     end
@@ -146,16 +146,30 @@ function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimiza
     end
 end
 
-
 ############################################################################################
 # Routines to check & initialize algorithms before starting the optimization.
 ############################################################################################
-
-function check_alg_parameters!(top_algo, reform::Reformulation)
-    for (name, (child_algo, model)) in get_child_algorithms(top_algo, reform)
-        if !ismanager(child_algo)
-            error("Child algorithm $name of type $(typeof(child_algo)) is not a manager algorithm.")
+function _check_alg_parameters!(inconsistencies, algo, reform::Reformulation)
+    for (name, (child_algo, model)) in get_child_algorithms(algo, reform)
+        for name in fieldnames(typeof(child_algo))
+            value = getfield(child_algo, name)
+            consistent_val = check_parameter(child_algo, Val(name), value, reform)
+            if !consistent_val
+                push!(inconsistencies, (name, child_algo, value))
+            end
         end
-        check_alg_parameters!(child_algo, model)
+        _check_alg_parameters!(inconsistencies, child_algo, model)
     end
+    return
+end
+
+"""
+    check_alg_parameters(top_algo, reform) -> Vector{Tuple{Symbol, AbstractAlgorithm, Any}}
+
+Checks the consistency of the parameters of the top algorithm and its children algorithms.
+"""
+function check_alg_parameters(top_algo, reform::Reformulation)
+    inconsistencies = []
+    _check_alg_parameters!(inconsistencies, top_algo, reform)
+    return inconsistencies
 end
