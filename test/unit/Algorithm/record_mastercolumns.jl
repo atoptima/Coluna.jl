@@ -1,4 +1,4 @@
-@testset "Unit - MasterColumnsRecord" begin
+function unit_master_columns_record()
     function test_record(state, cost, lb, ub, fixed)
         @test state.cost == cost
         @test state.lb == lb
@@ -76,3 +76,4 @@
     test_var(form, vars["v2"], 2, 0, 12, false)
     test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
 end
+register!(unit_tests, "master_columns_record", unit_master_columns_record)
