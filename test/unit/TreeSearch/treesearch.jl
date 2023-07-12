@@ -1,8 +1,21 @@
 using Coluna 
 
+## comments
+# alternative (but broken) version in tmp.jl
+
+# the user pass the nodes ids via the deterministic divide (because it uses TestNode which contains the ids)
+# the ids are retrieved in new_children to create PrintedNodes
+
+# a large part of the PrinterSearchSpace code is skipped by using inner.inner
+
+# TODO: see if it is necessary to have a wrapped search space to manage the nodes ids (PrinterSearchSpace or the other available in tmp.jl)
+# -> try to test like this and see ...
+
+# at the moment there is a trick used in new_children to avoid the management of node ids
+
 ### structures
 
-mutable struct EmptyNode 
+mutable struct TestNode 
     tree_order_id::Int
     depth::Int
     parent_ip_dual_bound::Coluna.Algorithm.Bound
@@ -10,8 +23,8 @@ mutable struct EmptyNode
 end
 
 
-## construct a real node from an EmptyNode, used in new_children to built real children from the minimal information contained in EmptyNode
-function Coluna.Algorithm.Node(node::EmptyNode)
+## construct a real node from an TestNode, used in new_children to built real children from the minimal information contained in TestNode
+function Coluna.Algorithm.Node(node::TestNode)
     return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records(), false)
 end
 
@@ -39,7 +52,7 @@ end
 
 ## deterministic divide, match each node to the nodes that should be generated from it as children
 struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
-    divide::Dict{Int, Vector{EmptyNode}} #the vector of children can also be empty
+    divide::Dict{Int, Vector{TestNode}} #the vector of children can also be empty
 end
 
 ################    redefine the interface to be able to test the implementation : no tests for the moment ###################################  
@@ -72,7 +85,7 @@ end
 
 function Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes)
     println("\e[33m hello from tree_search_output \e[00m")
-    return Coluna.TreeSearch.tree_search_output(space.inner.inner, untreated_nodes)
+    return Coluna.TreeSearch.tree_search_output(space.inner, untreated_nodes)
 end
 
 ## methods called by children
@@ -124,7 +137,6 @@ end
 
 function Coluna.Algorithm.get_divide(space::TestBaBSearchSpace)
     println("\e[33m hello from get divide \e[00m")
-    @show typeof(Coluna.Algorithm.get_divide(space.inner.inner))
     return Coluna.Algorithm.get_divide(space.inner.inner)
 end
 
@@ -141,21 +153,28 @@ function Coluna.Algorithm.get_input(alg::Coluna.AlgoAPI.AbstractDivideAlgorithm,
 end
 
 
-## must return "branches", return as DivideInput{EmptyNode}
+## must return "branches", return as DivideInput{TestNode}
 function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
     println("\e[33m hello from run divide \e[00m")
     children = alg.divide[input.node_id]
     return Coluna.Algorithm.DivideOutput(children, nothing) ## optimizationstate useless ? 
 end
 
-## The candidates are passed as EmptyNodes, the current node is passed as aPrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes. 
-function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{EmptyNode}, node::Coluna.Algorithm.PrintedNode)
+## The candidates are passed as TestNodes, the current node is passed as a PrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes using the node ids passed with TestNodes. 
+## TODO clean that diiiiiirty method 
+function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{TestNode}, node::Coluna.Algorithm.PrintedNode)
     println("\e[33m hello from new_children \e[00m")
     parent_id = node.tree_order_id
-
-    new_children_inner = Coluna.Algorithm.new_children(space.inner.inner, branches, node.inner)
-
-    return map(n -> Coluna.Algorithm.PrintedNode(parent_id + 1, parent_id, n), new_children_inner)
+    new_children_inner = Coluna.Algorithm.new_children(space.inner.inner, branches, node.inner) ## vector of Nodes
+    @show typeof(new_children_inner)
+    @show new_children_inner
+    tmp = [(new_children_inner[i], branches.children[i].tree_order_id) for i in 1:length(new_children_inner)]
+    @show tmp
+    res = Vector{Coluna.Algorithm.PrintedNode}()
+    for (n, id) in tmp
+        push!(res, Coluna.Algorithm.PrintedNode(id, parent_id, n))
+    end
+    return res
 
 end
 
@@ -208,7 +227,7 @@ function test_stop_condition()
     )
     dividealg = DeterministicDivide(
         Dict(
-            1 => [EmptyNode(2, 1, Coluna.Bound(true, false, 20.0)), EmptyNode(3, 1, Coluna.Bound(true, false, 20.0))],
+            1 => [TestNode(2, 1, Coluna.Bound(true, false, 20.0)), TestNode(3, 1, Coluna.Bound(true, false, 20.0))],
             2 => [],
             3 => []
         )
