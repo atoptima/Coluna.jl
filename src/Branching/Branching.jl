@@ -74,7 +74,6 @@ If no nodes nor ip primal solutions are found, the generic implementation may pr
 """
 @mustimplement "BranchingOutput" new_divide_output(children, ip_primal_sols_found) = nothing
 
-
 # Default implementations.
 "Candidates selection for branching algorithms."
 function select!(rule::AbstractBranchingRule, env, reform, input::Branching.BranchingRuleInput)

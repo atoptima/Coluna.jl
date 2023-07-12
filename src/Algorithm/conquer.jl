@@ -37,6 +37,8 @@ struct BeforeCutGenAlgo <: AbstractConquerAlgorithm
     name::String
 end
 
+get_child_algorithms(algo::BeforeCutGenAlgo, reform::Reformulation) = Dict("algorithm" => (algo.algorithm, reform))
+
 ####################################################################
 #                      BendersConquer
 ####################################################################
@@ -45,14 +47,10 @@ end
     benders::BendersCutGeneration = BendersCutGeneration()
 end
 
-isverbose(strategy::BendersConquer) = true
-
 # BendersConquer does not use any unit for the moment, it just calls 
 # BendersCutSeparation algorithm, therefore get_units_usage() is not defined for it
 
-function get_child_algorithms(algo::BendersConquer, reform::Reformulation) 
-    return [(algo.benders, reform)]
-end
+get_child_algorithms(algo::BendersConquer, reform::Reformulation) = Dict("benders" => (algo.benders, reform))
 
 function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     # !run_conquer(input) && return
@@ -126,29 +124,28 @@ ColCutGenConquer(;
     opt_rtol
 )
 
-function isverbose(algo::ColCutGenConquer) 
-    for colgen in algo.stages
-        colgen.log_print_frequency > 0 && return true
-    end
-    return false
-end
-
 # ColCutGenConquer does not use any storage unit for the moment, therefore 
 # get_units_usage() is not defined for i
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
-    child_algos = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
-    
-    push!(child_algos, (algo.colgen, reform))
-    
-    push!(child_algos, (algo.cutgen, getmaster(reform)))
+    child_algos = Dict(
+        "colgen" => (algo.colgen, reform),
+        "cutgen" => (algo.cutgen, getmaster(reform))
+    )
+
     if !isnothing(algo.preprocess)
-        push!(child_algos, (algo.preprocess, reform))
+        child_algos["preprocess"] = (algo.preprocess, reform)
     end
-    # for heuristic in algo.primal_heuristics
-    #     push!(child_algos, (heuristic.algorithm, reform))
-    # end
+
+    if !isnothing(algo.node_finalizer)
+        child_algos["node_finalizer"] = (algo.node_finalizer, reform)
+    end
+
     if !isnothing(algo.before_cutgen_user_algorithm)
-        push!(child_algos, (algo.before_cutgen_user_algorithm, reform))
+        child_algos["before_cutgen_user"] = (algo.before_cutgen_user_algorithm, reform)
+    end
+
+    for heuristic in algo.primal_heuristics
+        child_algos["heuristic_$(heuristic.name)"] = (heuristic.algorithm, reform)
     end
     return child_algos
 end
@@ -408,8 +405,8 @@ end
 
 # RestrMasterLPConquer does not use any unit, therefore get_units_usage() is not defined for it
 
-function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
-    return [(algo.masterlpalgo, getmaster(reform))]
+function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
+    return Dict("restr_master_lp" => (algo.masterlpalgo, getmaster(reform)))
 end
 
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)

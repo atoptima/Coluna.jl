@@ -127,13 +127,16 @@ stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabiliza
 # Implementation of Algorithm interface.
 ############################################################################################
 
-function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    child_algs = Tuple{AlgoAPI.AbstractAlgorithm,AbstractModel}[]
-    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
-    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
+    child_algs = Dict(
+        "restr_master_solve_alg" => (algo.restr_master_solve_alg, getmaster(reform)),
+        "essential_cut_gen_alg" => (algo.essential_cut_gen_alg, getmaster(reform))
+    ) 
+
     for (id, spform) in get_dw_pricing_sps(reform)
-        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
+        child_algs["pricing_prob_solve_alg_sp$id"] = (algo.pricing_prob_solve_alg, spform)
     end
+
     return child_algs
 end
 

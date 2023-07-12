@@ -13,12 +13,16 @@ ismanager(algo::AlgoAPI.AbstractAlgorithm) = false
 
 
 """
-    get_child_algorithms(algo, model) -> Tuple{AbstractAlgorithm, AbstractModel}[]
+    get_child_algorithms(algo, model) -> Dict{String, Tuple{AbstractAlgorithm, AbstractModel}}
 
 Every algorithm should communicate its child algorithms and the model to which 
-each child algorithm is applied. 
+each child algorithm is applied.
+It should returns a dictionary where the keys are the names of the child algorithms and
+the values are the algorithm parameters and the model to which the algorithm is applied.
+
+By default, `get_child_algorithms` returns an empty dictionary.
 """
-get_child_algorithms(::AlgoAPI.AbstractAlgorithm, ::AbstractModel) = Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}[]
+get_child_algorithms(::AlgoAPI.AbstractAlgorithm, ::AbstractModel) = Dict{String, Tuple{AlgoAPI.AbstractAlgorithm, AbstractModel}}()
 
 """
     get_units_usage(algo, model) -> Tuple{AbstractModel, UnitType, UnitPermission}[]
@@ -64,12 +68,6 @@ abstract type AbstractConquerAlgorithm <: AlgoAPI.AbstractAlgorithm end
 ismanager(algo::AbstractConquerAlgorithm) = true
 
 @mustimplement "ConquerAlgorithm" run!(::AbstractConquerAlgorithm, ::Env, ::Reformulation, ::AbstractConquerInput) = nothing
-
-# this function is needed in strong branching (to have a better screen logging)
-isverbose(algo::AbstractConquerAlgorithm) = false
-
-
-
 
 ############################################################################################
 # Optimization Algorithm API
@@ -145,5 +143,19 @@ function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimiza
         for storage_unit_type in types_of_storage_unit
             storagedict[storage_unit_type] = RecordUnitManager(storage_unit_type, model)
         end
+    end
+end
+
+
+############################################################################################
+# Routines to check & initialize algorithms before starting the optimization.
+############################################################################################
+
+function check_alg_parameters!(top_algo, reform::Reformulation)
+    for (name, (child_algo, model)) in get_child_algorithms(top_algo, reform)
+        if !ismanager(child_algo)
+            error("Child algorithm $name of type $(typeof(child_algo)) is not a manager algorithm.")
+        end
+        check_alg_parameters!(child_algo, model)
     end
 end
