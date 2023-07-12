@@ -2,6 +2,19 @@ using Coluna
 
 ### structures
 
+mutable struct EmptyNode 
+    tree_order_id::Int
+    depth::Int
+    parent_ip_dual_bound::Coluna.Algorithm.Bound
+
+end
+
+
+## construct a real node from an EmptyNode, used in new_children to built real children from the minimal information contained in EmptyNode
+function Coluna.Algorithm.Node(node::EmptyNode)
+    return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records(), false)
+end
+
 mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
     inner::Coluna.Algorithm.PrinterSearchSpace
 end
@@ -26,10 +39,10 @@ end
 
 ## deterministic divide, match each node to the nodes that should be generated from it as children
 struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
-    divide::Dict{Int, Vector{Coluna.Algorithm.PrintedNode}} #the vector of children can also be empty
+    divide::Dict{Int, Vector{EmptyNode}} #the vector of children can also be empty
 end
 
-#######  redefine the interface to be able to test the implementation : no tests for the moment 
+################    redefine the interface to be able to test the implementation : no tests for the moment ###################################  
 
 function Coluna.TreeSearch.search_space_type(alg::Coluna.Algorithm.TreeSearchAlgorithm)
     println("\e[33m hello from search space type \e[00m")
@@ -80,7 +93,7 @@ function Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace)
 
 
 end
-##################### deterministic conquer #####################
+##################### methods to implement deterministic conquer #####################
 
 function Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace)
     println("\e[33m hello from get_reformulation \e[00m")
@@ -107,7 +120,7 @@ function Coluna.Algorithm.after_conquer!(space::TestBaBSearchSpace, current, con
     return Coluna.Algorithm.after_conquer!(space.inner.inner, current.inner, conquer_output)
 end
 
-##################### deterministic divide ##################### 
+##################### methods to implement deterministic divide ##################### 
 
 function Coluna.Algorithm.get_divide(space::TestBaBSearchSpace)
     println("\e[33m hello from get divide \e[00m")
@@ -128,68 +141,94 @@ function Coluna.Algorithm.get_input(alg::Coluna.AlgoAPI.AbstractDivideAlgorithm,
 end
 
 
-## must return "branches"
+## must return "branches", return as DivideInput{EmptyNode}
 function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
     println("\e[33m hello from run divide \e[00m")
     children = alg.divide[input.node_id]
-    return Coluna.Algorithm.DivideOutput(children, nothing) ## TODO: find a way to create the children here and pass it to new_children ; must also be wrapped to be PrintedNode ? 
+    return Coluna.Algorithm.DivideOutput(children, nothing) ## optimizationstate useless ? 
 end
 
-## The candidates and the current node are passed as PrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes. 
-function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{Coluna.Algorithm.PrintedNode}, node::Coluna.Algorithm.PrintedNode)
+## The candidates are passed as EmptyNodes, the current node is passed as aPrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes. 
+function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{EmptyNode}, node::Coluna.Algorithm.PrintedNode)
     println("\e[33m hello from new_children \e[00m")
     parent_id = node.tree_order_id
-    branches_inner = Coluna.Algorithm.DivideOutput(
-        map(n -> n.inner, branches.children),
-        nothing ## TODO see if need to change
-    )
 
-    new_children_inner = Coluna.Algorithm.new_children(space.inner.inner, branches_inner, node.inner)
+    new_children_inner = Coluna.Algorithm.new_children(space.inner.inner, branches, node.inner)
 
     return map(n -> Coluna.Algorithm.PrintedNode(parent_id + 1, parent_id, n), new_children_inner)
 
 end
 
 
+function Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::Coluna.Algorithm.PrintedNode, space::TestBaBSearchSpace, untreated_nodes)
+    println("\e[33m hello from node_change! \e[00m")
+
+    Coluna.Algorithm.node_change!(previous, current.inner, space.inner.inner, map(n -> n.inner, untreated_nodes))
+end
+
+###################################  end of interface's redefinition  ###################################  
 
 
 ####################  to be later put in a test ####################  
 
-
-
-
-#### create an empty formulation
-param = Coluna.Params()
-env = Coluna.Env{Coluna.MathProg.VarId}(param)
-master = Coluna.MathProg.create_formulation!( ## empty formulation
-    env,
-    Coluna.MathProg.DwMaster()
-)
-reform = Coluna.MathProg.Reformulation(env)
-reform.master = master
-
-#### set up the algo 
-conquermock = DeterministicConquer(
-    Dict(
-        1 => Coluna.Algorithm.OptimizationState(Coluna.getmaster(reform))
+# ```mermaid
+# graph TD
+#     0( ) --> |ip_dual_bound = 20, \n ip_primal_bound = 40| 1 
+#     1((1)) --> |ip_dual_bound = 20, \n ip_primal_bound = 40| 2((2))
+#     1 --> |ip_dual_bound = 30, \n ip_primal_bound = 30| 5((5))
+#     2 --> |ip_dual_bound = 45, \n ip_primal_bound = 40| 3((3))
+#     2 --> |ip_dual_bound = 45, \n ip_primal_bound = 40| 4((4))
+#     5 --> |STOP| stop( ) 
+# ````
+function test_stop_condition()
+    #### create an empty formulation
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( ## empty formulation, min sense by default
+        env,
+        Coluna.MathProg.DwMaster()
     )
-)
-dividealg = DeterministicDivide(
-    Dict(
-        1 => []
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+    #### create the nodes (for the divide) and their optimization state (for the conquer)
+    ## optstates returned by the deterministic conquer
+    optstate1 = Coluna.OptimizationState( ## root
+        master,
+        ip_primal_bound = Coluna.Bound(true, true, 40.0),
+        ip_dual_bound = Coluna.Bound(true, false, 20.0)
     )
-)
+    #node2 = Coluna.Algorithm.Node(1, " ", nothing, Coluna.Bound(master), )
+    #### set up the algos
+    conquermock = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => Coluna.OptimizationState(master),
+            3 => Coluna.OptimizationState(master)
+        )
+    )
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [EmptyNode(2, 1, Coluna.Bound(true, false, 20.0)), EmptyNode(3, 1, Coluna.Bound(true, false, 20.0))],
+            2 => [],
+            3 => []
+        )
+    )
+    
+    treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conquermock,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    input = Coluna.OptimizationState(Coluna.getmaster(reform))
+    
+    
+    Coluna.set_optim_start_time!(env)
+    @show Coluna.Algorithm.run!(treesearch, env, reform, input)
 
-treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
-    conqueralg = conquermock,
-    dividealg = dividealg,
-    explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
-)
 
-input = Coluna.OptimizationState(Coluna.getmaster(reform))
+end
+
+test_stop_condition()
 
 
-Coluna.set_optim_start_time!(env)
-Coluna.Algorithm.run!(treesearch, env, reform, input)
-
-#{Coluna.Algorithm.PrinterSearchSpace{Coluna.Algorithm.BaBSearchSpace,Coluna.Algorithm.DefaultLogPrinter,Coluna.Algorithm.DevNullFilePrinter}}
