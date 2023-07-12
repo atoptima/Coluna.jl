@@ -7,7 +7,6 @@ TUTORIAL_IDENTICAL_SP = joinpath(@__DIR__, "src", "start", "identical_sp.jl")
 TUTORIAL_CUSTOMDATA = joinpath(@__DIR__, "src", "start", "custom_data.jl")
 TUTORIAL_INITCOLS = joinpath(@__DIR__, "src", "start", "initial_columns.jl")
 TUTORIAL_ADVANCED = joinpath(@__DIR__, "src", "start", "advanced_demo.jl")
-TUTORIAL_TREESEARCH_API = joinpath(@__DIR__, "src", "api", "treesearch.jl")
 TUTORIAL_STORAGE_API = joinpath(@__DIR__, "src", "api", "storage.jl")
 
 OUTPUT_GAP = joinpath(@__DIR__, "src", "start")
@@ -17,7 +16,6 @@ OUTPUT_IDENTICAL_SP = joinpath(@__DIR__, "src", "start")
 OUTPUT_CUSTOMDATA = joinpath(@__DIR__, "src", "start")
 OUTPUT_INITCOLS = joinpath(@__DIR__, "src", "start")
 OUTPUT_ADVANCED = joinpath(@__DIR__, "src", "start")
-OUTPUT_TREESEARCH_API = joinpath(@__DIR__, "src", "api")
 OUTPUT_STORAGE_API = joinpath(@__DIR__, "src", "api")
 
 Literate.markdown(TUTORIAL_GAP, OUTPUT_GAP, documenter=true)
@@ -27,7 +25,6 @@ Literate.markdown(TUTORIAL_IDENTICAL_SP, OUTPUT_IDENTICAL_SP, documenter=true)
 Literate.markdown(TUTORIAL_CUSTOMDATA, OUTPUT_CUSTOMDATA, documenter=true)
 Literate.markdown(TUTORIAL_INITCOLS, OUTPUT_INITCOLS, documenter=true)
 Literate.markdown(TUTORIAL_ADVANCED, OUTPUT_ADVANCED, documenter=true)
-Literate.markdown(TUTORIAL_TREESEARCH_API, OUTPUT_TREESEARCH_API, documenter=true)
 Literate.markdown(TUTORIAL_STORAGE_API, OUTPUT_STORAGE_API, documenter=true)
 
 makedocs(
