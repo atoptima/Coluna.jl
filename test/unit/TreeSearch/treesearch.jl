@@ -26,7 +26,7 @@ end
 
 ## deterministic divide, match each node to the nodes that should be generated from it as children
 struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
-    divide::Dict{Int, Union{Nothing, Vector{Coluna.Algorithm.PrintedNode}}}
+    divide::Dict{Int, Vector{Coluna.Algorithm.PrintedNode}} #the vector of children can also be empty
 end
 
 #######  redefine the interface to be able to test the implementation : no tests for the moment 
@@ -54,6 +54,12 @@ end
 function Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes)
     println("\e[33m hello from stop \e[00m")
     return Coluna.TreeSearch.stop(space.inner, untreated_nodes)
+end
+
+
+function Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes)
+    println("\e[33m hello from tree_search_output \e[00m")
+    return Coluna.TreeSearch.tree_search_output(space.inner.inner, untreated_nodes)
 end
 
 ## methods called by children
@@ -123,11 +129,27 @@ end
 
 
 ## must return "branches"
-function Coluna.Algorithm.run!(::DeterministicDivide, env, reform, input)
+function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
     println("\e[33m hello from run divide \e[00m")
-    @show typeof(input)
-    return nothing ## TODO: find a way to create the children here and pass it to new_children ; must also be wrapped to be PrintedNode
+    children = alg.divide[input.node_id]
+    return Coluna.Algorithm.DivideOutput(children, nothing) ## TODO: find a way to create the children here and pass it to new_children ; must also be wrapped to be PrintedNode ? 
 end
+
+## The candidates and the current node are passed as PrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes. 
+function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{Coluna.Algorithm.PrintedNode}, node::Coluna.Algorithm.PrintedNode)
+    println("\e[33m hello from new_children \e[00m")
+    parent_id = node.tree_order_id
+    branches_inner = Coluna.Algorithm.DivideOutput(
+        map(n -> n.inner, branches.children),
+        nothing ## TODO see if need to change
+    )
+
+    new_children_inner = Coluna.Algorithm.new_children(space.inner.inner, branches_inner, node.inner)
+
+    return map(n -> Coluna.Algorithm.PrintedNode(parent_id + 1, parent_id, n), new_children_inner)
+
+end
+
 
 
 
@@ -154,7 +176,7 @@ conquermock = DeterministicConquer(
 )
 dividealg = DeterministicDivide(
     Dict(
-        1 => nothing 
+        1 => []
     )
 )
 
