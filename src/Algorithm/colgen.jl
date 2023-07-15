@@ -87,19 +87,56 @@ Here are their meanings :
     print::Bool = true
 end
 
+############################################################################################
+# Column generation parameters checker.
+# `check_parameter` returns true by default
+############################################################################################1
+# function check_parameter(::ColumnGeneration, ::Val{:restr_master_solve_alg}, value, reform)
+    
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:restr_master_optimizer_id}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:pricing_prob_solve_alg}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:stages_pricing_solver_ids}, value, reform)
+
+# end
+
+# function check_parameter(::ColumnGeneration, ::Val{:essential_cut_gen_alg}, value, reform)
+
+# end
+
+check_parameter(::ColumnGeneration, ::Val{:max_nb_iterations}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:log_print_frequency}, value, reform) = value > 1
+check_parameter(::ColumnGeneration, ::Val{:redcost_tol}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:cleanup_threshold}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:cleanup_ratio}, value, reform) = 0 < value < 1
+check_parameter(::ColumnGeneration, ::Val{:smoothing_stabilization}, value, reform) =  0 <= value <= 1
+check_parameter(::ColumnGeneration, ::Val{:opt_atol}, value, reform) = value > 0
+check_parameter(::ColumnGeneration, ::Val{:opt_rtol}, value, reform) = value > 0
+
+
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 ############################################################################################
 # Implementation of Algorithm interface.
 ############################################################################################
 
-function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    child_algs = Tuple{AlgoAPI.AbstractAlgorithm,AbstractModel}[]
-    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
-    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
+    child_algs = Dict{String, Tuple{AlgoAPI.AbstractAlgorithm, MathProg.Formulation}}(
+        "restr_master_solve_alg" => (algo.restr_master_solve_alg, getmaster(reform)),
+        "essential_cut_gen_alg" => (algo.essential_cut_gen_alg, getmaster(reform))
+    ) 
+
     for (id, spform) in get_dw_pricing_sps(reform)
-        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
+        child_algs["pricing_prob_solve_alg_sp$id"] = (algo.pricing_prob_solve_alg, spform)
     end
+
     return child_algs
 end
 
@@ -110,7 +147,7 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     push!(units_usage, (master, MasterBasisUnit, READ_AND_WRITE))
     #push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
     if stabilization_is_used(algo)
-        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
+        #push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
     end
     return units_usage
 end
@@ -118,7 +155,6 @@ end
 ############################################################################################
 # Column generation algorithm.
 ############################################################################################
-
 function _colgen_context(algo::ColumnGeneration)
     algo.print && return ColGenPrinterContext
     return ColGenContext
@@ -131,39 +167,46 @@ end
 function _colgen_optstate_output(result, master)
     optstate = OptimizationState(master)
 
-    if result.infeasible
+    if ColGen.is_infeasible(result)
+        # If the column generation finds the problem infeasible, we consider that all the
+        # other information are irrelevant.
         setterminationstatus!(optstate, INFEASIBLE)
-    end
+    else
+        lp_primal_sol = ColGen.get_master_lp_primal_sol(result)
+        if !isnothing(lp_primal_sol)
+            set_lp_primal_sol!(optstate, lp_primal_sol)
+        end
 
-    if !isnothing(result.master_lp_primal_sol)
-        set_lp_primal_sol!(optstate, result.master_lp_primal_sol)
-    end
+        ip_primal_sol = ColGen.get_master_ip_primal_sol(result)
+        if !isnothing(ip_primal_sol)
+            update_ip_primal_sol!(optstate, ip_primal_sol)
+        end
 
-    if !isnothing(result.master_ip_primal_sol)
-        update_ip_primal_sol!(optstate, result.master_ip_primal_sol)
-    end
+        lp_dual_sol = ColGen.get_master_dual_sol(result)
+        if !isnothing(lp_dual_sol)
+            update_lp_dual_sol!(optstate, lp_dual_sol)
+        end
 
-    if !isnothing(result.master_lp_dual_sol)
-        update_lp_dual_sol!(optstate, result.master_lp_dual_sol)
-    end
+        db = ColGen.get_dual_bound(result)
+        if !isnothing(result.db)
+            set_lp_dual_bound!(optstate, DualBound(master, db))
+            set_ip_dual_bound!(optstate, DualBound(master, db))
+        end
 
-    if !isnothing(result.db)
-        set_lp_dual_bound!(optstate, DualBound(master, result.db))
-        set_ip_dual_bound!(optstate, DualBound(master, result.db))
-    end
-
-    if !isnothing(result.mlp)
-        set_lp_primal_bound!(optstate, PrimalBound(master, result.mlp))
+        mlp = ColGen.get_master_lp_primal_bound(result)
+        if !isnothing(mlp)
+            set_lp_primal_bound!(optstate, PrimalBound(master, mlp))
+        end
     end
     return optstate
 end
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+    # We build 
     C = _colgen_context(algo)
     ctx = _new_context(C, reform, algo)
     result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
 
     master = getmaster(reform)
-    
     return _colgen_optstate_output(result, master)
 end

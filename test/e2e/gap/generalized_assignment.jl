@@ -4,8 +4,9 @@ function gap_toy_instance()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            branchingtreefile = "playgap.dot"
-        )),
+            branchingtreefile = "playgap.dot",
+        ),local_art_var_cost = 10000.0,
+        global_art_var_cost = 100000.0),
         "default_optimizer" => GLPK.Optimizer
     )
 
@@ -26,7 +27,6 @@ end
 register!(e2e_tests, "gap", gap_toy_instance)
 
 function gap_strong_branching()
-    println("\e[45m gap strong branching \e[00m")
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     coluna = JuMP.optimizer_with_attributes(
@@ -132,7 +132,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #         @test ClD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 #     end
 
-#     @testset "pure master variables (GAP with penalties)" begin
+#     @testset "pure master variables (GAP with f)" begin
 #         data = ClD.GeneralizedAssignment.data("smallgap3.txt")
 
 #         coluna = JuMP.optimizer_with_attributes(
@@ -141,7 +141,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #             "default_optimizer" => GLPK.Optimizer
 #         )
 
-#         problem, x, y, dec = ClD.GeneralizedAssignment.model_with_penalties(data, coluna)
+#         problem, x, y, dec = ClD.GeneralizedAssignment.model_with_f(data, coluna)
 #         JuMP.optimize!(problem)
 #         @test JuMP.termination_status(problem) == MOI.OPTIMAL
 #         @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
@@ -210,7 +210,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 
 #     @testset "gap with all phases in col.gen" begin # TODO: replace by unit tests for ColCutGenConquer.
 #         data = ClD.GeneralizedAssignment.data("mediumgapcuts1.txt")
-#         for m in data.machines
+#         for m in M
 #             data.capacity[m] = floor(Int, data.capacity[m] * 0.5)
 #         end
 
@@ -283,14 +283,14 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #         )
 
 #         model = BlockModel(coluna, direct_model = true)
-#         @axis(M, data.machines)
-#         @variable(model, x[m in M, j in data.jobs], Bin)
+#         @axis(M, M)
+#         @variable(model, x[m in M, j in J], Bin)
 #         @constraint(model, cov, sum(x[m,1] for m in M) == 1)  # add only covering constraint of job 1
 #         @constraint(model, knp[m in M],
-#             sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= data.capacity[m]
+#             sum(data.weight[j,m]*x[m,j] for j in J) <= data.capacity[m]
 #         )
 #         @objective(model, Min,
-#             sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs)
+#             sum(c[j,m]*x[m,j] for m in M, j in J)
 #         )
 #         @dantzig_wolfe_decomposition(model, dec, M)
 #         subproblems = BlockDecomposition.getsubproblems(dec)
@@ -302,7 +302,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #             for j in 1:cur_j
 #                 @test sum(callback_value(cb_data, x[m,j]) for m in M) ≈ 1
 #             end
-#             if cur_j < length(data.jobs)
+#             if cur_j < length(J)
 #                 cur_j += 1
 #                 con = @build_constraint(sum(x[m,cur_j] for m in M) == 1)
 #                 MOI.submit(model, MOI.LazyConstraint(cb_data), con)

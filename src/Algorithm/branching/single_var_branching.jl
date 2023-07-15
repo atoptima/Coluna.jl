@@ -8,7 +8,7 @@ It is an implementation of AbstractBranchingCandidate.
 This is the type of branching candidates produced by the branching rule 
 `SingleVarBranchingRule`.
 """
-mutable struct SingleVarBranchingCandidate{Node<:TreeSearch.AbstractNode} <: Branching.AbstractBranchingCandidate
+mutable struct SingleVarBranchingCandidate <: Branching.AbstractBranchingCandidate
     varname::String
     varid::VarId
     local_id::Int64
@@ -16,11 +16,10 @@ mutable struct SingleVarBranchingCandidate{Node<:TreeSearch.AbstractNode} <: Bra
     score::Float64
     children::Vector{SbNode}
     isconquered::Bool
-    parent::Union{Nothing,Node}
     function SingleVarBranchingCandidate(
-        varname::String, varid::VarId, local_id::Int64, lhs::Float64, parent::N
-    ) where {N<:TreeSearch.AbstractNode}
-        return new{N}(varname, varid, local_id, lhs, 0.0, SbNode[], false, parent)
+        varname::String, varid::VarId, local_id::Int64, lhs::Float64
+    )
+        return new(varname, varid, local_id, lhs, 0.0, SbNode[], false)
     end
 end
 
@@ -29,7 +28,6 @@ Branching.get_lhs(candidate::SingleVarBranchingCandidate) = candidate.lhs
 Branching.get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
 Branching.get_children(candidate::SingleVarBranchingCandidate) = candidate.children
 Branching.set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
-Branching.get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
 function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, reform)
     units_to_restore = UnitsUsage()
@@ -39,8 +37,7 @@ function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, refo
 end
 
 function Branching.generate_children!(
-    candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
-    parent::TreeSearch.AbstractNode
+    candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, input
 )
     master = getmaster(reform)
     lhs = Branching.get_lhs(candidate)
@@ -51,31 +48,35 @@ function Branching.generate_children!(
     )
 
     units_to_restore = get_branching_candidate_units_usage(candidate, reform)
+    d = Branching.get_parent_depth(input)
 
     # adding the first branching constraints
-    restore_from_records!(units_to_restore, parent.records)
+    restore_from_records!(units_to_restore, Branching.parent_records(input))
     setconstr!(
-        master, string(
-            "branch_geq_", getdepth(parent), "_", getname(master,candidate.varid)
-        ), MasterBranchOnOrigVarConstr;
-        sense = Greater, rhs = ceil(lhs), loc_art_var_abs_cost = env.params.local_art_var_cost,
+        master, 
+        string("branch_geq_", d, "_", getname(master,candidate.varid)),
+        MasterBranchOnOrigVarConstr;
+        sense = Greater,
+        rhs = ceil(lhs),
+        loc_art_var_abs_cost = env.params.local_art_var_cost,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     child1description = candidate.varname * ">=" * string(ceil(lhs))
-    child1 = SbNode(master, parent, candidate.varname, child1description, create_records(reform))
+    child1 = SbNode(reform, d+1, candidate.varname, child1description, create_records(reform), input)
 
     # adding the second branching constraints
-    restore_from_records!(units_to_restore, parent.records)
+    restore_from_records!(units_to_restore, Branching.parent_records(input))
     setconstr!(
-        master, string(
-            "branch_leq_", getdepth(parent), "_", getname(master,candidate.varid)
-        ), MasterBranchOnOrigVarConstr;
-        sense = Less, rhs = floor(lhs), 
+        master,
+        string("branch_leq_", d, "_", getname(master,candidate.varid)),
+        MasterBranchOnOrigVarConstr;
+        sense = Less,
+        rhs = floor(lhs), 
         loc_art_var_abs_cost = env.params.local_art_var_cost,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     child2description = candidate.varname * "<=" * string(floor(lhs))
-    child2 = SbNode(master, parent, candidate.varname, child2description, create_records(reform))
+    child2 = SbNode(reform, d+1, candidate.varname, child2description, create_records(reform), input)
 
     return [child1, child2]
 end
@@ -108,13 +109,14 @@ function Branching.apply_branching_rule(::SingleVarBranchingRule, env::Env, refo
 
     master = getmaster(reform)
 
+    @assert !isnothing(input.solution)
+
     # We do not consider continuous variables and variables with integer value in the
     # current solution as branching candidates.
     candidate_vars = Iterators.filter(
         ((var_id, val),) -> !is_cont_var(master, var_id) && !is_int_val(val, input.int_tol),
         input.solution
     )
-
     max_priority = mapreduce(
         ((var_id, _),) -> getbranchingpriority(master, var_id),
         max,
@@ -134,7 +136,7 @@ function Branching.apply_branching_rule(::SingleVarBranchingRule, env::Env, refo
         if br_priority == max_priority
             name = getname(master, var_id)
             local_id = input.local_id + length(collection) + 1
-            candidate = SingleVarBranchingCandidate(name, var_id, local_id, val, input.parent)
+            candidate = SingleVarBranchingCandidate(name, var_id, local_id, val)
             push!(collection, candidate)
         end
         return collection

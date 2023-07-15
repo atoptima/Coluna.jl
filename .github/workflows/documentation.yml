@@ -13,6 +13,10 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: '1'
+      - name: Install unregistered pkg
+        run: julia --project=docs/ -e 'using Pkg; Pkg.add(url="https://github.com/JuliaDocs/DocumenterMermaid.jl");'
+      - name: Install documenter#master
+        run: julia --project=docs/ -e 'using Pkg; Pkg.add(url="https://github.com/JuliaDocs/Documenter.jl");'
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate();'
       - name: Build and deploy

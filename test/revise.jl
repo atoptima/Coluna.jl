@@ -17,6 +17,7 @@ typical_test_dirs = [
     joinpath("integration", "custom_data"),
     joinpath("integration", "parser"),
     joinpath("integration", "pricing_callback"),
+    joinpath("e2e", "gap"),
     joinpath("e2e_extra", "advanced_colgen"),
     joinpath("e2e_extra", "gap")
 ]
@@ -78,5 +79,5 @@ listen_to_tests([
     run_unit_tests,
     run_integration_tests,
     run_e2e_tests,
-    run_e2e_extra_tests
+    #run_e2e_extra_tests
 ])

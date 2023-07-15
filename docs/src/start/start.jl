@@ -1,4 +1,4 @@
-# # Column generation with the Generalized Assignment Problem
+# # [Column generation with the Generalized Assignment Problem](@id tuto_gen_assignement)
 
 # This quick start guide introduces the main features of Coluna through the example of the
 # Generalized Assignment Problem.

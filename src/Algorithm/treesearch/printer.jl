@@ -47,11 +47,10 @@ print execution logs.
 """
 struct PrintedNode{Node<:TreeSearch.AbstractNode} <: TreeSearch.AbstractNode
     tree_order_id::Int
-    parent::Union{Nothing,PrintedNode}
+    parent_tree_order_id::Union{Int, Nothing}
     inner::Node
 end
 
-TreeSearch.get_parent(n::PrintedNode) = n.parent
 TreeSearch.get_priority(explore::TreeSearch.AbstractExploreStrategy, n::PrintedNode) = TreeSearch.get_priority(explore, n.inner)
 
 function TreeSearch.tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
@@ -90,7 +89,7 @@ function TreeSearch.children(sp::PrinterSearchSpace, current, env, untreated_nod
     return map(
         TreeSearch.children(sp.inner, current.inner, env, Iterators.map(_inner_node, untreated_nodes))
     ) do child
-        return PrintedNode(sp.current_tree_order_id += 1, current, child)
+        return PrintedNode(sp.current_tree_order_id += 1, current.tree_order_id, child)
     end
 end
 
@@ -132,30 +131,31 @@ function init_tree_search_file!(f::DotFilePrinter)
     return
 end
 
+# TODO: fix
 function print_node_in_tree_search_file!(f::DotFilePrinter, node::PrintedNode, sp::PrinterSearchSpace, env)
-    pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
-    db = getvalue(get_ip_dual_bound(TreeSearch.get_opt_state(node.inner)))
-    open(filename(f), "r+") do file
-        # rewind the closing brace character
-        seekend(file)
-        pos = position(file)
-        seek(file, pos - 1)
+    # pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
+    # db = getvalue(get_ip_dual_bound(sp.inner.optstate))
+    # open(filename(f), "r+") do file
+    #     # rewind the closing brace character
+    #     seekend(file)
+    #     pos = position(file)
+    #     seek(file, pos - 1)
 
-        # start writing over this character
-        ncur = node.tree_order_id
-        time = elapsed_optim_time(env)
-        if ip_gap_closed(TreeSearch.get_opt_state(node.inner))
-            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
-        else
-            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
-        end
-        if !isnothing(TreeSearch.get_parent(node)) # not root node
-            npar = TreeSearch.get_parent(node).tree_order_id
-            @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.inner.branchdescription
-        else
-            print(file, "}")
-        end
-    end
+    #     # start writing over this character
+    #     ncur = node.tree_order_id
+    #     time = elapsed_optim_time(env)
+    #     if ip_gap_closed(node.inner.conquer_output)
+    #         @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
+    #     else
+    #         @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+    #     end
+    #     if node.inner.depth > 0 # not root node
+    #         npar = TreeSearch.get_parent(node).tree_order_id
+    #         @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.inner.branchdescription
+    #     else
+    #         print(file, "}")
+    #     end
+    # end
     return
 end
 
@@ -196,8 +196,8 @@ function print_log(
     is_root_node = iszero(getdepth(node.inner))
     current_node_id = node.tree_order_id
     current_node_depth = getdepth(node.inner)
-    current_parent_id = isnothing(TreeSearch.get_parent(node)) ? nothing : TreeSearch.get_parent(node).tree_order_id
-    local_db = getvalue(get_ip_dual_bound(TreeSearch.get_opt_state(node.inner)))
+    current_parent_id = node.parent_tree_order_id
+    local_db = getvalue(node.inner.ip_dual_bound)
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
     global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
     time = elapsed_optim_time(env)

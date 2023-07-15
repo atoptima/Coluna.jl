@@ -1,3 +1,18 @@
+# Coluna 0.6.4
+
+This is a minor update that provides documentation and a bug fix in the integration of the column generation algorithm with the branch-and-bound.
+ 
+# Coluna 0.6.3
+
+This is a minor update that provides:
+- improvements in column generation interface and generic functions
+- bugfix in column generation (wrong calculation of the lagrangian dual bound when identical subproblems)
+- column generation stabilization (alpha version)
+
+# Coluna 0.6.2
+
+This is a minor update that provides fixes in the Benders cut generation algorithm and documentation for the Benders API.
+
 # Coluna 0.6.1
 
 This is a minor update but some changes may affect the integration of external algorithms 

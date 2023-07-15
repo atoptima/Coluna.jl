@@ -323,9 +323,6 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         for var_id in getfixedvars(form)
             cost = getcurcost(form, var_id)
             if abs(cost) > Coluna.TOL
-                push!(varids, var_id)
-                push!(varvals, sense * cost)
-                push!(activebounds, LOWER_AND_UPPER)
                 fixed_obj += cost * getcurlb(form, var_id)
             end
         end
