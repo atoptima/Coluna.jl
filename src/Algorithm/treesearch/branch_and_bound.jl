@@ -199,6 +199,10 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     if !isnothing(best_ip_primal_sol)
         update_ip_primal_sol!(node_state, best_ip_primal_sol)
     end
+    space_primal_bound = get_ip_primal_bound(space.optstate)
+    if !isnothing(space_primal_bound)
+        update_ip_primal_bound!(node_state, space_primal_bound)
+    end
 
     # TODO: improve ?
     # Condition 1: IP Gap is closed. Abort treatment.
