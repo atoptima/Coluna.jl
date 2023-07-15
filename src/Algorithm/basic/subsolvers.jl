@@ -74,9 +74,6 @@ end
 function optimize_with_moi!(
     optimizer::MoiOptimizer, form::Formulation, algo::MoiOptimize, result::OptimizationState
 )
-    # Get current parameter values that we are going to set.
-    init_moi_params, init_raw_params = _get_cur_optimizer_params(optimizer, algo)
-
     # Set parameters.
     cur_moi_params = Dict(
         MOI.TimeLimitSec => algo.time_limit,
@@ -95,9 +92,6 @@ function optimize_with_moi!(
 
     # Solve.
     MOI.optimize!(getinner(optimizer))
-
-    # Reset parameters.
-    _set_optimizer_params!(optimizer, init_moi_params, init_raw_params)
 
     # Retrieve termination status from MOI and convert into Coluna termination status.
     _termination_status!(result, optimizer)
