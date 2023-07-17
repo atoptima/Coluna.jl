@@ -7,7 +7,7 @@ using ..MustImplement
 using ..AlgoAPI
 
 "Supertype for heuristic."
-abstract type AbstractHeuristic end
+abstract type AbstractHeuristic <: AlgoAPI.AbstractAlgorithm end
 
 """
 Output of a heuristic algorithm.
