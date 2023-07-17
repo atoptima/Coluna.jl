@@ -1,73 +1,46 @@
 using Coluna 
 
-## comments
-# alternative (but broken) version in tmp.jl
+# To be able to properly test the tree search implemented in Coluna, we write a redefinition of the tree search interface with a customized search space TestBaBSearchSpace.
+# The goal is to simplify the tests writings by giving the possibility to "build" a specific branch and bound tree. 
 
-# the user creates the nodes via the deterministic divide and indicates the nodes ids which are going to be used in the conquer and the divid. It uses LightNode which contains the ids)
-# the ids are retrieved in new_children to create TestBaBNodes
+# To do so, we use customized conquer and divide algorithms, together with node ids. To be more precise, each test corresponds to the construction of a branch and bound tree where the nodes are built thanks to a deterministic divide algorithm where we specify the nodes ids, and a deterministic conquer which matches each node id to the optimization state we want for the given node. 
 
-# a large part of the PrinterSearchSpace code is skipped by using inner.inner
+mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
+    inner::Coluna.Algorithm.BaBSearchSpace
+end
 
-# TODO: see if it is necessary to have a wrapped search space to manage the nodes ids (PrinterSearchSpace or the other available in tmp.jl)
-# -> try to test like this and see ...
 
-# at the moment there is a trick used in new_children to avoid the management of node ids
+# We create a TestBaBNode which wraps a "real" branch and bound Node and carries the node id. 
+mutable struct TestBaBNode <: Coluna.TreeSearch.AbstractNode
+    inner::Coluna.Algorithm.Node
+    id::Int
+end
 
-### structures
-
+# LightNode are used to contains the minimal information needed to create real nodes. In the tests only LightNode are defined, the re-implementation of the interface is then responsible to create real nodes. 
 mutable struct LightNode 
     id::Int
     depth::Int
     parent_ip_dual_bound::Coluna.Algorithm.Bound
 end
 
-mutable struct TestBaBNode <: Coluna.TreeSearch.AbstractNode
-    inner::Coluna.Algorithm.Node
-    id::Int
-end
 
-
-## construct a real node from an LightNode, used in new_children to built real children from the minimal information contained in LightNode
-function Coluna.Algorithm.Node(node::LightNode)
-    return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records(), false)
-end
-
-mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
-    inner::Coluna.Algorithm.BaBSearchSpace
-end
-
-## contains the original conquer input and some extra information used for testing
-struct TestConquerInputFromBab <: Coluna.Algorithm.AbstractConquerAlgorithm
-    inner::Coluna.Algorithm.ConquerInputFromBaB
-    node_id::Int  
-end
-
-## contains the original divide input and some extra information used for testing
-struct TestDivideInputFromBab
-    inner::Coluna.Algorithm.DivideInputFromBaB
-    node_id::Int
-end
-
-
-## deterministic conquer, a map with all the nodes id matched to their optimisation state
+# Deterministic conquer, a map with all the nodes ids matched to their optimization state
 struct DeterministicConquer <: Coluna.Algorithm.AbstractConquerAlgorithm
-    conquer::Dict{Int, Coluna.OptimizationState} ## match each node id with its optimisation state
+    conquer::Dict{Int, Coluna.OptimizationState} 
 end
 
-## deterministic divide, match each node to the nodes that should be generated from it as children
+# Deterministic divide, match each node id to the nodes that should be generated as children from this node.
 struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
-    divide::Dict{Int, Vector{LightNode}} #the vector of children can also be empty
+    divide::Dict{Int, Vector{LightNode}} ## the children are creating using the minimal information, they will turned into real nodes later in the algorithm run
 end
 
-################    redefine the interface to be able to test the implementation : no tests for the moment ###################################  
+# We redefine the interface for TestBaBSearchSpace: 
 
-function Coluna.TreeSearch.search_space_type(alg::Coluna.Algorithm.TreeSearchAlgorithm)
-    println("\e[33m hello from search space type \e[00m")
+function Coluna.TreeSearch.search_space_type(::Coluna.Algorithm.TreeSearchAlgorithm)
     return TestBaBSearchSpace
 end
 
 function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, input)
-    println("\e[33m hello from new space \e[00m")
     inner_space = Coluna.TreeSearch.new_space(
         Coluna.Algorithm.BaBSearchSpace, 
         alg, model, 
@@ -75,126 +48,77 @@ function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, inp
     return TestBaBSearchSpace(inner_space)
 end
 
-## direct call to printer root
+
+# new_root returns a TestBaBNode with id 1 by default. The stack in treesearch (in explore.jl) will therefore contains nodes of type TestBaBNode. 
 function Coluna.TreeSearch.new_root(space::TestBaBSearchSpace, input)
-    println("\e[33m hello from new root \e[00m")
     inner = Coluna.TreeSearch.new_root(space.inner, input)
-    return TestBaBNode(inner, 1) ## we can even imagine to pass the root id in input
+    return TestBaBNode(inner, 1) ## root id is set to 1 by default
 end
 
-function Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes)
-    println("\e[33m hello from stop \e[00m")
-    return Coluna.TreeSearch.stop(space.inner, untreated_nodes)
-end
+Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.stop(space.inner, untreated_nodes)
+Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.tree_search_output(space.inner, untreated_nodes)
 
 
-function Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes)
-    println("\e[33m hello from tree_search_output \e[00m")
-    return Coluna.TreeSearch.tree_search_output(space.inner, untreated_nodes)
-end
-
-## methods called by children
-
-function Coluna.Algorithm.get_previous(space::TestBaBSearchSpace)
-    println("\e[33m hello from get_previous \e[00m")
-    @show typeof(Coluna.Algorithm.get_previous(space.inner))
-    return Coluna.Algorithm.get_previous(space.inner)
-end
-
-function Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::TestBaBNode)
-    println("\e[33m hello from set_previous \e[00m")
-    return Coluna.Algorithm.set_previous!(space.inner, previous.inner)
-end
-
-function Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace)
-    println("\e[33m hello from get_reformulation \e[00m")
-    return Coluna.Algorithm.get_reformulation(space.inner)
+# methods called by native method children (in branch_and_bound.jl)
+Coluna.Algorithm.get_previous(space::TestBaBSearchSpace) = Coluna.Algorithm.get_previous(space.inner)
+Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::TestBaBNode) = Coluna.Algorithm.set_previous!(space.inner, previous.inner)
+Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace) = Coluna.Algorithm.get_reformulation(space.inner)
 
 
-end
-##################### methods to implement deterministic conquer #####################
+#   *************   redefinition of the methods to implement the deterministic conquer:    *************
 
-function Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace)
-    println("\e[33m hello from get_reformulation \e[00m")
-    return Coluna.Algorithm.get_conquer(space.inner)
-end
+Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace) = Coluna.Algorithm.get_conquer(space.inner)
 
-## to modify to add the node id to the conquer
-function Coluna.Algorithm.get_input(alg::DeterministicConquer, space::TestBaBSearchSpace, node::TestBaBNode)
-    println("\e[33m hello from conquer get_input \e[00m")
-    inner = Coluna.Algorithm.get_input(alg, space.inner, node.inner)
-    return TestConquerInputFromBab(inner, node.id)
-end
+## the only information the deterministic conquer needs is the node id
+Coluna.Algorithm.get_input(::DeterministicConquer, ::TestBaBSearchSpace, node::TestBaBNode) = return node.id
 
-## return a "real" conquer output (an OptimizationState) -> may changed depending on divide input
-function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input::TestConquerInputFromBab)
-    println("\e[33m hello from run conquer \e[00m")
-    conquer_output = alg.conquer[input.node_id]
-    return (input.node_id, conquer_output) ## pass node id as a conquer output
+
+## takes the node id as the input, retrieve the corresponding optimization state in the dict, returns it together with the node id to pass them to the divide
+function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input)
+    conquer_output = alg.conquer[input]
+    return (input, conquer_output) ## pass node id as a conquer output
 end 
 
+## retrieve the optimization state and call the native method
 function Coluna.Algorithm.after_conquer!(space::TestBaBSearchSpace, current, conquer_output)
-    println("\e[33m hello from after conquer \e[00m")
-    (_, conquer_output) = conquer_output
+    (_, conquer_output) = conquer_output 
     return Coluna.Algorithm.after_conquer!(space.inner, current.inner, conquer_output)
 end
 
-##################### methods to implement deterministic divide ##################### 
+#   *************   redefinition of the methods to implement the deterministic divide:    *************
 
-function Coluna.Algorithm.get_divide(space::TestBaBSearchSpace)
-    println("\e[33m hello from get divide \e[00m")
-    return Coluna.Algorithm.get_divide(space.inner)
+Coluna.Algorithm.get_divide(space::TestBaBSearchSpace) = Coluna.Algorithm.get_divide(space.inner)
+
+## the only information the deterministic divide needs is the node id
+function Coluna.Algorithm.get_input(::Coluna.AlgoAPI.AbstractDivideAlgorithm, ::TestBaBSearchSpace, ::TestBaBNode, conquer_output)
+    (node_id, _) = conquer_output
+    return node_id
 end
 
-function Coluna.Algorithm.get_input(alg::Coluna.AlgoAPI.AbstractDivideAlgorithm, space::TestBaBSearchSpace, node::TestBaBNode, conquer_output)
-    println("\e[33m hello from divide get input \e[00m")
-    @show typeof(conquer_output)
-    (node_id, conquer_output) = conquer_output
-    @show typeof(conquer_output)
-    @show node_id
-    return TestDivideInputFromBab(
-        Coluna.Algorithm.get_input(alg, space.inner, node.inner, conquer_output),
-        node_id
-    )
-end
-
-
-## must return "branches", return as DivideInput{LightNode}
+## takes the node id as the input, retrieve the list of (LightNode) children of the corresponding node and returns a DivideOutput made up of these (LightNode) children. 
 function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
-    println("\e[33m hello from run divide \e[00m")
-    children = alg.divide[input.node_id]
-    return Coluna.Algorithm.DivideOutput(children, nothing) ## optimizationstate useless ? 
+    children = alg.divide[input]
+    return Coluna.Algorithm.DivideOutput(children, nothing) 
 end
 
-## The candidates are passed as LightNodes, the current node is passed as a TestBaBNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of TestBaBNodes using the node ids passed with LightNodes.
-## branches is a divide output with LightNodes as children -> in the native method new_children in branch_and_bound.jl, those children are retrieved via get_children and then real nodes are created with a direct call to the constructor Node so it is sufficient to re-write a Node(child) method with child a LightNode to make the method works
-## TODO clean that diiiiiirty method 
+# constructs a real node from a LightNode, used in new_children to built real children from the minimal information contained in LightNode
+function Coluna.Algorithm.Node(node::LightNode)
+    return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records(), false)
+end
+
+## The candidates are passed as LightNodes and the current node is passed as a TestBaBNode. The method retrieves the inner nodes to run the native method new_children of branch_and_bound.jl, gets the result as a vector of Nodes and then re-built a solution as a vector of TestBaBNodes using the nodes ids contained in LightNode structures.
+# branches input is a divide output with children of type LightNode. In the native method new_children in branch_and_bound.jl, those children are retrieved via get_children and then real nodes are created with a direct call to the constructor Node so it is sufficient to re-write a Node(child) method with child a LightNode to make the method works.
 function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{LightNode}, node::TestBaBNode)
-    println("\e[33m hello from new_children \e[00m")
-    parent_id = node.id
     new_children_inner = Coluna.Algorithm.new_children(space.inner, branches, node.inner) ## vector of Nodes
-    @show typeof(new_children_inner)
-    @show new_children_inner
-    tmp = [(new_children_inner[i], branches.children[i].id) for i in 1:length(new_children_inner)]
-    @show tmp
-    res = Vector{TestBaBNode}()
-    for (n, id) in tmp
-        push!(res, TestBaBNode(n, id))
-    end
-    return res
-
+    ids = map(node -> node.id, branches.children) ## vector of ids
+    return map( (n, id) -> TestBaBNode(n, id), new_children_inner, ids) ## build the list of TestBaBNode
 end
 
+Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBNode, space::TestBaBSearchSpace, untreated_nodes) = Coluna.Algorithm.node_change!(previous, current.inner, space.inner, map(n -> n.inner, untreated_nodes))
 
-function Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBNode, space::TestBaBSearchSpace, untreated_nodes)
-    println("\e[33m hello from node_change! \e[00m")
-    Coluna.Algorithm.node_change!(previous, current.inner, space.inner, map(n -> n.inner, untreated_nodes))
-end
+# end of the interface's redefinition 
 
-###################################  end of interface's redefinition  ###################################  
-
-
-####################  to be later put in a test ####################  
+# Tests: 
 
 # ```mermaid
 # graph TD
@@ -206,37 +130,36 @@ end
 #     5 --> |STOP| stop( ) 
 # ````
 function test_stop_condition()
-    #### create an empty formulation
+    ## create an empty formulation
     param = Coluna.Params()
     env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( ## empty formulation, min sense by default
+    master = Coluna.MathProg.create_formulation!( ## min sense by default
         env,
         Coluna.MathProg.DwMaster()
     )
     reform = Coluna.MathProg.Reformulation(env)
     reform.master = master
-    #### create the nodes (for the divide) and their optimization state (for the conquer)
-    ## optstates returned by the deterministic conquer
-    optstate1 = Coluna.OptimizationState( ## root : ## TODO use input arg in run! to properly init the root
+
+    input = Coluna.OptimizationState( 
         master,
-        ip_primal_bound = Coluna.Bound(true, true, 40.0), # min sense, primal, value
-        ip_dual_bound = Coluna.Bound(true, false, 20.0)
+        ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), 
+        ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)
     )
 
-    #### set up the algos
+    ## set up the conquer and the divide (and thus the shape of the branch-and-bound tree, see the mermaid diagram below)
     conquermock = DeterministicConquer(
         Dict(
-            1 => optstate1,
-            2 => Coluna.OptimizationState(master, ip_primal_bound = Coluna.Bound(true, true, 40.0), ip_dual_bound = Coluna.Bound(true, false, 20.0)),
-            3 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.Bound(true, true, 40.0), ip_dual_bound = Coluna.Bound(true, false, 45.0)), ##should return done (infeasible ?)
-            4 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.Bound(true, true, 40.0), ip_dual_bound = Coluna.Bound(true, false, 45.0)), ##shoudl return done
-            5 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.Bound(true, true, 30.0), ip_dual_bound = Coluna.Bound(true, false, 30.0))
+            1 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)),
+            2 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)),
+            3 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
+            4 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
+            5 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 30.0))
             ## TODO : set termination status essential here ? 
-        )
+        ) 
     )
     dividealg = DeterministicDivide(
         Dict(
-            1 => [LightNode(5, 1, Coluna.Bound(true, false, 20.0)), LightNode(2, 1, Coluna.Bound(true, false, 20.0))], ##remark: should pass first the right child, and second the left child (a bit contre intuitive ?)
+            1 => [LightNode(5, 1, Coluna.Bound(true, false, 20.0)), LightNode(2, 1, Coluna.Bound(true, false, 20.0))], ##remark: should pass first the right child, and second the left child (a bit contre intuitive ?)  ##TODO see and fix code
             2 => [LightNode(4, 2, Coluna.Bound(true, false, 20.0)), LightNode(3, 2, Coluna.Bound(true, false, 20.0))],
             3 => [], 
             4 => [],
@@ -249,9 +172,6 @@ function test_stop_condition()
         dividealg = dividealg,
         explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
     )
-    
-    input = optstate1
-    
     
     Coluna.set_optim_start_time!(env)
     algstate = Coluna.Algorithm.run!(treesearch, env, reform, input)
