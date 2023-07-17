@@ -3,8 +3,8 @@ using Coluna
 ## comments
 # alternative (but broken) version in tmp.jl
 
-# the user creates the nodes via the deterministic divide and indicates the nodes ids which are going to be used in the conquer and the divid. It uses TestNode which contains the ids)
-# the ids are retrieved in new_children to create PrintedNodes
+# the user creates the nodes via the deterministic divide and indicates the nodes ids which are going to be used in the conquer and the divid. It uses LightNode which contains the ids)
+# the ids are retrieved in new_children to create TestBaBNodes
 
 # a large part of the PrinterSearchSpace code is skipped by using inner.inner
 
@@ -15,21 +15,25 @@ using Coluna
 
 ### structures
 
-mutable struct TestNode 
-    tree_order_id::Int
+mutable struct LightNode 
+    id::Int
     depth::Int
     parent_ip_dual_bound::Coluna.Algorithm.Bound
+end
 
+mutable struct TestBaBNode <: Coluna.TreeSearch.AbstractNode
+    inner::Coluna.Algorithm.Node
+    id::Int
 end
 
 
-## construct a real node from an TestNode, used in new_children to built real children from the minimal information contained in TestNode
-function Coluna.Algorithm.Node(node::TestNode)
+## construct a real node from an LightNode, used in new_children to built real children from the minimal information contained in LightNode
+function Coluna.Algorithm.Node(node::LightNode)
     return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records(), false)
 end
 
 mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
-    inner::Coluna.Algorithm.PrinterSearchSpace
+    inner::Coluna.Algorithm.BaBSearchSpace
 end
 
 ## contains the original conquer input and some extra information used for testing
@@ -52,7 +56,7 @@ end
 
 ## deterministic divide, match each node to the nodes that should be generated from it as children
 struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
-    divide::Dict{Int, Vector{TestNode}} #the vector of children can also be empty
+    divide::Dict{Int, Vector{LightNode}} #the vector of children can also be empty
 end
 
 ################    redefine the interface to be able to test the implementation : no tests for the moment ###################################  
@@ -65,7 +69,7 @@ end
 function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, input)
     println("\e[33m hello from new space \e[00m")
     inner_space = Coluna.TreeSearch.new_space(
-        Coluna.Algorithm.PrinterSearchSpace{Coluna.Algorithm.BaBSearchSpace,Coluna.Algorithm.DefaultLogPrinter,Coluna.Algorithm.DevNullFilePrinter}, 
+        Coluna.Algorithm.BaBSearchSpace, 
         alg, model, 
         input)
     return TestBaBSearchSpace(inner_space)
@@ -74,7 +78,8 @@ end
 ## direct call to printer root
 function Coluna.TreeSearch.new_root(space::TestBaBSearchSpace, input)
     println("\e[33m hello from new root \e[00m")
-    return Coluna.TreeSearch.new_root(space.inner, input)
+    inner = Coluna.TreeSearch.new_root(space.inner, input)
+    return TestBaBNode(inner, 1) ## we can even imagine to pass the root id in input
 end
 
 function Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes)
@@ -92,17 +97,17 @@ end
 
 function Coluna.Algorithm.get_previous(space::TestBaBSearchSpace)
     println("\e[33m hello from get_previous \e[00m")
-    return Coluna.Algorithm.get_previous(space.inner.inner)
+    return Coluna.Algorithm.get_previous(space.inner)
 end
 
-function Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::Coluna.Algorithm.PrintedNode)
+function Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::TestBaBNode)
     println("\e[33m hello from set_previous \e[00m")
-    return Coluna.Algorithm.set_previous!(space.inner.inner, previous.inner)
+    return Coluna.Algorithm.set_previous!(space.inner, previous.inner)
 end
 
 function Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace)
     println("\e[33m hello from get_reformulation \e[00m")
-    return Coluna.Algorithm.get_reformulation(space.inner.inner)
+    return Coluna.Algorithm.get_reformulation(space.inner)
 
 
 end
@@ -110,14 +115,14 @@ end
 
 function Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace)
     println("\e[33m hello from get_reformulation \e[00m")
-    return Coluna.Algorithm.get_conquer(space.inner.inner)
+    return Coluna.Algorithm.get_conquer(space.inner)
 end
 
 ## to modify to add the node id to the conquer
-function Coluna.Algorithm.get_input(alg::DeterministicConquer, space::TestBaBSearchSpace, node::Coluna.Algorithm.PrintedNode)
+function Coluna.Algorithm.get_input(alg::DeterministicConquer, space::TestBaBSearchSpace, node::TestBaBNode)
     println("\e[33m hello from conquer get_input \e[00m")
-    inner = Coluna.Algorithm.get_input(alg, space.inner.inner, node.inner)
-    return TestConquerInputFromBab(inner, node.tree_order_id)
+    inner = Coluna.Algorithm.get_input(alg, space.inner, node.inner)
+    return TestConquerInputFromBab(inner, node.id)
 end
 
 ## return a "real" conquer output (an OptimizationState) -> may changed depending on divide input
@@ -130,60 +135,59 @@ end
 function Coluna.Algorithm.after_conquer!(space::TestBaBSearchSpace, current, conquer_output)
     println("\e[33m hello from after conquer \e[00m")
     (_, conquer_output) = conquer_output
-    return Coluna.Algorithm.after_conquer!(space.inner.inner, current.inner, conquer_output)
+    return Coluna.Algorithm.after_conquer!(space.inner, current.inner, conquer_output)
 end
 
 ##################### methods to implement deterministic divide ##################### 
 
 function Coluna.Algorithm.get_divide(space::TestBaBSearchSpace)
     println("\e[33m hello from get divide \e[00m")
-    return Coluna.Algorithm.get_divide(space.inner.inner)
+    return Coluna.Algorithm.get_divide(space.inner)
 end
 
-function Coluna.Algorithm.get_input(alg::Coluna.AlgoAPI.AbstractDivideAlgorithm, space::TestBaBSearchSpace, node::Coluna.Algorithm.PrintedNode, conquer_output)
+function Coluna.Algorithm.get_input(alg::Coluna.AlgoAPI.AbstractDivideAlgorithm, space::TestBaBSearchSpace, node::TestBaBNode, conquer_output)
     println("\e[33m hello from divide get input \e[00m")
     @show typeof(conquer_output)
     (node_id, conquer_output) = conquer_output
     @show typeof(conquer_output)
     @show node_id
     return TestDivideInputFromBab(
-        Coluna.Algorithm.get_input(alg, space.inner.inner, node.inner, conquer_output),
+        Coluna.Algorithm.get_input(alg, space.inner, node.inner, conquer_output),
         node_id
     )
 end
 
 
-## must return "branches", return as DivideInput{TestNode}
+## must return "branches", return as DivideInput{LightNode}
 function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
     println("\e[33m hello from run divide \e[00m")
     children = alg.divide[input.node_id]
     return Coluna.Algorithm.DivideOutput(children, nothing) ## optimizationstate useless ? 
 end
 
-## The candidates are passed as TestNodes, the current node is passed as a PrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes using the node ids passed with TestNodes.
-## branches is a divide output with TestNodes as children -> in the native method new_children in branch_and_bound.jl, those children are retrieved via get_children and then real nodes are created with a direct call to the constructor Node so it is sufficient to re-write a Node(child) method with child a TestNode to make the method works
+## The candidates are passed as LightNodes, the current node is passed as a TestBaBNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of TestBaBNodes using the node ids passed with LightNodes.
+## branches is a divide output with LightNodes as children -> in the native method new_children in branch_and_bound.jl, those children are retrieved via get_children and then real nodes are created with a direct call to the constructor Node so it is sufficient to re-write a Node(child) method with child a LightNode to make the method works
 ## TODO clean that diiiiiirty method 
-function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{TestNode}, node::Coluna.Algorithm.PrintedNode)
+function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{LightNode}, node::TestBaBNode)
     println("\e[33m hello from new_children \e[00m")
-    parent_id = node.tree_order_id
-    new_children_inner = Coluna.Algorithm.new_children(space.inner.inner, branches, node.inner) ## vector of Nodes
+    parent_id = node.id
+    new_children_inner = Coluna.Algorithm.new_children(space.inner, branches, node.inner) ## vector of Nodes
     @show typeof(new_children_inner)
     @show new_children_inner
-    tmp = [(new_children_inner[i], branches.children[i].tree_order_id) for i in 1:length(new_children_inner)]
+    tmp = [(new_children_inner[i], branches.children[i].id) for i in 1:length(new_children_inner)]
     @show tmp
-    res = Vector{Coluna.Algorithm.PrintedNode}()
+    res = Vector{TestBaBNode}()
     for (n, id) in tmp
-        push!(res, Coluna.Algorithm.PrintedNode(id, parent_id, n))
+        push!(res, TestBaBNode(n, id))
     end
     return res
 
 end
 
 
-function Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::Coluna.Algorithm.PrintedNode, space::TestBaBSearchSpace, untreated_nodes)
+function Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBNode, space::TestBaBSearchSpace, untreated_nodes)
     println("\e[33m hello from node_change! \e[00m")
-
-    Coluna.Algorithm.node_change!(previous, current.inner, space.inner.inner, map(n -> n.inner, untreated_nodes))
+    Coluna.Algorithm.node_change!(previous, current.inner, space.inner, map(n -> n.inner, untreated_nodes))
 end
 
 ###################################  end of interface's redefinition  ###################################  
@@ -228,7 +232,7 @@ function test_stop_condition()
     )
     dividealg = DeterministicDivide(
         Dict(
-            1 => [TestNode(2, 1, Coluna.Bound(true, false, 20.0)), TestNode(3, 1, Coluna.Bound(true, false, 20.0))],
+            1 => [LightNode(2, 1, Coluna.Bound(true, false, 20.0)), LightNode(3, 1, Coluna.Bound(true, false, 20.0))],
             2 => [],
             3 => []
         )
