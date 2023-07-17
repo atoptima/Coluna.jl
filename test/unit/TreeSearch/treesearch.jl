@@ -97,6 +97,7 @@ end
 
 function Coluna.Algorithm.get_previous(space::TestBaBSearchSpace)
     println("\e[33m hello from get_previous \e[00m")
+    @show typeof(Coluna.Algorithm.get_previous(space.inner))
     return Coluna.Algorithm.get_previous(space.inner)
 end
 
@@ -218,23 +219,28 @@ function test_stop_condition()
     ## optstates returned by the deterministic conquer
     optstate1 = Coluna.OptimizationState( ## root : ## TODO use input arg in run! to properly init the root
         master,
-        ip_primal_bound = Coluna.Bound(true, true, 40.0),
+        ip_primal_bound = Coluna.Bound(true, true, 40.0), # min sense, primal, value
         ip_dual_bound = Coluna.Bound(true, false, 20.0)
     )
-    #node2 = Coluna.Algorithm.Node(1, " ", nothing, Coluna.Bound(master), )
+
     #### set up the algos
     conquermock = DeterministicConquer(
         Dict(
             1 => optstate1,
-            2 => Coluna.OptimizationState(master), ## TODO update with the fixed valies for the optimization of the nodes 
-            3 => Coluna.OptimizationState(master)
+            2 => Coluna.OptimizationState(master, ip_primal_bound = Coluna.Bound(true, true, 40.0), ip_dual_bound = Coluna.Bound(true, false, 20.0)),
+            3 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.Bound(true, true, 40.0), ip_dual_bound = Coluna.Bound(true, false, 45.0)), ##should return done (infeasible ?)
+            4 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.Bound(true, true, 40.0), ip_dual_bound = Coluna.Bound(true, false, 45.0)), ##shoudl return done
+            5 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.Bound(true, true, 30.0), ip_dual_bound = Coluna.Bound(true, false, 30.0))
+            ## TODO : set termination status essential here ? 
         )
     )
     dividealg = DeterministicDivide(
         Dict(
-            1 => [LightNode(2, 1, Coluna.Bound(true, false, 20.0)), LightNode(3, 1, Coluna.Bound(true, false, 20.0))],
-            2 => [],
-            3 => []
+            1 => [LightNode(5, 1, Coluna.Bound(true, false, 20.0)), LightNode(2, 1, Coluna.Bound(true, false, 20.0))], ##remark: should pass first the right child, and second the left child (a bit contre intuitive ?)
+            2 => [LightNode(4, 2, Coluna.Bound(true, false, 20.0)), LightNode(3, 2, Coluna.Bound(true, false, 20.0))],
+            3 => [], 
+            4 => [],
+            5 => []
         )
     )
     
@@ -244,12 +250,12 @@ function test_stop_condition()
         explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
     )
     
-    input = Coluna.OptimizationState(Coluna.getmaster(reform))
+    input = optstate1
     
     
     Coluna.set_optim_start_time!(env)
-    @show Coluna.Algorithm.run!(treesearch, env, reform, input)
-
+    algstate = Coluna.Algorithm.run!(treesearch, env, reform, input)
+    @show algstate
 
 end
 
