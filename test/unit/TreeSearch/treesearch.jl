@@ -3,7 +3,7 @@ using Coluna
 ## comments
 # alternative (but broken) version in tmp.jl
 
-# the user pass the nodes ids via the deterministic divide (because it uses TestNode which contains the ids)
+# the user creates the nodes via the deterministic divide and indicates the nodes ids which are going to be used in the conquer and the divid. It uses TestNode which contains the ids)
 # the ids are retrieved in new_children to create PrintedNodes
 
 # a large part of the PrinterSearchSpace code is skipped by using inner.inner
@@ -160,7 +160,8 @@ function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
     return Coluna.Algorithm.DivideOutput(children, nothing) ## optimizationstate useless ? 
 end
 
-## The candidates are passed as TestNodes, the current node is passed as a PrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes using the node ids passed with TestNodes. 
+## The candidates are passed as TestNodes, the current node is passed as a PrintedNode, the method retrieve the inner nodes to run the method new_children implemented in Coluna branch and bound, retrieve the result as a vector of Nodes and then re-built a solution as a vector of PrintedNodes using the node ids passed with TestNodes.
+## branches is a divide output with TestNodes as children -> in the native method new_children in branch_and_bound.jl, those children are retrieved via get_children and then real nodes are created with a direct call to the constructor Node so it is sufficient to re-write a Node(child) method with child a TestNode to make the method works
 ## TODO clean that diiiiiirty method 
 function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{TestNode}, node::Coluna.Algorithm.PrintedNode)
     println("\e[33m hello from new_children \e[00m")
@@ -211,7 +212,7 @@ function test_stop_condition()
     reform.master = master
     #### create the nodes (for the divide) and their optimization state (for the conquer)
     ## optstates returned by the deterministic conquer
-    optstate1 = Coluna.OptimizationState( ## root
+    optstate1 = Coluna.OptimizationState( ## root : ## TODO use input arg in run! to properly init the root
         master,
         ip_primal_bound = Coluna.Bound(true, true, 40.0),
         ip_dual_bound = Coluna.Bound(true, false, 20.0)
@@ -221,7 +222,7 @@ function test_stop_condition()
     conquermock = DeterministicConquer(
         Dict(
             1 => optstate1,
-            2 => Coluna.OptimizationState(master),
+            2 => Coluna.OptimizationState(master), ## TODO update with the fixed valies for the optimization of the nodes 
             3 => Coluna.OptimizationState(master)
         )
     )
