@@ -75,6 +75,7 @@ Coluna.Algorithm.get_input(::DeterministicConquer, ::TestBaBSearchSpace, node::T
 
 ## takes the node id as the input, retrieve the corresponding optimization state in the dict, returns it together with the node id to pass them to the divide
 function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input)
+    println("\e[33m run conquer with node $(input) \e[00m")
     conquer_output = alg.conquer[input]
     return (input, conquer_output) ## pass node id as a conquer output
 end 
@@ -97,6 +98,7 @@ end
 
 ## takes the node id as the input, retrieve the list of (LightNode) children of the corresponding node and returns a DivideOutput made up of these (LightNode) children. 
 function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
+    println("\e[33m run divide with node $(input) \e[00m")
     children = alg.divide[input]
     return Coluna.Algorithm.DivideOutput(children, nothing) 
 end
@@ -111,7 +113,8 @@ end
 function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Coluna.Algorithm.DivideOutput{LightNode}, node::TestBaBNode)
     new_children_inner = Coluna.Algorithm.new_children(space.inner, branches, node.inner) ## vector of Nodes
     ids = map(node -> node.id, branches.children) ## vector of ids
-    return map( (n, id) -> TestBaBNode(n, id), new_children_inner, ids) ## build the list of TestBaBNode
+    children = map( (n, id) -> TestBaBNode(n, id), new_children_inner, ids)## build the list of TestBaBNode
+    return children 
 end
 
 Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBNode, space::TestBaBSearchSpace, untreated_nodes) = Coluna.Algorithm.node_change!(previous, current.inner, space.inner, map(n -> n.inner, untreated_nodes))
@@ -146,15 +149,28 @@ function test_stop_condition()
         ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)
     )
 
+    ## build initial opt state and final opt state separately to pass some ip and lp primal sols
+
+    lp_primal_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL)
+    primal_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL)
+
+    init_optstate = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
+    final_optstate = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 30.0))#optstate of node 5
+
+    ## add primal sols to the nodes
+    Coluna.Algorithm.add_lp_primal_sol!(init_optstate, lp_primal_sol)
+    Coluna.Algorithm.add_lp_primal_sol!(final_optstate, primal_sol)
+    Coluna.Algorithm.add_ip_primal_sol!(final_optstate, primal_sol)
+
+
     ## set up the conquer and the divide (and thus the shape of the branch-and-bound tree, see the mermaid diagram below)
     conquermock = DeterministicConquer(
         Dict(
-            1 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)),
+            1 => init_optstate,
             2 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)),
             3 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
             4 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
-            5 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 30.0))
-            ## TODO : set termination status essential here ? 
+            5 => final_optstate
         ) 
     )
     dividealg = DeterministicDivide(
@@ -181,4 +197,53 @@ end
 
 test_stop_condition()
 
+function test_stop_global_db()
+    ## create an empty formulation
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( ## min sense by default
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+
+    input = Coluna.OptimizationState( 
+        master,
+        ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), 
+        ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)
+    )
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 20.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)) ## should not be explored
+
+    conquermock = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3
+        )
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(3, 1, Coluna.DualBound(master, 20.0)), LightNode(2, 1, Coluna.DualBound(master, 20.0)),], 
+            2 => [],
+            3 => []
+        )
+    )
+
+    treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conquermock,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    Coluna.set_optim_start_time!(env)
+    algstate = Coluna.Algorithm.run!(treesearch, env, reform, input)
+    @show algstate
+
+end
+
+test_stop_global_db()
 
