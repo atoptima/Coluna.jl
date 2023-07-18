@@ -128,7 +128,7 @@ Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBN
 #     2 --> |ip_dual_bound = 45, \n ip_primal_bound = 40| 3((3))
 #     2 --> |ip_dual_bound = 45, \n ip_primal_bound = 40| 4((4))
 #     5 --> |STOP| stop( ) 
-# ````
+# ```
 function test_stop_condition()
     ## create an empty formulation
     param = Coluna.Params()
