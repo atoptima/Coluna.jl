@@ -8,18 +8,18 @@ The value of the primal bound is infinity if you do not specify any initial valu
 """
 function PrimalBound(form::AbstractFormulation)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(true, min)
+    return ColunaBase.Bound(min, true)
 end
 
 function PrimalBound(form::AbstractFormulation, val)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(true, min, val)
+    return ColunaBase.Bound(min, true, val)
 end
 
 function PrimalBound(form::AbstractFormulation, pb::ColunaBase.Bound)
     min = getobjsense(form) == MinSense
     @assert pb.primal && pb.min == min
-    return ColunaBase.Bound(true, min, ColunaBase.getvalue(pb))
+    return ColunaBase.Bound(min, true, ColunaBase.getvalue(pb))
 end
 
 PrimalBound(::AbstractFormulation, ::Nothing) = nothing
@@ -34,12 +34,12 @@ The value of the dual bound is infinity if you do not specify any initial value.
 """
 function DualBound(form::AbstractFormulation)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(false, min)
+    return ColunaBase.Bound(min, false)
 end
 
 function DualBound(form::AbstractFormulation, val::Real)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(false, min, val)
+    return ColunaBase.Bound(min, false, val)
 end
 
 DualBound(::AbstractFormulation, ::Nothing) = nothing
@@ -47,7 +47,7 @@ DualBound(::AbstractFormulation, ::Nothing) = nothing
 function DualBound(form::AbstractFormulation, db::ColunaBase.Bound)
     min = getobjsense(form) == MinSense
     @assert !db.primal && db.min == min
-    return ColunaBase.Bound(false, min, ColunaBase.getvalue(db))
+    return ColunaBase.Bound(min, false, ColunaBase.getvalue(db))
 end
 
 # ObjValues

@@ -37,9 +37,9 @@ function get_initial_primal_bound(p::Problem)
     end
     min = getobjsense(get_original_formulation(p)) == MinSense
     if !isnothing(p.initial_primal_bound)
-        return ColunaBase.Bound(true, min, p.initial_primal_bound)
+        return ColunaBase.Bound(min, true, p.initial_primal_bound)
     end
-    return ColunaBase.Bound(true, min)
+    return ColunaBase.Bound(min, true)
 end
 
 function get_initial_dual_bound(p::Problem)
@@ -48,9 +48,9 @@ function get_initial_dual_bound(p::Problem)
     end
     min = getobjsense(get_original_formulation(p)) == MinSense
     if !isnothing(p.initial_dual_bound)
-        return ColunaBase.Bound(false, min, p.initial_dual_bound)
+        return ColunaBase.Bound(min, false, p.initial_dual_bound)
     end
-    return ColunaBase.Bound(false, min)
+    return ColunaBase.Bound(min, false)
 end
 
 """
