@@ -21,7 +21,7 @@ ParamRestrictedMasterHeuristic() =
 #                      NodeFinalizer
 ####################################################################
 
-struct NodeFinalizer
+struct NodeFinalizer <: AbstractConquerAlgorithm
     algorithm::AbstractOptimizationAlgorithm
     min_depth::Integer
     name::String
