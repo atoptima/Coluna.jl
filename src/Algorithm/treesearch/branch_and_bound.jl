@@ -89,6 +89,13 @@ Branching.parent_records(i::DivideInputFromBaB) = i.parent_records
 ############################################################################################
 # SearchSpace
 ############################################################################################
+"Leaves status"
+mutable struct LeavesStatus
+    infeasible::Bool # true if all leaves are infeasible
+    worst_dual_bound::Union{Nothing,Bound} # worst dual bound of the leaves
+end
+
+LeavesStatus(reform) = LeavesStatus(true, nothing)
 
 "Branch-and-bound search space."
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
@@ -105,6 +112,7 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     conquer_units_to_restore::UnitsUsage # from TreeSearchRuntimeData
     nb_nodes_treated::Int
     current_ip_dual_bound_from_conquer
+    leaves_status::LeavesStatus
 end
 
 get_reformulation(sp::BaBSearchSpace) = sp.reformulation
@@ -150,7 +158,8 @@ function TreeSearch.new_space(
         optstate,
         conquer_units_to_restore,
         0,
-        nothing
+        nothing,
+        LeavesStatus(reform)
     )
 end
 
@@ -226,6 +235,22 @@ function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, nod
     return DivideInputFromBaB(node.depth, conquer_output, node.records)
 end
 
+number_of_children(divide_output::DivideOutput) = length(divide_output.children)
+
+function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_output::OptimizationState)
+    println("\e[1;43m node is leaf \e[00m")
+    leaves_status = space.leaves_status
+    if getterminationstatus(conquer_output) != INFEASIBLE
+        leaves_status.infeasible = false
+    end
+    if isnothing(leaves_status.worst_dual_bound)
+        leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
+    else
+        leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+    end
+    return
+end
+
 function new_children(space::AbstractColunaSearchSpace, branches, node::Node)
     candidates_opt_state = nothing # Branching.get__opt_state(branches)
     if !isnothing(candidates_opt_state)
@@ -278,6 +303,9 @@ function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untr
 end
 
 function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
+
+    @show space.leaves_status
+
     _update_global_dual_bound!(space, space.reformulation, untreated_nodes)
 
     if isempty(untreated_nodes) # it means that the BB tree has been fully explored
