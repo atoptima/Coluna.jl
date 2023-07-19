@@ -119,6 +119,13 @@ It receives the output of the conquer algorithm.
 "Creates and returns the children of a node associated to a search space."
 @mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::TreeSearch.AbstractNode) = nothing
 
+# routine to check if divide should be call or not after a node conquer
+function run_divide(divide_input)
+    conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
+    nodestatus = getterminationstatus(conquer_opt_state)
+    return !(nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
+end
+
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
 function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSearch.AbstractNode, env, untreated_nodes)
     # restore state of the formulation for the current node.
@@ -134,9 +141,16 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     conquer_input = get_input(conquer_alg, space, current)
     conquer_output = run!(conquer_alg, env, reform, conquer_input)
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
-    # run the divide algorithm.
+    # built the divide input from the conquer output
     divide_alg = get_divide(space)
     divide_input = get_input(divide_alg, space, current, conquer_output)
-    branches = run!(divide_alg, env, reform, divide_input)
-    return new_children(space, branches, current)
+    # if run_divide returns false, the divide is not run and the node is pruned i.e. the methd returns an empty list
+    if run_divide(divide_input)
+        # run the divide algorithm.
+        branches = run!(divide_alg, env, reform, divide_input)
+        return new_children(space, branches, current)
+    else
+        # node is pruned, no children is generated
+        return []
+    end
 end
