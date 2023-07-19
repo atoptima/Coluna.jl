@@ -158,7 +158,7 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
         branches = run!(divide_alg, env, reform, divide_input)   
     end
     if isnothing(branches) || number_of_children(branches) == 0
-        node_is_leaf(space, branches, current)
+        node_is_leaf(space, current, conquer_output)
         return [] # node is pruned, no children is generated
     end
     return new_children(space, branches, current)
