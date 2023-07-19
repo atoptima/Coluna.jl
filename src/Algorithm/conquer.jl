@@ -345,7 +345,8 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     conquer_output = OptimizationState(
         getmaster(reform);
         ip_primal_bound = get_conquer_input_ip_primal_bound(input),
-        ip_dual_bound = get_conquer_input_ip_dual_bound(input)
+        ip_dual_bound = get_conquer_input_ip_dual_bound(input),
+        lp_dual_bound = get_conquer_input_ip_dual_bound(input)
     )
 
     if !get_run_conquer(input)

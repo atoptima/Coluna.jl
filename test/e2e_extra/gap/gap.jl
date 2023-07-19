@@ -61,7 +61,7 @@ function gap_colgen_max_nb_iterations()
 
     JuMP.optimize!(problem)
     @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-    @test JuMP.termination_status(problem) == MOI.OPTIMAL # Problem with final dual bound ?
+    @test JuMP.termination_status(problem) == MOI.OTHER_LIMIT
     @test ClD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 register!(e2e_extra_tests, "gap", gap_colgen_max_nb_iterations)

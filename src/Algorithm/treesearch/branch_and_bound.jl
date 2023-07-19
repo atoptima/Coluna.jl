@@ -241,11 +241,14 @@ function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_o
     leaves_status = space.leaves_status
     if getterminationstatus(conquer_output) != INFEASIBLE
         leaves_status.infeasible = false
-    end
-    if isnothing(leaves_status.worst_dual_bound)
-        leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
-    else
-        leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+    
+        # We only store the dual bound of the leaves that are not infeasible.
+        # Dual bound of an infeasible node means nothing.
+        if isnothing(leaves_status.worst_dual_bound)
+            leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
+        else
+            leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+        end
     end
     return
 end
@@ -270,11 +273,15 @@ function _update_global_dual_bound!(space, reform::Reformulation, untreated_node
     leaves_worst_dual_bound = space.leaves_status.worst_dual_bound
 
     init_db = if isnothing(leaves_worst_dual_bound)
-        # if we didn't reach any leaf in the branch-and-bound tree, it means that there exists
+        # if we didn't reach any leaf in the branch-and-bound tree, it may exist
         # some untreated nodes. We use the current ip dual bound of one untreated nodes to
         # initialize the calculation of the global dual bound.
-        @assert length(untreated_nodes) > 0
-        first(untreated_nodes).ip_dual_bound
+        if length(untreated_nodes) > 0
+            first(untreated_nodes).ip_dual_bound
+        else # or all the leaves are infeasible and there is no untreated node => no dual bound.
+            @assert space.leaves_status.infeasible
+            DualBound(getmaster(reform))
+        end
     else
         # Otherwise, we use the wost dual bound at the leaves.
         leaves_worst_dual_bound
