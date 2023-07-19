@@ -267,12 +267,24 @@ end
 # and keeps the worst one.
 function _update_global_dual_bound!(space, reform::Reformulation, untreated_nodes)
     treestate = space.optstate
+    leaves_worst_dual_bound = space.leaves_status.worst_dual_bound
+
+    init_db = if isnothing(leaves_worst_dual_bound)
+        # if we didn't reach any leaf in the branch-and-bound tree, it means that there exists
+        # some untreated nodes. We use the current ip dual bound of one untreated nodes to
+        # initialize the calculation of the global dual bound.
+        @assert length(untreated_nodes) > 0
+        first(untreated_nodes).ip_dual_bound
+    else
+        # Otherwise, we use the wost dual bound at the leaves.
+        leaves_worst_dual_bound
+    end
 
     worst_bound = mapreduce(
         node -> node.ip_dual_bound,
         worst,
         untreated_nodes;
-        init = space.leaves_status.worst_dual_bound
+        init = init_db
     )
 
     # The global dual bound of the branch-and-bound is a dual bound of the original problem (MIP).
