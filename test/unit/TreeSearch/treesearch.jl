@@ -29,10 +29,24 @@ struct DeterministicConquer <: Coluna.Algorithm.AbstractConquerAlgorithm
     conquer::Dict{Int, Coluna.OptimizationState} 
 end
 
+
+struct TestConquerOutput 
+    node_id::Int
+    inner::Coluna.Algorithm.OptimizationState
+end
+
 # Deterministic divide, match each node id to the nodes that should be generated as children from this node.
 struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
     divide::Dict{Int, Vector{LightNode}} ## the children are creating using the minimal information, they will turned into real nodes later in the algorithm run
 end
+
+
+struct TestDivideInput <: Coluna.Branching.AbstractDivideInput
+    node_id::Int
+    parent_conquer_output::Coluna.OptimizationState
+end
+
+Coluna.Branching.get_conquer_opt_state(divide_input::TestDivideInput) = return divide_input.parent_conquer_output
 
 # We redefine the interface for TestBaBSearchSpace: 
 
@@ -65,6 +79,13 @@ Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::TestBaBNode)
 Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace) = Coluna.Algorithm.get_reformulation(space.inner)
 
 
+function Coluna.Algorithm.node_is_leaf(space::TestBaBSearchSpace, current::TestBaBNode, conquer_output::TestConquerOutput)
+    println("\e[33m enter node_id_leaf \e[00m")
+    return Coluna.Algorithm.node_is_leaf(space.inner, current.inner, conquer_output.inner)
+end
+    
+
+
 #   *************   redefinition of the methods to implement the deterministic conquer:    *************
 
 Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace) = Coluna.Algorithm.get_conquer(space.inner)
@@ -77,13 +98,12 @@ Coluna.Algorithm.get_input(::DeterministicConquer, ::TestBaBSearchSpace, node::T
 function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input)
     println("\e[33m run conquer with node $(input) \e[00m")
     conquer_output = alg.conquer[input]
-    return (input, conquer_output) ## pass node id as a conquer output
+    return TestConquerOutput(input, conquer_output) ## pass node id as a conquer output
 end 
 
 ## retrieve the optimization state and call the native method
 function Coluna.Algorithm.after_conquer!(space::TestBaBSearchSpace, current, conquer_output)
-    (_, conquer_output) = conquer_output 
-    return Coluna.Algorithm.after_conquer!(space.inner, current.inner, conquer_output)
+    return Coluna.Algorithm.after_conquer!(space.inner, current.inner, conquer_output.inner)
 end
 
 #   *************   redefinition of the methods to implement the deterministic divide:    *************
@@ -92,14 +112,13 @@ Coluna.Algorithm.get_divide(space::TestBaBSearchSpace) = Coluna.Algorithm.get_di
 
 ## the only information the deterministic divide needs is the node id
 function Coluna.Algorithm.get_input(::Coluna.AlgoAPI.AbstractDivideAlgorithm, ::TestBaBSearchSpace, ::TestBaBNode, conquer_output)
-    (node_id, _) = conquer_output
-    return node_id
+    return TestDivideInput(conquer_output.node_id, conquer_output.inner)
 end
 
 ## takes the node id as the input, retrieve the list of (LightNode) children of the corresponding node and returns a DivideOutput made up of these (LightNode) children. 
-function Coluna.Algorithm.run!(alg::DeterministicDivide, env, reform, input)
+function Coluna.Algorithm.run!(alg::DeterministicDivide, env::Coluna.Env, reform::Coluna.MathProg.Reformulation, input::TestDivideInput)
     println("\e[33m run divide with node $(input) \e[00m")
-    children = alg.divide[input]
+    children = alg.divide[input.node_id]
     return Coluna.Algorithm.DivideOutput(children, nothing) 
 end
 
@@ -143,19 +162,21 @@ function test_stop_condition()
     reform = Coluna.MathProg.Reformulation(env)
     reform.master = master
 
-    input = Coluna.OptimizationState( 
-        master,
-        ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), 
-        ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)
-    )
+    #input = Coluna.OptimizationState( 
+    #    master,
+    #    ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), 
+    #    ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)
+    #)
+
+    input = Coluna.OptimizationState(master)
 
     ## build initial opt state and final opt state separately to pass some ip and lp primal sols
 
     lp_primal_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL)
     primal_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL)
 
-    init_optstate = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
-    final_optstate = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 30.0))#optstate of node 5
+    init_optstate = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
+    final_optstate = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 30.0))#optstate of node 5
 
     ## add primal sols to the nodes
     Coluna.Algorithm.add_lp_primal_sol!(init_optstate, lp_primal_sol)
@@ -167,9 +188,9 @@ function test_stop_condition()
     conquermock = DeterministicConquer(
         Dict(
             1 => init_optstate,
-            2 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 20.0)),
-            3 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
-            4 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), ip_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
+            2 => Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0)),
+            3 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
+            4 => Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 45.0)), 
             5 => final_optstate
         ) 
     )
@@ -245,5 +266,5 @@ function test_stop_global_db()
 
 end
 
-test_stop_global_db()
+#test_stop_global_db()
 
