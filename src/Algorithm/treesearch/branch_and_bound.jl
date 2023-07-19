@@ -238,7 +238,6 @@ end
 number_of_children(divide_output::DivideOutput) = length(divide_output.children)
 
 function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_output::OptimizationState)
-    println("\e[1;43m node is leaf \e[00m")
     leaves_status = space.leaves_status
     if getterminationstatus(conquer_output) != INFEASIBLE
         leaves_status.infeasible = false
