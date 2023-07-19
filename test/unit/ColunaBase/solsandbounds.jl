@@ -83,28 +83,28 @@ function diff()
 
     # Compute distance between primal bound and dual bound
     # In minimization, if pb = 10 & db = 5, distance is 5
-    pb = ClB.Bound(primal, min, 10)
-    db = ClB.Bound(dual, min, 5)
+    pb = ClB.Bound(min, primal, 10)
+    db = ClB.Bound(min, dual, 5)
     @test ClB.diff(pb, db) == ClB.diff(db, pb) == 5
 
     # In maximisation if pb = 10 & db = 5, distance is -5
-    pb = ClB.Bound(primal, max, 10)
-    db = ClB.Bound(dual, max, 5)
+    pb = ClB.Bound(max, primal, 10)
+    db = ClB.Bound(max, dual, 5)
     @test ClB.diff(pb, db) == ClB.diff(db, pb) == -5
 
     # Cannot compute the distance between two primal bounds
-    pb1 = ClB.Bound(primal, max, 10)
-    pb2 = ClB.Bound(primal, max, 15)
+    pb1 = ClB.Bound(max, primal, 10)
+    pb2 = ClB.Bound(max, primal, 15)
     @test_throws AssertionError ClB.diff(pb1, pb2)
 
     # Cannot compute the distance between two dual bounds
-    db1 = ClB.Bound(dual, max, 5)
-    db2 = ClB.Bound(dual, max, 50)
+    db1 = ClB.Bound(max, dual, 5)
+    db2 = ClB.Bound(max, dual, 50)
     @test_throws AssertionError ClB.diff(db1, db2)
 
     # Cannot compute the distance between two bounds from different sense
-    pb = ClB.Bound(primal, max, 10)
-    db = ClB.Bound(dual, min, 5)
+    pb = ClB.Bound(max, primal, 10)
+    db = ClB.Bound(min, dual, 5)
     @test_throws AssertionError ClB.diff(pb, db)
 end
 register!(unit_tests, "bounds", diff)
@@ -116,32 +116,32 @@ function gap()
     max = false
 
     # In minimisation, gap = (pb - db)/db
-    pb = ClB.Bound(primal, min, 10.0)
-    db = ClB.Bound(dual, min, 5.0)
+    pb = ClB.Bound(min, primal, 10.0)
+    db = ClB.Bound(min, dual, 5.0)
     @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0-5.0)/5.0
 
     # In maximisation, gap = (db - pb)/pb
-    pb = ClB.Bound(primal, max, 5.0)
-    db = ClB.Bound(dual, max, 10.0)
+    pb = ClB.Bound(max, primal, 5.0)
+    db = ClB.Bound(max, dual, 10.0)
     @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0-5.0)/5.0
 
-    pb = ClB.Bound(primal, min, 10.0)
-    db = ClB.Bound(dual, min, -5.0)
+    pb = ClB.Bound(min, primal, 10.0)
+    db = ClB.Bound(min, dual, -5.0)
     @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0+5.0)/5.0   
 
     # Cannot compute the gap between 2 primal bounds
-    pb1 = ClB.Bound(primal, max, 10)
-    pb2 = ClB.Bound(primal, max, 15)
+    pb1 = ClB.Bound(max, primal, 10)
+    pb2 = ClB.Bound(max, primal, 15)
     @test_throws AssertionError ClB.gap(pb1, pb2)
 
     # Cannot compute the gap between 2 dual bounds
-    db1 = ClB.Bound(dual, max, 5)
-    db2 = ClB.Bound(dual, max, 50)
+    db1 = ClB.Bound(max, dual, 5)
+    db2 = ClB.Bound(max, dual, 50)
     @test_throws AssertionError ClB.gap(db1, db2)
 
     # Cannot compute the gap between 2 bounds with different sense
-    pb = ClB.Bound(primal, max, 10)
-    db = ClB.Bound(dual, min, 5)
+    pb = ClB.Bound(max, primal, 10)
+    db = ClB.Bound(min, dual, 5)
     @test_throws AssertionError ClB.gap(pb, db)
 end
 register!(unit_tests, "bounds", gap)
@@ -153,15 +153,15 @@ function printbounds()
     max = false
 
     # In minimisation sense
-    pb1 = ClB.Bound(primal, min, 100)
-    db1 = ClB.Bound(dual, min, -100)
+    pb1 = ClB.Bound(min, primal, 100)
+    db1 = ClB.Bound(min, dual, -100)
     io = IOBuffer()
     ClB.printbounds(db1, pb1, io)
     @test String(take!(io)) == "[ -100.0000 , 100.0000 ]"
 
     # In maximisation sense
-    pb2 = ClB.Bound(primal, max, -100)
-    db2 = ClB.Bound(dual, max, 100)
+    pb2 = ClB.Bound(max, primal, -100)
+    db2 = ClB.Bound(max, dual, 100)
     io = IOBuffer()
     ClB.printbounds(db2, pb2, io)
     @test String(take!(io)) == "[ -100.0000 , 100.0000 ]"
@@ -171,7 +171,7 @@ register!(unit_tests, "bounds", printbounds)
 function show_test()
     primal = true
     max = false
-    pb = ClB.Bound(primal, max, 4)
+    pb = ClB.Bound(max, primal, 4)
     io = IOBuffer()
     show(io, pb)
     @test String(take!(io)) == "4.0" 
@@ -182,7 +182,7 @@ function promotions_and_conversion()
     primal = true
     max = false
 
-    pb = ClB.Bound(primal, max, 4.0)
+    pb = ClB.Bound(max, primal, 4.0)
 
     @test eltype(promote(pb, 1)) == Real
     @test eltype(promote(pb, 2.0)) == typeof(2.0)

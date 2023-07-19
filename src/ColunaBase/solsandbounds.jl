@@ -3,7 +3,7 @@ struct Bound <: Real
     min::Bool # max if false.
     primal::Bool # dual if false.
     value::Float64
-    Bound(primal::Bool, min::Bool, x::Number) = new(min, primal, x === NaN ? _defaultboundvalue(primal, min) : x)
+    Bound(min::Bool, primal::Bool, x::Number) = new(min, primal, x === NaN ? _defaultboundvalue(primal, min) : x)
 end
 
 function _defaultboundvalue(primal::Bool, min::Bool)
@@ -13,13 +13,13 @@ function _defaultboundvalue(primal::Bool, min::Bool)
 end
 
 """
-    Bound(primal, min)
+    Bound(min, primal)
 
 Create a default primal bound for a problem with objective sense (min or max) in the space (primal or dual).  
 """
-function Bound(primal, min)
+function Bound(min, primal)
     val = _defaultboundvalue(primal, min)
-    return Bound(primal, min, val)
+    return Bound(min, primal, val)
 end
 
 getvalue(b::Bound) = b.value
