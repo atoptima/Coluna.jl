@@ -241,11 +241,14 @@ function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_o
     leaves_status = space.leaves_status
     if getterminationstatus(conquer_output) != INFEASIBLE
         leaves_status.infeasible = false
-    end
-    if isnothing(leaves_status.worst_dual_bound)
-        leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
-    else
-        leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+    
+        # We only store the dual bound of the leaves that are not infeasible.
+        # Dual bound of an infeasible node means nothing.
+        if isnothing(leaves_status.worst_dual_bound)
+            leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
+        else
+            leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+        end
     end
     return
 end
@@ -267,17 +270,21 @@ end
 # and keeps the worst one.
 function _update_global_dual_bound!(space, reform::Reformulation, untreated_nodes)
     treestate = space.optstate
+    leaves_worst_dual_bound = space.leaves_status.worst_dual_bound
 
-    init_db = if length(untreated_nodes) == 0 && length(get_ip_primal_sols(treestate)) == 0
-        # If there is no more untreated nodes but the branch and bound did not find any
-        # feasible solutions, we use the current ip dual bound to compute the final dual bound.
-        # This case happens, when the original variables do not allow us to fully explore the
-        # search space (e.g. identical subproblems).
-        DualBound(reform, getvalue(get_ip_dual_bound(treestate)))
+    init_db = if isnothing(leaves_worst_dual_bound)
+        # if we didn't reach any leaf in the branch-and-bound tree, it may exist
+        # some untreated nodes. We use the current ip dual bound of one untreated nodes to
+        # initialize the calculation of the global dual bound.
+        if length(untreated_nodes) > 0
+            first(untreated_nodes).ip_dual_bound
+        else # or all the leaves are infeasible and there is no untreated node => no dual bound.
+            @assert space.leaves_status.infeasible
+            DualBound(getmaster(reform))
+        end
     else
-        # Otherwise, we know that the global dual bound cannot be "better" than the incumbent
-        # primal bound.
-        DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
+        # Otherwise, we use the wost dual bound at the leaves.
+        leaves_worst_dual_bound
     end
 
     worst_bound = mapreduce(
@@ -302,25 +309,17 @@ function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untr
 end
 
 function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
-
-    @show space.leaves_status
-
     _update_global_dual_bound!(space, space.reformulation, untreated_nodes)
+    all_leaves_infeasible = space.leaves_status.infeasible
 
-    if isempty(untreated_nodes) # it means that the BB tree has been fully explored
-        if length(get_lp_primal_sols(space.optstate)) >= 1
-            if ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
-                setterminationstatus!(space.optstate, OPTIMAL)
-            else
-                setterminationstatus!(space.optstate, OTHER_LIMIT)
-            end
-        else
-            setterminationstatus!(space.optstate, INFEASIBLE)
-        end
+    if all_leaves_infeasible
+        setterminationstatus!(space.optstate, INFEASIBLE)
+    elseif ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
+        setterminationstatus!(space.optstate, OPTIMAL)
     else
         setterminationstatus!(space.optstate, OTHER_LIMIT)
     end
-
+    
     #env.kpis.node_count = 0 #get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
 
     return space.optstate

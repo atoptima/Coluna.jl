@@ -60,7 +60,7 @@ function test_treesearch_gap_2()
 
     @dantzig_wolfe_decomposition(model, decomposition, M_axis)
     optimize!(model)
-    @test_broken JuMP.termination_status(model) == MOI.INFEASIBLE
+    @test JuMP.termination_status(model) == MOI.INFEASIBLE
 
 end
 register!(e2e_tests, "treesearch", test_treesearch_gap_2)

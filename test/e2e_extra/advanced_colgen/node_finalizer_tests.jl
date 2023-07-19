@@ -143,7 +143,11 @@ function test_node_finalizer(heuristic_finalizer)
 
     JuMP.optimize!(model)
     @show JuMP.objective_value(model)
-    @test JuMP.termination_status(model) == MOI.OPTIMAL
+    if heuristic_finalizer
+        @test JuMP.termination_status(model) == MOI.OPTIMAL
+    else
+        @test JuMP.termination_status(model) == MOI.OTHER_LIMIT
+    end
     for b in B
         sets = BD.getsolutions(model, b)
         for s in sets
