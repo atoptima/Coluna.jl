@@ -79,10 +79,8 @@ Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::TestBaBNode)
 Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace) = Coluna.Algorithm.get_reformulation(space.inner)
 
 
-function Coluna.Algorithm.node_is_leaf(space::TestBaBSearchSpace, current::TestBaBNode, conquer_output::TestConquerOutput)
-    println("\e[33m enter node_id_leaf \e[00m")
-    return Coluna.Algorithm.node_is_leaf(space.inner, current.inner, conquer_output.inner)
-end
+Coluna.Algorithm.node_is_leaf(space::TestBaBSearchSpace, current::TestBaBNode, conquer_output::TestConquerOutput) = Coluna.Algorithm.node_is_leaf(space.inner, current.inner, conquer_output.inner)
+
     
 
 
@@ -117,7 +115,7 @@ end
 
 ## takes the node id as the input, retrieve the list of (LightNode) children of the corresponding node and returns a DivideOutput made up of these (LightNode) children. 
 function Coluna.Algorithm.run!(alg::DeterministicDivide, env::Coluna.Env, reform::Coluna.MathProg.Reformulation, input::TestDivideInput)
-    println("\e[33m run divide with node $(input) \e[00m")
+    println("\e[33m run divide with node $(input.node_id) \e[00m")
     children = alg.divide[input.node_id]
     return Coluna.Algorithm.DivideOutput(children, nothing) 
 end
@@ -218,7 +216,13 @@ end
 
 test_stop_condition()
 
-function test_stop_global_db()
+#```mermaid
+#graph TD
+#     0( ) --> |ip_dual_bound = 20, \n ip_primal_bound = 40| 1 
+#     1((1)) --> |ip_dual_bound = 20, \n ip_primal_bound = 20| 2((2))
+#     1 --> |should not be explored \n because gap is closed \n at node 2| 3((3)) 
+#```
+function test_stop_gap_closed()
     ## create an empty formulation
     param = Coluna.Params()
     env = Coluna.Env{Coluna.MathProg.VarId}(param)
@@ -266,5 +270,5 @@ function test_stop_global_db()
 
 end
 
-#test_stop_global_db()
+test_stop_gap_closed()
 
