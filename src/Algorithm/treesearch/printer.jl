@@ -202,29 +202,33 @@ end
 
 # TODO: fix
 function print_node_in_tree_search_file!(f::DotFilePrinter, node::PrintedNode, sp::PrinterSearchSpace, env)
-    # pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
-    # db = getvalue(get_ip_dual_bound(sp.inner.optstate))
-    # open(filename(f), "r+") do file
-    #     # rewind the closing brace character
-    #     seekend(file)
-    #     pos = position(file)
-    #     seek(file, pos - 1)
+    ncur = node.tree_order_id
+    depth = getdepth(node.inner)
+    npar = node.parent_tree_order_id
+    db = getvalue(node.inner.ip_dual_bound)
+    pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
+    time = elapsed_optim_time(env)
+    br_constr_description = TreeSearch.get_branch_description(node.inner)
+    gap_closed = ip_gap_closed(node.inner.conquer_output)
 
-    #     # start writing over this character
-    #     ncur = node.tree_order_id
-    #     time = elapsed_optim_time(env)
-    #     if ip_gap_closed(node.inner.conquer_output)
-    #         @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
-    #     else
-    #         @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
-    #     end
-    #     if node.inner.depth > 0 # not root node
-    #         npar = TreeSearch.get_parent(node).tree_order_id
-    #         @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.inner.branchdescription
-    #     else
-    #         print(file, "}")
-    #     end
-    # end
+    open(filename(f), "r+") do file
+        # rewind the closing brace character
+        seekend(file)
+        pos = position(file)
+        seek(file, pos - 1)
+
+        # start writing over this character
+        if gap_closed
+            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
+        else
+            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+        end
+        if depth > 0 # not root node
+            @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur br_constr_description
+        else
+            print(file, "}")
+        end
+    end
     return
 end
 
