@@ -131,7 +131,7 @@ Performs operations after the divide algorithm when the current node is finally 
 function run_divide(divide_input)
     conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
     nodestatus = getterminationstatus(conquer_opt_state)
-    return !(nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
+    return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
 end
 
 function run_conquer(space, current)
