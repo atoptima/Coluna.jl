@@ -14,6 +14,8 @@ mutable struct Node <: TreeSearch.AbstractNode
     # with the result of its partial evaluation.
     # We then retrieve from this OptimizationState a possible new incumbent primal
     # solution and communicate the latter to the branch-and-bound algorithm. 
+    # We also store the final result of the conquer algorithm here so we can print these 
+    # informations.
     conquer_output::Union{Nothing, OptimizationState}
 
     # Current local dual bound at the node:
@@ -129,12 +131,20 @@ function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
 end
 
 function TreeSearch.search_space_type(alg::TreeSearchAlgorithm)
-    return if !iszero(length(alg.branchingtreefile)) && alg.print_node_info
-        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DotFilePrinter}
+    # Only one file printer at the time. JSON file printer has priority.
+    active_file_printer = !iszero(length(alg.branchingtreefile)) || !iszero(length(alg.jsonfile))
+    file_printer_type = if !iszero(length(alg.jsonfile))
+        JSONFilePrinter
     elseif !iszero(length(alg.branchingtreefile))
-        PrinterSearchSpace{BaBSearchSpace,DevNullLogPrinter,DotFilePrinter}
-    elseif alg.print_node_info
-        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DevNullFilePrinter}
+        DotFilePrinter
+    else
+        DevNullFilePrinter
+    end
+
+    return if alg.print_node_info
+        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,file_printer_type}
+    elseif active_file_printer
+        PrinterSearchSpace{BaBSearchSpace,DevNullLogPrinter,file_printer_type}
     else
         BaBSearchSpace
     end
@@ -192,6 +202,9 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     if TreeSearch.isroot(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
+
+    # TODO: remove later but we currently need it to print information in the json file.
+    current.conquer_output = conquer_output
     return
 end
 
