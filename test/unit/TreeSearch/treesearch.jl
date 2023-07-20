@@ -91,6 +91,7 @@ Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace) = Coluna.Algorithm.get_c
 ## the only information the deterministic conquer needs is the node id
 Coluna.Algorithm.get_input(::DeterministicConquer, ::TestBaBSearchSpace, node::TestBaBNode) = return node.id
 
+Coluna.Algorithm.run_conquer(space::TestBaBSearchSpace, current::TestBaBNode) = Coluna.Algorithm.run_conquer(space.inner, current.inner)
 
 ## takes the node id as the input, retrieve the corresponding optimization state in the dict, returns it together with the node id to pass them to the divide
 function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input)
