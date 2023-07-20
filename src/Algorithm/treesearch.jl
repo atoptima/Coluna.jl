@@ -131,7 +131,6 @@ Performs operations after the divide algorithm when the current node is finally 
 function run_divide(divide_input)
     conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
     nodestatus = getterminationstatus(conquer_opt_state)
-    @show nodestatus
     return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
 end
 
@@ -157,8 +156,6 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     # if run_divide returns false, the divide is not run and the node is pruned.
     if run_divide(divide_input)
         branches = run!(divide_alg, env, reform, divide_input)   
-    else
-        println("\e[31m no children generated \e[00m")
     end
     if isnothing(branches) || number_of_children(branches) == 0
         node_is_leaf(space, current, conquer_output)
