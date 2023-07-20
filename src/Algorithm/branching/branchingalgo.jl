@@ -11,7 +11,6 @@ get_conquer_input_ip_primal_bound(i::ConquerInputFromSb) = get_ip_primal_bound(i
 get_conquer_input_ip_dual_bound(i::ConquerInputFromSb) = get_ip_dual_bound(i.children_candidate.optstate)
 get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
-get_run_conquer(::ConquerInputFromSb) = true
 
 ############################################################################################
 # NoBranching

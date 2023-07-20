@@ -59,7 +59,6 @@ end
 struct ConquerInputFromBaB <: AbstractConquerInput
     units_to_restore::UnitsUsage
     node_state::OptimizationState # Node state after its creation or its partial evaluation.
-    run_conquer::Bool
     node_depth::Int
 end
 
@@ -67,7 +66,7 @@ get_conquer_input_ip_primal_bound(i::ConquerInputFromBaB) = get_ip_primal_bound(
 get_conquer_input_ip_dual_bound(i::ConquerInputFromBaB) = get_ip_dual_bound(i.node_state)
 get_node_depth(i::ConquerInputFromBaB) = i.node_depth
 get_units_to_restore(i::ConquerInputFromBaB) = i.units_to_restore
-get_run_conquer(i::ConquerInputFromBaB) = i.run_conquer
+
 
 ############################################################################################
 # AbstractDivideInput implementation for the branch & bound.
@@ -226,20 +225,9 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
         update_ip_primal_bound!(node_state, space_primal_bound)
     end
 
-    # TODO: improve ?
-    # Condition 1: IP Gap is closed. Abort treatment.
-    # Condition 2: in the case the conquer was already run (in strong branching),
-    # Condition 3: make sure the node has not been proven infeasible.
-    # we still need to update the node IP primal bound before exiting 
-    # (to possibly avoid branching)
-    run_conquer = !ip_gap_closed(node_state, rtol = space.opt_rtol, atol = space.opt_atol)
-    run_conquer = run_conquer || !current.conquerwasrun
-    run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
-
     return ConquerInputFromBaB(
         space.conquer_units_to_restore, 
         node_state,
-        run_conquer,
         current.depth
     )
 end

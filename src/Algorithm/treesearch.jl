@@ -138,7 +138,24 @@ Performs operations after the divide algorithm when the current node is finally 
 function run_divide(divide_input)
     conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
     nodestatus = getterminationstatus(conquer_opt_state)
-    return !(nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
+    return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
+end
+
+function run_conquer(space, current)
+    # TODO: improve ?
+    # Condition 1: IP Gap is closed. Abort treatment.
+    # Condition 2: in the case the conquer was already run (in strong branching),
+    # Condition 3: make sure the node has not been proven infeasible.
+    # we still need to update the node IP primal bound before exiting 
+    # (to possibly avoid branching)
+    node_state = OptimizationState(
+        getmaster(space.reformulation);
+        ip_dual_bound = current.ip_dual_bound
+    )
+    run_conquer = !ip_gap_closed(node_state, rtol = space.opt_rtol, atol = space.opt_atol)
+    run_conquer = run_conquer || !current.conquerwasrun
+    run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
+    return run_conquer
 end
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
@@ -154,7 +171,18 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     reform = get_reformulation(space)
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
-    conquer_output = run!(conquer_alg, env, reform, conquer_input)
+    conquer_output = nothing
+    # routine to check if the conquer should be run.
+    if run_conquer(space, current)
+        conquer_output = run!(conquer_alg, env, reform, conquer_input)
+    else
+        conquer_output = OptimizationState(
+            getmaster(reform);
+            ip_primal_bound = get_conquer_input_ip_primal_bound(input),
+            ip_dual_bound = get_conquer_input_ip_dual_bound(input),
+            lp_dual_bound = get_conquer_input_ip_dual_bound(input)
+        )
+    end
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
     # Build the divide input from the conquer output
     divide_alg = get_divide(space)

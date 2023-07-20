@@ -340,6 +340,7 @@ function run_node_finalizer!(::ColCutGenContext, node_finalizer, env, reform, no
 end
 
 function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
+    run_conquer = true # certainly useless
     # We initialize the output of the conquer algorithm using the input given by the algorithm
     # that calls the conquer strategy. This output will be updated by the conquer algorithm.
     conquer_output = OptimizationState(
@@ -348,10 +349,6 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
         ip_dual_bound = get_conquer_input_ip_dual_bound(input),
         lp_dual_bound = get_conquer_input_ip_dual_bound(input)
     )
-
-    if !get_run_conquer(input)
-        return conquer_output
-    end
 
     time_limit_reached!(conquer_output, env) && return conquer_output
 
@@ -416,10 +413,6 @@ function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input
         ip_primal_bound = get_conquer_input_ip_primal_bound(input),
         ip_dual_bound = get_conquer_input_ip_dual_bound(input)
     )
-
-    if !get_run_conquer(input)
-        return conquer_output
-    end
 
     masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), conquer_output)
 
