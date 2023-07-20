@@ -173,7 +173,6 @@ end
 function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     @assert !isnothing(conquer_output)
     treestate = space.optstate
-
     current.records = create_records(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
@@ -203,7 +202,6 @@ function run_conquer(space::BaBSearchSpace, conquer_input::ConquerInputFromBaB, 
     # we still need to update the node IP primal bound before exiting 
     # (to possibly avoid branching)
     run_conquer = !ip_gap_closed(conquer_input.node_state, rtol = space.opt_rtol, atol = space.opt_atol)
-    run_conquer = run_conquer || !current.conquerwasrun
     run_conquer = run_conquer && getterminationstatus(conquer_input.node_state) != INFEASIBLE
     @show run_conquer
     return run_conquer

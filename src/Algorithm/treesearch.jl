@@ -155,6 +155,7 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
             ip_dual_bound = get_conquer_input_ip_dual_bound(conquer_input),
             lp_dual_bound = get_conquer_input_ip_dual_bound(conquer_input)
         )
+        return []
     end
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
     # built the divide input from the conquer output
