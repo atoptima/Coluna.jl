@@ -688,6 +688,24 @@ function _subprob_var_contrib(ctx::ColGenContext, col, stab_changes_mast_dual_so
     return getvalue(col)
 end
 
+function _nonrobust_cuts_contrib(masterform, col, master_dual_sol)
+    contrib = 0.0
+    for (constrid, dual_val) in master_dual_sol.solution
+        if constrid.custom_family_id != -1
+            constr = getconstr(masterform, constrid)
+            if !isnothing(col.custom_data)
+                var = Variable(VarId(MasterCol, 0, 0), "dummy")
+                    # FIXME: `computecoeff` should receive only the custom data as arguments
+                coeff = MathProg.computecoeff(var, col.custom_data, constr, constr.custom_data)
+                if coeff != 0
+                    contrib -= coeff * dual_val
+                end
+            end
+        end
+    end
+    return contrib
+end
+
 function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
     input = OptimizationState(sp)
     alg = SolveIpForm(
@@ -715,7 +733,10 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
         subprob_var_contrib = _subprob_var_contrib(ctx, col, stab_changes_mast_dual_sol)
-        red_cost = subprob_var_contrib - lb_dual - ub_dual
+        nonrobust_cuts_contrib = _nonrobust_cuts_contrib(
+            sp.parent_formulation, col, master_dual_sol
+        )
+        red_cost = subprob_var_contrib + nonrobust_cuts_contrib - lb_dual - ub_dual
         push!(generated_columns, GeneratedColumn(col, red_cost))
         if sc * best_red_cost > sc * red_cost
             best_red_cost = red_cost
