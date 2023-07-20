@@ -9,6 +9,7 @@
         opt_atol::Float64 = DEF_OPTIMALITY_ATOL,
         opt_rtol::Float64 = DEF_OPTIMALITY_RTOL,
         branchingtreefile = ""
+        jsonfile = ""
     )
 
 This algorithm is a branch and bound that uses a search tree to optimize the reformulation.
@@ -25,6 +26,10 @@ Parameters :
 
 Options :
 - `branchingtreefile` : name of the file in which the algorithm writes an overview of the branching tree
+- `jsonfile` : name of the file in which the algorithm writes the solution in JSON format
+
+**Warning**: if you set a name for the `branchingtreefile` AND the `jsonfile`, the algorithm will only write
+in the json file.
 """
 struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm
@@ -36,6 +41,7 @@ struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     opt_atol::Float64
     opt_rtol::Float64
     branchingtreefile::String
+    jsonfile::String
     print_node_info::Bool
     TreeSearchAlgorithm(;
         conqueralg = ColCutGenConquer(),
@@ -47,8 +53,9 @@ struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
         opt_atol = AlgoAPI.default_opt_atol(),
         opt_rtol = AlgoAPI.default_opt_rtol(),
         branchingtreefile = "",
+        jsonfile = "",
         print_node_info = true
-    ) = new(conqueralg, dividealg, explorestrategy, maxnumnodes, opennodeslimit, timelimit, opt_atol, opt_rtol, branchingtreefile, print_node_info)
+    ) = new(conqueralg, dividealg, explorestrategy, maxnumnodes, opennodeslimit, timelimit, opt_atol, opt_rtol, branchingtreefile, jsonfile, print_node_info)
 end
 
 # TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storage units)
@@ -137,11 +144,11 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     # restore state of the formulation for the current node.
     previous = get_previous(space)
     if !isnothing(previous)
-        # TODO: it would be nice to remove `untreated_nodes`.
         node_change!(previous, current, space, untreated_nodes)
     end
     set_previous!(space, current)
-    # run the conquer algorithm.
+    # Run the conquer algorithm.
+    # This algorithm has the responsibility to check whether the node is pruned.
     reform = get_reformulation(space)
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
@@ -158,16 +165,16 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
         return []
     end
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
-    # built the divide input from the conquer output
+    # Build the divide input from the conquer output
     divide_alg = get_divide(space)
     divide_input = get_input(divide_alg, space, current, conquer_output)
     branches = nothing
-    # if run_divide returns false, the divide is not run and the node is pruned.
+    # if `run_divide` returns false, the divide is not run and the node is pruned.
     if run_divide(space, divide_input)
-        branches = run!(divide_alg, env, reform, divide_input)   
+        branches = run!(divide_alg, env, reform, divide_input)
     end
     if isnothing(branches) || number_of_children(branches) == 0
-        node_is_leaf(space, current, conquer_output)
+        node_is_leaf(space, current, conquer_output) # callback to do some operations when the node is a leaf.
         return [] # node is pruned, no children is generated
     end
     return new_children(space, branches, current)
