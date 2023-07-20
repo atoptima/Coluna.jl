@@ -203,7 +203,6 @@ function run_conquer(space::BaBSearchSpace, conquer_input::ConquerInputFromBaB, 
     # (to possibly avoid branching)
     run_conquer = !ip_gap_closed(conquer_input.node_state, rtol = space.opt_rtol, atol = space.opt_atol)
     run_conquer = run_conquer && getterminationstatus(conquer_input.node_state) != INFEASIBLE
-    @show run_conquer
     return run_conquer
 end
 
