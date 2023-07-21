@@ -43,7 +43,7 @@ coluna = optimizer_with_attributes(
 
 You can refer to the following [article](https://support.gurobi.com/hc/en-us/articles/360044784552-How-do-I-suppress-all-console-output-from-Gurobi-) from Gurobi's knowledge base.
 
-We confirm that adding the following entry in the `gurobi.env` file works:
+We confirm that adding the following entry in the `gurobi.env` file works with Gurobi 10+:
 
 ```
 LogToConsole 0
