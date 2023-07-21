@@ -138,6 +138,11 @@ Performs operations after the divide algorithm when the current node is finally 
 
 @mustimplement "ColunaSearchSpace" run_conquer(sp::AbstractColunaSearchSpace, conquer_input, node) = nothing
 
+"Returns true if the current node should not be explored i.e. if its local dual bound inherited from its parent is worst than a primal bound of the search space."
+@mustimplement "ColunaSearchSpace" is_pruned(sp::AbstractColunaSearchSpace, current) = nothing
+
+"Method to perform some operations if the current node is pruned."
+@mustimplement "ColunaSearchSpace" node_is_pruned(sp::AbstractColunaSearchSpace, current) = nothing
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
 function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSearch.AbstractNode, env, untreated_nodes)
@@ -147,11 +152,12 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
         node_change!(previous, current, space, untreated_nodes)
     end
     set_previous!(space, current)
+    # We should avoid the whole exploration of a node if its local dual bound inherited from its parent is worst than a primal bound found elsewhere on the tree. 
     if is_pruned(space, current)
         node_is_pruned(space, current)
         return []
     end
-    # Run the conquer algorithm.
+    # Else we run the conquer algorithm.
     # This algorithm has the responsibility to check whether the node is pruned.
     reform = get_reformulation(space)
     conquer_alg = get_conquer(space)
@@ -162,7 +168,8 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     divide_alg = get_divide(space)
     divide_input = get_input(divide_alg, space, current, conquer_output)
     branches = nothing
-    # if `run_divide` returns false, the divide is not run and the node is pruned.
+    # if `run_divide` returns false, the divide is not run and the node is pruned. 
+    # TODO?: node_is_pruned and node_is_leaf seem redondant. We could maybe avoid to have two different methods by overloading one (with conquer_output as extra parameter)
     if run_divide(space, divide_input)
         branches = run!(divide_alg, env, reform, divide_input)
     end
