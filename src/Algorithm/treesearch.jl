@@ -169,7 +169,6 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     divide_input = get_input(divide_alg, space, current, conquer_output)
     branches = nothing
     # if `run_divide` returns false, the divide is not run and the node is pruned. 
-    # TODO?: node_is_pruned and node_is_leaf seem redondant. We could maybe avoid to have two different methods by overloading one (with conquer_output as extra parameter)
     if run_divide(space, divide_input)
         branches = run!(divide_alg, env, reform, divide_input)
     end
