@@ -136,7 +136,6 @@ Performs operations after the divide algorithm when the current node is finally 
 
 @mustimplement "ColunaSearchSpace" run_divide(sp::AbstractColunaSearchSpace, divide_input) = nothing
 
-@mustimplement "ColunaSearchSpace" run_conquer(sp::AbstractColunaSearchSpace, conquer_input, node) = nothing
 
 "Returns true if the current node should not be explored i.e. if its local dual bound inherited from its parent is worst than a primal bound of the search space."
 @mustimplement "ColunaSearchSpace" is_pruned(sp::AbstractColunaSearchSpace, current) = nothing
