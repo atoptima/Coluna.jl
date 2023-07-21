@@ -103,14 +103,14 @@ end
 function _ip_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return gap_closed(ov.ip_primal_bound, ov.ip_dual_bound; atol, rtol)
+    return gap_closed(ov.ip_primal_bound, ov.ip_dual_bound, atol = atol, rtol = rtol)
 end
 
 
 function _lp_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return gap_closed(ov.lp_primal_bound, ov.lp_dual_bound; atol, rtol)
+    return gap_closed(ov.lp_primal_bound, ov.lp_dual_bound, atol = atol, rtol = rtol)
 end
 
 function _gap_closed(

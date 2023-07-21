@@ -66,7 +66,7 @@ end
 
 function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, input)
     inner_space = Coluna.TreeSearch.new_space(
-        Coluna.Algorithm.BaBSearchSpace, 
+        Coluna.Algorithm.BaBSearchSpace,
         alg, model, 
         input)
     return TestBaBSearchSpace(inner_space)
@@ -91,7 +91,9 @@ Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace) = Coluna.Algorithm
 
 Coluna.Algorithm.node_is_leaf(space::TestBaBSearchSpace, current::TestBaBNode, conquer_output::TestBaBConquerOutput) = Coluna.Algorithm.node_is_leaf(space.inner, current.inner, conquer_output.inner)
 
-    
+Coluna.Algorithm.is_pruned(space::TestBaBSearchSpace, current::TestBaBNode) = Coluna.Algorithm.is_pruned(space.inner, current.inner)
+
+Coluna.Algorithm.node_is_pruned(space::TestBaBSearchSpace, current::TestBaBNode) = Coluna.Algorithm.node_is_pruned(space.inner, current.inner)
 
 
 #   *************   redefinition of the methods to implement the deterministic conquer:    *************
