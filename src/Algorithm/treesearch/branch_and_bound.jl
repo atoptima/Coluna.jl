@@ -183,7 +183,6 @@ end
 function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     @assert !isnothing(conquer_output)
     treestate = space.optstate
-
     current.records = create_records(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
@@ -208,6 +207,25 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
 end
 
 # Conquer
+
+function is_pruned(space::BaBSearchSpace, current::Node)
+    return MathProg.gap_closed(get_ip_primal_bound(space.optstate),
+                               current.ip_dual_bound,
+                               atol = space.opt_atol,
+                               rtol = space.opt_rtol)
+end
+
+function node_is_pruned(space::BaBSearchSpace, current::Node)
+    leaves_status = space.leaves_status
+    leaves_status.infeasible = false # We have a primal bound, so a primal solution, and we closed the gap, so the original problem is feasible. 
+    if isnothing(leaves_status.worst_dual_bound)
+        leaves_status.worst_dual_bound = current.ip_dual_bound
+    else
+        leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, current.ip_dual_bound)
+    end
+    return
+end
+
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
     
@@ -230,6 +248,13 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
         node_state,
         current.depth
     )
+end
+
+# routine to check if divide should be call or not after a node conquer
+function run_divide(::BaBSearchSpace, divide_input)
+    conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
+    nodestatus = getterminationstatus(conquer_opt_state)
+    return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
 end
 
 function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node, conquer_output)
