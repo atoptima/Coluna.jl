@@ -20,3 +20,9 @@ to scale up and hopefully beats the commercial solver.
 To start customizing Coluna for your own problem, 
 you can [separate valid inequalities](../user/callbacks/#Separation-callbacks) 
 or [call your own algorithm that optimizes subproblems](../user/callbacks/#Pricing-callback).
+
+## I'm using Gurobi as a subsolver
+
+#### My license prevents me from running several environments at the same time. How can I use a single environment for the master and all subproblems?
+
+
