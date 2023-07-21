@@ -219,6 +219,21 @@ function run_conquer(space::BaBSearchSpace, conquer_input::ConquerInputFromBaB, 
     return run_conquer
 end
 
+function is_pruned(space::BaBSearchSpace, current::Node)
+ # TODO : gap (current.ip_dual_bound & get_ip_primal_bound(space.optstate)
+end
+
+function node_is_pruned(space::BaBSearchSpace, current::Node)
+    leaves_status = space.leaves_status
+    leaves_status.infeasible = false # we closed the gap so the problem is feasible.
+    if isnothing(leaves_status.worst_dual_bound)
+        leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
+    else
+        leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+    end
+    return
+end
+
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
     

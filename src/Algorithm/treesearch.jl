@@ -147,6 +147,10 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
         node_change!(previous, current, space, untreated_nodes)
     end
     set_previous!(space, current)
+    if is_pruned(space, current)
+        node_is_pruned(space, current)
+        return []
+    end
     # Run the conquer algorithm.
     # This algorithm has the responsibility to check whether the node is pruned.
     reform = get_reformulation(space)
