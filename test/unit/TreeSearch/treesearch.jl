@@ -61,10 +61,6 @@ Coluna.Branching.get_conquer_opt_state(divide_input::TestBaBDivideInput) = retur
 
 # We redefine the interface for TestBaBSearchSpace: 
 
-function Coluna.TreeSearch.search_space_type(::Coluna.Algorithm.TreeSearchAlgorithm)
-    return TestBaBSearchSpace
-end
-
 function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, input)
     inner_space = Coluna.TreeSearch.new_space(
         Coluna.Algorithm.BaBSearchSpace,
@@ -210,14 +206,16 @@ function test_stop_gap_closed()
         []
     )
 
-    treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
         conqueralg = conqueralg,
         dividealg = dividealg,
         explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
     )
     
     Coluna.set_optim_start_time!(env)
-    algstate = Coluna.Algorithm.run!(treesearch, env, reform, input)
+
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
     #@show algstate
     @test 2 in dividealg.nodes_created_by_divide 
@@ -286,14 +284,15 @@ function test_local_db()
         []
     )
     
-    treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
         conqueralg = conqueralg,
         dividealg = dividealg,
         explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
     )
     
     Coluna.set_optim_start_time!(env)
-    algstate = Coluna.Algorithm.run!(treesearch, env, reform, input)
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
     #@show algstate
     @test 2 in dividealg.nodes_created_by_divide
@@ -366,14 +365,15 @@ function test_pruning()
         []
     )
 
-    treesearch = Coluna.Algorithm.TreeSearchAlgorithm(
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
         conqueralg = conqueralg,
         dividealg = dividealg,
         explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
     )
     
     Coluna.set_optim_start_time!(env)
-    algstate = Coluna.Algorithm.run!(treesearch, env, reform, input)
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
     #@show algstate
     @test_broken !(6 in dividealg.nodes_created_by_divide) # 6 and 7 should not be created as 5 is pruned
