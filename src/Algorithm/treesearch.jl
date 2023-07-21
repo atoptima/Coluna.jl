@@ -152,18 +152,7 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     reform = get_reformulation(space)
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
-    # routine to check if the conquer should be run.
-    conquer_output = if run_conquer(space, conquer_input, current)
-        run!(conquer_alg, env, reform, conquer_input)
-    else
-        OptimizationState(
-            getmaster(reform);
-            ip_primal_bound = get_conquer_input_ip_primal_bound(conquer_input),
-            ip_dual_bound = get_conquer_input_ip_dual_bound(conquer_input),
-            lp_dual_bound = get_conquer_input_ip_dual_bound(conquer_input)
-        )
-        return []
-    end
+    conquer_output = run!(conquer_alg, env, reform, conquer_input)
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
     # Build the divide input from the conquer output
     divide_alg = get_divide(space)
