@@ -225,7 +225,7 @@ function test_stop_gap_closed()
     @test_broken !(2 in dividealg.run_divide_on_nodes) ## we converge at node 2, we should not enter divide 
     @test !(3 in conqueralg.run_conquer_on_nodes)
 end
-register!(unit_tests, "treesearch", test_stop_gap_closed, f=true)
+register!(unit_tests, "treesearch", test_stop_gap_closed)
 
 
 
@@ -304,7 +304,7 @@ function test_local_db()
     @test_broken !(4 in dividealg.run_divide_on_nodes)
     @test_broken !(5 in dividealg.run_divide_on_nodes)
 end
-register!(unit_tests, "treesearch", test_local_db, f=true)
+register!(unit_tests, "treesearch", test_local_db)
 
 
 #graph TD
@@ -386,5 +386,5 @@ function test_pruning()
     @test !(7 in conqueralg.run_conquer_on_nodes)
 
 end
-register!(unit_tests, "treesearch", test_pruning, f=true)
+register!(unit_tests, "treesearch", test_pruning)
 
