@@ -14,6 +14,7 @@ typical_test_dirs = [
     joinpath("unit", "ColGen"),
     joinpath("unit", "Benders"),
     joinpath("unit", "Parser"),
+    joinpath("unit", "TreeSearch"),
     joinpath("integration", "custom_data"),
     joinpath("integration", "parser"),
     joinpath("integration", "pricing_callback"),
