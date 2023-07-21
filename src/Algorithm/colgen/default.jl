@@ -694,12 +694,8 @@ function _nonrobust_cuts_contrib(masterform, col, master_dual_sol)
         if constrid.custom_family_id != -1
             constr = getconstr(masterform, constrid)
             if !isnothing(col.custom_data)
-                var = Variable(VarId(MasterCol, 0, 0), "dummy")
-                    # FIXME: `computecoeff` should receive only the custom data as arguments
-                coeff = MathProg.computecoeff(var, col.custom_data, constr, constr.custom_data)
-                if coeff != 0
-                    contrib -= coeff * dual_val
-                end
+                coeff = MathProg.computecoeff(col.custom_data, constr.custom_data)
+                contrib -= coeff * dual_val
             end
         end
     end

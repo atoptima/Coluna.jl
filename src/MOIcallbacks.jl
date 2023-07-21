@@ -188,7 +188,7 @@ function MOI.submit(
     # Non-robust terms
     for (varid, var) in getvars(form)
         if !isnothing(var.custom_data)
-            lhs += MathProg.computecoeff(var, var.custom_data, constr, custom_data)
+            lhs += MathProg.computecoeff(var.custom_data, custom_data)
         end
     end
 
