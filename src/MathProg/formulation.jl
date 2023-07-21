@@ -187,12 +187,12 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
 end
 
 """
-    computecoeff(var, var_custom_data, constr, constr_custom_data) -> Float64
+    computecoeff(var_custom_data, constr_custom_data) -> Float64
 
 Dispatches on the type of custom data attached to the variable and the constraint to compute
 the coefficient of the variable in the constraint.
 """
-function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_data)
+function computecoeff(var_custom_data, constr_custom_data)
     error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
 end
 
@@ -200,7 +200,7 @@ function _computenonrobustmembers(form::Formulation, var::Variable)
     coef_matrix = getcoefmatrix(form)
     for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
         if constrid.custom_family_id != -1
-            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            coeff = computecoeff(var.custom_data, constr.custom_data)
             if coeff != 0
                 coef_matrix[constrid, getid(var)] = coeff
             end
@@ -213,7 +213,7 @@ function _computenonrobustmembers(form::Formulation, constr::Constraint)
     coef_matrix = getcoefmatrix(form)
     for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
         if varid.custom_family_id != -1
-            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            coeff = computecoeff(var.custom_data, constr.custom_data)
             if coeff != 0
                 coef_matrix[getid(constr), varid] = coeff
             end
