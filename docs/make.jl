@@ -64,7 +64,7 @@ makedocs(
             "User-defined Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[
-            "Verification of algorithms parameters and consistency" => joinpath("api", "check_algos.md"),
+            "Algorithms" => joinpath("api", "algos.md"),
             "Benders" => joinpath("api", "benders.md"),
             "Branching" => joinpath("api", "branching.md"),
             "ColGen" => joinpath("api", "colgen.md"),
