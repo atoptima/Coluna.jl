@@ -86,24 +86,31 @@ function ObjValues(
     return ov
 end
 
+
 ## Gaps
 _ip_gap(ov::ObjValues) = gap(ov.ip_primal_bound, ov.ip_dual_bound)
 _lp_gap(ov::ObjValues) = gap(ov.lp_primal_bound, ov.lp_dual_bound)
 
+function gap_closed(
+    pb::Bound, db::Bound; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
+)
+    return gap(pb, db) <= 0 || _gap_closed(
+        pb.value, db.value, atol = atol, rtol = rtol
+    )
+end
+
+
 function _ip_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return _ip_gap(ov) <= 0 || _gap_closed(
-        ov.ip_primal_bound.value, ov.ip_dual_bound.value, atol = atol, rtol = rtol
-    )
+    return gap_closed(ov.ip_primal_bound, ov.ip_dual_bound; atol, rtol)
 end
+
 
 function _lp_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return _lp_gap(ov) <= 0 || _gap_closed(
-       ov.lp_primal_bound.value, ov.lp_dual_bound.value, atol = atol, rtol = rtol
-    )
+    return gap_closed(ov.lp_primal_bound, ov.lp_dual_bound; atol, rtol)
 end
 
 function _gap_closed(
