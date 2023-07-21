@@ -504,8 +504,7 @@ BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
 
 # The next method calculates the coefficients of a column `λ_k` in a subset-row cut:
 function Coluna.MathProg.computecoeff(
-    ::Coluna.MathProg.Variable, var_custom_data::R1cVarData,
-    ::Coluna.MathProg.Constraint, constr_custom_data::R1cCutData
+    var_custom_data::R1cVarData, constr_custom_data::R1cCutData
 )
     return floor(1 / 2 * length(var_custom_data.visited_locations ∩ constr_custom_data.cov_constrs))
 end
@@ -514,9 +513,7 @@ end
 # Indeed, we use custom data to know the customer attached to each cover constraint
 # There is no contribution of the non-robust part of the coefficient of the `λ_k`, so
 # the method returns 0.
-function Coluna.MathProg.computecoeff(
-    ::Coluna.MathProg.Variable, ::R1cVarData,
-    ::Coluna.MathProg.Constraint, ::CoverConstrData)
+function Coluna.MathProg.computecoeff(::R1cVarData, ::CoverConstrData)
     return 0
 end
 
