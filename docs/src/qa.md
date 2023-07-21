@@ -25,4 +25,26 @@ or [call your own algorithm that optimizes subproblems](../user/callbacks/#Prici
 
 #### My license prevents me from running several environments at the same time. How can I use a single environment for the master and all subproblems?
 
+You can use the `Gurobi.Env` constructor to create a single environment and pass it to the optimizers.
 
+```julia
+const GRB_ENV = Gurobi.Env()
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    "params" => Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm() # default branch-cut-and-price
+    ),
+    "default_optimizer" => () -> Gurobi.Optimizer(GRB_ENV)
+);
+```
+
+#### How to disable all outputs from Gurobi?
+
+You can refer to the following [article](https://support.gurobi.com/hc/en-us/articles/360044784552-How-do-I-suppress-all-console-output-from-Gurobi-) from Gurobi's knowledge base.
+
+We confirm that adding the following entry in the `gurobi.env` file works:
+
+```
+LogToConsole 0
+```

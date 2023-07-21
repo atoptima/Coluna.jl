@@ -14,3 +14,4 @@ test/Manifest.toml
 *.dot
 *.mps
 *DS_Store
+test/.222-revise-exit-code
