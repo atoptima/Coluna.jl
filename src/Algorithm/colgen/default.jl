@@ -670,29 +670,11 @@ function ColGen.push_in_set!(ctx::ColGenContext, pool::ColumnsSet, column::Gener
     return false
 end
 
-"""
-The contribution of the subproblem variables to the reduced cost of a column is
-computed using the master dual solution.
-When we use a smoothed dual solution, we need to recompute the reduced cost of the
-subproblem variables using the non-smoothed dual solution (out point).
-We then use this reduced cost to compute the contribution of the subproblem variables.
-"""
-function _subprob_var_contrib(ctx::ColGenContext, col, stab_changes_mast_dual_sol)
-    if stab_changes_mast_dual_sol
-        cost = 0.0
-        for (var_id, val) in col
-            cost += ctx.sp_var_redcosts[var_id] * val
-        end
-        return cost
-    end
-    return getvalue(col)
-end
-
-function _nonrobust_cuts_contrib(masterform, col, master_dual_sol)
+function _nonrobust_cuts_contrib(master, col, master_dual_sol)
     contrib = 0.0
-    for (constrid, dual_val) in master_dual_sol.solution
+    for (constrid, dual_val) in master_dual_sol
         if constrid.custom_family_id != -1
-            constr = getconstr(masterform, constrid)
+            constr = getconstr(master, constrid)
             if !isnothing(col.custom_data)
                 coeff = MathProg.computecoeff(col.custom_data, constr.custom_data)
                 contrib -= coeff * dual_val
@@ -700,6 +682,27 @@ function _nonrobust_cuts_contrib(masterform, col, master_dual_sol)
         end
     end
     return contrib
+end
+
+"""
+When we use a smoothed dual solution, we need to recompute the reduced cost of the
+subproblem variables using the non-smoothed dual solution (out point).
+This reduced cost is stored in the context (field `sp_var_redcosts`) and we use it to compute
+the contribution of the subproblem variables.
+"""
+function _subprob_var_contrib(ctx::ColGenContext, col, stab_changes_mast_dual_sol, master_dual_sol)
+    if stab_changes_mast_dual_sol
+        cost = 0.0
+        for (var_id, val) in col
+            cost += ctx.sp_var_redcosts[var_id] * val
+        end
+        # When using the smoothed dual solution, we also need to recompute the contribution
+        # of the non-robust cuts.
+        return cost + _nonrobust_cuts_contrib(ColGen.get_master(ctx), col, master_dual_sol)
+    end
+    # When not using stabilization, the value of the column returned by the pricing subproblem
+    # must take into account the contributions of the subproblem variables and the non-robust cuts.
+    return getvalue(col)
 end
 
 function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{DwSp}, env, optimizer, master_dual_sol, stab_changes_mast_dual_sol)
@@ -728,11 +731,9 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     best_red_cost = is_min ? Inf : -Inf
     generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
-        subprob_var_contrib = _subprob_var_contrib(ctx, col, stab_changes_mast_dual_sol)
-        nonrobust_cuts_contrib = _nonrobust_cuts_contrib(
-            sp.parent_formulation, col, master_dual_sol
-        )
-        red_cost = subprob_var_contrib + nonrobust_cuts_contrib - lb_dual - ub_dual
+        # `subprob_var_contrib` includes contribution of non-robust cuts.
+        subprob_var_contrib = _subprob_var_contrib(ctx, col, stab_changes_mast_dual_sol, master_dual_sol)
+        red_cost = subprob_var_contrib - lb_dual - ub_dual
         push!(generated_columns, GeneratedColumn(col, red_cost))
         if sc * best_red_cost > sc * red_cost
             best_red_cost = red_cost
