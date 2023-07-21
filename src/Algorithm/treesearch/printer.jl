@@ -126,10 +126,21 @@ filename(f::JSONFilePrinter) = f.filename
 
 function init_tree_search_file!(f::JSONFilePrinter)
     open(filename(f), "w") do file
-        println(file, "{")
-        println(file, "\t\"nodes\": [")
+        println(file, "[")
     end
     return
+end
+
+# To get rid of "Inf".
+function _printed_num(num)
+    if isinf(num)
+        if num < 0
+            return -99999999999
+        else
+            return +99999999999
+        end
+    end
+    return num
 end
 
 function print_node_in_tree_search_file!(f::JSONFilePrinter, node::PrintedNode, sp::PrinterSearchSpace, env)
@@ -146,22 +157,18 @@ function print_node_in_tree_search_file!(f::JSONFilePrinter, node::PrintedNode, 
     infeasible = getterminationstatus(node.inner.conquer_output) == INFEASIBLE
 
     open(filename(f), "r+") do file
-        # rewind the closing brace character
         seekend(file)
-        pos = position(file)
-        seek(file, pos - 1)
 
-        # start writing over this character
-        @printf file "\n\t\t{\"node_id\": %i, " current_node_id
+        @printf file "\n\t\t{ \"node_id\": %i, " current_node_id
         @printf file "\"depth\": %i, " current_node_depth
         @printf file "\"parent_id\": %s, " is_root_node ? "null" : string(current_parent_id)
-        @printf file "\"time\": %.0f, " time
-        @printf file "\"primal_bound\": %.4f, " global_pb
-        @printf file "\"local_dual_bound\": %.4f, " local_db
-        @printf file "\"global_dual_bound\": %.4f, " global_db
+        @printf file "\"time\": %.2f, " time
+        @printf file "\"primal_bound\": %.4f, " _printed_num(global_pb)
+        @printf file "\"local_dual_bound\": %.4f, " _printed_num(local_db)
+        @printf file "\"global_dual_bound\": %.4f, " _printed_num(global_db)
         @printf file "\"pruned\": %s, " gap_closed ? "true" : "false"
         @printf file "\"infeasible\": %s, " infeasible ? "true" : "false"
-        @printf file "\"branch\": \"%s\"}," is_root_node ? "null" : br_constr_description
+        @printf file "\"branch\": %s },\n" is_root_node ? "null" : string("\"", br_constr_description, "\"")
     end
     return
 end
@@ -171,10 +178,9 @@ function close_tree_search_file!(f::JSONFilePrinter)
         # rewind the closing brace character
         seekend(file)
         pos = position(file)
-        seek(file, pos - 1)
+        seek(file, pos - 2)
         # just move the closing brace to the next line
         println(file, "\n\t]")
-        println(file, "}")
     end
     return
 end
