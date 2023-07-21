@@ -207,17 +207,6 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
 end
 
 # Conquer
-function run_conquer(space::BaBSearchSpace, conquer_input::ConquerInputFromBaB, current::Node)
-    # TODO: improve ?
-    # Condition 1: IP Gap is closed. Abort treatment.
-    # Condition 2: in the case the conquer was already run (in strong branching),
-    # Condition 3: make sure the node has not been proven infeasible.
-    # we still need to update the node IP primal bound before exiting 
-    # (to possibly avoid branching)
-    run_conquer = !ip_gap_closed(conquer_input.node_state, rtol = space.opt_rtol, atol = space.opt_atol)
-    run_conquer = run_conquer && getterminationstatus(conquer_input.node_state) != INFEASIBLE
-    return run_conquer
-end
 
 function is_pruned(space::BaBSearchSpace, current::Node)
     return MathProg.gap_closed(get_ip_primal_bound(space.optstate),
