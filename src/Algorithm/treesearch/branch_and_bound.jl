@@ -217,7 +217,7 @@ end
 
 function node_is_pruned(space::BaBSearchSpace, current::Node)
     leaves_status = space.leaves_status
-    leaves_status.infeasible = false # we closed the gap so the problem is feasible. Natacha: I would have say: we have a primal bound, so a primal solution, so the problem is feasible (even if the current leaf is infeasible). 
+    leaves_status.infeasible = false # We have a primal bound, so a primal solution, and we closed the gap, so the original problem is feasible. 
     if isnothing(leaves_status.worst_dual_bound)
         leaves_status.worst_dual_bound = current.ip_dual_bound
     else
