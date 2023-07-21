@@ -52,7 +52,7 @@ function gap_toy_instance_2()
     @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
     @test MOI.get(model, MOI.SolverName()) == "Coluna"
 end
-register!(e2e_tests, "gap", gap_toy_instance)
+register!(e2e_tests, "gap", gap_toy_instance_2)
 
 function gap_strong_branching()
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
