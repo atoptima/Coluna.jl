@@ -134,29 +134,14 @@ Performs operations after the divide algorithm when the current node is finally 
 "Creates and returns the children of a node associated to a search space."
 @mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::TreeSearch.AbstractNode) = nothing
 
-# routine to check if divide should be call or not after a node conquer
-function run_divide(divide_input)
-    conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
-    nodestatus = getterminationstatus(conquer_opt_state)
-    return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
-end
+@mustimplement "ColunaSearchSpace" run_divide(sp::AbstractColunaSearchSpace, divide_input) = nothing
 
-function run_conquer(space, current)
-    # TODO: improve ?
-    # Condition 1: IP Gap is closed. Abort treatment.
-    # Condition 2: in the case the conquer was already run (in strong branching),
-    # Condition 3: make sure the node has not been proven infeasible.
-    # we still need to update the node IP primal bound before exiting 
-    # (to possibly avoid branching)
-    node_state = OptimizationState(
-        getmaster(space.reformulation);
-        ip_dual_bound = current.ip_dual_bound
-    )
-    run_conquer = !ip_gap_closed(node_state, rtol = space.opt_rtol, atol = space.opt_atol)
-    run_conquer = run_conquer || !current.conquerwasrun
-    run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
-    return run_conquer
-end
+
+"Returns true if the current node should not be explored i.e. if its local dual bound inherited from its parent is worst than a primal bound of the search space."
+@mustimplement "ColunaSearchSpace" is_pruned(sp::AbstractColunaSearchSpace, current) = nothing
+
+"Method to perform some operations if the current node is pruned."
+@mustimplement "ColunaSearchSpace" node_is_pruned(sp::AbstractColunaSearchSpace, current) = nothing
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
 function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSearch.AbstractNode, env, untreated_nodes)
@@ -166,30 +151,24 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
         node_change!(previous, current, space, untreated_nodes)
     end
     set_previous!(space, current)
-    # Run the conquer algorithm.
+    # We should avoid the whole exploration of a node if its local dual bound inherited from its parent is worst than a primal bound found elsewhere on the tree. 
+    if is_pruned(space, current)
+        node_is_pruned(space, current)
+        return []
+    end
+    # Else we run the conquer algorithm.
     # This algorithm has the responsibility to check whether the node is pruned.
     reform = get_reformulation(space)
     conquer_alg = get_conquer(space)
     conquer_input = get_input(conquer_alg, space, current)
-    conquer_output = nothing
-    # routine to check if the conquer should be run.
-    if run_conquer(space, current)
-        conquer_output = run!(conquer_alg, env, reform, conquer_input)
-    else
-        conquer_output = OptimizationState(
-            getmaster(reform);
-            ip_primal_bound = get_conquer_input_ip_primal_bound(input),
-            ip_dual_bound = get_conquer_input_ip_dual_bound(input),
-            lp_dual_bound = get_conquer_input_ip_dual_bound(input)
-        )
-    end
+    conquer_output = run!(conquer_alg, env, reform, conquer_input)
     after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
     # Build the divide input from the conquer output
     divide_alg = get_divide(space)
     divide_input = get_input(divide_alg, space, current, conquer_output)
     branches = nothing
-    # if `run_divide` returns false, the divide is not run and the node is pruned.
-    if run_divide(divide_input)
+    # if `run_divide` returns false, the divide is not run and the node is pruned. 
+    if run_divide(space, divide_input)
         branches = run!(divide_alg, env, reform, divide_input)
     end
     if isnothing(branches) || number_of_children(branches) == 0
