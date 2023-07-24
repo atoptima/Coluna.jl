@@ -374,6 +374,228 @@ function test_infeasible_sp()
 end
 register!(unit_tests, "treesearch", test_infeasible_sp)
 
+
+#```mermaid
+#graph TD
+#     0( ) --> |lp_dual_bound = 53, \n ip_primal_sol = 60| 1((1))
+#     1 --> |lp_dual_bound = 56, \n ip_primal_sol = 60| 2((2))
+#     1 --> |lp_dual_bound = 57, \n ip_primal_sol = 60| 3((3))
+#```
+# not enough information to branch on both leaves 2 and 3 and the gap is not closed at any node
+# should return OTHER_LIMIT with dual_bound = 56 (worst among the leaves) and primal bound = 60, all nodes should be explored
+
+function test_all_explored_with_pb()
+
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( 
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+
+    input = Coluna.OptimizationState(master) 
+
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 53.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0))
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
+
+    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
+
+    Coluna.add_ip_primal_sol!(optstate1, opt_sol)
+    Coluna.add_ip_primal_sol!(optstate2, opt_sol)
+    Coluna.add_ip_primal_sol!(optstate3, opt_sol)
+    
+    conqueralg = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3
+        ),
+        []
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(3, 1, Coluna.DualBound(master, 53.0)), LightNode(2, 1, Coluna.DualBound(master, 53.0))], 
+            2 => [],
+            3 => []
+        ),
+        [],
+        []
+    )
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conqueralg,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    Coluna.set_optim_start_time!(env)
+
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
+
+    @test Coluna.getterminationstatus(algstate) == Coluna.OTHER_LIMIT
+    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
+    @test Coluna.get_ip_dual_bound(algstate).value ≈ 56.0 
+    @test 2 in dividealg.nodes_created_by_divide
+    @test 3 in dividealg.nodes_created_by_divide
+    @test 1 in dividealg.run_divide_on_nodes
+    @test 2 in dividealg.run_divide_on_nodes
+    @test 3 in dividealg.run_divide_on_nodes
+    @test 1 in conqueralg.run_conquer_on_nodes 
+    @test 2 in conqueralg.run_conquer_on_nodes
+    @test 3 in conqueralg.run_conquer_on_nodes
+    
+end
+register!(unit_tests, "treesearch", test_all_explored_with_pb)
+
+#```mermaid
+#graph TD
+#     0( ) --> |lp_dual_bound = 53, \n ip_primal_sol = 60| 1((1))
+#     1 --> |lp_dual_bound = 56, \n ip_primal_sol = 60| 2((2))
+#     1 --> |lp_dual_bound = 57, \n ip_primal_sol = 58| 3((3))
+#``` 
+# not enough information to branch on leaves, should return OTHER_LIMIT with dual_bound = 56 and primal_bound = 58
+function test_all_explored_with_pb_2()
+
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( 
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+
+    input = Coluna.OptimizationState(master) 
+
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 53.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0))
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
+
+    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 58.0, Coluna.ColunaBase.FEASIBLE_SOL)
+
+    Coluna.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
+    Coluna.add_ip_primal_sol!(optstate2, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
+    Coluna.add_ip_primal_sol!(optstate3, opt_sol)
+    
+    conqueralg = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3
+        ),
+        []
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(3, 1, Coluna.DualBound(master, 53.0)), LightNode(2, 1, Coluna.DualBound(master, 53.0))], 
+            2 => [],
+            3 => []
+        ),
+        [],
+        []
+    )
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conqueralg,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    Coluna.set_optim_start_time!(env)
+
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
+
+    @test Coluna.getterminationstatus(algstate) == Coluna.OTHER_LIMIT
+    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
+    @test Coluna.get_ip_dual_bound(algstate).value ≈ 56.0 
+    @test 2 in dividealg.nodes_created_by_divide
+    @test 3 in dividealg.nodes_created_by_divide
+    @test 1 in dividealg.run_divide_on_nodes
+    @test 2 in dividealg.run_divide_on_nodes
+    @test 3 in dividealg.run_divide_on_nodes
+    @test 1 in conqueralg.run_conquer_on_nodes 
+    @test 2 in conqueralg.run_conquer_on_nodes
+    @test 3 in conqueralg.run_conquer_on_nodes
+end
+register!(unit_tests, "treesearch", test_all_explored_with_pb_2)
+
+#```mermaid
+#graph TD
+#     0( ) --> |lp_dual_bound = 55, \n ip_primal_bound = _| 1((1))
+#     1 --> |lp_dual_bound = 56, \n ip_primal_bound = _| 2((2))
+#     1 --> |lp_dual_bound = 57, \n ip_primal_bound = _| 3((3))
+#
+#```
+# not enough information to branch on both leaves
+# no primal bound
+# should return OTHER_LIMIT with dual_bound = 56
+function test_all_explored_without_pb()
+
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( 
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+
+    input = Coluna.OptimizationState(master) 
+
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0))
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
+
+    
+    conqueralg = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3
+        ),
+        []
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(3, 1, Coluna.DualBound(master, 53.0)), LightNode(2, 1, Coluna.DualBound(master, 53.0))], 
+            2 => [],
+            3 => []
+        ),
+        [],
+        []
+    )
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conqueralg,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    Coluna.set_optim_start_time!(env)
+
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
+
+    @test Coluna.getterminationstatus(algstate) == Coluna.OTHER_LIMIT
+    @test Coluna.get_ip_dual_bound(algstate).value ≈ 56.0
+    @test isnothing(Coluna.get_best_ip_primal_sol(algstate))
+    @test 2 in dividealg.nodes_created_by_divide
+    @test 3 in dividealg.nodes_created_by_divide
+    @test 1 in dividealg.run_divide_on_nodes
+    @test 2 in dividealg.run_divide_on_nodes
+    @test 3 in dividealg.run_divide_on_nodes
+    @test 1 in conqueralg.run_conquer_on_nodes
+    @test 2 in conqueralg.run_conquer_on_nodes
+    @test 3 in conqueralg.run_conquer_on_nodes
+    
+end
+register!(unit_tests, "treesearch", test_all_explored_without_pb)
+
 # ```mermaid
 #graph TD
 #     0( ) --> |lp_dual_bound = 20, \n ip_primal_sol = 40| 1 
