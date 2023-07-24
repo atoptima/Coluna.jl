@@ -251,10 +251,14 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
 end
 
 # routine to check if divide should be call or not after a node conquer
+# If the gap is closed between the prima bound and the LOCAL dual bound, then the exploration of the current branch should stop
 function run_divide(::BaBSearchSpace, divide_input)
     conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
     nodestatus = getterminationstatus(conquer_opt_state)
-    return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
+    return !(nodestatus == INFEASIBLE || 
+    MathProg.gap_closed(
+        get_ip_primal_bound(conquer_opt_state), 
+        get_lp_dual_bound(conquer_opt_state)) )             
 end
 
 function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node, conquer_output)
