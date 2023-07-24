@@ -198,7 +198,7 @@ end
 ColGen.is_better_primal_sol(::Vector{Float64}, ::Nothing) = true
 ColGen.is_better_primal_sol(::Vector{Float64}, ::Vector{Float64}) = false
 
-function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector{Float64})
+function ColGen.update_inc_primal_sol!(::ColGenIterationTestContext, sol::Vector{Float64}, new_sol)
     @test sol == [7.0, 7.0, 7.0]
 end
 

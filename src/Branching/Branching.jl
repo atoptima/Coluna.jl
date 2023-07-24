@@ -19,6 +19,7 @@ abstract type AbstractDivideInput end
 
 @mustimplement "DivideInput" get_parent_depth(i::AbstractDivideInput) = nothing
 @mustimplement "DivideInput" get_conquer_opt_state(i::AbstractDivideInput) = nothing
+@mustimplement "DivideInput" get_global_primal(i::AbstractDivideInput) = nothing
 @mustimplement "DivideInput" parent_is_root(i::AbstractDivideInput) = nothing
 @mustimplement "DivideInput" parent_records(i::AbstractDivideInput) = nothing
 

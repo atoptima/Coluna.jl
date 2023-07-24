@@ -20,6 +20,40 @@ import Base: push!
 include("utilities/optimizationstate.jl")
 include("utilities/helpers.jl")
 
+###### TODO: move later
+
+############################################################################################
+# Incumbent primal bound manager
+############################################################################################
+
+abstract type AbstractIncumbentPrimalBoundManager end
+
+@mustimplement "IncumbentPrimalBoundManager" get_incumbent_primal_bound(m::AbstractIncumbentPrimalBoundManager) = nothing
+
+@mustimplement "IncumbentPrimalBoundManager" get_incumbent_primal_sol(m::AbstractIncumbentPrimalBoundManager) = nothing
+
+@mustimplement "IncumbentPrimalBoundManager" set_incumbent_primal_bound!(m::AbstractIncumbentPrimalBoundManager, bound) = nothing
+
+@mustimplement "IncumbentPrimalBoundManager" store_ip_primal_sol!(m::AbstractIncumbentPrimalBoundManager, sol) = nothing
+
+############################################################################################
+# Primal bound manager
+############################################################################################
+
+struct PrimalBoundManager <: AbstractIncumbentPrimalBoundManager
+    # It only stores the IP primal solutions.
+    optstate::OptimizationState
+end
+
+PrimalBoundManager(reform::Reformulation) = PrimalBoundManager(OptimizationState(getmaster(reform)))
+
+get_incumbent_primal_bound(manager::PrimalBoundManager) = get_ip_primal_bound(manager.optstate)
+get_incumbent_primal_sol(manager::PrimalBoundManager) = get_best_ip_primal_sol(manager.optstate)
+set_incumbent_primal_bound!(manager::PrimalBoundManager, bound) = set_ip_primal_bound!(manager.optstate, bound)
+store_ip_primal_sol!(manager::PrimalBoundManager, sol) = add_ip_primal_sols!(manager.optstate, sol)
+
+############################################################################################
+
 # API on top of storage API
 include("data.jl")
 

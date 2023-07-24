@@ -178,8 +178,8 @@ the result of the column generation.
 Returns `false` if the node is infeasible, subsolver time limit is reached, or node gap is closed;
 `true` if the conquer algorithm continues.
 """
-function run_colgen!(ctx::ColCutGenContext, env, reform, conquer_output)
-    colgen_output = run!(ctx.params.colgen, env, reform, conquer_output)
+function run_colgen!(ctx::ColCutGenContext, env, reform, input, conquer_output)
+    colgen_output = run!(ctx.params.colgen, env, reform, input)
     update!(conquer_output, colgen_output)
     if getterminationstatus(conquer_output) == INFEASIBLE ||
        getterminationstatus(conquer_output) == TIME_LIMIT ||
@@ -209,13 +209,13 @@ Runs several rounds of column and cut generation.
 Returns `false` if the column generation returns `false` or time limit is reached.
 Returns `true` if the conquer algorithm continues.
 """
-function run_colcutgen!(ctx::ColCutGenContext, env, reform, conquer_output)
+function run_colcutgen!(ctx::ColCutGenContext, env, reform, input, conquer_output)
     nb_cut_rounds = 0
     run_conquer = true
     master_changed = true # stores value returned by the algorithm called before cut gen.
     cuts_were_added = true # stores value returned by cut gen.
     while run_conquer && (cuts_were_added || master_changed)  
-        run_conquer = run_colgen!(ctx, env, reform, conquer_output)
+        run_conquer = run_colgen!(ctx, env, reform, input, conquer_output)
         if !run_conquer
             return false
         end
@@ -257,7 +257,7 @@ function get_heuristics_to_run(ctx::ColCutGenContext, node_depth)
 end
 
 # run_heuristics!
-function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, conquer_output)
+function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, input, conquer_output)
     for heuristic in heuristics
         # TODO: check time limit of Coluna
 
@@ -271,7 +271,7 @@ function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, conquer
 
         output = AlgoAPI.run!(heuristic.algorithm, env, getmaster(reform), get_best_ip_primal_sol(conquer_output))
         for sol in Heuristic.get_primal_sols(output)
-            update_ip_primal_sol!(conquer_output, sol)
+            store_ip_primal_sol!(input.global_primal, sol)
         end
 
         if ismanager(heuristic.algorithm) 
@@ -359,13 +359,13 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
 
     time_limit_reached!(conquer_output, env) && return conquer_output
 
-    run_conquer = run_colcutgen!(ctx, env, reform, conquer_output)
+    run_conquer = run_colcutgen!(ctx, env, reform, input, conquer_output)
     !run_conquer && return conquer_output
 
     time_limit_reached!(conquer_output, env) && return conquer_output
 
     heuristics_to_run = get_heuristics_to_run(ctx, get_node_depth(input))
-    run_conquer = run_heuristics!(ctx, heuristics_to_run, env, reform, conquer_output)
+    run_conquer = run_heuristics!(ctx, heuristics_to_run, env, reform, input, conquer_output)
     !run_conquer && return conquer_output
 
     time_limit_reached!(conquer_output, env) && return conquer_output

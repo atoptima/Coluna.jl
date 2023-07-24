@@ -200,11 +200,11 @@ function _colgen_optstate_output(result, master)
     return optstate
 end
 
-function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
+function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::AbstractConquerInput)
     # We build 
     C = _colgen_context(algo)
     ctx = _new_context(C, reform, algo)
-    result = ColGen.run!(ctx, env, get_best_ip_primal_sol(input))
+    result = ColGen.run!(ctx, env, get_conquer_input_ip_primal_manager(input))
 
     master = getmaster(reform)
     return _colgen_optstate_output(result, master)
