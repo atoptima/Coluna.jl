@@ -167,6 +167,8 @@ end
     check_alg_parameters(top_algo, reform) -> Vector{Tuple{Symbol, AbstractAlgorithm, Any}}
 
 Checks the consistency of the parameters of the top algorithm and its children algorithms.
+Returns a vector of tuples (name of the parameter, algorithm, value of the parameter) that
+lists all the inconsistencies found in the algorithms tree.
 """
 function check_alg_parameters(top_algo, reform::Reformulation)
     inconsistencies = []
