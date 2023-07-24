@@ -231,7 +231,7 @@ function test_stop_gap_closed()
     @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
     @test 2 in dividealg.nodes_created_by_divide 
     @test 3 in dividealg.nodes_created_by_divide
-    @test_broken !(2 in dividealg.run_divide_on_nodes) ## we converge at node 2, we should not enter divide 
+    @test !(2 in dividealg.run_divide_on_nodes) ## we converge at node 2, we should not enter divide 
     @test !(3 in conqueralg.run_conquer_on_nodes)
     @test !(3 in dividealg.run_divide_on_nodes)
 end
@@ -366,7 +366,7 @@ function test_infeasible_sp()
     @test 2 in dividealg.nodes_created_by_divide
     @test 3 in dividealg.nodes_created_by_divide 
     @test !(2 in dividealg.run_divide_on_nodes)
-    @test_broken !(3 in dividealg.run_divide_on_nodes)
+    @test !(3 in dividealg.run_divide_on_nodes)
     @test 1 in conqueralg.run_conquer_on_nodes
     @test 2 in conqueralg.run_conquer_on_nodes
     @test 3 in conqueralg.run_conquer_on_nodes
@@ -450,9 +450,9 @@ function test_local_db()
     @test 3 in dividealg.nodes_created_by_divide 
     @test 4 in dividealg.nodes_created_by_divide
     @test 5 in dividealg.nodes_created_by_divide 
-    @test_broken !(3 in dividealg.run_divide_on_nodes) ## 3 and 4 should not be in run_divide_on_nodes ; they are pruned because their local db is worst than the current best primal sol
-    @test_broken !(4 in dividealg.run_divide_on_nodes)
-    @test_broken !(5 in dividealg.run_divide_on_nodes)
+    @test !(3 in dividealg.run_divide_on_nodes) ## 3 and 4 should not be in run_divide_on_nodes ; they are pruned because their local db is worst than the current best primal sol
+    @test !(4 in dividealg.run_divide_on_nodes)
+    @test !(5 in dividealg.run_divide_on_nodes)
 end
 register!(unit_tests, "treesearch", test_local_db)
 
@@ -535,8 +535,8 @@ function test_pruning()
     @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
     @test_broken !(6 in dividealg.nodes_created_by_divide) # 6 and 7 should not be created as 5 is pruned
     @test_broken !(7 in dividealg.nodes_created_by_divide)
-    @test_broken !(3 in dividealg.run_divide_on_nodes) ## 3 and 4 should not be in run_divide_on_nodes ; they are pruned because their local db is equal to the current best primal sol
-    @test_broken !(4 in dividealg.run_divide_on_nodes)
+    @test !(3 in dividealg.run_divide_on_nodes) ## 3 and 4 should not be in run_divide_on_nodes ; they are pruned because their local db is equal to the current best primal sol
+    @test !(4 in dividealg.run_divide_on_nodes)
     @test_broken !(5 in dividealg.run_divide_on_nodes) ## 5 is not in run_divide_on_nodes either ; it is pruned because best primal bound found at node 2 is better than its db
     @test 5 in conqueralg.run_conquer_on_nodes ## however, 5 is in run_conquer_on_nodes because when it inherites the db from its parent, this db is better than the best primal solution
     @test !(6 in conqueralg.run_conquer_on_nodes)
