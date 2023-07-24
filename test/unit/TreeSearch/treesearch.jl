@@ -190,7 +190,8 @@ function test_stop_gap_closed()
 
     ## we must be consistent with the provided ip_primal_bound ; if ip_primal_bound = 40.0 at root node, then we have a primal solution equals to 40.0 at root node
     Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate2, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 20.0, Coluna.ColunaBase.FEASIBLE_SOL))
+    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 20.0, Coluna.ColunaBase.FEASIBLE_SOL)
+    Coluna.Algorithm.add_ip_primal_sol!(optstate2, opt_sol)
 
 
     ## set up the conquer and the divide (and thus the shape of the branch-and-bound tree, see the mermaid diagram below)
@@ -224,7 +225,8 @@ function test_stop_gap_closed()
     search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
     algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
-    #@show algstate
+    @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
+    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
     @test 2 in dividealg.nodes_created_by_divide 
     @test 3 in dividealg.nodes_created_by_divide
     @test_broken !(2 in dividealg.run_divide_on_nodes) ## we converge at node 2, we should not enter divide 
@@ -265,11 +267,13 @@ function test_local_db()
     optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 45.0))
     optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 30.0))
 
+    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL)
+
     Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
     Coluna.Algorithm.add_ip_primal_sol!(optstate2, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
     Coluna.Algorithm.add_ip_primal_sol!(optstate3, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
     Coluna.Algorithm.add_ip_primal_sol!(optstate4, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate5, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL))
+    Coluna.Algorithm.add_ip_primal_sol!(optstate5, opt_sol)
 
     conqueralg = DeterministicConquer(
         Dict(
@@ -303,7 +307,8 @@ function test_local_db()
     search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
     algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
-    #@show algstate
+    @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
+    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
     @test 2 in dividealg.nodes_created_by_divide
     @test 3 in dividealg.nodes_created_by_divide 
     @test 4 in dividealg.nodes_created_by_divide
@@ -343,11 +348,13 @@ function test_pruning()
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 56.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
     optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 56.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
     optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
+
+    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL)
     
     Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate2, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate3, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate4, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL))
+    Coluna.Algorithm.add_ip_primal_sol!(optstate2, opt_sol)
+    Coluna.Algorithm.add_ip_primal_sol!(optstate3, opt_sol)
+    Coluna.Algorithm.add_ip_primal_sol!(optstate4, opt_sol)
     Coluna.Algorithm.add_ip_primal_sol!(optstate5, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
 
     conqueralg = DeterministicConquer(
@@ -387,7 +394,8 @@ function test_pruning()
     search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
     algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
-    #@show algstate
+    @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
+    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
     @test_broken !(6 in dividealg.nodes_created_by_divide) # 6 and 7 should not be created as 5 is pruned
     @test_broken !(7 in dividealg.nodes_created_by_divide)
     @test_broken !(3 in dividealg.run_divide_on_nodes) ## 3 and 4 should not be in run_divide_on_nodes ; they are pruned because their local db is equal to the current best primal sol
