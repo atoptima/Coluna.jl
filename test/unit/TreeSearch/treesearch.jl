@@ -5,6 +5,8 @@
 
 # Flags are added to the conquer and divide algorithms in order to be able to check which nodes have been explored during the execution. The expected behaviour of each test is specified at its beginning. 
 
+# WARNING: the re-implementation is generic, but the tests have been implemented keeping in mind a DFS exploration strategy. The expected results (and therefore the tests) are no longer valid if we change the explore strategy. 
+
 mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
     inner::Coluna.Algorithm.BaBSearchSpace
 end
@@ -235,7 +237,142 @@ function test_stop_gap_closed()
 end
 register!(unit_tests, "treesearch", test_stop_gap_closed)
 
+#```mermaid
+#graph TD
+#     0( ) --> |lp_dual_bound = 55, \n ip_primal_bound = _| 1((1))
+#     1 --> |INFEASIBLE| 2((2))
+#     1 --> |INFEASIBLE| 3((3))
+#```
+# exploration should stop at node 3
+# divide should not be called on node 2 and 3
+# should return status = INFEASIBLE   
+function test_infeasible_pb()
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( 
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
 
+    input = Coluna.OptimizationState(master) 
+
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master)
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master)
+    
+    conqueralg = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3
+        ),
+        []
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(3, 1, Coluna.DualBound(master, 55.0)), LightNode(2, 1, Coluna.DualBound(master, 55.0))], 
+            2 => [],
+            3 => []
+        ),
+        [],
+        []
+    )
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conqueralg,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    Coluna.set_optim_start_time!(env)
+
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
+
+    @test Coluna.getterminationstatus(algstate) == Coluna.INFEASIBLE
+    @test 1 in conqueralg.run_conquer_on_nodes
+    @test 2 in conqueralg.run_conquer_on_nodes
+    @test 3 in conqueralg.run_conquer_on_nodes
+    @test 2 in dividealg.nodes_created_by_divide
+    @test 3 in dividealg.nodes_created_by_divide
+    @test !(2 in dividealg.run_divide_on_nodes)
+    @test !(2 in dividealg.run_divide_on_nodes)
+end
+register!(unit_tests, "treesearch", test_infeasible_pb)
+
+#```mermaid
+#graph TD
+#     0( ) --> |lp_dual_bound = 55, \n ip_primal_bound = 60| 1((1))
+#     1 --> |INFEASIBLE| 2((2))
+#     1 --> |lp_dual_bound = 60, \n ip_primal_bound = 60| 3((3))
+#```
+# the exploration should stop on node 3 because the gap is closed
+# divide should not be run on node 2 because the subproblem is infeasible
+
+function test_infeasible_sp()
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( 
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+
+    input = Coluna.OptimizationState(master) 
+
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0), ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master)
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 60.0), ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0))
+
+    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
+
+    Coluna.add_ip_primal_sol!(optstate1, opt_sol)
+    Coluna.add_ip_primal_sol!(optstate3, opt_sol)
+    
+    conqueralg = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3
+        ),
+        []
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(3, 1, Coluna.DualBound(master, 55.0)), LightNode(2, 1, Coluna.DualBound(master, 55.0))], 
+            2 => [],
+            3 => []
+        ),
+        [],
+        []
+    )
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conqueralg,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+    )
+    
+    Coluna.set_optim_start_time!(env)
+
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
+
+    @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
+    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
+    @test 2 in dividealg.nodes_created_by_divide
+    @test 3 in dividealg.nodes_created_by_divide 
+    @test !(2 in dividealg.run_divide_on_nodes)
+    @test_broken !(3 in dividealg.run_divide_on_nodes)
+    @test 1 in conqueralg.run_conquer_on_nodes
+    @test 2 in conqueralg.run_conquer_on_nodes
+    @test 3 in conqueralg.run_conquer_on_nodes
+
+end
+register!(unit_tests, "treesearch", test_infeasible_sp)
 
 # ```mermaid
 #graph TD
@@ -350,7 +487,7 @@ function test_pruning()
     optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
 
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL)
-    
+
     Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
     Coluna.Algorithm.add_ip_primal_sol!(optstate2, opt_sol)
     Coluna.Algorithm.add_ip_primal_sol!(optstate3, opt_sol)
