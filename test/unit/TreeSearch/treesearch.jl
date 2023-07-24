@@ -165,8 +165,8 @@ Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBN
 
 #```mermaid
 #graph TD
-#     0( ) --> |lp_dual_bound = 20, \n ip_primal_bound = 40| 1 
-#     1((1)) --> |lp_dual_bound = 20, \n ip_primal_bound = 20| 2((2))
+#     0( ) --> |lp_dual_bound = 20, \n ip_primal_sol = 40| 1 
+#     1((1)) --> |lp_dual_bound = 20, \n ip_primal_sol = 20| 2((2))
 #     1 --> |should not be explored \n because gap is closed \n at node 2| 3((3)) 
 #```
 # exploration should stop at node 2 because gap is gap_closed
@@ -186,11 +186,11 @@ function test_stop_gap_closed()
 
     input = Coluna.OptimizationState(master) ## empty input 
 
-    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 40.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
-    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 20.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0)) ## should not be explored
 
-    ## we must be consistent with the provided ip_primal_bound ; if ip_primal_bound = 40.0 at root node, then we have a primal solution equals to 40.0 at root node
+
     Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 20.0, Coluna.ColunaBase.FEASIBLE_SOL)
     Coluna.Algorithm.add_ip_primal_sol!(optstate2, opt_sol)
@@ -239,7 +239,7 @@ register!(unit_tests, "treesearch", test_stop_gap_closed)
 
 #```mermaid
 #graph TD
-#     0( ) --> |lp_dual_bound = 55, \n ip_primal_bound = _| 1((1))
+#     0( ) --> |lp_dual_bound = 55, \n ip_primal_sol = _| 1((1))
 #     1 --> |INFEASIBLE| 2((2))
 #     1 --> |INFEASIBLE| 3((3))
 #```
@@ -304,9 +304,9 @@ register!(unit_tests, "treesearch", test_infeasible_pb)
 
 #```mermaid
 #graph TD
-#     0( ) --> |lp_dual_bound = 55, \n ip_primal_bound = 60| 1((1))
+#     0( ) --> |lp_dual_bound = 55, \n ip_primal_sol = 60| 1((1))
 #     1 --> |INFEASIBLE| 2((2))
-#     1 --> |lp_dual_bound = 60, \n ip_primal_bound = 60| 3((3))
+#     1 --> |lp_dual_bound = 60, \n ip_primal_sol = 60| 3((3))
 #```
 # the exploration should stop on node 3 because the gap is closed
 # divide should not be run on node 2 because the subproblem is infeasible
@@ -323,9 +323,9 @@ function test_infeasible_sp()
 
     input = Coluna.OptimizationState(master) 
 
-    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0), ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0))
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
     optstate2 = Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master)
-    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 60.0), ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0))
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 60.0))
 
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
 
@@ -376,11 +376,11 @@ register!(unit_tests, "treesearch", test_infeasible_sp)
 
 # ```mermaid
 #graph TD
-#     0( ) --> |lp_dual_bound = 20, \n ip_primal_bound = 40| 1 
-#     1((1)) --> |lp_dual_bound = 20, \n ip_primal_bound = 40| 2((2))
-#     1 --> |lp_dual_bound = 30, \n ip_primal_bound = 30| 5((5))
-#     2 --> |lp_dual_bound = 45, \n ip_primal_bound = 40| 3((3))
-#     2 --> |lp_dual_bound = 45, \n ip_primal_bound = 40| 4((4))
+#     0( ) --> |lp_dual_bound = 20, \n ip_primal_sol = 40| 1 
+#     1((1)) --> |lp_dual_bound = 20, \n ip_primal_sol = 40| 2((2))
+#     1 --> |lp_dual_bound = 30, \n ip_primal_sol = 30| 5((5))
+#     2 --> |lp_dual_bound = 45, \n ip_primal_sol = 40| 3((3))
+#     2 --> |lp_dual_bound = 45, \n ip_primal_sol = 40| 4((4))
 #     5 --> |STOP| stop( )  
 # ```
 # At nodes 3 and 4, the local lp_dual_bound > the primal bound but the global dual bound < primal bound so the algorithm should continue and stop at node 5 when gap is closed
@@ -402,7 +402,7 @@ function test_local_db()
     optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0))
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 45.0))
     optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 45.0))
-    optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 30.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 30.0))
+    optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 30.0))
 
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL)
 
@@ -458,12 +458,12 @@ register!(unit_tests, "treesearch", test_local_db)
 
 #```mermaid
 #graph TD
-#     0( ) --> |lp_dual_bound = 55, \n ip_primal_bound = 60| 1 
-#     1((1)) --> |lp_dual_bound = 55, \n ip_primal_bound = 56| 2((2))
-#     2 --> |lp_dual_bound = 56, \n ip_primal_bound = 56| 3((3))
-#     2 --> |lp_dual_bound = 56, \n ip_primal_bound = 56| 4((4))
-#     1 --> |lp_dual_bound = 57, \n ip_primal_bound = 60| 5((5))
-#     5 --> |STOP \n because pb found at 2\n is better than current db| 6( )
+#     0( ) --> |lp_dual_bound = 55, \n ip_primal_sol = 60| 1 
+#     1((1)) --> |lp_dual_bound = 55, \n ip_primal_sol = 56| 2((2))
+#     2 --> |lp_dual_bound = 56, \n ip_primal_sol = 56| 3((3))
+#     2 --> |lp_dual_bound = 56, \n ip_primal_sol = 56| 4((4))
+#     1 --> |lp_dual_bound = 57, \n ip_primal_sol = 60| 5((5))
+#     5 --> |STOP \n because primal sol found at 2\n is better than current db| 6( )
 #```
 # exploration should not stop at nodes 3 and 4 because the gap between the local lp_dual_bound and the ip_primal_bound is closed, but not with the global dual bound. However, it should be stopped at node 5 because the primal bound found at node 2 is better than the local dual bound of node 5. 
 # status: OPTIMAL with primal solution = 56.0
@@ -480,11 +480,11 @@ function test_pruning()
 
     input = Coluna.OptimizationState(master)
 
-    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
-    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 56.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
-    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 56.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
-    optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 56.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
-    optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, ip_primal_bound = Coluna.MathProg.PrimalBound(master, 60.0), lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
+    optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
+    optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
 
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL)
 
