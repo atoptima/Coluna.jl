@@ -371,7 +371,7 @@ function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
         add_ip_primal_sol!(space.optstate, get_global_primal_sol(space.inc_primal_manager))
     end
 
-    if all_leaves_infeasible
+    if all_leaves_infeasible && length(untreated_nodes) == 0
         setterminationstatus!(space.optstate, INFEASIBLE)
     elseif ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
         setterminationstatus!(space.optstate, OPTIMAL)

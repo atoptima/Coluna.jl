@@ -399,16 +399,15 @@ function test_all_explored_with_pb()
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
 
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
-
-    Coluna.add_ip_primal_sol!(optstate1, opt_sol)
-    Coluna.add_ip_primal_sol!(optstate2, opt_sol)
-    Coluna.add_ip_primal_sol!(optstate3, opt_sol)
     
     conqueralg = DeterministicConquer(
         Dict(
             1 => optstate1,
             2 => optstate2,
             3 => optstate3
+        ),
+        Dict(
+            1 => opt_sol
         ),
         []
     )
@@ -472,17 +471,19 @@ function test_all_explored_with_pb_2()
     optstate2 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0))
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
 
+    primal_sol1 = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 58.0, Coluna.ColunaBase.FEASIBLE_SOL)
 
-    Coluna.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.add_ip_primal_sol!(optstate2, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.add_ip_primal_sol!(optstate3, opt_sol)
     
     conqueralg = DeterministicConquer(
         Dict(
             1 => optstate1,
             2 => optstate2,
             3 => optstate3
+        ),
+        Dict(
+            1 => primal_sol1,
+            3 => opt_sol
         ),
         []
     )
@@ -555,6 +556,7 @@ function test_all_explored_without_pb()
             2 => optstate2,
             3 => optstate3
         ),
+        Dict(),
         []
     )
 
@@ -761,4 +763,57 @@ function test_pruning()
 
 end
 register!(unit_tests, "treesearch", test_pruning)
+
+
+function test_one_leaf_infeasible_and_then_node_limit()
+    ## create an empty formulation
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    master = Coluna.MathProg.create_formulation!( ## min sense by default
+        env,
+        Coluna.MathProg.DwMaster()
+    )
+    reform = Coluna.MathProg.Reformulation(env)
+    reform.master = master
+    
+    input = Coluna.OptimizationState(master)
+    optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))
+    optstate2 = Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master)
+    optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 65.0))
+
+    conqueralg = DeterministicConquer(
+        Dict(
+            1 => optstate1,
+            2 => optstate2,
+            3 => optstate3 # should not be called
+        ),
+        Dict(),
+        []
+    )
+
+    dividealg = DeterministicDivide(
+        Dict(
+            1 => [LightNode(2, 1, Coluna.DualBound(master, 65.0)), LightNode(3, 1, Coluna.DualBound(master, 65.0))], 
+            2 => [], ##should not be called
+            3 => [], ##should not be called
+        ),
+        [],
+        []
+    )
+
+    algo = Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg = conqueralg,
+        dividealg = dividealg,
+        explorestrategy = Coluna.TreeSearch.DepthFirstStrategy(),
+        maxnumnodes = 2
+    )
+    
+    Coluna.set_optim_start_time!(env)
+    search_space = Coluna.TreeSearch.new_space(TestBaBSearchSpace, algo, reform, input)
+    algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
+
+    @test Coluna.getterminationstatus(algstate) == Coluna.OTHER_LIMIT
+    @show Coluna.getterminationstatus(algstate)
+end
+register!(unit_tests, "treesearch", test_one_leaf_infeasible_and_then_node_limit)
 
