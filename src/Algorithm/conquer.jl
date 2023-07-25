@@ -271,7 +271,7 @@ function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, input, 
 
         output = AlgoAPI.run!(heuristic.algorithm, env, getmaster(reform), get_best_ip_primal_sol(conquer_output))
         for sol in Heuristic.get_primal_sols(output)
-            store_ip_primal_sol!(input.global_primal, sol)
+            store_ip_primal_sol!(get_global_primal_handler(input), sol)
         end
 
         if ismanager(heuristic.algorithm) 
@@ -345,9 +345,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     # that calls the conquer strategy. This output will be updated by the conquer algorithm.
     conquer_output = OptimizationState(
         getmaster(reform);
-        ip_primal_bound = get_conquer_input_ip_primal_bound(input),
-        ip_dual_bound = get_conquer_input_ip_dual_bound(input),
-        lp_dual_bound = get_conquer_input_ip_dual_bound(input)
+        global_primal_bound_handler = get_global_primal_handler(input)
     )
 
     time_limit_reached!(conquer_output, env) && return conquer_output
@@ -394,7 +392,6 @@ end
 ####################################################################
 #                      RestrMasterLPConquer
 ####################################################################
-
 @with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm
     masterlpalgo::SolveLpForm = SolveLpForm(
         update_ip_primal_solution = true
@@ -402,7 +399,6 @@ end
 end
 
 # RestrMasterLPConquer does not use any unit, therefore get_units_usage() is not defined for it
-
 function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
     return Dict("restr_master_lp" => (algo.masterlpalgo, getmaster(reform)))
 end
@@ -410,8 +406,7 @@ end
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     conquer_output = OptimizationState(
         getmaster(reform);
-        ip_primal_bound = get_conquer_input_ip_primal_bound(input),
-        ip_dual_bound = get_conquer_input_ip_dual_bound(input)
+        global_primal_bound_handler = get_global_primal_handler(input)
     )
 
     masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), conquer_output)

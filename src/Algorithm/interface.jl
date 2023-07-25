@@ -50,8 +50,7 @@ abstract type AbstractConquerInput end
 @mustimplement "ConquerInput" get_node(i::AbstractConquerInput) = nothing
 @mustimplement "ConquerInput" get_units_to_restore(i::AbstractConquerInput) = nothing
 @mustimplement "ConquerInput" run_conquer(i::AbstractConquerInput) = nothing
-@mustimplement "ConquerInput" get_conquer_input_ip_primal_bound(i::AbstractConquerInput) = nothing
-@mustimplement "ConquerInput" get_conquer_input_ip_primal_manager(i::AbstractConquerInput) = nothing
+@mustimplement "ConquerInput" get_global_primal_handler(i::AbstractConquerInput) = nothing
 @mustimplement "ConquerInput" get_conquer_input_ip_dual_bound(i::AbstractConquerInput) = nothing
 
 """

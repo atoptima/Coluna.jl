@@ -16,41 +16,50 @@ const ClB = ColunaBase
 
 import Base: push!
 
+############################################################################################
+# Incumbent primal bound handler
+############################################################################################
+
+"""
+Abstract type for an utilarity structure that handles the incumbent primal bound.
+"""
+abstract type AbstractGlobalPrimalBoundHandler end
+
+@mustimplement "GlobalPrimalBoundHandler" get_global_primal_bound(m::AbstractGlobalPrimalBoundHandler) = nothing
+@mustimplement "GlobalPrimalBoundHandler" get_global_primal_sol(m::AbstractGlobalPrimalBoundHandler) = nothing
+@mustimplement "GlobalPrimalBoundHandler" store_ip_primal_sol!(m::AbstractGlobalPrimalBoundHandler, sol) = nothing
+
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 include("utilities/helpers.jl")
-
-###### TODO: move later
-
-############################################################################################
-# Incumbent primal bound manager
-############################################################################################
-
-abstract type AbstractIncumbentPrimalBoundManager end
-
-@mustimplement "IncumbentPrimalBoundManager" get_incumbent_primal_bound(m::AbstractIncumbentPrimalBoundManager) = nothing
-
-@mustimplement "IncumbentPrimalBoundManager" get_incumbent_primal_sol(m::AbstractIncumbentPrimalBoundManager) = nothing
-
-@mustimplement "IncumbentPrimalBoundManager" set_incumbent_primal_bound!(m::AbstractIncumbentPrimalBoundManager, bound) = nothing
-
-@mustimplement "IncumbentPrimalBoundManager" store_ip_primal_sol!(m::AbstractIncumbentPrimalBoundManager, sol) = nothing
 
 ############################################################################################
 # Primal bound manager
 ############################################################################################
 
-struct PrimalBoundManager <: AbstractIncumbentPrimalBoundManager
+"""
+Default implementation of a manager of the incumbent primal bound.
+This implementation does not support paralellization.
+"""
+struct GlobalPrimalBoundHandler <: AbstractGlobalPrimalBoundHandler
     # It only stores the IP primal solutions.
     optstate::OptimizationState
 end
 
-PrimalBoundManager(reform::Reformulation) = PrimalBoundManager(OptimizationState(getmaster(reform)))
+function GlobalPrimalBoundHandler(
+    reform::Reformulation; 
+    ip_primal_bound = nothing
+)
+    opt_state = OptimizationState(getmaster(reform))
+    if !isnothing(ip_primal_bound)
+        set_ip_primal_bound!(opt_state, ip_primal_bound)
+    end
+    return GlobalPrimalBoundHandler(opt_state)
+end
 
-get_incumbent_primal_bound(manager::PrimalBoundManager) = get_ip_primal_bound(manager.optstate)
-get_incumbent_primal_sol(manager::PrimalBoundManager) = get_best_ip_primal_sol(manager.optstate)
-set_incumbent_primal_bound!(manager::PrimalBoundManager, bound) = set_ip_primal_bound!(manager.optstate, bound)
-store_ip_primal_sol!(manager::PrimalBoundManager, sol) = add_ip_primal_sols!(manager.optstate, sol)
+get_global_primal_bound(manager::GlobalPrimalBoundHandler) = get_ip_primal_bound(manager.optstate)
+get_global_primal_sol(manager::GlobalPrimalBoundHandler) = get_best_ip_primal_sol(manager.optstate)
+store_ip_primal_sol!(manager::GlobalPrimalBoundHandler, sol) = add_ip_primal_sols!(manager.optstate, sol)
 
 ############################################################################################
 

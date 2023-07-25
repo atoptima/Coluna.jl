@@ -204,7 +204,7 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Ab
     # We build 
     C = _colgen_context(algo)
     ctx = _new_context(C, reform, algo)
-    result = ColGen.run!(ctx, env, get_conquer_input_ip_primal_manager(input))
+    result = ColGen.run!(ctx, env, get_global_primal_handler(input))
 
     master = getmaster(reform)
     return _colgen_optstate_output(result, master)

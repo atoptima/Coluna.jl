@@ -109,7 +109,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
     if is_infeasible(mast_result)
-        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing, nothing)
+        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, ip_primal_sol, nothing)
     elseif is_unbounded(mast_result)
         throw(UnboundedProblemError("Unbounded master problem."))
     end
@@ -128,7 +128,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # TODO: the user can get the reformulation from the context.
         new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, env)
         if new_cut_in_master
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, ip_primal_sol, nothing)
         end
         if !isnothing(new_ip_primal_sol)
             update_inc_primal_sol!(context, ip_primal_sol, new_ip_primal_sol)

@@ -449,9 +449,13 @@ function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenCo
     return master_lp_primal_sol, new_cut_in_master
 end
 
-function ColGen.is_better_primal_sol(new_ip_primal_sol::PrimalSolution, ip_primal_sol::PrimalBoundManager)
+# In our column generation default implementation, when we found a new IP primal solution,
+# we push it in the GlobalPrimalBoundHandler object that stores the incumbent IP primal solution
+# of the B&B algorithm. It is possible to redefine this function to use another type of primal
+# solution manager.
+function ColGen.is_better_primal_sol(new_ip_primal_sol::PrimalSolution, ip_primal_sol::GlobalPrimalBoundHandler)
     new_val = ColunaBase.getvalue(new_ip_primal_sol)
-    cur_val = ColunaBase.getvalue(get_incumbent_primal_bound(ip_primal_sol))
+    cur_val = ColunaBase.getvalue(get_global_primal_bound(ip_primal_sol))
     sc = MathProg.getobjsense(ColunaBase.getmodel(new_ip_primal_sol)) == MinSense ? 1 : -1
     return sc * new_val < sc * cur_val && abs(new_val - cur_val) > 1e-6
 end
@@ -851,7 +855,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
         unbounded_subproblem,
         time_limit_reached,
         master_lp_primal_sol,
-        get_incumbent_primal_sol(master_ip_primal_sol),
+        get_global_primal_sol(master_ip_primal_sol),
         master_lp_dual_sol,
     )
 end
