@@ -44,7 +44,6 @@ function run!(context, env, ip_primal_sol; iter = 1)
         setup_context!(context, phase)
         last_iter = isnothing(phase_output) ? iter : phase_output.nb_iterations
         phase_output = run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter = last_iter)
-        ip_primal_sol = ColGen.get_master_ip_primal_sol(phase_output)
         phase = next_phase(phase_it, phase, phase_output)
         stage = next_stage(stage_it, stage, phase_output)
     end
@@ -76,10 +75,6 @@ function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter
     while !stop_colgen_phase(context, phase, env, colgen_iter_output, incumbent_dual_bound, iteration)
         before_colgen_iteration(context, phase)
         colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
-        new_ip_primal_sol = get_master_ip_primal_sol(colgen_iter_output)
-        if !isnothing(new_ip_primal_sol)
-            ip_primal_sol = new_ip_primal_sol
-        end
         dual_bound = ColGen.get_dual_bound(colgen_iter_output)
         if !isnothing(dual_bound) && (isnothing(incumbent_dual_bound) || is_better_dual_bound(context, dual_bound, incumbent_dual_bound))
             incumbent_dual_bound = dual_bound
@@ -114,7 +109,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
     # Iteration continues only if master is not infeasible nor unbounded and has dual
     # solution.
     if is_infeasible(mast_result)
-        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, nothing, nothing)
+        return new_iteration_output(O, is_min_sense, nothing, _inf(is_min_sense), 0, false, true, false, false, false, false, nothing, ip_primal_sol, nothing)
     elseif is_unbounded(mast_result)
         throw(UnboundedProblemError("Unbounded master problem."))
     end
@@ -133,11 +128,10 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # TODO: the user can get the reformulation from the context.
         new_ip_primal_sol, new_cut_in_master = check_primal_ip_feasibility!(mast_primal_sol, context, phase, env)
         if new_cut_in_master
-            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, nothing, nothing)
+            return new_iteration_output(O, is_min_sense, nothing, nothing, 0, true, false, false, false, false, false, nothing, ip_primal_sol, nothing)
         end
         if !isnothing(new_ip_primal_sol)
-            ip_primal_sol = new_ip_primal_sol
-            update_inc_primal_sol!(context, ip_primal_sol)
+            update_inc_primal_sol!(context, ip_primal_sol, new_ip_primal_sol)
         end
     end
 

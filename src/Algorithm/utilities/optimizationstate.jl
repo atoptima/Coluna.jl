@@ -36,7 +36,7 @@ end
         lp_primal_bound = nothing, 
         lp_dual_bound = nothing,
         max_length_ip_primal_sols = 1, 
-        max_length_lp_primal_sols = 1, 
+        max_length_lp_primal_sols = 1,
         max_length_lp_dual_sols = 1,
         insert_function_ip_primal_sols = bestbound!, 
         insert_function_lp_primal_sols = bestbound!, 
@@ -78,8 +78,15 @@ function OptimizationState(
     max_length_lp_dual_sols = 1,
     insert_function_ip_primal_sols = bestbound!,
     insert_function_lp_primal_sols = bestbound!,
-    insert_function_lp_dual_sols = bestbound!
+    insert_function_lp_dual_sols = bestbound!,
+    global_primal_bound_handler = nothing
 ) where {F <: AbstractFormulation}
+    if !isnothing(global_primal_bound_handler)
+        if !isnothing(ip_primal_bound)
+            @warn "Value of `ip_primal_bound` will be replaced by the value of the best primal bound stored in `global_primal_bound_manager``."
+        end
+        ip_primal_bound = get_global_primal_bound(global_primal_bound_handler)
+    end
     incumbents = MathProg.ObjValues(
         form;
         ip_primal_bound = ip_primal_bound,

@@ -11,7 +11,6 @@ mutable struct TestBaBSearchSpace <: Coluna.Algorithm.AbstractColunaSearchSpace
     inner::Coluna.Algorithm.BaBSearchSpace
 end
 
-
 # We create a TestBaBNode which wraps a "real" branch and bound Node and carries the node id. 
 mutable struct TestBaBNode <: Coluna.TreeSearch.AbstractNode
     inner::Coluna.Algorithm.Node
@@ -25,10 +24,10 @@ mutable struct LightNode
     parent_ip_dual_bound::Coluna.Algorithm.Bound
 end
 
-
 # Deterministic conquer, a map with all the nodes ids matched to their optimization state
 struct DeterministicConquer <: Coluna.Algorithm.AbstractConquerAlgorithm
     conquer::Dict{Int, Coluna.OptimizationState}
+    new_primal_sol::Dict{Int, Coluna.PrimalSolution}
     run_conquer_on_nodes::Vector{Int}    ## FLAG, node ids of the nodes on which we have run conquer during the execution
 end
 
@@ -38,11 +37,10 @@ struct TestBaBConquerInput
     inner::Coluna.Algorithm.ConquerInputFromBaB
 end
 
-Coluna.Algorithm.get_conquer_input_ip_primal_bound(input::TestBaBConquerInput) = Coluna.Algorithm.get_conquer_input_ip_primal_bound(input.inner)
+Coluna.Algorithm.get_global_primal_handler(input::TestBaBConquerInput) = Coluna.Algorithm.get_global_primal_handler(input.inner)
 Coluna.Algorithm.get_conquer_input_ip_dual_bound(input::TestBaBConquerInput) = Coluna.Algorithm.get_conquer_input_ip_dual_bound(input.inner)
 Coluna.Algorithm.get_node_depth(input::TestBaBConquerInput) = Coluna.Algorithm.get_node_depth(input.inner)
 Coluna.Algorithm.get_units_to_restore(input::TestBaBConquerInput) = Coluna.Algorithm.get_units_to_restore(input.inner)
-
 
 struct TestBaBConquerOutput 
     node_id::Int
@@ -56,17 +54,14 @@ struct DeterministicDivide <: Coluna.AlgoAPI.AbstractDivideAlgorithm
     run_divide_on_nodes::Vector{Int}     ## FLAG, node ids of the nodes on which we have run divide 
 end
 
-
 ## the only information the deterministic divide needs is the node id but we need to embedded it in a TestBaBDivideInput to match the implementation of children in treesearch
 struct TestBaBDivideInput <: Coluna.Branching.AbstractDivideInput
     node_id::Int
     parent_conquer_output::Coluna.OptimizationState ## to update if we create a "real" BaBDivideInput in branch and bound
 end
-
 Coluna.Branching.get_conquer_opt_state(divide_input::TestBaBDivideInput) = return divide_input.parent_conquer_output
 
 # We redefine the interface for TestBaBSearchSpace: 
-
 function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, input)
     inner_space = Coluna.TreeSearch.new_space(
         Coluna.Algorithm.BaBSearchSpace,
@@ -74,7 +69,6 @@ function Coluna.TreeSearch.new_space(::Type{TestBaBSearchSpace}, alg, model, inp
         input)
     return TestBaBSearchSpace(inner_space)
 end
-
 
 # new_root returns a TestBaBNode with id 1 by default. The stack in treesearch (in explore.jl) will therefore contains nodes of type TestBaBNode. 
 function Coluna.TreeSearch.new_root(space::TestBaBSearchSpace, input)
@@ -85,7 +79,6 @@ end
 Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.stop(space.inner, untreated_nodes)
 Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.tree_search_output(space.inner, untreated_nodes)
 
-
 # methods called by native method children (in branch_and_bound.jl)
 Coluna.Algorithm.get_previous(space::TestBaBSearchSpace) = Coluna.Algorithm.get_previous(space.inner)
 Coluna.Algorithm.set_previous!(space::TestBaBSearchSpace, previous::TestBaBNode) = Coluna.Algorithm.set_previous!(space.inner, previous.inner)
@@ -93,14 +86,10 @@ Coluna.Algorithm.get_reformulation(space::TestBaBSearchSpace) = Coluna.Algorithm
 
 # extra methods needed by the new implementation of treesearch with the storage of the leaves state:
 Coluna.Algorithm.node_is_leaf(space::TestBaBSearchSpace, current::TestBaBNode, conquer_output::TestBaBConquerOutput) = Coluna.Algorithm.node_is_leaf(space.inner, current.inner, conquer_output.inner)
-
 Coluna.Algorithm.is_pruned(space::TestBaBSearchSpace, current::TestBaBNode) = Coluna.Algorithm.is_pruned(space.inner, current.inner)
-
 Coluna.Algorithm.node_is_pruned(space::TestBaBSearchSpace, current::TestBaBNode) = Coluna.Algorithm.node_is_pruned(space.inner, current.inner)
 
-
 #   *************   redefinition of the methods to implement the deterministic conquer:    *************
-
 Coluna.Algorithm.get_conquer(space::TestBaBSearchSpace) = Coluna.Algorithm.get_conquer(space.inner)
 
 ## the only information the deterministic conquer needs is the node id, but we need to compute a BaBConquerInput as inner:
@@ -112,6 +101,12 @@ end
 ## given the node id in the input, retrieves the corresponding optimization state in the dict, returns it together with the node id to pass them to the divide
 function Coluna.Algorithm.run!(alg::DeterministicConquer, env, reform, input)
     push!(alg.run_conquer_on_nodes, input.node_id) ## update flag
+    new_primal_sol = get(alg.new_primal_sol, input.node_id, nothing)
+    if !isnothing(new_primal_sol)
+        # Tell the global primal bound handler that we found a new primal solution.
+        Coluna.Algorithm.store_ip_primal_sol!(Coluna.Algorithm.get_global_primal_handler(input), new_primal_sol)
+    end
+
     conquer_output = alg.conquer[input.node_id]
     return TestBaBConquerOutput(input.node_id, conquer_output) ## pass node id as a conquer output
 end 
@@ -121,7 +116,6 @@ function Coluna.Algorithm.after_conquer!(space::TestBaBSearchSpace, current, con
 end
 
 #   *************   redefinition of the methods to implement the deterministic divide:    *************
-
 Coluna.Algorithm.get_divide(space::TestBaBSearchSpace) = Coluna.Algorithm.get_divide(space.inner)
 
 ## call to the native routine to check if divide should be run
@@ -162,7 +156,6 @@ Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBN
 
 # Tests: 
 
-
 #```mermaid
 #graph TD
 #     0( ) --> |lp_dual_bound = 20, \n ip_primal_sol = 40| 1 
@@ -191,10 +184,8 @@ function test_stop_gap_closed()
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 20.0)) ## should not be explored
 
 
-    Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
+    primalsol1 = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL)
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 20.0, Coluna.ColunaBase.FEASIBLE_SOL)
-    Coluna.Algorithm.add_ip_primal_sol!(optstate2, opt_sol)
-
 
     ## set up the conquer and the divide (and thus the shape of the branch-and-bound tree, see the mermaid diagram below)
     conqueralg = DeterministicConquer(
@@ -202,6 +193,10 @@ function test_stop_gap_closed()
             1 => optstate1,
             2 => optstate2,
             3 => optstate3
+        ),
+        Dict(
+            1 => primalsol1,
+            2 => opt_sol
         ),
         []
     )
@@ -268,6 +263,7 @@ function test_infeasible_pb()
             2 => optstate2,
             3 => optstate3
         ),
+        Dict(),
         []
     )
 
@@ -327,16 +323,17 @@ function test_infeasible_sp()
     optstate2 = Coluna.OptimizationState(termination_status = Coluna.INFEASIBLE, master)
     optstate3 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 60.0))
 
-    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
-
-    Coluna.add_ip_primal_sol!(optstate1, opt_sol)
-    Coluna.add_ip_primal_sol!(optstate3, opt_sol)
+    optimalsol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
     
     conqueralg = DeterministicConquer(
         Dict(
             1 => optstate1,
             2 => optstate2,
             3 => optstate3
+        ),
+        Dict(
+            1 => optimalsol,
+            3 => optimalsol
         ),
         []
     )
@@ -362,7 +359,7 @@ function test_infeasible_sp()
     algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
     @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
-    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
+    @test Coluna.get_best_ip_primal_sol(algstate) == optimalsol
     @test 2 in dividealg.nodes_created_by_divide
     @test 3 in dividealg.nodes_created_by_divide 
     @test !(2 in dividealg.run_divide_on_nodes)
@@ -626,13 +623,8 @@ function test_local_db()
     optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 45.0))
     optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 30.0))
 
-    opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL)
-
-    Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate2, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate3, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate4, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate5, opt_sol)
+    primalsol1 = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 40.0, Coluna.ColunaBase.FEASIBLE_SOL)
+    optimalsol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 30.0, Coluna.ColunaBase.FEASIBLE_SOL)
 
     conqueralg = DeterministicConquer(
         Dict(
@@ -641,6 +633,10 @@ function test_local_db()
             3 => optstate3, 
             4 => optstate4, 
             5 => optstate5
+        ),
+        Dict(
+            1 => primalsol1,
+            5 => optimalsol
         ),
         []
     )
@@ -667,7 +663,7 @@ function test_local_db()
     algstate = Coluna.TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 
     @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
-    @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
+    @test Coluna.get_best_ip_primal_sol(algstate) == optimalsol
     @test 2 in dividealg.nodes_created_by_divide
     @test 3 in dividealg.nodes_created_by_divide 
     @test 4 in dividealg.nodes_created_by_divide
@@ -708,13 +704,8 @@ function test_pruning()
     optstate4 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 56.0)) 
     optstate5 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 57.0))
 
+    primal_sol1 = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL)
     opt_sol = Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 56.0, Coluna.ColunaBase.FEASIBLE_SOL)
-
-    Coluna.Algorithm.add_ip_primal_sol!(optstate1, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
-    Coluna.Algorithm.add_ip_primal_sol!(optstate2, opt_sol)
-    Coluna.Algorithm.add_ip_primal_sol!(optstate3, opt_sol)
-    Coluna.Algorithm.add_ip_primal_sol!(optstate4, opt_sol)
-    Coluna.Algorithm.add_ip_primal_sol!(optstate5, Coluna.PrimalSolution(master, Vector{Coluna.MathProg.VarId}(), Vector{Float64}(), 60.0, Coluna.ColunaBase.FEASIBLE_SOL))
 
     conqueralg = DeterministicConquer(
         Dict(
@@ -725,7 +716,11 @@ function test_pruning()
             5 => optstate5,
             6 => Coluna.OptimizationState(master), ##should not be called
             7 => Coluna.OptimizationState(master) ##should not be called
-        ), 
+        ),
+        Dict(
+            1 => primal_sol1,
+            2 => opt_sol
+        ),
         []
     )
 
@@ -755,11 +750,11 @@ function test_pruning()
 
     @test Coluna.getterminationstatus(algstate) == Coluna.OPTIMAL
     @test Coluna.get_best_ip_primal_sol(algstate) == opt_sol
-    @test_broken !(6 in dividealg.nodes_created_by_divide) # 6 and 7 should not be created as 5 is pruned
-    @test_broken !(7 in dividealg.nodes_created_by_divide)
+    @test !(6 in dividealg.nodes_created_by_divide) # 6 and 7 should not be created as 5 is pruned
+    @test !(7 in dividealg.nodes_created_by_divide)
     @test !(3 in dividealg.run_divide_on_nodes) ## 3 and 4 should not be in run_divide_on_nodes ; they are pruned because their local db is equal to the current best primal sol
     @test !(4 in dividealg.run_divide_on_nodes)
-    @test_broken !(5 in dividealg.run_divide_on_nodes) ## 5 is not in run_divide_on_nodes either ; it is pruned because best primal bound found at node 2 is better than its db
+    @test !(5 in dividealg.run_divide_on_nodes) ## 5 is not in run_divide_on_nodes either ; it is pruned because best primal bound found at node 2 is better than its db
     @test 5 in conqueralg.run_conquer_on_nodes ## however, 5 is in run_conquer_on_nodes because when it inherites the db from its parent, this db is better than the best primal solution
     @test !(6 in conqueralg.run_conquer_on_nodes)
     @test !(7 in conqueralg.run_conquer_on_nodes)

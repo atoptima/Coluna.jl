@@ -3,12 +3,13 @@
 ############################################################################################
 "Conquer input object created by the strong branching algorithm."
 struct ConquerInputFromSb <: AbstractConquerInput
+    global_primal_handler::GlobalPrimalBoundHandler
     children_candidate::SbNode
     children_units_to_restore::UnitsUsage
 end
 
-get_conquer_input_ip_primal_bound(i::ConquerInputFromSb) = get_ip_primal_bound(i.children_candidate.optstate)
 get_conquer_input_ip_dual_bound(i::ConquerInputFromSb) = get_ip_dual_bound(i.children_candidate.optstate)
+get_global_primal_handler(i::ConquerInputFromSb) = i.global_primal_handler
 get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
 
@@ -257,23 +258,13 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
     # strong branching procedure but also the best primal bound found so far (in the whole optimization).
     update_ip_primal_bound!(child_state, get_ip_primal_bound(ip_primal_sols_found))
-
-    # TODO: We consider that all branching algorithms don't exploit the primal solution 
-    # at the moment.
-    # best_ip_primal_sol = get_best_ip_primal_sol(sbstate)
-    # if !isnothing(best_ip_primal_sol)
-    #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
-    # end
     
     if !ip_gap_closed(child_state)
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
-        input = ConquerInputFromSb(child, units_to_restore)
-        conquer_output = run!(Branching.get_conquer(phase), env, reform, input)
+        conquer_input = ConquerInputFromSb(Branching.get_global_primal_handler(input), child, units_to_restore)
+        conquer_output = run!(Branching.get_conquer(phase), env, reform, conquer_input)
         child.optstate = conquer_output
-        # @show child.optstate
-        # update!(child_state, conquer_output)
-        # @show child_state
         TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true

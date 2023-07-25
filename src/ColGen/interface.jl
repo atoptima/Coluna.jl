@@ -97,7 +97,7 @@ Returns `true` if the new master IP primal solution is better than the current; 
 """
 Updates the current master IP primal solution.
 """
-@mustimplement "ColGenMasterUpdateIncumbent" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
+@mustimplement "ColGenMasterUpdateIncumbent" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol, new_ip_primal_sol) = nothing
 
 ############################################################################################
 # Reduced costs calculation.
