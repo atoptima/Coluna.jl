@@ -45,7 +45,7 @@ TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = n.ip_dual
 
 # TODO move
 function Node(node::SbNode)
-    ip_dual_bound = get_ip_dual_bound(node.optstate)
+    ip_dual_bound = get_lp_dual_bound(node.optstate)
     return Node(
         node.depth, node.branchdescription, node.optstate, ip_dual_bound,
         node.records, node.conquerwasrun
@@ -227,6 +227,7 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
 
     # TODO: remove later but we currently need it to print information in the json file.
     current.conquer_output = conquer_output
+    current.ip_dual_bound = get_lp_dual_bound(conquer_output)
     return
 end
 

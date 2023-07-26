@@ -72,7 +72,7 @@ function run_colgen_phase!(context, phase, stage, env, ip_primal_sol, stab; iter
     iteration = iter
     colgen_iter_output = nothing
     incumbent_dual_bound = nothing
-    while !stop_colgen_phase(context, phase, env, colgen_iter_output, incumbent_dual_bound, iteration)
+    while !stop_colgen_phase(context, phase, env, colgen_iter_output, incumbent_dual_bound, ip_primal_sol, iteration)
         before_colgen_iteration(context, phase)
         colgen_iter_output = run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         dual_bound = ColGen.get_dual_bound(colgen_iter_output)

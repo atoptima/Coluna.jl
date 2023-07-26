@@ -176,6 +176,7 @@ function stop_colgen_phase_if_colgen_converged_eq()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         false,
+        Inf,
         99.9998,
         99.9999,
         0,
@@ -189,8 +190,8 @@ function stop_colgen_phase_if_colgen_converged_eq()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_eq)
 
@@ -202,6 +203,7 @@ function stop_colgen_phase_if_colgen_converged_min()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true, # min sense
+        Inf,
         99.9998, # mlp
         100.12, # greater than mlp means colgen has converged
         0,
@@ -215,8 +217,8 @@ function stop_colgen_phase_if_colgen_converged_min()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_min)
 
@@ -228,6 +230,7 @@ function stop_colgen_phase_if_colgen_converged_max()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         false, # max sense
+        Inf,
         99.9998, # mlp
         99.9, # lower than mlp means colgen has converged
         0,
@@ -241,8 +244,8 @@ function stop_colgen_phase_if_colgen_converged_max()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_colgen_converged_max)
 
@@ -254,6 +257,7 @@ function stop_colgen_phase_if_iterations_limit()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         65.87759,
         29.869,
         6,
@@ -267,8 +271,8 @@ function stop_colgen_phase_if_iterations_limit()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_iterations_limit)
 
@@ -280,6 +284,7 @@ function stop_colgen_phase_if_time_limit()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         65.87759,
         29.869,
         6,
@@ -293,8 +298,8 @@ function stop_colgen_phase_if_time_limit()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_time_limit)
 
@@ -306,6 +311,7 @@ function stop_colgen_phase_if_subproblem_infeasible()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         87859,
         890,
         1,
@@ -319,8 +325,8 @@ function stop_colgen_phase_if_subproblem_infeasible()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_subproblem_infeasible)
 
@@ -332,6 +338,7 @@ function stop_colgen_phase_if_subproblem_unbounded()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         87859,
         890,
         1,
@@ -345,8 +352,8 @@ function stop_colgen_phase_if_subproblem_unbounded()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_subproblem_unbounded)
 
@@ -358,6 +365,7 @@ function stop_colgen_phase_if_master_unbounded()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         87859,
         890,
         1,
@@ -371,8 +379,8 @@ function stop_colgen_phase_if_master_unbounded()
         nothing,
         nothing
     )
-
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_master_unbounded)
 
@@ -384,6 +392,7 @@ function stop_colgen_phase_if_no_new_column()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         87859,
         890,
         0,
@@ -397,7 +406,8 @@ function stop_colgen_phase_if_no_new_column()
         nothing,
         nothing
     )
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_no_new_column)
 
@@ -409,6 +419,7 @@ function stop_colgen_phase_if_new_cut_in_master()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         87859,
         890,
         1,
@@ -422,7 +433,8 @@ function stop_colgen_phase_if_new_cut_in_master()
         nothing,
         nothing
     )
-    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase0(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase0(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", stop_colgen_phase_if_new_cut_in_master)
 
@@ -434,6 +446,7 @@ function continue_colgen_phase_otherwise()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         87859,
         890,
         1,
@@ -447,7 +460,8 @@ function continue_colgen_phase_otherwise()
         nothing,
         nothing
     )
-    @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration)
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test !ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration)
 end
 register!(unit_tests, "colgen_phase", continue_colgen_phase_otherwise)
 
@@ -459,6 +473,7 @@ function stop_when_inf_db()
 
     colgen_iter_output = ClA.ColGenIterationOutput(
         true,
+        Inf,
         4578,
         Inf,
         1,
@@ -472,11 +487,10 @@ function stop_when_inf_db()
         nothing,
         nothing
     )
-
-    @test_broken ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, colgen_iteration) 
+    ip_primal_sol = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    @test ColGen.stop_colgen_phase(ctx, ClA.ColGenPhase1(), env, colgen_iter_output, colgen_iter_output.db, ip_primal_sol, colgen_iteration) 
 end
 register!(unit_tests, "colgen_phase", stop_when_inf_db)
-
 
 function infeasible_phase_output()
 
@@ -484,6 +498,7 @@ function infeasible_phase_output()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
 
     colgen_phase_output = ClA.ColGenPhaseOutput(
+        nothing,
         nothing,
         nothing,
         nothing,

@@ -123,14 +123,14 @@ function ColGen.colgen_iteration_output_type(ctx::ColGenPrinterContext)
     return ColGen.colgen_iteration_output_type(ctx.inner)
 end
 
-function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
-    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
+function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, inc_dual_bound, ip_primal_sol, colgen_iteration)
+    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, inc_dual_bound, ip_primal_sol, colgen_iteration)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
 
 function _colgen_iter_str(
-    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64, alpha, pb
+    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64, alpha
 )
     phase_string = "  "
     if phase == 1
@@ -173,6 +173,7 @@ function _colgen_iter_str(
 
     mlp::Float64 = colgen_iter_output.mlp
     db::Float64 = colgen_iter_output.db
+    pb::Float64 = colgen_iter_output.ipb
 
     nb_new_col::Int = ColGen.get_nb_new_cols(colgen_iter_output)
 
@@ -183,7 +184,7 @@ function _colgen_iter_str(
 end
 
 function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, ip_primal_sol, colgen_iter_output)
-    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), ColGen.get_output_str(stab), getvalue(get_global_primal_bound(ip_primal_sol))))
+    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), ColGen.get_output_str(stab)))
     return
 end
 

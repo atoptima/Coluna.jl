@@ -30,7 +30,6 @@ function test_treesearch_gap_1()
 
     optimize!(model)
     @test_broken JuMP.termination_status(model) == MOI.INFEASIBLE
-
 end
 register!(e2e_tests, "treesearch", test_treesearch_gap_1)
 
