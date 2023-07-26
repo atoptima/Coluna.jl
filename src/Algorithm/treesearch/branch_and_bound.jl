@@ -180,7 +180,7 @@ end
 function TreeSearch.new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
 )
-    optstate = OptimizationState(getmaster(reform), input, false, false)
+    optstate = OptimizationState(getmaster(reform))
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
@@ -196,7 +196,7 @@ function TreeSearch.new_space(
         optstate,
         0,
         LeavesStatus(reform),
-        GlobalPrimalBoundHandler(reform)
+        GlobalPrimalBoundHandler(reform; ip_primal_bound = get_ip_primal_bound(input))
     )
 end
 
