@@ -154,8 +154,6 @@ set_previous!(sp::BaBSearchSpace, previous::Node) = sp.previous = previous
 # Tree search implementation
 ############################################################################################
 function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
-    @show space.nb_nodes_treated
-    @show space.max_num_nodes
     return space.nb_nodes_treated > space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
 end
 

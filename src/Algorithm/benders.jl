@@ -1,31 +1,94 @@
 """
     Coluna.Algorithm.BendersCutGeneration(
-        restr_master_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true),
+        restr_master_solve_alg = SolveLpForm(get_dual_sol = true, relax_integrality = true),
         restr_master_optimizer_id = 1,
-        feasibility_tol::Float64 = 1e-5,
-        optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL,
+        separation_solve_alg = SolveLpForm(get_dual_sol = true, relax_integrality = true)
         max_nb_iterations::Int = 100,
-        separation_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
     )
 
 Benders cut generation algorithm that can be applied to a formulation reformulated using
 Benders decomposition.
+
+This algorithm is an implementation of the generic algorithm provided by the `Benders`
+submodule.
+
+**Parameters:**
+- `restr_master_solve_alg`: algorithm to solve the restricted master problem
+- `restr_master_optimizer_id`: optimizer id to use to solve the restricted master problem
+- `separation_solve_alg`: algorithm to solve the separation problem (must be a LP solver that returns a dual solution)
+
+**Option:**
+- `max_nb_iterations`: maximum number of iterations
+
+## About the output
+
+At each iteration, the Benders cut generation algorithm show following statistics:
+
+    <it=  6> <et= 0.05> <mst= 0.00> <sp= 0.00> <cuts= 0> <master=  293.5000>
+
+where:
+- `it` stands for the current number of iterations of the algorithm
+- `et` is the elapsed time in seconds since Coluna has started the optimisation
+- `mst` is the time in seconds spent solving the master problem at the current iteration
+- `sp` is the time in seconds spent solving the separation problem at the current iteration
+- `cuts` is the number of cuts generated at the current iteration
+- `master` is the objective value of the master problem at the current iteration
+
+**Debug options** (print at each iteration):
+- `debug_print_master`: print the master problem
+- `debug_print_master_primal_solution`: print the master problem with the primal solution
+- `debug_print_master_dual_solution`: print the master problem with the dual solution (make sure the `restr_master_solve_alg` returns a dual solution)
+- `debug_print_subproblem`: print the subproblem
+- `debug_print_subproblem_primal_solution`: print the subproblem with the primal solution
+- `debug_print_subproblem_dual_solution`: print the subproblem with the dual solution
+- `debug_print_generated_cuts`: print the generated cuts
 """
-@with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
-    restr_master_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
-    restr_master_optimizer_id = 1
-    feasibility_tol::Float64 = 1e-5
-    optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-    max_nb_iterations::Int = 100
-    separation_solve_alg = SolveLpForm(get_dual_solution = true, relax_integrality = true)
-    print::Bool = true
-    debug_print_master::Bool = false
-    debug_print_master_primal_solution::Bool = false
-    debug_print_master_dual_solution::Bool = false
-    debug_print_subproblem::Bool = false
-    debug_print_subproblem_primal_solution::Bool = false
-    debug_print_subproblem_dual_solution::Bool = false
-    debug_print_generated_cuts::Bool = false
+struct BendersCutGeneration <: AbstractOptimizationAlgorithm
+    restr_master_solve_alg::Union{SolveLpForm, SolveIpForm}
+    restr_master_optimizer_id::Int
+    feasibility_tol::Float64
+    optimality_tol::Float64
+    max_nb_iterations::Int
+    separation_solve_alg::SolveLpForm
+    print::Bool
+    debug_print_master::Bool
+    debug_print_master_primal_solution::Bool
+    debug_print_master_dual_solution::Bool
+    debug_print_subproblem::Bool
+    debug_print_subproblem_primal_solution::Bool
+    debug_print_subproblem_dual_solution::Bool
+    debug_print_generated_cuts::Bool
+    BendersCutGeneration(;
+        restr_master_solve_alg = SolveLpForm(get_dual_sol = true, relax_integrality = true),
+        restr_master_optimizer_id = 1,
+        feasibility_tol = 1e-5,
+        optimality_tol = Coluna.DEF_OPTIMALITY_ATOL,
+        max_nb_iterations = 100,
+        separation_solve_alg = SolveLpForm(get_dual_sol = true, relax_integrality = true),
+        print = true,
+        debug_print_master = false,
+        debug_print_master_primal_solution = false,
+        debug_print_master_dual_solution = false,
+        debug_print_subproblem = false,
+        debug_print_subproblem_primal_solution = false,
+        debug_print_subproblem_dual_solution = false,
+        debug_print_generated_cuts = false
+    ) = new(
+        restr_master_solve_alg,
+        restr_master_optimizer_id,
+        feasibility_tol,
+        optimality_tol,
+        max_nb_iterations,
+        separation_solve_alg,
+        print,
+        debug_print_master,
+        debug_print_master_primal_solution,
+        debug_print_master_dual_solution,
+        debug_print_subproblem,
+        debug_print_subproblem_primal_solution,
+        debug_print_subproblem_dual_solution,
+        debug_print_generated_cuts
+    )
 end
 
 # TO DO : BendersCutGeneration does not have yet the child algorithms

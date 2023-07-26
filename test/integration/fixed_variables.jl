@@ -31,7 +31,7 @@
     ClMP.push_optimizer!(form, CL._optimizerbuilder(MOI._instantiate_and_check(GLPK.Optimizer)))
     DynamicSparseArrays.closefillmode!(ClMP.getcoefmatrix(form))
 
-    output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+    output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
 
     primal_sol = ClA.get_best_lp_primal_sol(output)
     dual_sol = ClA.get_best_lp_dual_sol(output)
@@ -46,7 +46,7 @@
     #       x3 >= 3
     ClMP.fix!(form, vars["x1"], 2)
 
-    output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+    output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
     primal_sol = ClA.get_best_lp_primal_sol(output)
     dual_sol = ClA.get_best_lp_dual_sol(output)
     @test ClMP.getvalue(primal_sol) == 16
@@ -60,7 +60,7 @@
     #       x3 >= 3
     ClMP.fix!(form, vars["x2"], 3)
     
-    output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+    output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
     primal_sol = ClA.get_best_lp_primal_sol(output)
     dual_sol = ClA.get_best_lp_dual_sol(output)
     @test ClMP.getvalue(primal_sol) == 17
@@ -74,7 +74,7 @@
     #       x3 == 4
     ClMP.fix!(form, vars["x3"], 4)
 
-    output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+    output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
     primal_sol = ClA.get_best_lp_primal_sol(output)
     dual_sol = ClA.get_best_lp_dual_sol(output)
     @test ClMP.getvalue(primal_sol) == 20
@@ -85,7 +85,7 @@
 
     ClMP.unfix!(form, vars["x3"])
 
-    output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+    output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
     primal_sol = ClA.get_best_lp_primal_sol(output)
     dual_sol = ClA.get_best_lp_dual_sol(output)
 
@@ -95,7 +95,7 @@
 
     ClMP.setcurlb!(form, vars["x3"], 3)
     ClMP.setcurub!(form, vars["x3"], Inf)
-    output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+    output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
     primal_sol = ClA.get_best_lp_primal_sol(output)
     dual_sol = ClA.get_best_lp_dual_sol(output)
 
