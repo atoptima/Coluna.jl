@@ -68,26 +68,18 @@ end
 """
     Coluna.Algorithm.ColCutGenConquer(
         colgen = ColumnGeneration(),
-        primal_heuristics = ParameterizedHeuristic[ParamRestrictedMasterHeuristic()],
         cutgen = CutCallbacks(),
+        primal_heuristics = ParameterizedHeuristic[ParamRestrictedMasterHeuristic()],
         max_nb_cut_rounds = 3
     )
 
 Column-and-cut-generation based algorithm to find primal and dual bounds for a 
 problem decomposed using Dantzig-Wolfe paradigm.
 
-This algorithm applies a set of column generation algorithms whose definitions are
-stored in `stages`. These algorithms are called in the reverse order of vector `stages`.
-So usually, the first stage is the one with exact pricing, and other stages use heuristic pricing (the higher is the position of the stage, 
-the faster is the heuristic).
-
-This algorithm also applies `cutgen` for the cut generation phase.
-It can apply several primal heuristics stored in `primal_heuristics` to more efficiently find feasible solutions.
-
 Parameters :
-- `stages`: column generation algorithms from the exact one to the most heuristic one
-- `primal_heuristics`: heuristics to find a feasible solution
+- `colgen`: column generation algorithm
 - `cutgen`: cut generation algorithm
+- `primal_heuristics`: heuristics to find a feasible solution
 - `max_nb_cut_rounds` : number of cut generation done by the algorithm
 """
 struct ColCutGenConquer <: AbstractConquerAlgorithm 
@@ -392,9 +384,18 @@ end
 ####################################################################
 #                      RestrMasterLPConquer
 ####################################################################
+"""
+    RestrMasterLPConquer(
+        masterlpalgo = SolveLpForm(
+            get_ip_primal_sol = true
+        )
+    )
+
+Conquer algorithm that solves the master problem using a linear programming solver.
+"""
 @with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm
     masterlpalgo::SolveLpForm = SolveLpForm(
-        update_ip_primal_solution = true
+        get_ip_primal_sol = true
     )
 end
 

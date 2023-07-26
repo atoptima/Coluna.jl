@@ -8,8 +8,9 @@
         timelimit = -1, # -1 means no time limit
         opt_atol::Float64 = DEF_OPTIMALITY_ATOL,
         opt_rtol::Float64 = DEF_OPTIMALITY_RTOL,
-        branchingtreefile = ""
-        jsonfile = ""
+        branchingtreefile = "",
+        jsonfile = "",
+        print_node_info = true
     )
 
 This algorithm is a branch and bound that uses a search tree to optimize the reformulation.
@@ -17,16 +18,22 @@ At each node in the tree, it applies `conqueralg` to evaluate the node and impro
 `dividealg` to generate branching constraints, and `explorestrategy`
 to select the next node to treat.
 
-Parameters : 
+The three main elements of the algorithm are:
+- the conquer strategy (`conqueralg`): evaluation of the problem at a node of the Branch-and-Bound tree. Depending on the type of decomposition used ahead of the Branch-and-Bound, you can use either Column Generation (if your problem is decomposed following Dantzig-Wolfe transformation) and/or Cut Generation (for Dantzig-Wolfe and Benders decompositions). 
+- the branching strategy (`dividealg`): how to create new branches i.e. how to divide the search space
+- the explore strategy (`explorestrategy`): the evaluation order of your nodes 
+
+Parameters: 
 - `maxnumnodes` : maximum number of nodes explored by the algorithm
 - `opennodeslimit` : maximum number of nodes waiting to be explored
 - `timelimit` : time limit in seconds of the algorithm
 - `opt_atol` : optimality absolute tolerance (alpha)
 - `opt_rtol` : optimality relative tolerance (alpha)
 
-Options :
+Options:
 - `branchingtreefile` : name of the file in which the algorithm writes an overview of the branching tree
 - `jsonfile` : name of the file in which the algorithm writes the solution in JSON format
+- `print_node_info` : log the tree into the console
 
 **Warning**: if you set a name for the `branchingtreefile` AND the `jsonfile`, the algorithm will only write
 in the json file.

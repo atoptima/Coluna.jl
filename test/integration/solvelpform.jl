@@ -37,7 +37,7 @@
         @test ClMP.getcurlb(form, vars["x1"]) == ClMP.getcurub(form, vars["x1"]) == 2
         @test ClMP.getcurlb(form, vars["x2"]) == ClMP.getcurub(form, vars["x2"]) == 3
 
-        output = ClA.run!(ClA.SolveLpForm(get_dual_solution = true), env, form, ClA.OptimizationState(form))
+        output = ClA.run!(ClA.SolveLpForm(get_dual_sol = true), env, form, ClA.OptimizationState(form))
 
         primal_sol = ClA.get_best_lp_primal_sol(output)
         dual_sol = ClA.get_best_lp_dual_sol(output)

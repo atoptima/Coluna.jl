@@ -18,8 +18,6 @@ get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
 ############################################################################################
 
 """
-    NoBranching
-
 Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: AlgoAPI.AbstractDivideAlgorithm end
@@ -36,9 +34,17 @@ end
     ClassicBranching(
         selection_criterion = MostFractionalCriterion()
         rules = [Branching.PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+        int_tol = 1e-6
     )
 
 Chooses the best candidate according to a selection criterion and generates the two children.
+
+**Parameters**
+- `selection_criterion`: selection criterion to choose the best candidate
+- `rules`: branching rules to generate the candidates
+- `int_tol`: tolerance to determine if a variable is integer
+
+It is implemented as a specific case of the strong branching algorithm.
 """
 struct ClassicBranching <: AlgoAPI.AbstractDivideAlgorithm
     selection_criterion::Branching.AbstractSelectionCriterion
@@ -131,10 +137,11 @@ Branching.new_divide_output(::Nothing, optimization_state) = DivideOutput(SbNode
 # Branching API implementation for the strong branching
 ############################################################################################
 """
-    BranchingPhase(max_nb_candidates, conquer_algo)
+    BranchingPhase(max_nb_candidates, conquer_algo, score)
 
 Define a phase in strong branching. It contains the maximum number of candidates
-to evaluate and the conquer algorithm which does evaluation.
+to evaluate, the conquer algorithm which does evaluation, and the score used to sort the 
+candidates.
 """
 struct BranchingPhase
     max_nb_candidates::Int64
@@ -143,7 +150,13 @@ struct BranchingPhase
 end
 
 """
-    StrongBranching
+    StrongBranching(
+        phases = [],
+        rules = [Branching.PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)],
+        selection_criterion = MostFractionalCriterion(),
+        verbose = true,
+        int_tol = 1e-6
+    )
 
 The algorithm that performs a (multi-phase) (strong) branching in a tree search algorithm.
 
@@ -162,6 +175,14 @@ branching candidates. This is called a **phase**. The goal is to first evaluate 
 of candidates with a very fast conquer algorithm and retain a certain number of promising ones. 
 Then, over the phases, it evaluates the improvement with a more precise conquer algorithm and
 restrict the number of retained candidates until only one is left.
+
+**Parameters**:
+
+- `phases`: a vector of [`Coluna.Algorithm.BranchingPhase`](@ref)
+- `rules`: a vector of [`Coluna.Algorithm.Branching.PrioritisedBranchingRule`](@ref)
+- `selection_criterion`: a selection criterion to choose the initial candidates
+- `verbose`: if true, print the progress of the strong branching procedure
+- `int_tol`: tolerance to determine if a variable is integer
 """
 struct StrongBranching <: AlgoAPI.AbstractDivideAlgorithm
     phases::Vector{BranchingPhase}

@@ -1,5 +1,19 @@
 """
-todo
+    CutCallbacks(
+        call_robust_facultative = true,
+        call_robust_essential = true,
+        tol::Float64 = 1e-6
+    )
+
+Runs the cut user callbacks attached to a formulation.
+
+**Parameters:**
+- `call_robust_facultative`: if true, call all the robust facultative cut user callbacks (i.e. user cut callbacks)
+- `call_robust_essential`: if true, call all the robust essential cut user callbacks (i.e. lazy constraint callbacks)
+- `tol`: tolerance used to determine if a cut is violated
+
+See the JuMP documentation for more information about user callbacks and the tutorials in the
+Coluna documentation for examples of user callbacks.
 """
 @with_kw struct CutCallbacks <: AlgoAPI.AbstractAlgorithm
     call_robust_facultative = true
