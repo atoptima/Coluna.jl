@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Cut Generation · Coluna.jl</title><meta name="title" content="Cut Generation · Coluna.jl"/><meta property="og:title" content="Cut Generation · Coluna.jl"/><meta property="twitter:title" content="Cut Generation · Coluna.jl"/><meta name="description" content="Documentation for Coluna.jl."/><meta property="og:description" content="Documentation for Coluna.jl."/><meta property="twitter:description" content="Documentation for Coluna.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Tutorials</span><ul><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox" checked/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li class="is-active"><a class="tocitem" href>Cut Generation</a><ul class="internal"><li><a class="tocitem" href="#Column-generation"><span>Column generation</span></a></li><li><a class="tocitem" href="#Strengthen-with-valid-inequalities"><span>Strengthen with valid inequalities</span></a></li></ul></li><li><a class="tocitem" href="../pricing/">Pricing callback</a></li><li><a class="tocitem" href="../identical_sp/">Identical subproblems</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li><a class="tocitem" href="../initial_columns/">Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../advanced_demo/">Column Generation and Benders on Location Routing</a></li><li><a class="tocitem" href="../other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><span class="tocitem">Manual</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms for Branch-and-Bound</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/check_algos/">Verification of algorithms parameters and consistency</a></li><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Getting Started</a></li><li class="is-active"><a href>Cut Generation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Cut Generation</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/cuts.jl" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="tuto_cut_callback"><a class="docs-heading-anchor" href="#tuto_cut_callback">Valid inequalities</a><a id="tuto_cut_callback-1"></a><a class="docs-heading-anchor-permalink" href="#tuto_cut_callback" title="Permalink"></a></h1><p>Now let us consider a variant of the Generalized Assignment Problem in which we have to pay <code>f[m]</code> to use machine <code>m</code>.</p><p>Consider the following instance:</p><pre><code class="language-julia hljs">J = 1:10
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Cut Generation · Coluna.jl</title><meta name="title" content="Cut Generation · Coluna.jl"/><meta property="og:title" content="Cut Generation · Coluna.jl"/><meta property="twitter:title" content="Cut Generation · Coluna.jl"/><meta name="description" content="Documentation for Coluna.jl."/><meta property="og:description" content="Documentation for Coluna.jl."/><meta property="twitter:description" content="Documentation for Coluna.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Tutorials</span><ul><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox" checked/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li class="is-active"><a class="tocitem" href>Cut Generation</a><ul class="internal"><li><a class="tocitem" href="#Column-generation"><span>Column generation</span></a></li><li><a class="tocitem" href="#Strengthen-with-valid-inequalities"><span>Strengthen with valid inequalities</span></a></li></ul></li><li><a class="tocitem" href="../pricing/">Pricing callback</a></li><li><a class="tocitem" href="../identical_sp/">Identical subproblems</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li><a class="tocitem" href="../initial_columns/">Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../advanced_demo/">Column Generation and Benders on Location Routing</a></li><li><a class="tocitem" href="../other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><span class="tocitem">Manual</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/check_algos/">Verification of algorithms parameters and consistency</a></li><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Getting Started</a></li><li class="is-active"><a href>Cut Generation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Cut Generation</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/cuts.jl" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="tuto_cut_callback"><a class="docs-heading-anchor" href="#tuto_cut_callback">Valid inequalities</a><a id="tuto_cut_callback-1"></a><a class="docs-heading-anchor-permalink" href="#tuto_cut_callback" title="Permalink"></a></h1><p>Now let us consider a variant of the Generalized Assignment Problem in which we have to pay <code>f[m]</code> to use machine <code>m</code>.</p><p>Consider the following instance:</p><pre><code class="language-julia hljs">J = 1:10
 M = 1:5
 c = [10.13 15.6 15.54 13.41 17.08;19.58 16.83 10.75 15.8 14.89;14.23 17.36 16.05 14.49 18.96;16.47 16.38 18.14 15.46 11.64;17.87 18.25 13.12 19.16 16.33;11.09 16.76 15.5 12.08 13.06;15.19 13.86 16.08 19.47 15.79;10.79 18.96 16.11 19.78 15.55;12.03 19.03 16.01 14.46 12.77;14.48 11.75 16.97 19.95 18.32];
 w = [5, 4, 5, 6, 8, 9, 5, 8, 10, 7];
@@ -28,51 +28,45 @@ f = [105, 103, 109, 112, 100];</code></pre><p>We define the dependencies:</p><pr
 sp = getsubproblems(dec);
 specify!.(sp, lower_multiplicity = 0);</code></pre><p>We optimize:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
 Version 0.6.4 | https://github.com/atoptima/Coluna.jl
-space.nb_nodes_treated = 0
-space.max_num_nodes = 1
 ***************************************************************************************
 **** B&amp;B tree root node
 **** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.30 sec.
 ***************************************************************************************
   &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129067.4700&gt; &lt;mlp=30340.5500&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129002.2333&gt; &lt;mlp=10387.9067&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-124551.9400&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  226.4800&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  352.6265&gt; &lt;mlp=  409.0543&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  371.9757&gt; &lt;mlp=  403.6843&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129002.2333&gt; &lt;mlp=10387.9067&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-124551.9400&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  226.4800&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  352.6265&gt; &lt;mlp=  409.0543&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  371.9757&gt; &lt;mlp=  403.6843&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  368.5750&gt; &lt;mlp=  401.9750&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.0733&gt; &lt;mlp=  400.4972&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  399.6613&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.4304&gt; &lt;mlp=  399.1104&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.9700&gt; &lt;mlp=  397.9019&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.7520&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  394.2254&gt; &lt;mlp=  397.4754&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.4304&gt; &lt;mlp=  399.1104&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.9700&gt; &lt;mlp=  397.9019&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.7520&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  394.2254&gt; &lt;mlp=  397.4754&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  391.7204&gt; &lt;mlp=  397.2904&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  395.4033&gt; &lt;mlp=  396.6133&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  395.4817&gt; &lt;mlp=  396.4117&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
-space.nb_nodes_treated = 1
-space.max_num_nodes = 1
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = 396.2954, global bounds: [ -Inf , Inf ], time = 0.69 sec.
+**** Local DB = 396.2954, global bounds: [ -Inf , Inf ], time = 0.67 sec.
 **** Branching constraint: x[4,5]&lt;=0.0
 ***************************************************************************************
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  395.0825&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  396.6625&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
-space.nb_nodes_treated = 2
-space.max_num_nodes = 1
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  395.0825&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  396.6625&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         3.45s /  26.4%            246MiB /  30.5%
+    Tot / % measured:         3.35s /  26.6%            246MiB /  30.5%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1    910ms  100.0%   910ms   75.1MiB  100.0%  75.1MiB
-   SolveLpForm       21   5.46ms    0.6%   260μs   1.96MiB    2.6%  95.6KiB
+ Coluna               1    890ms  100.0%   890ms   75.1MiB  100.0%  75.1MiB
+   SolveLpForm       21   5.49ms    0.6%   261μs   1.96MiB    2.6%  95.5KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -114,8 +108,6 @@ end
 
 MathOptInterface.set(model, MathOptInterface.UserCutCallback(), fenchel_cuts_separation);</code></pre><p>We optimize:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
 Version 0.6.4 | https://github.com/atoptima/Coluna.jl
-space.nb_nodes_treated = 0
-space.max_num_nodes = 1
 ***************************************************************************************
 **** B&amp;B tree root node
 **** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
@@ -129,75 +121,71 @@ space.max_num_nodes = 1
   &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  362.3267&gt; &lt;mlp=  402.3358&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  385.0617&gt; &lt;mlp=  399.5343&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  390.4015&gt; &lt;mlp=  398.6638&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  393.8229&gt; &lt;mlp=  398.4946&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  393.8229&gt; &lt;mlp=  398.4946&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  394.9617&gt; &lt;mlp=  397.2817&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  393.6533&gt; &lt;mlp=  396.9033&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.54, max. viol. = 0.54, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.2138&gt; &lt;mlp=  399.0262&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.6600&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.2138&gt; &lt;mlp=  399.0262&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.6600&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.50, max. viol. = 0.50, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  397.4890&gt; &lt;mlp=  399.9314&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  397.4890&gt; &lt;mlp=  399.9314&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.26, max. viol. = 0.26, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  401.3697&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  401.3697&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.42, max. viol. = 0.42, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.24, max. viol. = 0.24, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.21, max. viol. = 0.21, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.15, max. viol. = 0.15, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-15324.7000&gt; &lt;mlp=  952.6467&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.8555&gt; &lt;mlp=  444.2745&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  437.5650&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  436.6800&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 1.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  439.9550&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 1.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.2100&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 1.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3875&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 1.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-15324.7000&gt; &lt;mlp=  952.6467&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.8555&gt; &lt;mlp=  444.2745&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  437.5650&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  436.6800&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  439.9550&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.2100&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3875&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
 Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
-space.nb_nodes_treated = 1
-space.max_num_nodes = 1
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = 440.3950, global bounds: [ -Inf , Inf ], time = 1.72 sec.
+**** Local DB = 440.3950, global bounds: [ -Inf , Inf ], time = 1.69 sec.
 **** Branching constraint: x[3,1]&lt;=0.0
 ***************************************************************************************
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  439.0900&gt; &lt;mlp=  441.5150&gt; &lt;PB=446.9300&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  439.0900&gt; &lt;mlp=  441.5150&gt; &lt;PB=446.9300&gt;
 Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  439.8375&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.1300&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
-  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.5500&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
-space.nb_nodes_treated = 2
-space.max_num_nodes = 1
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  439.8375&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.1300&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.5500&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         4.29s /  42.6%            341MiB /  52.0%
+    Tot / % measured:         4.18s /  43.0%            341MiB /  52.0%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1    1.83s  100.0%   1.83s    177MiB  100.0%   177MiB
-   SolveLpForm       35   12.1ms    0.7%   344μs   4.32MiB    2.4%   126KiB
+ Coluna               1    1.80s  100.0%   1.80s    177MiB  100.0%   177MiB
+   SolveLpForm       35   12.0ms    0.7%   342μs   4.31MiB    2.4%   126KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 440.55
@@ -209,4 +197,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Tuesday 25 July 2023 15:26">Tuesday 25 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Wednesday 26 July 2023 08:24">Wednesday 26 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
