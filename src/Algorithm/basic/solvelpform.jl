@@ -1,6 +1,7 @@
 """
     Coluna.Algorithm.SolveLpForm(
-        get_dual_solution = false,
+        get_ip_primal_sol = false,
+        get_dual_sol = false,
         relax_integrality = false,
         get_dual_bound = false,
         silent = true
@@ -13,20 +14,27 @@ You can define the optimizer using the `default_optimizer` attribute of Coluna o
 with the method `specify!` from BlockDecomposition
 
 Parameters:
-- `get_dual_solution`: retrieve the dual solution and store it in the ouput if equals `true`
+- `get_ip_primal_sol`: update the primal solution of the formulation if equals `true`
+- `get_dual_sol`: retrieve the dual solution and store it in the ouput if equals `true`
 - `relax_integrality`: relax integer variables of the formulation before optimization if equals `true`
 - `get_dual_bound`: store the dual objective value in the output if equals `true`
 - `silent`: set `MOI.Silent()` to its value
 
 Undocumented parameters are alpha.
 """
-@with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm
-    update_ip_primal_solution = false
-    get_dual_solution = false
-    relax_integrality = false
-    get_dual_bound = false
-    silent = true
-    log_level = 2
+struct SolveLpForm <: AbstractOptimizationAlgorithm
+    get_ip_primal_sol::Bool
+    get_dual_sol::Bool
+    relax_integrality::Bool
+    get_dual_bound::Bool
+    silent::Bool
+    SolveLpForm(;
+        get_ip_primal_sol = false,
+        get_dual_sol = false,
+        relax_integrality = false,
+        get_dual_bound = false,
+        silent = true
+    ) = new(get_ip_primal_sol, get_dual_sol, relax_integrality, get_dual_bound, silent)
 end
 
 # SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
@@ -60,7 +68,7 @@ function optimize_lp_form!(
         enforce_integrality = false,
         relax_integrality = algo.relax_integrality,
         get_dual_bound = algo.get_dual_bound,
-        get_dual_solution = algo.get_dual_solution,
+        get_dual_solution = algo.get_dual_sol,
         silent = algo.silent
     )
     optimize_with_moi!(optimizer, form, moi_params, result)
@@ -85,7 +93,7 @@ function run!(
 
     coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
 
-    if algo.get_dual_solution
+    if algo.get_dual_sol
         dual_sols = get_dual_solutions(form, optimizer)
         if length(dual_sols) > 0
             lp_dual_sol_pos = argmax(coeff * getvalue.(dual_sols))
@@ -104,7 +112,7 @@ function run!(
         add_lp_primal_sol!(result, lp_primal_sol)
         pb = PrimalBound(form, getvalue(lp_primal_sol))
         set_lp_primal_bound!(result, pb)
-        if algo.update_ip_primal_solution && isinteger(lp_primal_sol) && 
+        if algo.get_ip_primal_sol && isinteger(lp_primal_sol) && 
             !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
             add_ip_primal_sol!(result, lp_primal_sol)
         end

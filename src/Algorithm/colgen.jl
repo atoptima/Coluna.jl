@@ -1,6 +1,6 @@
 """
     Coluna.Algorithm.ColumnGeneration(
-        restr_master_solve_alg = SolveLpForm(get_dual_solution = true),
+        restr_master_solve_alg = SolveLpForm(get_dual_sol = true),
         pricing_prob_solve_alg = SolveIpForm(
             moi_params = MoiOptimize(
                 deactivate_artificial_vars = false,
@@ -30,12 +30,12 @@ The algorithm stops when all subproblems fail to generate a column with negative
 (positive) reduced cost in the case of a minimization (maximization) problem or when it
 reaches the maximum number of iterations.
 
-Parameters : 
+**Parameters:** 
 - `restr_master_solve_alg`: algorithm to optimize the master LP
 - `pricing_prob_solve_alg`: algorithm to optimize the subproblems
 - `essential_cut_gen_alg`: algorithm to generate essential cuts which is run when the solution of the master LP is integer.
 
-Options:
+**Options:**
 - `max_nb_iterations`: maximum number of iterations
 - `log_print_frequency`: display frequency of iterations statistics
 
@@ -59,32 +59,69 @@ Here are their meanings :
 - `mlp` is the objective value of the master LP at the current iteration
 - `PB` is the objective value of the best primal solution found by Coluna at the current iteration
 """
-@with_kw struct ColumnGeneration <: AbstractOptimizationAlgorithm
-    restr_master_solve_alg = SolveLpForm(get_dual_solution=true)
-    restr_master_optimizer_id = 1
-    # TODO : pricing problem solver may be different depending on the
-    #       pricing subproblem
-    pricing_prob_solve_alg = SolveIpForm(
-        moi_params = MoiOptimize(
-            deactivate_artificial_vars = false,
-            enforce_integrality = false
-        )
+struct ColumnGeneration <: AbstractOptimizationAlgorithm
+    restr_master_solve_alg::SolveLpForm
+    restr_master_optimizer_id::Int
+    pricing_prob_solve_alg::SolveIpForm
+    stages_pricing_solver_ids::Vector{Int}
+    essential_cut_gen_alg::CutCallbacks
+    max_nb_iterations::Int64
+    log_print_frequency::Int64
+    store_all_ip_primal_sols::Bool
+    redcost_tol::Float64
+    show_column_already_inserted_warning::Bool
+    throw_column_already_inserted_warning::Bool
+    solve_subproblems_parallel::Bool 
+    cleanup_threshold::Int64 
+    cleanup_ratio::Float64
+    smoothing_stabilization::Float64
+    opt_atol::Float64
+    opt_rtol::Float64
+    print::Bool
+    ColumnGeneration(;
+        restr_master_solve_alg = SolveLpForm(get_dual_sol=true),
+        restr_master_optimizer_id = 1,
+        pricing_prob_solve_alg = SolveIpForm(
+            moi_params = MoiOptimize(
+                deactivate_artificial_vars = false,
+                enforce_integrality = false
+            )
+        ),
+        stages_pricing_solver_ids = [1],
+        essential_cut_gen_alg = CutCallbacks(call_robust_facultative=false),
+        max_nb_iterations = 1000,
+        log_print_frequency = 1,
+        store_all_ip_primal_sols = false,
+        redcost_tol = 1e-4,
+        show_column_already_inserted_warning = true,
+        throw_column_already_inserted_warning = false,
+        solve_subproblems_parallel = false,
+        cleanup_threshold = 10000,
+        cleanup_ratio = 0.66,
+        smoothing_stabilization = 0.0, # should be in [0, 1]
+        opt_atol = Coluna.DEF_OPTIMALITY_ATOL,
+        opt_rtol = Coluna.DEF_OPTIMALITY_RTOL,
+        print = true
+    ) = new(
+        restr_master_solve_alg,
+        restr_master_optimizer_id,
+        pricing_prob_solve_alg,
+        stages_pricing_solver_ids,
+        essential_cut_gen_alg,
+        max_nb_iterations,
+        log_print_frequency,
+        store_all_ip_primal_sols,
+        redcost_tol,
+        show_column_already_inserted_warning,
+        throw_column_already_inserted_warning,
+        solve_subproblems_parallel,
+        cleanup_threshold,
+        cleanup_ratio,
+        smoothing_stabilization,
+        opt_atol,
+        opt_rtol,
+        print
     )
-    stages_pricing_solver_ids = [1]
-    essential_cut_gen_alg = CutCallbacks(call_robust_facultative=false)
-    max_nb_iterations::Int64 = 1000
-    log_print_frequency::Int64 = 1
-    store_all_ip_primal_sols::Bool = false
-    redcost_tol::Float64 = 1e-4
-    show_column_already_inserted_warning = true
-    throw_column_already_inserted_warning = false
-    solve_subproblems_parallel::Bool = false
-    cleanup_threshold::Int64 = 10000
-    cleanup_ratio::Float64 = 0.66
-    smoothing_stabilization::Float64 = 0.0 # should be in [0, 1]
-    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-    opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
-    print::Bool = true
 end
 
 ############################################################################################

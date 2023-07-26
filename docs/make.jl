@@ -60,7 +60,7 @@ makedocs(
                 "Setup decomposition using BlockDecomposition" => joinpath("man", "blockdecomposition.md")
             ],
             "Configuration" => joinpath("man", "config.md"),
-            "Built-in algorithms for Branch-and-Bound" => joinpath("man", "algorithm.md"),
+            "Built-in algorithms" => joinpath("man", "algorithm.md"),
             "User-defined Callbacks"   => joinpath("man", "callbacks.md"),
         ],
         "API" => Any[

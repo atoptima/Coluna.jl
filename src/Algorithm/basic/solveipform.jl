@@ -34,11 +34,17 @@ three configurations :
 
 Custom solver is undocumented because alpha.
 """
-@with_kw struct SolveIpForm <: AbstractOptimizationAlgorithm
-    optimizer_id::Int = 1
-    moi_params::MoiOptimize = MoiOptimize()
-    user_params::UserOptimize = UserOptimize()
-    custom_params::CustomOptimize = CustomOptimize()
+struct SolveIpForm <: AbstractOptimizationAlgorithm
+    optimizer_id::Int
+    moi_params::MoiOptimize
+    user_params::UserOptimize
+    custom_params::CustomOptimize
+    SolveIpForm(;
+        optimizer_id = 1,
+        moi_params = MoiOptimize(),
+        user_params = UserOptimize(),
+        custom_params = CustomOptimize()
+    ) = new(optimizer_id, moi_params, user_params, custom_params)
 end
 
 # SolveIpForm does not have child algorithms, therefore get_child_algorithms() is not defined
@@ -84,7 +90,6 @@ function get_units_usage(
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
     #push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        #push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
         push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
         push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
         push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
@@ -98,7 +103,6 @@ get_units_usage(algo::SolveIpForm, reform::Reformulation) =
 # get_units_usage of UserOptimize
 function get_units_usage(::UserOptimize, spform::Formulation{DwSp}) 
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-    #push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
     return units_usage
 end
 
