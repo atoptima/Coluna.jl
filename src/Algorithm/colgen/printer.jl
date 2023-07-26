@@ -129,12 +129,8 @@ end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
 
-function _get_inc_pb(sol)
-    return isnothing(sol) ? Inf : getvalue(sol)
-end
-
 function _colgen_iter_str(
-    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64, alpha
+    colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64, alpha, pb
 )
     phase_string = "  "
     if phase == 1
@@ -177,7 +173,6 @@ function _colgen_iter_str(
 
     mlp::Float64 = colgen_iter_output.mlp
     db::Float64 = colgen_iter_output.db
-    pb::Float64 = _get_inc_pb(colgen_iter_output.master_ip_primal_sol)
 
     nb_new_col::Int = ColGen.get_nb_new_cols(colgen_iter_output)
 
@@ -187,8 +182,8 @@ function _colgen_iter_str(
     )
 end
 
-function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output)
-    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), ColGen.get_output_str(stab)))
+function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, ip_primal_sol, colgen_iter_output)
+    println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), ColGen.get_output_str(stab), getvalue(get_global_primal_bound(ip_primal_sol))))
     return
 end
 

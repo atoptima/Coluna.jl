@@ -150,7 +150,7 @@ function print_node_in_tree_search_file!(f::JSONFilePrinter, node::PrintedNode, 
     current_parent_id = node.parent_tree_order_id
     local_db = getvalue(node.inner.ip_dual_bound)
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
-    global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
+    global_pb = getvalue(get_global_primal_bound(sp.inner.inc_primal_manager))
     time = elapsed_optim_time(env)
     br_constr_description = TreeSearch.get_branch_description(node.inner)
     gap_closed = ip_gap_closed(node.inner.conquer_output)
@@ -278,7 +278,7 @@ function print_log(
     current_parent_id = node.parent_tree_order_id
     local_db = getvalue(node.inner.ip_dual_bound)
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
-    global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
+    global_pb = getvalue(get_global_primal_bound(sp.inner.inc_primal_manager))
     time = elapsed_optim_time(env)
     br_constr_description = TreeSearch.get_branch_description(node.inner)
 

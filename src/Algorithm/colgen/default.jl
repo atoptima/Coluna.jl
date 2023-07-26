@@ -889,7 +889,7 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
-ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
+ColGen.after_colgen_iteration(ctx::ColGenContext, phase, stage, env, colgen_iteration, stab, ip_primal_sol, colgen_iter_output) = nothing
 
 ColGen.colgen_phase_output_type(::ColGenContext) = ColGenPhaseOutput
 
