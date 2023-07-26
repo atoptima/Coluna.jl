@@ -87,8 +87,9 @@ struct ColGenPhaseOutput <: ColGen.AbstractColGenPhaseOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
     master_lp_dual_sol::Union{Nothing,DualSolution}
-    mlp::Union{Nothing, Float64}
-    db::Union{Nothing, Float64}
+    ipb::Union{Nothing,Float64}
+    mlp::Union{Nothing,Float64}
+    db::Union{Nothing,Float64}
     new_cut_in_master::Bool
     no_more_columns::Bool
     infeasible::Bool
@@ -103,8 +104,9 @@ struct ColGenOutput <: ColGen.AbstractColGenOutput
     master_lp_primal_sol::Union{Nothing,PrimalSolution}
     master_ip_primal_sol::Union{Nothing,PrimalSolution}
     master_lp_dual_sol::Union{Nothing,DualSolution}
-    mlp::Union{Nothing, Float64}
-    db::Union{Nothing, Float64}
+    ipb::Union{Nothing,Float64}
+    mlp::Union{Nothing,Float64}
+    db::Union{Nothing,Float64}
     infeasible::Bool
 end
 
@@ -113,6 +115,7 @@ function ColGen.new_output(::Type{<:ColGenOutput}, output::ColGenPhaseOutput)
         output.master_lp_primal_sol, 
         output.master_ip_primal_sol,
         output.master_lp_dual_sol,
+        output.ipb,
         output.mlp, 
         output.db,
         output.infeasible
@@ -193,12 +196,23 @@ end
 
 colgen_master_has_new_cuts(output::ColGenPhaseOutput) = output.new_cut_in_master
 colgen_uses_exact_stage(output::ColGenPhaseOutput) = output.exact_stage
-colgen_has_converged(output::ColGenPhaseOutput) = !isnothing(output.mlp) && 
-                                                  !isnothing(output.db) && (
-                                                  ( abs(output.mlp - output.db) < 1e-5 ) ||
-                                                  ( (output.min_sense) && (output.db >= output.mlp) ) ||
-                                                  ( !(output.min_sense) && (output.db <= output.mlp) ) 
-                                                  )
+
+function colgen_has_converged(output::ColGenPhaseOutput)
+    # Check if master LP and dual bound converged.
+    db_mlp =  !isnothing(output.mlp) && !isnothing(output.db) && (
+        abs(output.mlp - output.db) < 1e-5 ||
+        (output.min_sense && output.db >= output.mlp) ||
+        (!output.min_sense && output.db <= output.mlp)
+    )
+    # Check is global IP bound and dual bound converged.
+    db_ipb = !isnothing(output.ipb) && !isnothing(output.db) && (
+        abs(output.ipb - output.db) < 1e-5 ||
+        (output.min_sense && output.db >= output.ipb) ||
+        (!output.min_sense && output.db <= output.ipb)
+    )
+    return db_mlp || db_ipb
+end
+
 colgen_has_no_new_cols(output::ColGenPhaseOutput) = output.no_more_columns
 
 ## Implementation of `next_phase`.
@@ -810,8 +824,9 @@ end
 "Object for the output of an iteration of the column generation default implementation."
 struct ColGenIterationOutput <: ColGen.AbstractColGenIterationOutput
     min_sense::Bool
-    mlp::Union{Nothing, Float64}
-    db::Union{Nothing, Float64}
+    ipb::Union{Nothing,Float64}
+    mlp::Union{Nothing,Float64}
+    db::Union{Nothing,Float64}
     nb_new_cols::Int
     new_cut_in_master::Bool
     # Equals `true` if the master subsolver returns infeasible.
@@ -845,6 +860,7 @@ function ColGen.new_iteration_output(::Type{<:ColGenIterationOutput},
 )
     return ColGenIterationOutput(
         min_sense,
+        get_global_primal_bound(master_ip_primal_sol),
         mlp,
         db,
         nb_new_cols,
@@ -872,9 +888,10 @@ ColGen.get_dual_bound(output::ColGenIterationOutput) = output.db
 _gap(mlp, db) = (mlp - db) / abs(db)
 _colgen_gap_closed(mlp, db, atol, rtol) = _gap(mlp, db) < 0 || isapprox(mlp, db, atol = atol, rtol = rtol)
 
-ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, inc_dual_bound, colgen_iteration) = false
-function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, inc_dual_bound, colgen_iteration)
+ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, ::Nothing, inc_dual_bound, ip_primal_sol, colgen_iteration) = false
+function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_output::ColGenIterationOutput, inc_dual_bound, ip_primal_sol, colgen_iteration)
     mlp = colgen_iter_output.mlp
+    pb = getvalue(get_global_primal_bound(ip_primal_sol))
     db = inc_dual_bound
     sc = colgen_iter_output.min_sense ? 1 : -1
     return colgen_iteration >= ctx.nb_colgen_iteration_limit ||
@@ -885,7 +902,8 @@ function ColGen.stop_colgen_phase(ctx::ColGenContext, phase, env, colgen_iter_ou
         colgen_iter_output.unbounded_subproblem ||
         colgen_iter_output.nb_new_cols <= 0 ||
         colgen_iter_output.new_cut_in_master ||
-        _colgen_gap_closed(sc * mlp, sc * db, 1e-8, 1e-5)
+        _colgen_gap_closed(sc * mlp, sc * db, 1e-8, 1e-5) ||
+        _colgen_gap_closed(sc * pb, sc * db, 1e-8, 1e-5)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenContext, phase) = nothing
@@ -898,6 +916,7 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase, 
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
         colgen_iter_output.master_lp_dual_sol,
+        colgen_iter_output.ipb,
         colgen_iter_output.mlp,
         inc_dual_bound,
         colgen_iter_output.new_cut_in_master,
@@ -915,6 +934,7 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase::
         colgen_iter_output.master_lp_primal_sol,
         colgen_iter_output.master_ip_primal_sol,
         colgen_iter_output.master_lp_dual_sol,
+        colgen_iter_output.ipb,
         colgen_iter_output.mlp,
         inc_dual_bound,
         colgen_iter_output.new_cut_in_master,
@@ -928,7 +948,6 @@ function ColGen.new_phase_output(::Type{<:ColGenPhaseOutput}, min_sense, phase::
 end
 
 ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_primal_sol
-
 
 ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
 function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)

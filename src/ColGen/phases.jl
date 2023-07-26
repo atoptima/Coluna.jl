@@ -28,4 +28,4 @@ Returns `nothing` if the algorithm must stop.
 @mustimplement "ColGenPhase" setup_context!(context, ::AbstractColGenPhase) = nothing
 
 "Returns `true` if the column generation phase must stop."
-@mustimplement "ColGenPhase" stop_colgen_phase(context, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration) = nothing
+@mustimplement "ColGenPhase" stop_colgen_phase(context, phase, env, colgen_iter_output, inc_dual_bound, ip_primal_sol, colgen_iteration) = nothing

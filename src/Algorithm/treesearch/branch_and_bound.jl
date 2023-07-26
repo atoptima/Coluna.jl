@@ -227,13 +227,14 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
 
     # TODO: remove later but we currently need it to print information in the json file.
     current.conquer_output = conquer_output
+    current.ip_dual_bound = get_lp_dual_bound(conquer_output)
     return
 end
 
 # Conquer
 function is_pruned(space::BaBSearchSpace, current::Node)
     return MathProg.gap_closed(
-        get_global_primal_bound(space.inc_primal_manager),      
+        get_global_primal_bound(space.inc_primal_manager),
         current.ip_dual_bound,
         atol = space.opt_atol,
         rtol = space.opt_rtol
