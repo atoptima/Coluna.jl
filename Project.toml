@@ -1,10 +1,11 @@
 name = "Coluna"
 uuid = "88b4ec78-b192-11e8-04aa-4d367dd96a64"
 authors = ["François Vanderbeck", "Guillaume Marques", "Vitor Nesello", "Ruslan Sadykov"]
-version = "0.6.4"
+version = "0.6.5"
 
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -42,8 +43,8 @@ JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 Knapsacks = "86859df6-51c5-4863-9ac2-2c1ab8e53eb2"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["ColunaDemos", "GLPK", "HiGHS", "JuMP", "Knapsacks", "Test", "TOML", "Revise"]
