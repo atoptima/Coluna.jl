@@ -1,3 +1,10 @@
+# Coluna 0.6.5
+
+This is a minor update that provides documentation together with tests and several bug fixes for the tree search
+algorithm.
+
+Stabilization for the column generation algorithm is now in beta version.
+
 # Coluna 0.6.4
 
 This is a minor update that provides documentation and a bug fix in the integration of the column generation algorithm with the branch-and-bound.
