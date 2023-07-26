@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Pricing callback · Coluna.jl</title><meta name="title" content="Pricing callback · Coluna.jl"/><meta property="og:title" content="Pricing callback · Coluna.jl"/><meta property="twitter:title" content="Pricing callback · Coluna.jl"/><meta name="description" content="Documentation for Coluna.jl."/><meta property="og:description" content="Documentation for Coluna.jl."/><meta property="twitter:description" content="Documentation for Coluna.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Tutorials</span><ul><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox" checked/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li><a class="tocitem" href="../cuts/">Cut Generation</a></li><li class="is-active"><a class="tocitem" href>Pricing callback</a></li><li><a class="tocitem" href="../identical_sp/">Identical subproblems</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li><a class="tocitem" href="../initial_columns/">Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../advanced_demo/">Column Generation and Benders on Location Routing</a></li><li><a class="tocitem" href="../other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><span class="tocitem">Manual</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/algos/">Algorithms</a></li><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Getting Started</a></li><li class="is-active"><a href>Pricing callback</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Pricing callback</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/pricing.jl" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="tuto_pricing_callback"><a class="docs-heading-anchor" href="#tuto_pricing_callback">Pricing callback</a><a id="tuto_pricing_callback-1"></a><a class="docs-heading-anchor-permalink" href="#tuto_pricing_callback" title="Permalink"></a></h1><p>The pricing callback lets you define how to solve the subproblems of a Dantzig-Wolfe decomposition to generate a new entering column in the master program. This callback is useful when you know an efficient algorithm to solve the subproblems, i.e. an algorithm better than solving the subproblem with a MIP solver.</p><p>First, we load the packages and define aliases :</p><pre><code class="language-julia hljs">using Coluna, BlockDecomposition, JuMP, MathOptInterface, GLPK;
+const BD = BlockDecomposition;
+const MOI = MathOptInterface;</code></pre><p>Let us see an example with the following generalized assignment problem :</p><pre><code class="language-julia hljs">M = 1:3;
+J = 1:15;
+c = [12.7 22.5 8.9 20.8 13.6 12.4 24.8 19.1 11.5 17.4 24.7 6.8 21.7 14.3 10.5; 19.1 24.8 24.4 23.6 16.1 20.6 15.0 9.5 7.9 11.3 22.6 8.0 21.5 14.7 23.2;  18.6 14.1 22.7 9.9 24.2 24.5 20.8 12.9 17.7 11.9 18.7 10.1 9.1 8.9 7.7; 13.1 16.2 16.8 16.7 9.0 16.9 17.9 12.1 17.5 22.0 19.9 14.6 18.2 19.6 24.2];
+w = [61 70 57 82 51 74 98 64 86 80 69 79 60 76 78; 50 57 61 83 81 79 63 99 82 59 83 91 59 99 91;91 81 66 63 59 81 87 90 65 55 57 68 92 91 86; 62 79 73 60 75 66 68 99 69 60 56 100 67 68 54];
+Q = [1020 1460 1530];</code></pre><p>with the following Coluna configuration</p><pre><code class="language-julia hljs">coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
+);</code></pre><p>for which the JuMP model takes the form:</p><pre><code class="language-julia hljs">model = BlockModel(coluna);
+
+@axis(M_axis, M);
+
+@variable(model, x[m in M_axis, j in J], Bin);
+@constraint(model, cov[j in J], sum(x[m,j] for m in M_axis) == 1);
+@objective(model, Min, sum(c[m,j]*x[m,j] for m in M_axis, j in J));
+@dantzig_wolfe_decomposition(model, dwdec, M_axis);</code></pre><p>where, as you can see, we omitted the knapsack constraints. These constraints are implicitly defined by the algorithm called in the pricing callback.</p><p>Let&#39;s use a knapsack algorithm defined by the following function to solve the knapsack subproblems:</p><pre><code class="language-julia hljs">function solve_knapsack(cost, weight, capacity)
+    sp_model = Model(GLPK.Optimizer)
+    items = 1:length(weight)
+    @variable(sp_model, x[i in items], Bin)
+    @constraint(sp_model, weight&#39; * x &lt;= capacity)
+    @objective(sp_model, Min, cost&#39; * x)
+    optimize!(sp_model)
+    x_val = value.(x)
+    return filter(i -&gt; x_val[i] ≈ 1, collect(items))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">solve_knapsack (generic function with 1 method)</code></pre><p>You can replace the content of the function with any algorithm that solves the knapsack problem (such as algorithms provided by the unregistered package <a href="https://github.com/rafaelmartinelli/Knapsacks.jl">Knapsacks</a>).</p><p>The pricing callback is a function. It takes as argument <code>cbdata</code> which is a data structure that allows the user to interact with Coluna within the pricing callback.</p><pre><code class="language-julia hljs">function my_pricing_callback(cbdata)
+    # Retrieve the index of the subproblem (it will be one of the values in M_axis)
+    cur_machine = BD.callback_spid(cbdata, model)
+
+    # Uncomment to see that the pricing callback is called.
+    # println(&quot;Pricing callback for machine $(cur_machine).&quot;)
+
+    # Retrieve reduced costs of subproblem variables
+    red_costs = [BD.callback_reduced_cost(cbdata, x[cur_machine, j]) for j in J]
+
+    # Run the knapsack algorithm
+    jobs_assigned_to_cur_machine = solve_knapsack(red_costs, w[cur_machine, :], Q[cur_machine])
+
+    # Create the solution (send only variables with non-zero values)
+    sol_vars = [x[cur_machine, j] for j in jobs_assigned_to_cur_machine]
+    sol_vals = [1.0 for _ in jobs_assigned_to_cur_machine]
+    sol_cost = sum(red_costs[j] for j in jobs_assigned_to_cur_machine)
+
+    # Submit the solution to the subproblem to Coluna
+    MOI.submit(model, BD.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+
+    # Submit the dual bound to the solution of the subproblem
+    # This bound is used to compute the contribution of the subproblem to the lagrangian
+    # bound in column generation.
+    MOI.submit(model, BD.PricingDualBound(cbdata), sol_cost) # optimal solution
+    return
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">my_pricing_callback (generic function with 1 method)</code></pre><p>The pricing callback is provided to Coluna using the keyword <code>solver</code> in the method <code>specify!</code>.</p><pre><code class="language-julia hljs">subproblems = BD.getsubproblems(dwdec);
+BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback);</code></pre><p>You can then optimize :</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.4 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-199514.2000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-249337.6000&gt; &lt;mlp=50148.8000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-249373.5000&gt; &lt;mlp=50145.2000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-180037.2000&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-179876.9500&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-179800.0500&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-179623.2500&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-172484.4875&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-179618.9000&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-164410.0125&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-147610.4769&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-134418.0173&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-107799.0925&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-92017.9579&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 0.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  -14.7849&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 0.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  157.8132&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  -14.7699&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -315.3353&gt; &lt;mlp=  216.6500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 19&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -328.0929&gt; &lt;mlp=  212.3356&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 20&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   90.9151&gt; &lt;mlp=  199.2035&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 21&gt; &lt;et= 0.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   99.4029&gt; &lt;mlp=  194.8235&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 22&gt; &lt;et= 0.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  104.8426&gt; &lt;mlp=  191.6053&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 23&gt; &lt;et= 0.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  118.2290&gt; &lt;mlp=  189.6338&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 24&gt; &lt;et= 0.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   77.5000&gt; &lt;mlp=  183.4000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 25&gt; &lt;et= 0.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  112.2081&gt; &lt;mlp=  182.0297&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 26&gt; &lt;et= 0.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  123.8364&gt; &lt;mlp=  181.0152&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 27&gt; &lt;et= 0.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   92.8415&gt; &lt;mlp=  179.9435&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 28&gt; &lt;et= 0.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  116.8482&gt; &lt;mlp=  179.2674&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 29&gt; &lt;et= 0.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  144.2677&gt; &lt;mlp=  178.3258&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 30&gt; &lt;et= 0.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  135.0600&gt; &lt;mlp=  177.2400&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 31&gt; &lt;et= 0.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  144.7400&gt; &lt;mlp=  177.2400&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 32&gt; &lt;et= 0.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  136.1733&gt; &lt;mlp=  176.8267&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 33&gt; &lt;et= 0.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  144.6750&gt; &lt;mlp=  174.3000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 34&gt; &lt;et= 0.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  153.7000&gt; &lt;mlp=  174.3000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 35&gt; &lt;et= 0.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  140.1125&gt; &lt;mlp=  173.4062&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 36&gt; &lt;et= 0.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  151.5667&gt; &lt;mlp=  172.4333&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 37&gt; &lt;et= 0.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  152.4167&gt; &lt;mlp=  172.4333&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 38&gt; &lt;et= 0.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  159.4667&gt; &lt;mlp=  172.4333&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 39&gt; &lt;et= 0.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  157.2000&gt; &lt;mlp=  172.2000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 40&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  162.7000&gt; &lt;mlp=  171.9333&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 41&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  163.4000&gt; &lt;mlp=  169.7500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 42&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  165.6000&gt; &lt;mlp=  169.7500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 43&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  165.8500&gt; &lt;mlp=  168.3500&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it= 44&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  166.5000&gt; &lt;mlp=  166.5000&gt; &lt;PB=166.5000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         1.41s /  56.8%            124MiB /  62.4%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    803ms  100.0%   803ms   77.3MiB  100.0%  77.3MiB
+   SolveLpForm       44   16.0ms    2.0%   364μs   5.73MiB    7.4%   133KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 166.5
+[ Info: Dual bound: 166.50000000000006</code></pre><p>and retrieve the information you need as usual :</p><pre><code class="language-julia hljs">objective_value(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">166.5</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../cuts/">« Cut Generation</a><a class="docs-footer-nextpage" href="../identical_sp/">Identical subproblems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Wednesday 26 July 2023 08:51">Wednesday 26 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
