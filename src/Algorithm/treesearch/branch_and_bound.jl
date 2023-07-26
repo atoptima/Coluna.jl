@@ -45,7 +45,7 @@ TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = n.ip_dual
 
 # TODO move
 function Node(node::SbNode)
-    ip_dual_bound = get_lp_dual_bound(node.optstate)
+    ip_dual_bound = get_ip_dual_bound(node.optstate)
     return Node(
         node.depth, node.branchdescription, node.optstate, ip_dual_bound,
         node.records, node.conquerwasrun
@@ -234,7 +234,7 @@ end
 # Conquer
 function is_pruned(space::BaBSearchSpace, current::Node)
     return MathProg.gap_closed(
-        get_global_primal_bound(space.inc_primal_manager),      
+        get_global_primal_bound(space.inc_primal_manager),
         current.ip_dual_bound,
         atol = space.opt_atol,
         rtol = space.opt_rtol
