@@ -60,36 +60,48 @@ struct ConquerInputFromBaB <: AbstractConquerInput
     units_to_restore::UnitsUsage
     node_state::OptimizationState # Node state after its creation or its partial evaluation.
     node_depth::Int
+
+    # Broadcast a new IP primal bound if found during evaluation of the node.
+    global_primal_handler::GlobalPrimalBoundHandler
 end
 
-get_conquer_input_ip_primal_bound(i::ConquerInputFromBaB) = get_ip_primal_bound(i.node_state)
+get_global_primal_handler(i::ConquerInputFromBaB) = i.global_primal_handler
 get_conquer_input_ip_dual_bound(i::ConquerInputFromBaB) = get_ip_dual_bound(i.node_state)
 get_node_depth(i::ConquerInputFromBaB) = i.node_depth
 get_units_to_restore(i::ConquerInputFromBaB) = i.units_to_restore
-
-
 ############################################################################################
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
 struct DivideInputFromBaB <: Branching.AbstractDivideInput
     parent_depth::Int
+
     # The conquer output of the parent is very useful to compute scores when trying several
     # branching candidates. Usually scores measure a progression between the parent full_evaluation
     # and the children full evaluations. To allow developers to implement several kind of 
     # scores, we give the full output of the conquer algorithm.
     parent_conquer_output::OptimizationState
+
+    # Records allow to restore the reformulation in the state it was at the end of the evaluation
+    # of the parent node. This operation happens in strong branching when evaluating several
+    # branching candidates.
     parent_records::Records
+
+    # Broadcast a new IP primal bound if found during evaluation of the candidates in the
+    # strong branching.
+    global_primal_handler::GlobalPrimalBoundHandler
 end
 
 Branching.get_parent_depth(i::DivideInputFromBaB) = i.parent_depth
 Branching.get_conquer_opt_state(i::DivideInputFromBaB) = i.parent_conquer_output
+Branching.get_global_primal_handler(i::DivideInputFromBaB) = i.global_primal_handler
 Branching.parent_is_root(i::DivideInputFromBaB) = i.parent_depth == 0
 Branching.parent_records(i::DivideInputFromBaB) = i.parent_records
 
 ############################################################################################
-# SearchSpace
+# Leaves status
 ############################################################################################
+
 "Leaves status"
 mutable struct LeavesStatus
     infeasible::Bool # true if all leaves are infeasible
@@ -98,22 +110,38 @@ end
 
 LeavesStatus(reform) = LeavesStatus(true, nothing)
 
+############################################################################################
+# SearchSpace
+############################################################################################
+
 "Branch-and-bound search space."
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
+    # Reformulation that the branch-and-bound algorithm will optimize.
     reformulation::Reformulation
+    # Algorithm that evaluates a node of the branch-and-bound tree.
     conquer::AbstractConquerAlgorithm
+    # Algorithm that generated the children of a branch-and-bound node.
     divide::AlgoAPI.AbstractDivideAlgorithm
+    
+    # Limits
     max_num_nodes::Int64
     open_nodes_limit::Int64
     time_limit::Int64
+
+    # Tolerances
     opt_atol::Float64
     opt_rtol::Float64
+
+    # Units to restore when B&B bound explores another node.
+    conquer_units_to_restore::UnitsUsage
+
+    # Global information about the branch-and-bound execution.
     previous::Union{Nothing,Node}
     optstate::OptimizationState # from TreeSearchRuntimeData
-    conquer_units_to_restore::UnitsUsage # from TreeSearchRuntimeData
+  
     nb_nodes_treated::Int
-    current_ip_dual_bound_from_conquer
     leaves_status::LeavesStatus
+    inc_primal_manager::GlobalPrimalBoundHandler # stores the global primal bound (shared with all child algorithms).
 end
 
 get_reformulation(sp::BaBSearchSpace) = sp.reformulation
@@ -126,6 +154,8 @@ set_previous!(sp::BaBSearchSpace, previous::Node) = sp.previous = previous
 # Tree search implementation
 ############################################################################################
 function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
+    @show space.nb_nodes_treated
+    @show space.max_num_nodes
     return space.nb_nodes_treated > space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
 end
 
@@ -163,12 +193,12 @@ function TreeSearch.new_space(
         algo.timelimit,
         algo.opt_atol,
         algo.opt_rtol,
+        conquer_units_to_restore,
         nothing,
         optstate,
-        conquer_units_to_restore,
         0,
-        nothing,
-        LeavesStatus(reform)
+        LeavesStatus(reform),
+        GlobalPrimalBoundHandler(reform)
     )
 end
 
@@ -187,10 +217,6 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
 
-    # Retrieve IP primal solutions found at the node and store them as solution to the original
-    # problem (i.e. solutions of the Branch-and-Bound).
-    add_ip_primal_sols!(treestate, get_ip_primal_sols(conquer_output)...)
-
     # Branch & Bound returns the primal LP & the dual solution found at the root node.
     best_lp_primal_sol = get_best_lp_primal_sol(conquer_output)
     if TreeSearch.isroot(current) && !isnothing(best_lp_primal_sol)
@@ -207,12 +233,13 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
 end
 
 # Conquer
-
 function is_pruned(space::BaBSearchSpace, current::Node)
-    return MathProg.gap_closed(get_ip_primal_bound(space.optstate),
-                               current.ip_dual_bound,
-                               atol = space.opt_atol,
-                               rtol = space.opt_rtol)
+    return MathProg.gap_closed(
+        get_global_primal_bound(space.inc_primal_manager),      
+        current.ip_dual_bound,
+        atol = space.opt_atol,
+        rtol = space.opt_rtol
+    )
 end
 
 function node_is_pruned(space::BaBSearchSpace, current::Node)
@@ -246,19 +273,27 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     return ConquerInputFromBaB(
         space.conquer_units_to_restore, 
         node_state,
-        current.depth
+        current.depth,
+        space.inc_primal_manager
     )
 end
 
 # routine to check if divide should be call or not after a node conquer
-function run_divide(::BaBSearchSpace, divide_input)
+# If the gap is closed between the prima bound and the LOCAL dual bound, then the exploration of the current branch should stop
+function run_divide(sp::BaBSearchSpace, divide_input)
     conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
     nodestatus = getterminationstatus(conquer_opt_state)
-    return !(nodestatus == INFEASIBLE || ip_gap_closed(conquer_opt_state))             
+    return !(
+        nodestatus == INFEASIBLE || 
+        MathProg.gap_closed(
+            get_global_primal_bound(sp.inc_primal_manager),
+            get_lp_dual_bound(conquer_opt_state)
+        )
+    )             
 end
 
 function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node, conquer_output)
-    return DivideInputFromBaB(node.depth, conquer_output, node.records)
+    return DivideInputFromBaB(node.depth, conquer_output, node.records, space.inc_primal_manager)
 end
 
 number_of_children(divide_output::DivideOutput) = length(divide_output.children)
@@ -280,12 +315,6 @@ function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_o
 end
 
 function new_children(space::AbstractColunaSearchSpace, branches, node::Node)
-    candidates_opt_state = nothing # Branching.get__opt_state(branches)
-    if !isnothing(candidates_opt_state)
-        add_ip_primal_sols!(space.optstate, get_ip_primal_sols(candidates_opt_state)...)
-    end
-    set_ip_dual_bound!(space.optstate, node.ip_dual_bound)
-
     children = map(Branching.get_children(branches)) do child
         return Node(child)
     end
@@ -338,7 +367,11 @@ function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
     _update_global_dual_bound!(space, space.reformulation, untreated_nodes)
     all_leaves_infeasible = space.leaves_status.infeasible
 
-    if all_leaves_infeasible
+    if !isnothing(get_global_primal_sol(space.inc_primal_manager))
+        add_ip_primal_sol!(space.optstate, get_global_primal_sol(space.inc_primal_manager))
+    end
+
+    if all_leaves_infeasible && length(untreated_nodes) == 0
         setterminationstatus!(space.optstate, INFEASIBLE)
     elseif ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
         setterminationstatus!(space.optstate, OPTIMAL)

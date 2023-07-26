@@ -792,7 +792,8 @@ function test_stabilization_min_automatic()
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
     @test output.mlp ≈ 7033.3333333
     @test output.db ≈ 7033.3333333
 end
@@ -812,7 +813,8 @@ function test_stabilization_max_automatic()
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
     @test output.mlp ≈ -7033.3333333
     @test output.db ≈ -7033.3333333
 end
@@ -832,7 +834,8 @@ function test_stabilization_min()
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
     @test output.mlp ≈ 7033.3333333
     @test output.db ≈ 7033.3333333
 end
@@ -852,7 +855,8 @@ function test_stabilization_max()
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
     @test output.mlp ≈ -7033.3333333
     @test output.db ≈ -7033.3333333
 end
@@ -873,7 +877,8 @@ function test_stabilization_pure_master_vars_min()
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
 
     @test output.mlp ≈ 52.95
     @test output.db ≈ 52.95
@@ -895,7 +900,8 @@ function test_stabilization_pure_master_vars_min_automatic()
         smoothing_stabilization = 1.0
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
 
     @test output.mlp ≈ 52.95
     @test output.db ≈ 52.95
@@ -917,7 +923,8 @@ function test_stabilization_pure_master_vars_max()
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
 
     @test output.mlp ≈ -52.95
     @test output.db ≈ -52.95
@@ -939,7 +946,8 @@ function test_stabilization_pure_master_vars_max_automatic()
         smoothing_stabilization = 0.5
     ))
     Coluna.set_optim_start_time!(env)
-    output = ColGen.run!(ctx, env, nothing)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
 
     @test output.mlp ≈ -52.95
     @test output.db ≈ -52.95

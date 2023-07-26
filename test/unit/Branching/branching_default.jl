@@ -240,8 +240,9 @@ function test_strong_branching()
         0, "", nothing, MathProg.DualBound(reform), records, false 
     )
 
+    global_primal_handler = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
     input = Coluna.Algorithm.DivideInputFromBaB(
-        0, conquer_output, records
+        0, conquer_output, records, global_primal_handler
     )
     original_sol = Coluna.Algorithm.get_original_sol(reform, conquer_output)
 
