@@ -308,6 +308,7 @@ function run_node_finalizer!(::ColCutGenContext, node_finalizer, env, reform, no
 
             # make sure that the gap is closed for the current node
             dual_bound = DualBound(reform, getvalue(get_ip_primal_bound(conquer_output)))
+            update_lp_dual_bound!(conquer_output, dual_bound)
             update_ip_dual_bound!(conquer_output, dual_bound)
         else
             if !isnothing(ip_primal_sols) && length(ip_primal_sols) > 0
