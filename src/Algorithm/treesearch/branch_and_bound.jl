@@ -211,6 +211,9 @@ end
 function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     @assert !isnothing(conquer_output)
     treestate = space.optstate
+    for sol in get_ip_primal_sols(conquer_output)
+        store_ip_primal_sol!(space.inc_primal_manager, sol)
+    end
     current.records = create_records(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
