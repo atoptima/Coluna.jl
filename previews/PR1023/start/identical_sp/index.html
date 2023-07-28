@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Identical subproblems · Coluna.jl</title><meta name="title" content="Identical subproblems · Coluna.jl"/><meta property="og:title" content="Identical subproblems · Coluna.jl"/><meta property="twitter:title" content="Identical subproblems · Coluna.jl"/><meta name="description" content="Documentation for Coluna.jl."/><meta property="og:description" content="Documentation for Coluna.jl."/><meta property="twitter:description" content="Documentation for Coluna.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Tutorials</span><ul><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox" checked/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li><a class="tocitem" href="../cuts/">Cut Generation</a></li><li><a class="tocitem" href="../pricing/">Pricing callback</a></li><li class="is-active"><a class="tocitem" href>Identical subproblems</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li><a class="tocitem" href="../initial_columns/">Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../advanced_demo/">Column Generation and Benders on Location Routing</a></li><li><a class="tocitem" href="../other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><span class="tocitem">Manual</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/algos/">Algorithms</a></li><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Getting Started</a></li><li class="is-active"><a href>Identical subproblems</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Identical subproblems</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/identical_sp.jl" title="View source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="tuto_identical_sp"><a class="docs-heading-anchor" href="#tuto_identical_sp">Identical subproblems</a><a id="tuto_identical_sp-1"></a><a class="docs-heading-anchor-permalink" href="#tuto_identical_sp" title="Permalink"></a></h1><p>Let us see an example of resolution using the advantage of identical subproblems with Dantzig-Wolfe and a variant of the Generalized Assignment Problem.</p><p>Consider a set of machine type <code>T = 1:nb_machine_types</code> and a set of jobs <code>J = 1:nb_jobs</code>. A machine type <code>t</code> has a resource capacity <code>Q[t]</code> and the factory contains <code>U[t]</code> machines of type <code>t</code>. A job <code>j</code> assigned to a machine of type <code>t</code> has a cost <code>c[t,j]</code> and consumes <code>w[t,j]</code> resource units of the machine of type <code>t</code>.</p><p>Consider the following instance :</p><pre><code class="language-julia hljs">nb_machine_types = 2;
+nb_jobs = 8;
+J = 1:nb_jobs;
+Q = [10, 15];
+U = [3, 2];  # 3 machines of type 1 &amp; 2 machines of type 2
+c = [10 11 13 11 12 14 15 8; 20 21 23 21 22 24 25 18];
+w = [4 4 5 4 4 3 4 5; 5 5 6 5 5 4 5 6];
+
+
+#Here is the JuMP model to optimize this instance with a classic solver :
+
+using JuMP, GLPK;
+
+T1 = [1, 2, 3]; # U[1] machines
+T2 = [4, 5]; # U[2] machines
+M = union(T1, T2);
+m2t = [1, 1, 1, 2, 2]; # machine id -&gt; type id
+
+model = Model(GLPK.Optimizer);
+@variable(model, x[M, J], Bin); # 1 if job j assigned to machine m
+@constraint(model, cov[j in J], sum(x[m,j] for m in M) == 1);
+@constraint(model, knp[m in M], sum(w[m2t[m],j] * x[m,j] for j in J) &lt;= Q[m2t[m]]);
+@objective(model, Min, sum(c[m2t[m],j] * x[m,j] for m in M, j in J));
+
+optimize!(model);
+objective_value(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">114.0</code></pre><p>You can decompose over the machines by defining an axis on <code>M</code>. However, if you want to take advantage of the identical subproblems, you must define the formulation as follows :</p><pre><code class="language-julia hljs">using BlockDecomposition, Coluna, JuMP, GLPK;
+const BD = BlockDecomposition
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
+);
+
+@axis(T, 1:nb_machine_types);
+
+model = BlockModel(coluna);
+@variable(model, x[T, J], Bin); # 1 if job j assigned to machine m
+@constraint(model, cov[j in J], sum(x[t,j] for t in T) == 1);
+@constraint(model, knp[t in T], sum(w[t] * x[t,j] for j in J) &lt;= Q[t]);
+@objective(model, Min, sum(c[t,j] * x[t,j] for t in T, j in J));</code></pre><p>We assign jobs to a type of machine and we define one knapsack constraint for each type. This formulation cannot be solved as it stands with a commercial solver.</p><p>Then, we decompose and specify the multiplicity of each knapsack subproblem :</p><pre><code class="language-julia hljs">@dantzig_wolfe_decomposition(model, dec_on_types, T);
+sps = getsubproblems(dec_on_types)
+for t in T
+    specify!(sps[t], lower_multiplicity = 0, upper_multiplicity = U[t]);
+end
+getsubproblems(dec_on_types)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{BlockDecomposition.SubproblemForm}:
+ Subproblem formulation for T = 1 contains :	 0.0 &lt;= multiplicity &lt;= 3.0
+
+ Subproblem formulation for T = 2 contains :	 0.0 &lt;= multiplicity &lt;= 2.0
+</code></pre><p>We see that subproblem for machine type 1 has an upper multiplicity equals to 3, and the second subproblem for machine type 2 has an upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-39828.0000&gt; &lt;mlp=80000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-69747.0000&gt; &lt;mlp=50059.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89715.0000&gt; &lt;mlp=30082.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-79774.0000&gt; &lt;mlp=20131.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89721.0000&gt; &lt;mlp=10139.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-39936.0000&gt; &lt;mlp=10139.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -176.0000&gt; &lt;mlp=  124.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   -6.0000&gt; &lt;mlp=  124.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+***************************************************************************************
+**** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
+**** Local DB = 114.0000, global bounds: [ -Inf , Inf ], time = 0.01 sec.
+**** Branching constraint: x[1,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=   64.0000&gt; &lt;mlp=  124.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=   84.0000&gt; &lt;mlp=  124.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+***************************************************************************************
+**** B&amp;B tree node N°5, parent N°3, depth 2, 2 untreated nodes
+**** Local DB = 114.0000, global bounds: [ 114.0000 , Inf ], time = 0.01 sec.
+**** Branching constraint: x[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=   64.0000&gt; &lt;mlp=  124.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=   94.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+┌ Warning: No candidate generated. No children will be generated. However, the node is not conquered.
+└ @ Coluna.Branching ~/work/Coluna.jl/Coluna.jl/src/Branching/Branching.jl:303
+┌ Warning: The solution to the master is not integral and the projection on the original variables is integral.
+│ Your reformulation involves subproblems with upper multiplicity greater than 1.
+│ Column generation algorithm could not create an integral solution to the master using the column generated.
+│ In order to generate columns that can lead to an integral solution, you may have to use a branching scheme that changes the structure of the subproblems.
+│ This is not provided by the default implementation of the branching algorithm in the current version of Coluna.
+└ @ Coluna.Algorithm ~/work/Coluna.jl/Coluna.jl/src/Algorithm/branching/branchingalgo.jl:119
+***************************************************************************************
+**** B&amp;B tree node N°4, parent N°3, depth 2, 1 untreated node
+**** Local DB = 114.0000, global bounds: [ 114.0000 , Inf ], time = 0.01 sec.
+**** Branching constraint: x[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-29886.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-49761.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
+***************************************************************************************
+**** B&amp;B tree node N°2, parent N°1, depth 1, 0 untreated node
+**** Local DB = 114.0000, global bounds: [ 114.0000 , 114.0000 ], time = 0.02 sec.
+**** Branching constraint: x[1,6]&gt;=1.0
+***************************************************************************************
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         3.29s /   0.5%            168MiB /   2.4%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1   15.7ms  100.0%  15.7ms   3.95MiB  100.0%  3.95MiB
+   SolveLpForm       18   3.66ms   23.3%   204μs    941KiB   23.2%  52.3KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 114.0
+[ Info: Dual bound: 114.0</code></pre><p>and retrieve the disaggregated solution</p><pre><code class="language-julia hljs">for t in T
+    assignment_patterns = BD.getsolutions(model, t);
+    for pattern in assignment_patterns
+        nb_times_pattern_used = BD.value(pattern);
+        jobs_in_pattern = [];
+        for j in J
+            if BD.value(pattern, x[t, j]) ≈ 1
+                push!(jobs_in_pattern, j);
+            end
+        end
+        println(&quot;Pattern of machine type $t used $nb_times_pattern_used times : $jobs_in_pattern&quot;);
+    end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Pattern of machine type 1 used 1.0 times : Any[1, 8]
+Pattern of machine type 1 used 1.0 times : Any[2, 4]
+Pattern of machine type 1 used 1.0 times : Any[3, 5]
+Pattern of machine type 2 used 1.0 times : Any[6, 7]</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Friday 28 July 2023 13:21">Friday 28 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
