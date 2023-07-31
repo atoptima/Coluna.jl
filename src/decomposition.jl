@@ -26,60 +26,48 @@ function create_global_art_vars!(masterform::Formulation, env::Env)
     end
 end
 
-function instantiatemaster!(
-    env::Env, prob::Problem, reform::Reformulation, ::Type{BD.Master},
-    ::Type{BD.DantzigWolfe}
+function instantiate_master!(
+    env::Env, origform::Formulation{Original}, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}
 )
     form = create_formulation!(
         env,
         MathProg.DwMaster();
-        parent_formulation = reform,
-        obj_sense = getobjsense(get_original_formulation(prob))
+        obj_sense = getobjsense(origform)
     )
-    setobjconst!(form, getobjconst(get_original_formulation(prob)))
-    setmaster!(reform, form)
+    setobjconst!(form, getobjconst(origform))
     return form
 end
 
-function instantiatemaster!(
-    env::Env, prob::Problem, reform::Reformulation, ::Type{BD.Master}, ::Type{BD.Benders}
+function instantiate_master!(
+    env::Env, origform::Formulation{Original}, ::Type{BD.Master}, ::Type{BD.Benders}
 )
-    masterform = create_formulation!(
+    return create_formulation!(
         env,
         MathProg.BendersMaster();
-        parent_formulation = reform,
-        obj_sense = getobjsense(get_original_formulation(prob))
+        obj_sense = getobjsense(origform)
     )
-    setmaster!(reform, masterform)
-    return masterform
 end
 
-function instantiatesp!(
-    env::Env, reform::Reformulation, masterform::Formulation{DwMaster},
-    ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}
+function instantiate_sp!(
+    env::Env, master::Formulation{DwMaster}, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}
 )
-    spform = create_formulation!(
+    return create_formulation!(
         env,
         MathProg.DwSp(nothing, nothing, nothing, Integ);
-        parent_formulation = masterform,
-        obj_sense = getobjsense(masterform)
+        parent_formulation = master,
+        obj_sense = getobjsense(master)
     )
-    add_dw_pricing_sp!(reform, spform)
-    return spform
 end
 
-function instantiatesp!(
-    env::Env, reform::Reformulation, masterform::Formulation{BendersMaster},
-    ::Type{BD.BendersSepSp}, ::Type{BD.Benders}
+function instantiate_sp!(
+    env::Env, master::Formulation{BendersMaster}, ::Type{BD.BendersSepSp}, ::Type{BD.Benders}
 )
-    spform = create_formulation!(
+    return create_formulation!(
         env,
         MathProg.BendersSp();
-        parent_formulation = masterform,
-        obj_sense = getobjsense(masterform)
+        parent_formulation = master,
+        obj_sense = getobjsense(master)
     )
-    add_benders_sep_sp!(reform, spform)
-    return spform
 end
 
 # Master of Dantzig-Wolfe decomposition
@@ -420,44 +408,84 @@ function getoptimizerbuilders(prob::Problem, ann::BD.Annotation)
     return [prob.default_optimizer_builder]
 end
 
-function buildformulations!(
-    prob::Problem, reform::Reformulation, env::Env, annotations::Annotations, parent,
+function _push_in_sp_dict!(
+    dws::Dict{FormId, Formulation{DwSp}}, 
+    ::Dict{FormId, Formulation{BendersSp}},
+    spform::Formulation{DwSp}
+)
+    push!(dws, getuid(spform) => spform)
+end
+
+function _push_in_sp_dict!(
+    ::Dict{FormId, Formulation{DwSp}}, 
+    benders::Dict{FormId, Formulation{BendersSp}},
+    spform::Formulation{BendersSp}
+)
+    push!(benders, getuid(spform) => spform)
+end
+
+function instantiate_formulations!(
+    prob::Problem, env::Env, annotations::Annotations, parent, node::BD.Root
+)
+    ann = BD.annotation(node)
+    form_type = BD.getformulation(ann)
+    dec_type = BD.getdecomposition(ann)
+    origform = get_original_formulation(prob)
+    master = instantiate_master!(env, origform, form_type, dec_type)
+    store!(annotations, master, ann)
+
+    dw_pricing_sps = Dict{FormId, Formulation{DwSp}}()
+    benders_sep_sps = Dict{FormId, Formulation{BendersSp}}()
+    for (_, child) in BD.subproblems(node)
+        sp = instantiate_formulations!(prob, env, annotations, master, child)
+        _push_in_sp_dict!(dw_pricing_sps, benders_sep_sps, sp)
+    end
+    return master, dw_pricing_sps, benders_sep_sps
+end
+
+function instantiate_formulations!(
+    prob::Problem, env::Env, annotations::Annotations, parent::Formulation{MasterDuty}, node::BD.Leaf
+) where {MasterDuty}
+    ann = BD.annotation(node)
+    form_type = BD.getformulation(ann)
+    dec_type = BD.getdecomposition(ann)
+    spform = instantiate_sp!(env, parent, form_type, dec_type)
+    store!(annotations, spform, ann)
+    return spform
+end
+
+function build_formulations!(
+    reform::Reformulation, prob::Problem, env::Env, annotations::Annotations, parent,
     node::BD.Root
 )
     ann = BD.annotation(node)
-    form_type = BD.getformulation(ann)
-    dec_type = BD.getdecomposition(ann)
-    masterform = instantiatemaster!(env, prob, reform, form_type, dec_type)
-    store!(annotations, masterform, ann)
-    origform = get_original_formulation(prob)
-     for (_, child) in BD.subproblems(node)
-        buildformulations!(prob, reform, env, annotations, node, child)
+    master = getmaster(reform)
+    for (_, dw_sp) in get_dw_pricing_sps(reform)
+        build_formulations!(dw_sp, reform, prob, env, annotations, master)
     end
-    assign_orig_vars_constrs!(masterform, origform, env, annotations, ann)
-    create_side_vars_constrs!(masterform, origform, env, annotations)
-    create_artificial_vars!(masterform, env)
-    closefillmode!(getcoefmatrix(masterform))
-    push_optimizer!.(Ref(masterform), getoptimizerbuilders(prob, ann))
+    for (_, bend_sp) in get_benders_sep_sps(reform)
+        build_formulations!(bend_sp, reform, prob, env, annotations, master)
+    end
+
+    origform = get_original_formulation(prob)
+    assign_orig_vars_constrs!(master, origform, env, annotations, ann)
+    create_side_vars_constrs!(master, origform, env, annotations)
+    create_artificial_vars!(master, env)
+    closefillmode!(getcoefmatrix(master))
+    push_optimizer!.(Ref(master), getoptimizerbuilders(prob, ann))
     push_optimizer!.(Ref(origform), getoptimizerbuilders(prob, ann))
-    return
 end
 
-function buildformulations!(
-    prob::Problem, reform::Reformulation, env::Env, annotations::Annotations,
-    parent, node::BD.Leaf
-)
-    ann = BD.annotation(node)
-    form_type = BD.getformulation(ann)
-    dec_type = BD.getdecomposition(ann)
-    masterform = getmaster(reform)
-    spform = instantiatesp!(env, reform, masterform, form_type, dec_type)
-    store!(annotations, spform, ann)
+# parent is master
+function build_formulations!(
+    spform, reform::Reformulation, prob::Problem, env::Env, annotations::Annotations, parent::Formulation{MasterDuty}
+) where {MasterDuty}
+    ann = annotations.ann_per_form[getuid(spform)]
     origform = get_original_formulation(prob)
     assign_orig_vars_constrs!(spform, origform, env, annotations, ann)
     create_side_vars_constrs!(spform, origform, env, annotations)
     closefillmode!(getcoefmatrix(spform))
     push_optimizer!.(Ref(spform), getoptimizerbuilders(prob, ann))
-    return
 end
 
 # Error messages for `check_annotations`.
@@ -495,6 +523,10 @@ function check_annotations(prob::Problem, annotations::Annotations)
     return true
 end
 
+function build_reformulation(prob::Problem, annotations::Annotations, env::Env)
+    
+end
+
 """
 Reformulate the original formulation of prob according to the annotations.
 The environment maintains formulation ids.
@@ -509,12 +541,16 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
     end
 
     decomposition_tree = annotations.tree
-    if decomposition_tree !== nothing
+    if !isnothing(decomposition_tree)
         check_annotations(prob, annotations)
+    
         root = BD.getroot(decomposition_tree)
-        reform = Reformulation(env)
+        master, dw_pricing_subprs, benders_sep_subprs = instantiate_formulations!(prob, env, annotations, origform, root)
+        reform = Reformulation(env, origform, master, dw_pricing_subprs, benders_sep_subprs)
+        master.parent_formulation = reform
         set_reformulation!(prob, reform)
-        buildformulations!(prob, reform, env, annotations, reform, root)
+
+        build_formulations!(reform, prob, env, annotations, origform, root)
         relax_integrality!(getmaster(reform))
     else # No decomposition provided by BlockDecomposition
         push_optimizer!(
