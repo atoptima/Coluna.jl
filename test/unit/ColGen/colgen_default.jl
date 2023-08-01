@@ -1591,4 +1591,5 @@ function jet_report_colgen_loop()
     # @test output.db ≈ 70.33333333
     return
 end
-register!(unit_tests, "colgen_default", jet_report_colgen_loop; f = true)
+# Excluded at the moment because too many errors come from DynamicSparseArrays.
+register!(unit_tests, "colgen_default", jet_report_colgen_loop; x = true)

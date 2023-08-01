@@ -83,12 +83,20 @@ function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
     columns = Dict{Int, Vector{DynamicMatrixColView{VarId, VarId, Float64}}}()
     values = Dict{Int, Vector{Float64}}()
     master = getmodel(sol)
+    reform = getparent(master)
+    if isnothing(reform)
+        error("Projection: master have the reformulation as parent formulation.")
+    end
+    dw_pricing_sps = get_dw_pricing_sps(reform)
 
     for (varid, val) in sol
         duty = getduty(varid)
         if duty <= MasterCol
             origin_form_uid = getoriginformuid(varid)
-            spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
+            spform = get(dw_pricing_sps, origin_form_uid, nothing)
+            if isnothing(spform)
+                error("Projection: cannot retrieve Dantzig-Wolfe pricing subproblem with uid $origin_form_uid")
+            end
             column = @view get_primal_sol_pool(spform).solutions[varid,:]
             if !haskey(columns, origin_form_uid)
                 columns[origin_form_uid] = DynamicMatrixColView{VarId, VarId, Float64}[]

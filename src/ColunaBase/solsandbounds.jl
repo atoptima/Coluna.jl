@@ -37,6 +37,10 @@ function isbetter(b1::Bound, b2::Bound)
     return sc1 * sc2 * b1.value < sc1 * sc2 * b2.value
 end
 
+# We use nothing when there is no bound. So we can consider that a new bound is better than
+# nothing.
+isbetter(::Bound, ::Nothing) = true
+
 """
     best(b1, b2)
 

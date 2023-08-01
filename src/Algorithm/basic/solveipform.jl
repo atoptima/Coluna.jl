@@ -209,7 +209,7 @@ best solution to the pricing subproblem found in a run of the pricing callback.
 """
 struct IncorrectPricingDualBound
     pb::ColunaBase.Bound
-    db::ColunaBase.Bound
+    db::Union{Nothing,ColunaBase.Bound}
 end
 
 """

@@ -42,7 +42,6 @@ end
 getinner(optimizer::MoiOptimizer) = optimizer.inner
 
 function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
-    @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     buffer = f.buffer
     matrix = getcoefmatrix(f)
 
@@ -57,24 +56,35 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Add vars
     for id in buffer.var_buffer.added
         v = getvar(f, id)
-        @logmsg LogLevel(-4) string("Adding variable ", getname(f, v))
-        add_to_optimizer!(f, optimizer, v)
+        if isnothing(v)
+            error("Sync_solvers: var $id is not in formulation:\n $f")
+        else
+            add_to_optimizer!(f, optimizer, v)
+        end
     end
 
     # Add constrs
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
-        @logmsg LogLevel(-2) string("Adding constraint ", getname(f, constr))
-        add_to_optimizer!(
-            f, optimizer, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr)
-        )
+        if isnothing(constr)
+            error("Sync_solvers: constr $constr_id is not in formulation:\n $f")
+        else
+            add_to_optimizer!(
+                f, optimizer, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr)
+            )
+        end
     end
 
     # Update variable costs
     # TODO: Pass a new objective function if too many changes
     for id in buffer.changed_cost
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        update_cost_in_optimizer!(f, optimizer, getvar(f, id))
+        v = getvar(f, id)
+        if isnothing(v)
+            error("Sync_solvers: var $id is not in formulation:\n $f")
+        else
+            update_cost_in_optimizer!(f, optimizer, v)
+        end
     end
 
     # Update objective sense
@@ -86,38 +96,52 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable bounds
     for id in buffer.changed_bound
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-4) "Changing bounds of variable " getname(f, id)
-        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(f, id))
-        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(f, id))
-        update_bounds_in_optimizer!(f, optimizer, getvar(f, id))
+        v = getvar(f, id)
+        if isnothing(v)
+            error("Sync_solvers: var $id is not in formulation:\n $f")
+        else
+            update_bounds_in_optimizer!(f, optimizer, v)
+        end
     end
 
     # Update variable kind
     for id in buffer.changed_var_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-3) "Changing kind of variable " getname(f, id)
-        @logmsg LogLevel(-4) string("New kind is ", getcurkind(f, id))
-        enforce_kind_in_optimizer!(f, optimizer, getvar(f,id))
+        v = getvar(f, id)
+        if isnothing(v)
+            error("Sync_solvers: var $id is not in formulation:\n $f")
+        else
+            enforce_kind_in_optimizer!(f, optimizer, v)
+        end
     end
 
     # Update constraint rhs
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
-        @logmsg LogLevel(-3) "Changing rhs of constraint " getname(f, id)
-        @logmsg LogLevel(-4) string("New rhs is ", getcurrhs(f, id))
-        update_constr_rhs_in_optimizer!(f, optimizer, getconstr(f, id))
+        constr = getconstr(f, id)
+        if isnothing(constr)
+            error("Sync_solvers: constr $id is not in formulation:\n $f")
+        else
+            update_constr_rhs_in_optimizer!(f, optimizer, constr)
+        end
     end
-
     # Update matrix
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
-    for id in buffer.var_buffer.added
-        for (constrid, coeff) in @view matrix[:,id]
-            iscuractive(f, constrid) || continue
-            isexplicit(f, constrid) || continue
-            constrid ∉ buffer.constr_buffer.added || continue
-            c = getconstr(f, constrid)
-            update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)
+    for v_id in buffer.var_buffer.added
+        for (c_id, coeff) in @view matrix[:,v_id]
+            iscuractive(f, c_id) || continue
+            isexplicit(f, c_id) || continue
+            c_id ∉ buffer.constr_buffer.added || continue
+            c = getconstr(f, c_id)
+            v = getvar(f, v_id)
+            if isnothing(c)
+                error("Sync_solvers: constr $c_id is not in formulation:\n $f")
+            elseif isnothing(v)
+                error("Sync_solvers: var $v_id is not in formulation:\n $f")
+            else
+                update_constr_member_in_optimizer!(optimizer, c, v, coeff)
+            end
         end
     end
 
@@ -129,8 +153,13 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         iscuractive(f, v_id) && isexplicit(f, v_id) || continue
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
-        @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(f, c), ",", getname(f, v), ") = ", coeff)
-        update_constr_member_in_optimizer!(optimizer, c, v, coeff)
+        if isnothing(c)
+            error("Sync_solvers: constr $c_id is not in formulation:\n $f")
+        elseif isnothing(v)
+            error("Sync_solvers: var $v_id is not in formulation:\n $f")
+        else
+            update_constr_member_in_optimizer!(optimizer, c, v, coeff)
+        end
     end
     empty!(buffer)
     return

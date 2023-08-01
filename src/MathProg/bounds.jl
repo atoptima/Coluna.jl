@@ -123,7 +123,7 @@ end
 ## Bound updates
 function _update_lp_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
     @assert pb.primal && pb.min == ov.min
-    if ColunaBase.isbetter(pb, ov.lp_primal_bound)
+    if isnothing(ov.lp_primal_bound) || ColunaBase.isbetter(pb, ov.lp_primal_bound)
         ov.lp_primal_bound = pb
         return true
     end
@@ -132,7 +132,7 @@ end
 
 function _update_lp_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
     @assert !db.primal && db.min == ov.min
-    if ColunaBase.isbetter(db, ov.lp_dual_bound)
+    if isnothing(ov.lp_dual_bound) || ColunaBase.isbetter(db, ov.lp_dual_bound)
         ov.lp_dual_bound = db
         return true
     end
@@ -141,7 +141,7 @@ end
 
 function _update_ip_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
     @assert pb.primal && pb.min == ov.min
-    if ColunaBase.isbetter(pb, ov.ip_primal_bound)
+    if isnothing(ov.ip_primal_bound) || ColunaBase.isbetter(pb, ov.ip_primal_bound)
         ov.ip_primal_bound = pb
         return true
     end
@@ -150,7 +150,7 @@ end
 
 function _update_ip_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
     @assert !db.primal && db.min == ov.min
-    if ColunaBase.isbetter(db, ov.ip_dual_bound)
+    if isnothing(ov.ip_dual_bound) || ColunaBase.isbetter(db, ov.ip_dual_bound)
         ov.ip_dual_bound = db
         return true
     end
