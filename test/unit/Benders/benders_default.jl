@@ -1157,7 +1157,7 @@ function test_two_identicals_cut_at_two_iterations_failure()
     env, reform = benders_form_A()
     master = ClMP.getmaster(reform)
     sps = ClMP.get_benders_sep_sps(reform)
-    spform = sps[3]
+    spform = sps[4]
     spconstrids = Dict(CL.getname(spform, constr) => constrid for (constrid, constr) in CL.getconstrs(spform))
     spvarids = Dict(CL.getname(spform, var) => varid for (varid, var) in CL.getvars(spform))
 
