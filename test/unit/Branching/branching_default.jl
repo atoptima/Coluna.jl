@@ -130,14 +130,14 @@ function test_strong_branching()
     extended_sol = Coluna.PrimalSolution(
         master,
         [
-            _id(vars["MC_36"], 3),
-            _id(vars["MC_38"], 3),
-            _id(vars["MC_39"], 2),
-            _id(vars["MC_42"], 3),
-            _id(vars["MC_43"], 2),
-            _id(vars["MC_44"], 3),
-            _id(vars["MC_46"], 3),
-            _id(vars["MC_47"], 2)
+            _id(vars["MC_36"], 4),
+            _id(vars["MC_38"], 4),
+            _id(vars["MC_39"], 5),
+            _id(vars["MC_42"], 4),
+            _id(vars["MC_43"], 5),
+            _id(vars["MC_44"], 4),
+            _id(vars["MC_46"], 4),
+            _id(vars["MC_47"], 5)
         ],
         [0.5, 0.16666667, 0.16666667, 0.33333333, 0.16666667, 0.16666667, 0.33333333, 0.16666667],
         31.5,

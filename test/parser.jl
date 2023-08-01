@@ -549,10 +549,6 @@ module Parser
             closefillmode!(ClMP.getcoefmatrix(sp))
         end
         closefillmode!(ClMP.getcoefmatrix(master))
-
-        @show master
-
-        @show subproblems
         return env, master, subproblems, constraints, reform
     end
 
@@ -602,7 +598,6 @@ module Parser
         end
 
         env, master, subproblems, constraints, reform = reformfromcache(cache)
-
         return env, master, subproblems, constraints, reform
     end
     export reformfromstring
