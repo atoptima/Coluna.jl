@@ -154,6 +154,18 @@ Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBN
 
 # end of the interface's redefinition 
 
+# Helper
+function _tree_search_reformulation()
+    param = Coluna.Params()
+    env = Coluna.Env{Coluna.MathProg.VarId}(param)
+    origform = Coluna.MathProg.create_formulation!(env, Coluna.MathProg.Original())
+    master = Coluna.MathProg.create_formulation!(env, Coluna.MathProg.DwMaster())
+    dws = Dict{Coluna.MathProg.FormId, Coluna.MathProg.Formulation{Coluna.MathProg.DwSp}}()
+    benders = Dict{Coluna.MathProg.FormId, Coluna.MathProg.Formulation{Coluna.MathProg.BendersSp}}()
+    reform = Coluna.MathProg.Reformulation(env, origform, master, dws, benders)
+    return reform, env
+end
+
 # Tests: 
 
 #```mermaid
@@ -168,14 +180,8 @@ Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBN
 # status: OPTIMAL with prima solution = 20.0
 function test_stop_gap_closed()
     ## create an empty formulation
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( ## min sense by default
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master) ## empty input 
 
@@ -242,14 +248,8 @@ register!(unit_tests, "treesearch", test_stop_gap_closed)
 # divide should not be called on node 2 and 3
 # should return status = INFEASIBLE   
 function test_infeasible_pb()
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( 
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master) 
 
@@ -308,14 +308,8 @@ register!(unit_tests, "treesearch", test_infeasible_pb)
 # divide should not be run on node 2 because the subproblem is infeasible
 
 function test_infeasible_sp()
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( 
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master) 
 
@@ -382,15 +376,8 @@ register!(unit_tests, "treesearch", test_infeasible_sp)
 # should return OTHER_LIMIT with dual_bound = 56 (worst among the leaves) and primal bound = 60, all nodes should be explored
 
 function test_all_explored_with_pb()
-
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( 
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master) 
 
@@ -455,15 +442,8 @@ register!(unit_tests, "treesearch", test_all_explored_with_pb)
 #``` 
 # not enough information to branch on leaves, should return OTHER_LIMIT with dual_bound = 56 and primal_bound = 58
 function test_all_explored_with_pb_2()
-
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( 
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master) 
 
@@ -533,15 +513,8 @@ register!(unit_tests, "treesearch", test_all_explored_with_pb_2)
 # no primal bound
 # should return OTHER_LIMIT with dual_bound = 56
 function test_all_explored_without_pb()
-
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( 
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master) 
 
@@ -607,15 +580,8 @@ register!(unit_tests, "treesearch", test_all_explored_without_pb)
 # At nodes 3 and 4, the local lp_dual_bound > the primal bound but the global dual bound < primal bound so the algorithm should continue and stop at node 5 when gap is closed
 # status: OPTIMAL with primal solution = 30.0
 function test_local_db()
-    ## create an empty formulation
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( ## min sense by default
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master)
 
@@ -689,14 +655,8 @@ register!(unit_tests, "treesearch", test_local_db)
 # status: OPTIMAL with primal solution = 56.0
 function test_pruning()
     ## create an empty formulation
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( ## min sense by default
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
 
     input = Coluna.OptimizationState(master)
 
@@ -767,14 +727,8 @@ register!(unit_tests, "treesearch", test_pruning)
 
 function test_one_leaf_infeasible_and_then_node_limit()
     ## create an empty formulation
-    param = Coluna.Params()
-    env = Coluna.Env{Coluna.MathProg.VarId}(param)
-    master = Coluna.MathProg.create_formulation!( ## min sense by default
-        env,
-        Coluna.MathProg.DwMaster()
-    )
-    reform = Coluna.MathProg.Reformulation(env)
-    reform.master = master
+    reform, env = _tree_search_reformulation()
+    master = Coluna.MathProg.getmaster(reform)
     
     input = Coluna.OptimizationState(master)
     optstate1 = Coluna.OptimizationState(termination_status = Coluna.OPTIMAL, master, lp_dual_bound = Coluna.MathProg.DualBound(master, 55.0))

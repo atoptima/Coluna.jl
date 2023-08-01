@@ -113,8 +113,8 @@ end
 function test_benders_cut_lhs()
     _, reform = benders_form_D()
     master = Coluna.MathProg.getmaster(reform)
-    sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 3
-    sp = sps[3]
+    sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 4
+    sp = sps[4]
     cids = get_name_to_constrids(sp)
     vids = get_name_to_varsids(sp)
     alg = Coluna.Algorithm.BendersCutGeneration(
@@ -151,8 +151,8 @@ function test_benders_cut_rhs()
 
     _, reform = benders_form_D()
     master = Coluna.MathProg.getmaster(reform)
-    sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 3
-    sp = sps[3]
+    sps = Coluna.MathProg.get_benders_sep_sps(reform) ##one sp, spid = 4
+    sp = sps[4]
     cids = get_name_to_constrids(sp)
     vids = get_name_to_varsids(sp)
     alg = Coluna.Algorithm.BendersCutGeneration(
