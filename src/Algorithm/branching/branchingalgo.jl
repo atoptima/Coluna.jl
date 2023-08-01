@@ -284,14 +284,17 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
         conquer_input = ConquerInputFromSb(Branching.get_global_primal_handler(input), child, units_to_restore)
-        conquer_output = run!(Branching.get_conquer(phase), env, reform, conquer_input)
-        child.optstate = conquer_output
+        child_state = run!(Branching.get_conquer(phase), env, reform, conquer_input)
+        child.optstate = child_state
         TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true
 
     # Store new primal solutions found during the evaluation of the child.
     add_ip_primal_sols!(ip_primal_sols_found, get_ip_primal_sols(child_state)...)
+    for sol in get_ip_primal_sols(child_state)
+        store_ip_primal_sol!(Branching.get_global_primal_handler(input), sol)
+    end
     return
 end
 
