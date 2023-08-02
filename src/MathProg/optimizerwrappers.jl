@@ -57,7 +57,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.var_buffer.added
         v = getvar(f, id)
         if isnothing(v)
-            error("Sync_solvers: var $id is not in formulation:\n $f")
+            error("Sync_solver: var $id is not in formulation.")
         else
             add_to_optimizer!(f, optimizer, v)
         end
@@ -67,11 +67,9 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
         if isnothing(constr)
-            error("Sync_solvers: constr $constr_id is not in formulation:\n $f")
+            error("Sync_solver: constr $constr_id is not in formulation.")
         else
-            add_to_optimizer!(
-                f, optimizer, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr)
-            )
+            add_to_optimizer!(f, optimizer, constr, (f, var) -> iscuractive(f, var) && isexplicit(f, var))
         end
     end
 
@@ -81,7 +79,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         v = getvar(f, id)
         if isnothing(v)
-            error("Sync_solvers: var $id is not in formulation:\n $f")
+            error("Sync_solver: var $id is not in formulation.")
         else
             update_cost_in_optimizer!(f, optimizer, v)
         end
@@ -98,7 +96,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         v = getvar(f, id)
         if isnothing(v)
-            error("Sync_solvers: var $id is not in formulation:\n $f")
+            error("Sync_solver: var $id is not in formulation.")
         else
             update_bounds_in_optimizer!(f, optimizer, v)
         end
@@ -109,7 +107,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         v = getvar(f, id)
         if isnothing(v)
-            error("Sync_solvers: var $id is not in formulation:\n $f")
+            error("Sync_solver: var $id is not in formulation.")
         else
             enforce_kind_in_optimizer!(f, optimizer, v)
         end
@@ -120,7 +118,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
         constr = getconstr(f, id)
         if isnothing(constr)
-            error("Sync_solvers: constr $id is not in formulation:\n $f")
+            error("Sync_solver: constr $id is not in formulation.")
         else
             update_constr_rhs_in_optimizer!(f, optimizer, constr)
         end
@@ -136,9 +134,9 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
             c = getconstr(f, c_id)
             v = getvar(f, v_id)
             if isnothing(c)
-                error("Sync_solvers: constr $c_id is not in formulation:\n $f")
+                error("Sync_solver: constr $c_id is not in formulation.")
             elseif isnothing(v)
-                error("Sync_solvers: var $v_id is not in formulation:\n $f")
+                error("Sync_solver: var $v_id is not in formulation.")
             else
                 update_constr_member_in_optimizer!(optimizer, c, v, coeff)
             end
@@ -154,9 +152,9 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
         if isnothing(c)
-            error("Sync_solvers: constr $c_id is not in formulation:\n $f")
+            error("Sync_solver: constr $c_id is not in formulation.")
         elseif isnothing(v)
-            error("Sync_solvers: var $v_id is not in formulation:\n $f")
+            error("Sync_solver: var $v_id is not in formulation.")
         else
             update_constr_member_in_optimizer!(optimizer, c, v, coeff)
         end

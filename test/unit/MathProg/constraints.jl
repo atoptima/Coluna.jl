@@ -38,9 +38,9 @@ function records()
     c_rec = ClMP.MoiConstrRecord(
         ; index = ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
     )
-    @test ClMP.getindex(c_rec) == ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
+    @test ClMP.getmoiindex(c_rec) == ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
 
-    ClMP.setindex!(c_rec, ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20))
-    @test ClMP.getindex(c_rec) == ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20)
+    ClMP.setmoiindex!(c_rec, ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20))
+    @test ClMP.getmoiindex(c_rec) == ClMP.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20)
 end
 register!(unit_tests, "constraints", records)

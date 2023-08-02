@@ -33,8 +33,8 @@ end
 
 MoiConstrRecord(;index = MoiConstrIndex()) = MoiConstrRecord(index)
 
-getindex(record::MoiConstrRecord) = record.index
-setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
+getmoiindex(record::MoiConstrRecord)::MoiConstrIndex = record.index
+setmoiindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 """
 Representation of a constraint in Coluna.

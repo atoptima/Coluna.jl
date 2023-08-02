@@ -127,7 +127,9 @@ function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted
             for (repid, repval) in column
                 if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar || 
                     getduty(repid) <= MasterRepPricingVar || getduty(repid) <= MasterRepPricingSetupVar
-                    mastrepid = getid(getvar(master, repid))
+                    mastrepvar = getvar(master, repid)
+                    @assert !isnothing(mastrepvar)
+                    mastrepid = getid(mastrepvar)
                     push!(projected_sol_vars, mastrepid)
                     push!(projected_sol_vals, repval * val)
                 end
