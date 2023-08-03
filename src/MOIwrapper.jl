@@ -590,13 +590,14 @@ function MOI.get(
     orig_form = get_original_formulation(model.inner)
     constrid = getid(_info(model, index).constr)
     terms = MOI.ScalarAffineTerm{Float64}[]
+    # Cannot get a view of the coefficient matrix when it is in fill mode.
     matrix = getcoefmatrix(orig_form)
     if matrix.matrix.fillmode
         for (varid, coef) in view(matrix.matrix.buffer, constrid, :)
             push!(terms, MOI.ScalarAffineTerm(coef, model.moi_varids[varid]))
         end
     else
-        for (varid, coef) in @view getcoefmatrix(orig_form)[constrid, :]
+        for (varid, coef) in @view matrix[constrid, :]
             push!(terms, MOI.ScalarAffineTerm(coef, model.moi_varids[varid]))
         end
     end

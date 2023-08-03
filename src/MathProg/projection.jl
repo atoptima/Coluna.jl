@@ -83,12 +83,20 @@ function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
     columns = Dict{Int, Vector{DynamicMatrixColView{VarId, VarId, Float64}}}()
     values = Dict{Int, Vector{Float64}}()
     master = getmodel(sol)
+    reform = getparent(master)
+    if isnothing(reform)
+        error("Projection: master have the reformulation as parent formulation.")
+    end
+    dw_pricing_sps = get_dw_pricing_sps(reform)
 
     for (varid, val) in sol
         duty = getduty(varid)
         if duty <= MasterCol
             origin_form_uid = getoriginformuid(varid)
-            spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
+            spform = get(dw_pricing_sps, origin_form_uid, nothing)
+            if isnothing(spform)
+                error("Projection: cannot retrieve Dantzig-Wolfe pricing subproblem with uid $origin_form_uid")
+            end
             column = @view get_primal_sol_pool(spform).solutions[varid,:]
             if !haskey(columns, origin_form_uid)
                 columns[origin_form_uid] = DynamicMatrixColView{VarId, VarId, Float64}[]
@@ -119,7 +127,9 @@ function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted
             for (repid, repval) in column
                 if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar || 
                     getduty(repid) <= MasterRepPricingVar || getduty(repid) <= MasterRepPricingSetupVar
-                    mastrepid = getid(getvar(master, repid))
+                    mastrepvar = getvar(master, repid)
+                    @assert !isnothing(mastrepvar)
+                    mastrepid = getid(mastrepvar)
                     push!(projected_sol_vars, mastrepid)
                     push!(projected_sol_vals, repval * val)
                 end
