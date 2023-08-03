@@ -37,3 +37,13 @@ function row_max_activity(form::PresolveFormRepr, row::Int64)
         form.coef_matrix[row,:], form.ubs, form.lbs
     ), init = 0.0)
 end
+
+function row_max_slack(form::PresolveFormRepr, row::Int64)
+    min_act = row_min_activity(form, row)
+    return form.rhs[row] - min_act
+end
+
+function row_min_slack(form::PresolveFormRepr, row::Int64)
+    max_act = row_max_activity(form, row)
+    return form.rhs[row] - max_act
+end
