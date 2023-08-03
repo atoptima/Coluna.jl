@@ -15,6 +15,7 @@ typical_test_dirs = [
     joinpath("unit", "Benders"),
     joinpath("unit", "Parser"),
     joinpath("unit", "TreeSearch"),
+    joinpath("unit", "Presolve"),
     joinpath("integration", "custom_data"),
     joinpath("integration", "parser"),
     joinpath("integration", "pricing_callback"),
@@ -80,5 +81,5 @@ listen_to_tests([
     run_unit_tests,
     run_integration_tests,
     run_e2e_tests,
-    #run_e2e_extra_tests
+    run_e2e_extra_tests
 ])
