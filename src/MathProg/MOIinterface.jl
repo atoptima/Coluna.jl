@@ -23,29 +23,29 @@ function update_bounds_in_optimizer!(form::Formulation, optimizer::MoiOptimizer,
     moi_kind = getkind(moi_record)
     moi_lower_bound = getlowerbound(moi_record)
     moi_upper_bound = getupperbound(moi_record)
-    moi_index = getindex(moi_record)
+    moi_index = getmoiindex(moi_record)
     if getcurkind(form, var) == Binary && moi_index.value != -1
         MOI.delete(inner, moi_kind)
         setkind!(moi_record, MOI.add_constraint(
-            inner, MOI.VariableIndex(moi_index), MOI.Integer()
+            inner, MOI.VariableIndex(moi_index.value), MOI.Integer()
         ))
     end
-    if moi_lower_bound.value != -1
+    if !isnothing(moi_lower_bound) && moi_lower_bound.value != -1
         MOI.set(inner, MOI.ConstraintSet(), moi_lower_bound,
             MOI.GreaterThan(getcurlb(form, var))
         )
     else
         setlowerbound!(moi_record, MOI.add_constraint(
-            inner, MOI.VariableIndex(moi_index), MOI.GreaterThan(getcurlb(form, var))
+            inner, MOI.VariableIndex(moi_index.value), MOI.GreaterThan(getcurlb(form, var))
         ))
     end
-    if moi_upper_bound.value != -1
+    if !isnothing(moi_upper_bound) && moi_upper_bound.value != -1
         MOI.set(inner, MOI.ConstraintSet(), moi_upper_bound,
             MOI.LessThan(getcurub(form, var))
         )
     else
         setupperbound!(moi_record, MOI.add_constraint(
-            inner, MOI.VariableIndex(moi_index), MOI.LessThan(getcurub(form, var))
+            inner, MOI.VariableIndex(moi_index.value), MOI.LessThan(getcurub(form, var))
         ))
     end
     return
@@ -53,7 +53,7 @@ end
 
 function update_cost_in_optimizer!(form::Formulation, optimizer::MoiOptimizer, var::Variable)
     cost = getcurcost(form, var)
-    moi_index = getindex(getmoirecord(var))
+    moi_index = getmoiindex(getmoirecord(var))
     MOI.modify(
         getinner(optimizer), MoiObjective(),
         MOI.ScalarCoefficientChange{Float64}(moi_index, cost)
@@ -64,8 +64,8 @@ end
 function update_constr_member_in_optimizer!(
     optimizer::MoiOptimizer, c::Constraint, v::Variable, coeff::Float64
 )
-    moi_c_index = getindex(getmoirecord(c))
-    moi_v_index = getindex(getmoirecord(v))
+    moi_c_index = getmoiindex(getmoirecord(c))
+    moi_v_index = getmoiindex(getmoirecord(v))
     MOI.modify(
         getinner(optimizer), moi_c_index,
         MOI.ScalarCoefficientChange{Float64}(moi_v_index, coeff)
@@ -76,7 +76,7 @@ end
 function update_constr_rhs_in_optimizer!(
     form::Formulation, optimizer::MoiOptimizer, constr::Constraint
 )
-    moi_c_index = getindex(getmoirecord(constr))
+    moi_c_index = getmoiindex(getmoirecord(constr))
     rhs = getcurrhs(form, constr)
     sense = getcursense(form, constr)
     MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, convert_coluna_sense_to_moi(sense)(rhs))
@@ -88,11 +88,11 @@ function enforce_bounds_in_optimizer!(
 )
     moirecord = getmoirecord(var)
     moi_lower_bound = MOI.add_constraint(
-        getinner(optimizer), getindex(moirecord),
+        getinner(optimizer), getmoiindex(moirecord),
         MOI.GreaterThan(getcurlb(form, var))
     )
     moi_upper_bound = MOI.add_constraint(
-        getinner(optimizer), getindex(moirecord),
+        getinner(optimizer), getmoiindex(moirecord),
         MOI.LessThan(getcurub(form, var))
     )
     setlowerbound!(moirecord, moi_lower_bound)
@@ -116,7 +116,7 @@ function enforce_kind_in_optimizer!(
     if kind != Continuous # Continuous is translated as no constraint in MOI
         moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
         setkind!(moirecord, MOI.add_constraint(
-            inner, getindex(moirecord), moi_set
+            inner, getmoiindex(moirecord), moi_set
         ))
     end
     return
@@ -126,7 +126,7 @@ function add_to_optimizer!(form::Formulation, optimizer::MoiOptimizer, var::Vari
     inner = getinner(optimizer)
     moirecord = getmoirecord(var)
     moi_index = MOI.add_variable(inner)
-    setindex!(moirecord, moi_index)
+    setmoiindex!(moirecord, moi_index)
     update_cost_in_optimizer!(form, optimizer, var)
     enforce_kind_in_optimizer!(form, optimizer, var)
     enforce_bounds_in_optimizer!(form, optimizer, var)
@@ -142,8 +142,10 @@ function add_to_optimizer!(
     matrix = getcoefmatrix(form)
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (varid, coeff) in @view matrix[constr_id, :]
-        if var_checker(form, varid)
-            moi_id = getindex(getmoirecord(getvar(form, varid)))
+        var = getvar(form, varid)
+        @assert !isnothing(var)
+        if var_checker(form, var)
+            moi_id = getmoiindex(getmoirecord(var))
             push!(terms, MOI.ScalarAffineTerm{Float64}(coeff, moi_id))
         end
     end
@@ -155,7 +157,7 @@ function add_to_optimizer!(
     )
     
     moirecord = getmoirecord(constr)
-    setindex!(moirecord, moi_constr)
+    setmoiindex!(moirecord, moi_constr)
     MOI.set(inner, MOI.ConstraintName(), moi_constr, getname(form, constr))
     return
 end
@@ -187,7 +189,7 @@ end
 function remove_from_optimizer!(::Formulation, optimizer::MoiOptimizer, var::Variable)                       
     inner = getinner(optimizer)
     moirecord = getmoirecord(var)
-    @assert getindex(moirecord).value != -1
+    @assert getmoiindex(moirecord).value != -1
     MOI.delete(inner, getlowerbound(moirecord))
     MOI.delete(inner, getupperbound(moirecord))
     setlowerbound!(moirecord, MoiVarLowerBound())
@@ -196,8 +198,8 @@ function remove_from_optimizer!(::Formulation, optimizer::MoiOptimizer, var::Var
         MOI.delete(inner, getkind(moirecord))
     end
     setkind!(moirecord, MoiVarKind())
-    MOI.delete(inner, getindex(moirecord))
-    setindex!(moirecord, MoiVarIndex())
+    MOI.delete(inner, getmoiindex(moirecord))
+    setmoiindex!(moirecord, MoiVarIndex())
     return
 end
 
@@ -205,9 +207,9 @@ function remove_from_optimizer!(
     ::Formulation, optimizer::MoiOptimizer, constr::Constraint
 )
     moirecord = getmoirecord(constr)
-    @assert getindex(moirecord).value != -1
-    MOI.delete(getinner(optimizer), getindex(moirecord))
-    setindex!(moirecord, MoiConstrIndex())
+    @assert getmoiindex(moirecord).value != -1
+    MOI.delete(getinner(optimizer), getmoiindex(moirecord))
+    setmoiindex!(moirecord, MoiConstrIndex())
     return
 end
 
@@ -234,7 +236,7 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
         for (id, var) in getvars(form)
             iscuractive(form, id) && isexplicit(form, id) || continue
             moirec = getmoirecord(var)
-            moi_index = getindex(moirec)
+            moi_index = getmoiindex(moirec)
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
             solcost += val * getcurcost(form, id)
             val = round(val, digits = Coluna.TOL_DIGITS)
@@ -280,7 +282,7 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         solconstrs = ConstrId[]
         solvals = Float64[]
         for (id, constr) in getconstrs(form)
-            moi_index = getindex(getmoirecord(constr))
+            moi_index = getmoiindex(getmoirecord(constr))
             MOI.is_valid(inner, moi_index) || continue
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             solcost += val * getcurrhs(form, id)
@@ -296,7 +298,7 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         varvals = Float64[]
         activebounds = ActiveBound[]
         for (varid, var) in getvars(form)
-            moi_var_index = getindex(getmoirecord(var))
+            moi_var_index = getmoiindex(getmoirecord(var))
             moi_lower_bound_index = getlowerbound(getmoirecord(var))
             if MOI.is_valid(inner, moi_var_index) && MOI.is_valid(inner, moi_lower_bound_index)
                 val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_lower_bound_index)
@@ -349,7 +351,7 @@ function get_dual_infeasibility_certificate(form::F, optimizer::MoiOptimizer) wh
         certificate_var_ids = VarId[]
         certificate_var_vals = Float64[]
         for (varid, var) in getvars(form)
-            moi_index = getindex(getmoirecord(var))
+            moi_index = getmoiindex(getmoirecord(var))
             MOI.is_valid(inner, moi_index) || continue
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
             val = round(val, digits = Coluna.TOL_DIGITS)

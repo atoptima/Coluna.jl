@@ -149,6 +149,16 @@ Returns the master formulation of a given formulation.
 """
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 
+"""
+    getparent(form) -> AbstractFormulation
+
+Returns the parent formulation of a given formulation.
+This is usually:
+- the master for a subproblem
+- the reformulation for the master
+"""
+getparent(form::Formulation) = form.parent_formulation
+
 # Used to compute the coefficient of a column in the coefficient matrix.
 _setrobustmembers!(::Formulation, ::Variable, ::Nothing) = nothing
 function _setrobustmembers!(form::Formulation, var::Variable, members::ConstrMembership)

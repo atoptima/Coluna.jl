@@ -168,7 +168,7 @@ function projection_from_dw_reform_to_master_1()
     # This solution is integer feasible.
     solution = Coluna.MathProg.PrimalSolution(
         master,
-        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid = 2), ["MC1", "MC2", "MC3", "MC4"]),
+        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid = 4), ["MC1", "MC2", "MC3", "MC4"]),
         [1/2, 1/2, 1/2, 1/2],
         2.0,
         ClB.FEASIBLE_SOL
@@ -185,7 +185,8 @@ function projection_from_dw_reform_to_master_1()
     # | 1/2 of [0.0, 0.0, 1.0, 0.0, 0.0, 1.0]
     # | 1/2 of [0.0, 0.0, 0.0, 1.0, 0.0, 1.0]
     # ----->   [0.0, 0.0, 0.5, 0.5, 0.0, 1.0]
-    @test rolls == Dict(2 => [
+
+    @test rolls == Dict( 4 => [
         Dict(mastervarids["x_14"] => 0.5, mastervarids["x_23"] => 0.5, mastervarids["x_34"] => 1.0)
         Dict(mastervarids["x_12"] => 1.0, mastervarids["x_14"] => 0.5, mastervarids["x_23"] => 0.5)
     ])

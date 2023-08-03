@@ -44,12 +44,12 @@ function MoiVarRecord(;index::MoiVarIndex = MoiVarIndex())
     return MoiVarRecord(index, MoiVarLowerBound(), MoiVarUpperBound(), MoiVarKind())
 end
 
-getindex(record::MoiVarRecord) = record.index
+getmoiindex(record::MoiVarRecord)::MoiVarIndex = record.index
 getlowerbound(record::MoiVarRecord) = record.lower_bound
 getupperbound(record::MoiVarRecord) = record.upper_bound
 getkind(record::MoiVarRecord) = record.kind
 
-setindex!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
+setmoiindex!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
 setlowerbound!(record::MoiVarRecord, bound::MoiVarLowerBound) = record.lower_bound = bound
 setupperbound!(record::MoiVarRecord, bound::MoiVarUpperBound) = record.upper_bound = bound
 setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind

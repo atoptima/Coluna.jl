@@ -1617,6 +1617,7 @@ end
 
 function test_colgen_unbounded_sp()
     env, master, sps, reform = unbounded_subproblem_form()
+ 
     # We need subsolvers to optimize the master and subproblems.
     # We relax the master formulation.
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
@@ -1633,3 +1634,30 @@ function test_colgen_unbounded_sp()
     @show output
 end
 register!(unit_tests, "colgen", test_colgen_unbounded_sp)
+          
+function jet_report_colgen_loop()
+    env, master, sps, reform = min_toy_gap_for_colgen_loop()
+    
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+          
+    phase = ClA.ColGenPhase0()
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+    ColGen.setup_reformulation!(reform, phase)
+    Coluna.set_optim_start_time!(env)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    stage = ColGenIterationTestStage()
+    stab = Coluna.Algorithm.NoColGenStab()
+    @test_call ColGen.run_colgen_phase!(ctx, phase, stage, env, input, stab)
+    
+    # @test output.mlp ≈ 70.33333333
+    # @test output.db ≈ 70.33333333
+    return
+end
+# Excluded at the moment because too many errors come from DynamicSparseArrays.
+register!(unit_tests, "colgen_default", jet_report_colgen_loop; x = true)

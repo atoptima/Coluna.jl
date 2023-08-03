@@ -1,3 +1,7 @@
+# Coluna 0.6.6
+
+- DynamicSparseArrays 0.7 main features are tested against JET.
+
 # Coluna 0.6.5
 
 This is a minor update that provides documentation together with tests and several bug fixes for the tree search
