@@ -61,3 +61,116 @@ function row_slack()
     @test Coluna.Algorithm.row_max_slack(form, 6) == rhs[6] - Coluna.Algorithm.row_min_activity(form, 6) # ok
 end
 register!(unit_tests, "presolve_helper", row_slack)
+
+function test_inner_unbounded_row()
+    @test Coluna.Algorithm._unbounded_row(Less, Inf)
+    @test Coluna.Algorithm._unbounded_row(Greater, -Inf)
+    @test !Coluna.Algorithm._unbounded_row(Less, -Inf)
+    @test !Coluna.Algorithm._unbounded_row(Greater, Inf)
+    @test !Coluna.Algorithm._unbounded_row(Equal, Inf)
+    @test !Coluna.Algorithm._unbounded_row(Equal, -Inf)
+    @test !Coluna.Algorithm._unbounded_row(Less, 15)
+    @test !Coluna.Algorithm._unbounded_row(Greater, 15)
+end
+register!(unit_tests, "presolve_helper", test_inner_unbounded_row)
+
+function test_inner_row_bounded_by_var_bounds_1()
+    # x + y + z >= 1
+    coeffs = [1, 1, 1]
+    lbs = [1, 1, 1]
+    ubs = [10, 10, 10]
+    rhs = 1
+    sense = Greater
+
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+
+    # x + y + z >= 4
+    rhs = 4
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+
+    # x + y + z >= 31
+    rhs = 31
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+end
+register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_1)
+
+function test_inner_row_bounded_by_var_bounds_2()
+    # x + y + z <= 9
+    coeffs = [1, 1, 1]
+    lbs = [1, 1, 1]
+    ubs = [3, 3, 3]
+    rhs = 9
+    sense = Less
+
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+
+    # x + y + z <= 4
+    rhs = 4
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+
+    # x + y + z <= -1
+    rhs = -1
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+end
+register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_2)
+
+function test_inner_row_bounded_by_var_bounds_3()
+    # x + y + z == 3
+    coeffs = [1, 1, 1]
+    lbs = [1, 1, 1]
+    ubs = [1, 1, 1]
+    rhs = 3
+    sense = Equal
+
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+
+    # x + y + z == 4
+    rhs = 4
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @show min_slack, max_slack
+
+    @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+
+    # x + y + z == 2
+    lbs = [0, 0, 0]
+    ubs = [1, 1, 1]
+    rhs = 2
+
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
+    @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
+end
+register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_3)
