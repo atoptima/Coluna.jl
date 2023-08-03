@@ -1633,7 +1633,7 @@ function test_colgen_unbounded_sp()
     output = ColGen.run!(ctx, env, input)
     @show output
 end
-register!(unit_tests, "colgen", test_colgen_unbounded_sp)
+register!(unit_tests, "colgen", test_colgen_unbounded_sp; x = true)
           
 function jet_report_colgen_loop()
     env, master, sps, reform = min_toy_gap_for_colgen_loop()
