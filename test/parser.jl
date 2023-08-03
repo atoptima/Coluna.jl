@@ -406,9 +406,7 @@ module Parser
                 var = cache.variables[varid]
                 if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
                     is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
-                    @show varid
                     v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
-                    @show ClMP.getid(v)
                 else
                     if haskey(all_spvars, varid)
                         var, sp = all_spvars[varid]
@@ -421,8 +419,6 @@ module Parser
                             explicit = true
                         end
                         v = ClMP.clonevar!(sp, master, sp, var, duty; cost = ClMP.getcurcost(sp, var), is_explicit = explicit)
-                        @show ClMP.getname(master, v)
-                        @show ClMP.getid(v)
                     else
                         throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                     end
