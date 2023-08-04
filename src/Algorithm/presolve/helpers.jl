@@ -53,7 +53,7 @@ function _unbounded_row(sense::ConstrSense, rhs::Real)
 end
 
 function _row_bounded_by_var_bounds(sense::ConstrSense, min_slack::Real, max_slack::Real, ϵ::Real)
-    return sense == Less && min_slack >= -ϵ || 
+    return sense == Less && min_slack >= -ϵ ||
            sense == Greater && max_slack <= ϵ ||
            sense == Equal && max_slack <= ϵ && min_slack >= -ϵ
 end
@@ -61,4 +61,18 @@ end
 function _infeasible_row(sense::ConstrSense, min_slack::Real, max_slack::Real, ϵ::Real)
     return (sense == Greater || sense == Equal) && min_slack > ϵ ||
            (sense == Less || sense == Equal) && max_slack < -ϵ
+end
+
+function _var_lb_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real, var_lb::Real, var_ub::Real)
+    if sense == Equal || sense == Greater && var_coef_in_row > 0 || sense == Less && var_coef_in_row < 0
+        return (min_slack + _act_contrib((var_coef_in_row, var_ub, var_lb))) / var_coef_in_row
+    end
+    return -Inf
+end
+
+function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real, var_lb::Real, var_ub::Real)
+    if sense == Equal || sense == Less && var_coef_in_row > 0 || sense == Greater && var_coef_in_row < 0
+        return (max_slack + _act_contrib((var_coef_in_row, var_lb, var_ub))) / var_coef_in_row
+    end
+    return Inf
 end
