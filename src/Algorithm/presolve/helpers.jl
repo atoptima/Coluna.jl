@@ -76,3 +76,8 @@ function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, 
     end
     return Inf
 end
+
+function _fix_var(lb::Real, ub::Real, ϵ::Real)
+    return abs(lb - ub) <= ϵ
+end
+

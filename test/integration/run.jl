@@ -1,7 +1,8 @@
 dirs = [
     "custom_data",
     "parser",
-    "pricing_callback"
+    "pricing_callback",
+    "MOI"
 ]
 
 for dir in dirs

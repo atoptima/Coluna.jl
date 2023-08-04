@@ -1,8 +1,7 @@
 # We want to make sure that when we fix variables, these variables are 
 # removed from the subsolver and the solution returned contains the fixed
 # variables and the cost of the fixed variables.
-
-@testset "Integration - fixed variables" begin
+function test_fixed_variables()
     env = CL.Env{ClMP.VarId}(CL.Params())
 
     # Create the following formulation:
@@ -103,3 +102,4 @@
     @test ClMP.getvalue(dual_sol) == 17
     @test ClMP.getcurrhs(form, c) == 8
 end
+register!(integration_tests, "MOI - fixed_variables", test_fixed_variables)
