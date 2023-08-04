@@ -3,6 +3,14 @@ TODO
 """
 abstract type PresolveStep end
 
+struct PresolveFormulation
+    col_to_var::Vector{Variable}
+    row_to_constr::Vector{Constraint}
+    var_to_col::Dict{VarId,Int64}
+    constr_to_row::Dict{ConstrId,Int64}
+    form::PresolveFormRepr
+end
+
 """
 Remove fixed variables from a formulation and updates constraints right-hand-side in 
 consequence.

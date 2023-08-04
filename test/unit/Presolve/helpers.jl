@@ -1,3 +1,151 @@
+function test_presolve_builder1()
+    coef_matrix = sparse([
+        0  0 -1    1  0  1  2.5 # <= 4
+        0  0  1   -1  0 -1 -2.5 # >= -4
+        1  0  0    0  1  0   0   # == 1
+        0  1  2   -4  0  0   0   # >= 2
+        0  1  2   -4  0  0   0   # <= 1
+        1 -2  3  5.5  0  1   1   # == 6
+    ])
+
+    rhs = [4, -4, 1, 2, 1, 6]
+    sense = [Less, Greater, Equal, Greater, Less, Equal]
+    lbs = [1,   0,  2, 1, -1, -Inf, 0]
+    ubs = [10, Inf, 3, 2,  1,   0,  1]
+
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    @test form.nb_vars == 7
+    @test form.nb_constrs == 6
+    @test all(form.coef_matrix .== coef_matrix)
+    @test all(form.rhs .== rhs)
+    @test all(form.sense .== sense)
+    @test all(form.lbs .== lbs)
+    @test all(form.ubs .== ubs)
+    return
+end
+register!(unit_tests, "presolve_helper", test_presolve_builder1)
+
+# Test rows deactivation.
+function test_presolve_builder2()
+    coef_matrix = sparse([
+        0  0 -1    1  0  1  2.5 # <= 4
+        0  0  1   -1  0 -1 -2.5 # >= -4
+        1  0  0    0  1  0   0   # == 1
+        0  1  2   -4  0  0   0   # >= 2
+        0  1  2   -4  0  0   0   # <= 1
+        1 -2  3  5.5  0  1   1   # == 6
+    ])
+
+    rhs = [4, -4, 1, 2, 1, 6]
+    sense = [Less, Greater, Equal, Greater, Less, Equal]
+    lbs = [1,   0,  2, 1, -1, -Inf, 0]
+    ubs = [10, Inf, 3, 2,  1,   0,  1]
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+
+    # Deactivate some rows.
+    rows_to_deactivate = [1, 3, 6]
+    vars_to_fix = Int[]
+    tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
+
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
+    @test form2.nb_vars == 7
+    @test form2.nb_constrs == 3
+    @test all(form2.coef_matrix .== coef_matrix[[2, 4, 5], :])
+    @test all(form2.rhs .== rhs[[2, 4, 5]])
+    @test all(form2.sense .== sense[[2, 4, 5]])
+    @test all(form2.lbs .== lbs)
+    @test all(form2.ubs .== ubs)
+end
+register!(unit_tests, "presolve_helper", test_presolve_builder2)
+
+# Test vars fixing.
+function test_presolve_builder3()
+    coef_matrix = sparse([
+        0  0 -1    1  0  1  2.5 # <= 4
+        0  0  1   -1  0 -1 -2.5 # >= -4
+        1  0  0    0  1  0   0   # == 1
+        0  1  2   -4  0  0   0   # >= 2
+        0  1  2   -4  0  0   0   # <= 1
+        1 -2  3  5.5  0  1   1   # == 6
+    ])
+
+    rhs = [4, -4, 1, 2, 1, 6]
+    sense = [Less, Greater, Equal, Greater, Less, Equal]
+    lbs = [10, 2,  1, 1, -1,  0,  -1]
+    ubs = [10, 3,  1, 2,  1,  0,  -1]
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+
+    # Deactivate some rows.
+    rows_to_deactivate = Int[]
+    vars_to_fix = Int[1, 3, 6, 7]
+    tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}()
+
+    #      -1  - 2.5  # <= 4  ->  7.5
+    #      1   + 2.5  # >= -4 -> -7.5
+    # 10              # == 1  ->   -9
+    #      2          # >= 2  ->    0
+    #      2          # <= 1  ->   -1
+    # 10+  3     -1   # == 6  ->   -6
+
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
+    @test form2.nb_vars == 3
+    @test form2.nb_constrs == 6
+    @test all(form2.coef_matrix .== coef_matrix[:, [2, 4, 5]])
+    @show form2.rhs
+    @test all(form2.rhs .== [7.5, -7.5, -9, 0, -1, -6])
+    @test all(form2.sense .== sense)
+    @test all(form2.lbs .== lbs[[2, 4, 5]])
+    @test all(form2.ubs .== ubs[[2, 4, 5]])
+end
+register!(unit_tests, "presolve_helper", test_presolve_builder3)
+
+# Test bound tightening.
+function test_presolve_builder4()
+    coef_matrix = sparse([
+        0  0 -1    1  0  1  2.5 # <= 4
+        0  0  1   -1  0 -1 -2.5 # >= -4
+        1  0  0    0  1  0   0   # == 1
+        0  1  2   -4  0  0   0   # >= 2
+        0  1  2   -4  0  0   0   # <= 1
+        1 -2  3  5.5  0  1   1   # == 6
+    ])
+
+    rhs = [4, -4, 1, 2, 1, 6]
+    sense = [Less, Greater, Equal, Greater, Less, Equal]
+    lbs = [1,   0,  2, 1, -1, -Inf, 0]
+    ubs = [10, Inf, 3, 2,  1,   0,  1]
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+
+    rows_to_deactivate = Int[]
+    vars_to_fix = Int[]
+    tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}(
+        1 => (1, false, 2, true),
+        2 => (0, true, 1, true),
+        3 => (-1, false, 3, false),
+        6 => (0.5, true, 0.5, true) # the flag forces the update!
+    )
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
+    @test form2.nb_vars == 7
+    @test form2.nb_constrs == 6
+    @test all(form2.coef_matrix .== coef_matrix)
+    @test all(form2.rhs .== rhs)
+    @test all(form2.sense .== sense)
+    @show form2.lbs
+    @test all(form2.lbs .== [1, 0, 2, 1, -1, 0.5, 0])
+    @show form2.ubs
+    @test all(form2.ubs .== [2, 1, 3, 2, 1, 0.5, 1])
+end
+register!(unit_tests, "presolve_helper", test_presolve_builder4)
+
+function test_presolve_builder5()
+
+end
+register!(unit_tests, "presolve_helper", test_presolve_builder5)
+
 function row_activity()
     coef_matrix = sparse([
         0  0 -1    1  0  1  2.5 # <= 4
