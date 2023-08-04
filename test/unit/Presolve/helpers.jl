@@ -174,3 +174,143 @@ function test_inner_row_bounded_by_var_bounds_3()
     @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
 end
 register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_3)
+
+function test_var_bounds_from_row1()
+    # x + 2y + 3z >= 10
+    # 0 <= x <= 10
+    # 0 <= y <= 2
+    # 0 <= z <= 1
+    # therefore x >= 10 - 2*2 - 3*1 >= 3
+    # x >= rhs - max_act(y,z) 
+    # x >= min_slack + act(x)
+    coeffs = [1, 2, 3]
+    lbs = [0, 0, 0]
+    ubs = [10, 2, 1]
+    rhs = 10
+    sense = Greater
+
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test lb == 3
+    
+    ub = Coluna.Algorithm._var_ub_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test isinf(ub) && ub > 0
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row1)
+
+function test_var_bounds_from_row2()
+    # -3x + y + 2z <= 2
+    # 0 <= x <= 10
+    # 0 <= y <= 1
+    # 0 <= z <= 1
+    # therefore -3x + ub_y + 2*ub_z <= 2
+    #           -3x + 1 + 2*1 <= 2
+    #           -3x <= -1
+    #           x >= 1/3
+    coeffs = [-3, 1, 2]
+    lbs = [0, 0, 0]
+    ubs = [10, 1, 1]
+    rhs = 2
+    sense = Less
+
+    min_slack = rhs - transpose(coeffs) * [lbs[1], ubs[2], ubs[3]]
+    max_slack = rhs - transpose(coeffs) * [ubs[1], lbs[2], lbs[3]]
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test lb == 1/3
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test isinf(ub) && ub > 0
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row2)
+
+
+function test_var_bounds_from_row3()
+    # 2x + 3y - 4z <= 9
+    # 0 <= x <= 10
+    # 4 <= y <= 8
+    # 0 <= z <= 1
+    # therefore 2x + 3*lb_y - 4*ub_z <= 9
+    #           2x + 3*4 - 4*1 <= 9
+    #           2x <= 9 - 12 + 4
+    #           2x <= 1
+
+    coeffs = [2, 3, -4]
+    lbs = [0, 4, 0]
+    ubs = [10, 8, 1]
+    rhs = 9
+    sense = Less
+
+    min_slack = rhs - transpose(coeffs) * [ubs[1], ubs[2], lbs[3]]
+    max_slack = rhs - transpose(coeffs) * [lbs[1], lbs[2], ubs[3]]
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test isinf(lb) && lb < 0
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test ub == 1/2
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row3)
+
+function test_var_bounds_from_row4()
+    # -2x + 2y + 3z >= 10
+    # -10 <= x <= 0
+    # 1 <= y <= 2
+    # 1 <= z <= 2
+    # therefore -2*x + 2*lb_y + 3*lb_z >= 10
+    #           -2*x + 2*1 + 3*1 >= 10
+    #           -2*x >= 10 - 2 - 3
+    #           -2*x >= 5
+    coeffs = [-2, 2, 3]
+    lbs = [-10, 1, 1]
+    ubs = [0, 2, 2]
+    rhs = 10
+    sense = Greater
+
+    min_slack = rhs - transpose(coeffs) * [lbs[1], ubs[2], ubs[3]]
+    max_slack = rhs - transpose(coeffs) * [ubs[1], lbs[2], lbs[3]]
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test lb == -Inf
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test ub == -5/2
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row4)
+
+function test_var_bounds_from_row5()
+    # 2x + 3y + 4z = 5
+    # -5 <= x <= 3
+    # 0 <= y <= 1
+    # 0 <= z <= 1
+
+    # Sense1:
+    # 2x + 3y + 4z >= 5
+    # 2x + 3*ub_y + 4*ub_z >= 5
+    # 2x + 3*1 + 4*1 >= 5
+    # 2x >= -2
+
+    # Sense 2:
+    # 2x + 3y + 4z <= 5
+    # 2x + 3*lb_y + 4*lb_z <= 5
+    # 2x + 3*0 + 4*0 <= 5
+    # 2x <= 5
+
+    coeffs = [2, 3, 4]
+    lbs = [-5, 0, 0]
+    ubs = [3, 1, 1]
+    rhs = 5
+    sense = Equal
+
+    min_slack = rhs - transpose(coeffs) * ubs
+    max_slack = rhs - transpose(coeffs) * lbs
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test lb == -1
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense, min_slack, max_slack, coeffs[1], lbs[1], ubs[1])
+    @test ub == 5/2
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row5)
