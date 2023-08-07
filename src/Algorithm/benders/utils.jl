@@ -22,8 +22,8 @@ function _add_subproblem!(rhs, T, spid, sp)
     rhs[spid] = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
     T[spid] = _submatrix(
         sp,
-        constr_id -> getduty(constr_id) <= BendSpTechnologicalConstr,
-        var_id -> getduty(var_id) <= BendSpFirstStageRepVar
+        (_, constr_id, _) -> getduty(constr_id) <= BendSpTechnologicalConstr,
+        (_, var_id, _) -> getduty(var_id) <= BendSpFirstStageRepVar
     )
     return
 end
