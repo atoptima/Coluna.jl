@@ -43,7 +43,7 @@ end
 ############################################################################################
 # Information extracted to speed-up some computations.
 ############################################################################################
-function _submatrix(
+function _submatrix_nz_elems(
     form::Formulation, 
     keep_constr::Function, 
     keep_var::Function,
@@ -68,6 +68,16 @@ function _submatrix(
             end
         end
     end
+    return constr_ids, var_ids, nz
+end
+
+function _submatrix(
+    form::Formulation, 
+    keep_constr::Function, 
+    keep_var::Function,
+    m::Function = (form, is_min, constr_id, var_id) -> 1.0
+)
+    constr_ids, var_ids, nz = _submatrix_nz_elems(form, keep_constr, keep_var, m)
     return dynamicsparse(
         constr_ids, var_ids, nz, ConstrId(Coluna.MAX_NB_ELEMS), VarId(Coluna.MAX_NB_ELEMS)
     )

@@ -2,23 +2,11 @@
 Temporary data structure where we store a representation of the formulation that we presolve.
 """
 struct PresolveFormRepr
-    nb_vars::Int
-    nb_constrs::Int
     coef_matrix::SparseMatrixCSC{Float64,Int64}
     rhs::Vector{Float64} # on constraints
     sense::Vector{ConstrSense} # on constraints
     lbs::Vector{Float64} # on variables
     ubs::Vector{Float64} # on variables
-end
-
-function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
-    length(lbs) == length(ubs) == size(coef_matrix, 2) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
-    length(rhs) == length(sense) == size(coef_matrix, 1) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
-    nb_vars = length(lbs)
-    nb_constrs = length(rhs)
-    return PresolveFormRepr(
-        nb_vars, nb_constrs, coef_matrix, rhs, sense, lbs, ubs
-    )
 end
 
 function _act_contrib((a, l, u))
