@@ -12,8 +12,8 @@ struct PresolveFormRepr
 end
 
 function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
-    length(lbs) == length(ubs) == size(coef_matrix, 2) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
-    length(rhs) == length(sense) == size(coef_matrix, 1) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
+    length(lbs) == length(ubs) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
+    length(rhs) == length(sense) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
     nb_vars = length(lbs)
     nb_constrs = length(rhs)
     return PresolveFormRepr(
