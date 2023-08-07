@@ -7,7 +7,9 @@ struct PresolveFormulation
 end
 
 function create_presolve_form(form::Formulation, keep_var::Function, keep_constr::Function)
-    # TODO
+    coef_submatrix = _submatrix(form, keep_constr, keep_var)
+    
+    @show form
 end
 
 function create_presolve_reform(reform::Reformulation{DwMaster})
@@ -67,8 +69,8 @@ end
 Presolve algorithm
 """
 struct PresolveAlgorithm <: AlgoAPI.AbstractAlgorithm
-    ϵ::Float64 = 1e-6
-    PresolveAlgorithm(;ϵ = 1e-6)
+    ϵ::Float64
+    PresolveAlgorithm(;ϵ = 1e-6) = new(ϵ)
 end
 
 function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, _)
@@ -78,4 +80,4 @@ end
 
 function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
     presolve_reform = create_presolve_reform(reform)
-end 
+end
