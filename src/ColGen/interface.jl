@@ -97,7 +97,7 @@ Returns `true` if the new master IP primal solution is better than the current; 
 """
 Updates the current master IP primal solution.
 """
-@mustimplement "ColGenMasterUpdateIncumbent" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol) = nothing
+@mustimplement "ColGenMasterUpdateIncumbent" update_inc_primal_sol!(ctx::AbstractColGenContext, ip_primal_sol, new_ip_primal_sol) = nothing
 
 ############################################################################################
 # Reduced costs calculation.
@@ -303,7 +303,7 @@ Placeholder method called after the column generation iteration.
 Does nothing by default but can be redefined to print some informations for instance.
 We strongly advise users against the use of this method to modify the context or the reformulation.
 """
-@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output) = nothing
+@mustimplement "ColGen" after_colgen_iteration(::AbstractColGenContext, phase, stage, env, colgen_iteration, stab, ip_primal_sol, colgen_iter_output) = nothing
 
 "Returns `true` if `new_dual_bound` is better than `dual_bound`; `false` otherwise."
 @mustimplement "ColGen" is_better_dual_bound(context, new_dual_bound, dual_bound) = nothing

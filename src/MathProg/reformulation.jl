@@ -1,10 +1,10 @@
 # TODO make immutable
-mutable struct Reformulation <: AbstractFormulation
+mutable struct Reformulation{MasterDuty} <: AbstractFormulation
     uid::Int
-    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation (TODO rm Nothing)
-    master::Union{Nothing, Formulation}  # TODO : rm Nothing
-    dw_pricing_subprs::Dict{FormId, AbstractModel} 
-    benders_sep_subprs::Dict{FormId, AbstractModel}
+    parent::Formulation{Original} # reference to (pointer to) ancestor:  Formulation or Reformulation (TODO rm Nothing)
+    master::Formulation{MasterDuty}
+    dw_pricing_subprs::Dict{FormId, Formulation{DwSp}} 
+    benders_sep_subprs::Dict{FormId, Formulation{BendersSp}}
     storage::Union{Nothing,Storage}
 end
 
@@ -22,8 +22,22 @@ function Reformulation(env)
         uid,
         nothing,
         nothing,
-        Dict{FormId, AbstractModel}(),
-        Dict{FormId, AbstractModel}(),
+        Dict{FormId, Formulation{DwSp}}(),
+        Dict{FormId, Formulation{BendersSp}}(),
+        nothing
+    )
+    reform.storage = Storage(reform)
+    return reform
+end
+
+function Reformulation(env, parent, master, dw_pricing_subprs, benders_sep_subprs)
+    uid = env.form_counter += 1
+    reform = Reformulation(
+        uid,
+        parent,
+        master,
+        dw_pricing_subprs,
+        benders_sep_subprs,
         nothing
     )
     reform.storage = Storage(reform)

@@ -1,6 +1,15 @@
+"""
+Explore the tree search space with a depth-first strategy.
+The next visited node is the last one pushed in the stack of unexplored nodes.
+"""
 struct DepthFirstStrategy <: AbstractExploreStrategy end
 
 abstract type AbstractBestFirstSearch <: AbstractExploreStrategy end
+
+"""
+Explore the tree search space with a best-first strategy.
+The next visited node is the one with the highest local dual bound.
+"""
 struct BestDualBoundStrategy <: AbstractBestFirstSearch end
 
 "Generic implementation of the tree search algorithm for a given explore strategy."

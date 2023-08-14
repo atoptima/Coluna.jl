@@ -16,9 +16,52 @@ const ClB = ColunaBase
 
 import Base: push!
 
+############################################################################################
+# Incumbent primal bound handler
+############################################################################################
+
+"""
+Abstract type for an utilarity structure that handles the incumbent primal bound.
+"""
+abstract type AbstractGlobalPrimalBoundHandler end
+
+@mustimplement "GlobalPrimalBoundHandler" get_global_primal_bound(m::AbstractGlobalPrimalBoundHandler) = nothing
+@mustimplement "GlobalPrimalBoundHandler" get_global_primal_sol(m::AbstractGlobalPrimalBoundHandler) = nothing
+@mustimplement "GlobalPrimalBoundHandler" store_ip_primal_sol!(m::AbstractGlobalPrimalBoundHandler, sol) = nothing
+
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 include("utilities/helpers.jl")
+
+############################################################################################
+# Primal bound manager
+############################################################################################
+
+"""
+Default implementation of a manager of the incumbent primal bound.
+This implementation does not support paralellization.
+"""
+struct GlobalPrimalBoundHandler <: AbstractGlobalPrimalBoundHandler
+    # It only stores the IP primal solutions.
+    optstate::OptimizationState
+end
+
+function GlobalPrimalBoundHandler(
+    reform::Reformulation; 
+    ip_primal_bound = nothing
+)
+    opt_state = OptimizationState(getmaster(reform))
+    if !isnothing(ip_primal_bound)
+        set_ip_primal_bound!(opt_state, ip_primal_bound)
+    end
+    return GlobalPrimalBoundHandler(opt_state)
+end
+
+get_global_primal_bound(manager::GlobalPrimalBoundHandler) = get_ip_primal_bound(manager.optstate)
+get_global_primal_sol(manager::GlobalPrimalBoundHandler) = get_best_ip_primal_sol(manager.optstate)
+store_ip_primal_sol!(manager::GlobalPrimalBoundHandler, sol) = add_ip_primal_sols!(manager.optstate, sol)
+
+############################################################################################
 
 # API on top of storage API
 include("data.jl")
@@ -52,6 +95,7 @@ include("benders/printer.jl")
 include("benders.jl")
 
 # Presolve
+include("presolve/helpers.jl")
 include("presolve/interface.jl")
 
 # Conquer

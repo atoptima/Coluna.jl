@@ -50,7 +50,7 @@ abstract type AbstractConquerInput end
 @mustimplement "ConquerInput" get_node(i::AbstractConquerInput) = nothing
 @mustimplement "ConquerInput" get_units_to_restore(i::AbstractConquerInput) = nothing
 @mustimplement "ConquerInput" run_conquer(i::AbstractConquerInput) = nothing
-@mustimplement "ConquerInput" get_conquer_input_ip_primal_bound(i::AbstractConquerInput) = nothing
+@mustimplement "ConquerInput" get_global_primal_handler(i::AbstractConquerInput) = nothing
 @mustimplement "ConquerInput" get_conquer_input_ip_dual_bound(i::AbstractConquerInput) = nothing
 
 """
@@ -167,6 +167,8 @@ end
     check_alg_parameters(top_algo, reform) -> Vector{Tuple{Symbol, AbstractAlgorithm, Any}}
 
 Checks the consistency of the parameters of the top algorithm and its children algorithms.
+Returns a vector of tuples (name of the parameter, algorithm, value of the parameter) that
+lists all the inconsistencies found in the algorithms tree.
 """
 function check_alg_parameters(top_algo, reform::Reformulation)
     inconsistencies = []

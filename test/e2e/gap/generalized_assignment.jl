@@ -26,6 +26,34 @@ function gap_toy_instance()
 end
 register!(e2e_tests, "gap", gap_toy_instance)
 
+function gap_toy_instance_2()
+    data = ClD.GeneralizedAssignment.data("play2.txt")
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
+            jsonfile = "playgap.json",
+        ),local_art_var_cost = 10000.0,
+        global_art_var_cost = 100000.0),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(model, 100)
+    BD.objectivedualbound!(model, 0)
+
+    JuMP.optimize!(model)
+
+    @test JuMP.objective_value(model) ≈ 75.0
+    @test JuMP.termination_status(model) == MOI.OPTIMAL
+    @test JuMP.primal_status(model) == MOI.FEASIBLE_POINT
+    # @show JuMP.value.(x)
+    @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
+    @test MOI.get(model, MOI.SolverName()) == "Coluna"
+end
+register!(e2e_tests, "gap", gap_toy_instance_2)
+
 function gap_strong_branching()
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 

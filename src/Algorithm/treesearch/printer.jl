@@ -85,10 +85,10 @@ _inner_node(n::Pair{<:PrintedNode, Float64}) = first(n).inner # `untreated_node`
 
 function TreeSearch.children(sp::PrinterSearchSpace, current, env, untreated_nodes)
     print_log(sp.log_printer, sp, current, env, length(untreated_nodes))
+    children =  TreeSearch.children(sp.inner, current.inner, env, Iterators.map(_inner_node, untreated_nodes))
+    # We print node information in the file after the node has been evaluated.
     print_node_in_tree_search_file!(sp.file_printer, current, sp, env)
-    return map(
-        TreeSearch.children(sp.inner, current.inner, env, Iterators.map(_inner_node, untreated_nodes))
-    ) do child
+    return map(children) do child
         return PrintedNode(sp.current_tree_order_id += 1, current.tree_order_id, child)
     end
 end
@@ -109,6 +109,81 @@ filename(::DevNullFilePrinter) = nothing
 init_tree_search_file!(::DevNullFilePrinter) = nothing
 print_node_in_tree_search_file!(::DevNullFilePrinter, _, _, _) = nothing
 close_tree_search_file!(::DevNullFilePrinter) = nothing
+
+
+############################################################################################
+# JSON file printer
+############################################################################################
+"""
+File printer to create a JSON file of the branch and bound tree.
+"""
+struct JSONFilePrinter <: AbstractFilePrinter 
+    filename::String
+end
+
+new_file_printer(::Type{JSONFilePrinter}, alg::TreeSearchAlgorithm) = JSONFilePrinter(alg.jsonfile)
+filename(f::JSONFilePrinter) = f.filename
+
+function init_tree_search_file!(f::JSONFilePrinter)
+    open(filename(f), "w") do file
+        println(file, "[")
+    end
+    return
+end
+
+# To get rid of "Inf".
+function _printed_num(num)
+    if isinf(num)
+        if num < 0
+            return -99999999999
+        else
+            return +99999999999
+        end
+    end
+    return num
+end
+
+function print_node_in_tree_search_file!(f::JSONFilePrinter, node::PrintedNode, sp::PrinterSearchSpace, env)
+    is_root_node = iszero(getdepth(node.inner))
+    current_node_id = node.tree_order_id
+    current_node_depth = getdepth(node.inner)
+    current_parent_id = node.parent_tree_order_id
+    local_db = getvalue(node.inner.ip_dual_bound)
+    global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
+    global_pb = getvalue(get_global_primal_bound(sp.inner.inc_primal_manager))
+    time = elapsed_optim_time(env)
+    br_constr_description = TreeSearch.get_branch_description(node.inner)
+    gap_closed = ip_gap_closed(node.inner.conquer_output)
+    infeasible = getterminationstatus(node.inner.conquer_output) == INFEASIBLE
+
+    open(filename(f), "r+") do file
+        seekend(file)
+
+        @printf file "\n\t\t{ \"node_id\": %i, " current_node_id
+        @printf file "\"depth\": %i, " current_node_depth
+        @printf file "\"parent_id\": %s, " is_root_node ? "null" : string(current_parent_id)
+        @printf file "\"time\": %.2f, " time
+        @printf file "\"primal_bound\": %.4f, " _printed_num(global_pb)
+        @printf file "\"local_dual_bound\": %.4f, " _printed_num(local_db)
+        @printf file "\"global_dual_bound\": %.4f, " _printed_num(global_db)
+        @printf file "\"pruned\": %s, " gap_closed ? "true" : "false"
+        @printf file "\"infeasible\": %s, " infeasible ? "true" : "false"
+        @printf file "\"branch\": %s },\n" is_root_node ? "null" : string("\"", br_constr_description, "\"")
+    end
+    return
+end
+
+function close_tree_search_file!(f::JSONFilePrinter)
+    open(filename(f), "r+") do file
+        # rewind the closing brace character
+        seekend(file)
+        pos = position(file)
+        seek(file, pos - 2)
+        # just move the closing brace to the next line
+        println(file, "\n\t]")
+    end
+    return
+end
 
 ############################################################################################
 
@@ -133,29 +208,33 @@ end
 
 # TODO: fix
 function print_node_in_tree_search_file!(f::DotFilePrinter, node::PrintedNode, sp::PrinterSearchSpace, env)
-    # pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
-    # db = getvalue(get_ip_dual_bound(sp.inner.optstate))
-    # open(filename(f), "r+") do file
-    #     # rewind the closing brace character
-    #     seekend(file)
-    #     pos = position(file)
-    #     seek(file, pos - 1)
+    ncur = node.tree_order_id
+    depth = getdepth(node.inner)
+    npar = node.parent_tree_order_id
+    db = getvalue(node.inner.ip_dual_bound)
+    pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
+    time = elapsed_optim_time(env)
+    br_constr_description = TreeSearch.get_branch_description(node.inner)
+    gap_closed = ip_gap_closed(node.inner.conquer_output)
 
-    #     # start writing over this character
-    #     ncur = node.tree_order_id
-    #     time = elapsed_optim_time(env)
-    #     if ip_gap_closed(node.inner.conquer_output)
-    #         @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
-    #     else
-    #         @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
-    #     end
-    #     if node.inner.depth > 0 # not root node
-    #         npar = TreeSearch.get_parent(node).tree_order_id
-    #         @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.inner.branchdescription
-    #     else
-    #         print(file, "}")
-    #     end
-    # end
+    open(filename(f), "r+") do file
+        # rewind the closing brace character
+        seekend(file)
+        pos = position(file)
+        seek(file, pos - 1)
+
+        # start writing over this character
+        if gap_closed
+            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
+        else
+            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+        end
+        if depth > 0 # not root node
+            @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur br_constr_description
+        else
+            print(file, "}")
+        end
+    end
     return
 end
 
@@ -199,7 +278,7 @@ function print_log(
     current_parent_id = node.parent_tree_order_id
     local_db = getvalue(node.inner.ip_dual_bound)
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
-    global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
+    global_pb = getvalue(get_global_primal_bound(sp.inner.inc_primal_manager))
     time = elapsed_optim_time(env)
     br_constr_description = TreeSearch.get_branch_description(node.inner)
 

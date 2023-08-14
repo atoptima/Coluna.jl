@@ -14,6 +14,8 @@ mutable struct Node <: TreeSearch.AbstractNode
     # with the result of its partial evaluation.
     # We then retrieve from this OptimizationState a possible new incumbent primal
     # solution and communicate the latter to the branch-and-bound algorithm. 
+    # We also store the final result of the conquer algorithm here so we can print these 
+    # informations.
     conquer_output::Union{Nothing, OptimizationState}
 
     # Current local dual bound at the node:
@@ -57,34 +59,56 @@ end
 struct ConquerInputFromBaB <: AbstractConquerInput
     units_to_restore::UnitsUsage
     node_state::OptimizationState # Node state after its creation or its partial evaluation.
-    run_conquer::Bool
     node_depth::Int
+
+    # Broadcast a new IP primal bound if found during evaluation of the node.
+    global_primal_handler::GlobalPrimalBoundHandler
 end
 
-get_conquer_input_ip_primal_bound(i::ConquerInputFromBaB) = get_ip_primal_bound(i.node_state)
+get_global_primal_handler(i::ConquerInputFromBaB) = i.global_primal_handler
 get_conquer_input_ip_dual_bound(i::ConquerInputFromBaB) = get_ip_dual_bound(i.node_state)
 get_node_depth(i::ConquerInputFromBaB) = i.node_depth
 get_units_to_restore(i::ConquerInputFromBaB) = i.units_to_restore
-get_run_conquer(i::ConquerInputFromBaB) = i.run_conquer
-
 ############################################################################################
 # AbstractDivideInput implementation for the branch & bound.
 ############################################################################################
 "Divide input object created by the branch-and-bound tree search algorithm."
 struct DivideInputFromBaB <: Branching.AbstractDivideInput
     parent_depth::Int
+
     # The conquer output of the parent is very useful to compute scores when trying several
     # branching candidates. Usually scores measure a progression between the parent full_evaluation
     # and the children full evaluations. To allow developers to implement several kind of 
     # scores, we give the full output of the conquer algorithm.
     parent_conquer_output::OptimizationState
+
+    # Records allow to restore the reformulation in the state it was at the end of the evaluation
+    # of the parent node. This operation happens in strong branching when evaluating several
+    # branching candidates.
     parent_records::Records
+
+    # Broadcast a new IP primal bound if found during evaluation of the candidates in the
+    # strong branching.
+    global_primal_handler::GlobalPrimalBoundHandler
 end
 
 Branching.get_parent_depth(i::DivideInputFromBaB) = i.parent_depth
 Branching.get_conquer_opt_state(i::DivideInputFromBaB) = i.parent_conquer_output
+Branching.get_global_primal_handler(i::DivideInputFromBaB) = i.global_primal_handler
 Branching.parent_is_root(i::DivideInputFromBaB) = i.parent_depth == 0
 Branching.parent_records(i::DivideInputFromBaB) = i.parent_records
+
+############################################################################################
+# Leaves status
+############################################################################################
+
+"Leaves status"
+mutable struct LeavesStatus
+    infeasible::Bool # true if all leaves are infeasible
+    worst_dual_bound::Union{Nothing,Bound} # worst dual bound of the leaves
+end
+
+LeavesStatus(reform) = LeavesStatus(true, nothing)
 
 ############################################################################################
 # SearchSpace
@@ -92,19 +116,32 @@ Branching.parent_records(i::DivideInputFromBaB) = i.parent_records
 
 "Branch-and-bound search space."
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
+    # Reformulation that the branch-and-bound algorithm will optimize.
     reformulation::Reformulation
+    # Algorithm that evaluates a node of the branch-and-bound tree.
     conquer::AbstractConquerAlgorithm
+    # Algorithm that generated the children of a branch-and-bound node.
     divide::AlgoAPI.AbstractDivideAlgorithm
+    
+    # Limits
     max_num_nodes::Int64
     open_nodes_limit::Int64
     time_limit::Int64
+
+    # Tolerances
     opt_atol::Float64
     opt_rtol::Float64
+
+    # Units to restore when B&B bound explores another node.
+    conquer_units_to_restore::UnitsUsage
+
+    # Global information about the branch-and-bound execution.
     previous::Union{Nothing,Node}
     optstate::OptimizationState # from TreeSearchRuntimeData
-    conquer_units_to_restore::UnitsUsage # from TreeSearchRuntimeData
+  
     nb_nodes_treated::Int
-    current_ip_dual_bound_from_conquer
+    leaves_status::LeavesStatus
+    inc_primal_manager::GlobalPrimalBoundHandler # stores the global primal bound (shared with all child algorithms).
 end
 
 get_reformulation(sp::BaBSearchSpace) = sp.reformulation
@@ -121,12 +158,20 @@ function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
 end
 
 function TreeSearch.search_space_type(alg::TreeSearchAlgorithm)
-    return if !iszero(length(alg.branchingtreefile)) && alg.print_node_info
-        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DotFilePrinter}
+    # Only one file printer at the time. JSON file printer has priority.
+    active_file_printer = !iszero(length(alg.branchingtreefile)) || !iszero(length(alg.jsonfile))
+    file_printer_type = if !iszero(length(alg.jsonfile))
+        JSONFilePrinter
     elseif !iszero(length(alg.branchingtreefile))
-        PrinterSearchSpace{BaBSearchSpace,DevNullLogPrinter,DotFilePrinter}
-    elseif alg.print_node_info
-        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DevNullFilePrinter}
+        DotFilePrinter
+    else
+        DevNullFilePrinter
+    end
+
+    return if alg.print_node_info
+        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,file_printer_type}
+    elseif active_file_printer
+        PrinterSearchSpace{BaBSearchSpace,DevNullLogPrinter,file_printer_type}
     else
         BaBSearchSpace
     end
@@ -135,7 +180,7 @@ end
 function TreeSearch.new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
 )
-    optstate = OptimizationState(getmaster(reform), input, false, false)
+    optstate = OptimizationState(getmaster(reform))
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
@@ -146,11 +191,12 @@ function TreeSearch.new_space(
         algo.timelimit,
         algo.opt_atol,
         algo.opt_rtol,
+        conquer_units_to_restore,
         nothing,
         optstate,
-        conquer_units_to_restore,
         0,
-        nothing
+        LeavesStatus(reform),
+        GlobalPrimalBoundHandler(reform; ip_primal_bound = get_ip_primal_bound(input))
     )
 end
 
@@ -165,14 +211,12 @@ end
 function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     @assert !isnothing(conquer_output)
     treestate = space.optstate
-
+    for sol in get_ip_primal_sols(conquer_output)
+        store_ip_primal_sol!(space.inc_primal_manager, sol)
+    end
     current.records = create_records(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
-
-    # Retrieve IP primal solutions found at the node and store them as solution to the original
-    # problem (i.e. solutions of the Branch-and-Bound).
-    add_ip_primal_sols!(treestate, get_ip_primal_sols(conquer_output)...)
 
     # Branch & Bound returns the primal LP & the dual solution found at the root node.
     best_lp_primal_sol = get_best_lp_primal_sol(conquer_output)
@@ -183,10 +227,34 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
     if TreeSearch.isroot(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
+
+    # TODO: remove later but we currently need it to print information in the json file.
+    current.conquer_output = conquer_output
+    current.ip_dual_bound = get_lp_dual_bound(conquer_output)
     return
 end
 
 # Conquer
+function is_pruned(space::BaBSearchSpace, current::Node)
+    return MathProg.gap_closed(
+        get_global_primal_bound(space.inc_primal_manager),
+        current.ip_dual_bound,
+        atol = space.opt_atol,
+        rtol = space.opt_rtol
+    )
+end
+
+function node_is_pruned(space::BaBSearchSpace, current::Node)
+    leaves_status = space.leaves_status
+    leaves_status.infeasible = false # We have a primal bound, so a primal solution, and we closed the gap, so the original problem is feasible. 
+    if isnothing(leaves_status.worst_dual_bound)
+        leaves_status.worst_dual_bound = current.ip_dual_bound
+    else
+        leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, current.ip_dual_bound)
+    end
+    return
+end
+
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
     
@@ -199,36 +267,56 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     if !isnothing(best_ip_primal_sol)
         update_ip_primal_sol!(node_state, best_ip_primal_sol)
     end
-
-    # TODO: improve ?
-    # Condition 1: IP Gap is closed. Abort treatment.
-    # Condition 2: in the case the conquer was already run (in strong branching),
-    # Condition 3: make sure the node has not been proven infeasible.
-    # we still need to update the node IP primal bound before exiting 
-    # (to possibly avoid branching)
-    run_conquer = !ip_gap_closed(node_state, rtol = space.opt_rtol, atol = space.opt_atol)
-    run_conquer = run_conquer || !current.conquerwasrun
-    run_conquer = run_conquer && getterminationstatus(node_state) != INFEASIBLE
+    space_primal_bound = get_ip_primal_bound(space.optstate)
+    if !isnothing(space_primal_bound)
+        update_ip_primal_bound!(node_state, space_primal_bound)
+    end
 
     return ConquerInputFromBaB(
         space.conquer_units_to_restore, 
         node_state,
-        run_conquer,
-        current.depth
+        current.depth,
+        space.inc_primal_manager
     )
 end
 
+# routine to check if divide should be call or not after a node conquer
+# If the gap is closed between the prima bound and the LOCAL dual bound, then the exploration of the current branch should stop
+function run_divide(sp::BaBSearchSpace, divide_input)
+    conquer_opt_state = Branching.get_conquer_opt_state(divide_input)
+    nodestatus = getterminationstatus(conquer_opt_state)
+    return !(
+        nodestatus == INFEASIBLE || 
+        MathProg.gap_closed(
+            get_global_primal_bound(sp.inc_primal_manager),
+            get_lp_dual_bound(conquer_opt_state)
+        )
+    )             
+end
+
 function get_input(::AlgoAPI.AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node, conquer_output)
-    return DivideInputFromBaB(node.depth, conquer_output, node.records)
+    return DivideInputFromBaB(node.depth, conquer_output, node.records, space.inc_primal_manager)
+end
+
+number_of_children(divide_output::DivideOutput) = length(divide_output.children)
+
+function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_output::OptimizationState)
+    leaves_status = space.leaves_status
+    if getterminationstatus(conquer_output) != INFEASIBLE
+        leaves_status.infeasible = false
+    
+        # We only store the dual bound of the leaves that are not infeasible.
+        # Dual bound of an infeasible node means nothing.
+        if isnothing(leaves_status.worst_dual_bound)
+            leaves_status.worst_dual_bound = get_lp_dual_bound(conquer_output)
+        else
+            leaves_status.worst_dual_bound = worst(leaves_status.worst_dual_bound, get_lp_dual_bound(conquer_output))
+        end
+    end
+    return
 end
 
 function new_children(space::AbstractColunaSearchSpace, branches, node::Node)
-    candidates_opt_state = nothing # Branching.get__opt_state(branches)
-    if !isnothing(candidates_opt_state)
-        add_ip_primal_sols!(space.optstate, get_ip_primal_sols(candidates_opt_state)...)
-    end
-    set_ip_dual_bound!(space.optstate, node.ip_dual_bound)
-
     children = map(Branching.get_children(branches)) do child
         return Node(child)
     end
@@ -239,17 +327,21 @@ end
 # and keeps the worst one.
 function _update_global_dual_bound!(space, reform::Reformulation, untreated_nodes)
     treestate = space.optstate
+    leaves_worst_dual_bound = space.leaves_status.worst_dual_bound
 
-    init_db = if length(untreated_nodes) == 0 && length(get_ip_primal_sols(treestate)) == 0
-        # If there is no more untreated nodes but the branch and bound did not find any
-        # feasible solutions, we use the current ip dual bound to compute the final dual bound.
-        # This case happens, when the original variables do not allow us to fully explore the
-        # search space (e.g. identical subproblems).
-        DualBound(reform, getvalue(get_ip_dual_bound(treestate)))
+    init_db = if isnothing(leaves_worst_dual_bound)
+        # if we didn't reach any leaf in the branch-and-bound tree, it may exist
+        # some untreated nodes. We use the current ip dual bound of one untreated nodes to
+        # initialize the calculation of the global dual bound.
+        if length(untreated_nodes) > 0
+            first(untreated_nodes).ip_dual_bound
+        else # or all the leaves are infeasible and there is no untreated node => no dual bound.
+            @assert space.leaves_status.infeasible
+            DualBound(getmaster(reform))
+        end
     else
-        # Otherwise, we know that the global dual bound cannot be "better" than the incumbent
-        # primal bound.
-        DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
+        # Otherwise, we use the wost dual bound at the leaves.
+        leaves_worst_dual_bound
     end
 
     worst_bound = mapreduce(
@@ -275,21 +367,20 @@ end
 
 function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
     _update_global_dual_bound!(space, space.reformulation, untreated_nodes)
+    all_leaves_infeasible = space.leaves_status.infeasible
 
-    if isempty(untreated_nodes) # it means that the BB tree has been fully explored
-        if length(get_lp_primal_sols(space.optstate)) >= 1
-            if ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
-                setterminationstatus!(space.optstate, OPTIMAL)
-            else
-                setterminationstatus!(space.optstate, OTHER_LIMIT)
-            end
-        else
-            setterminationstatus!(space.optstate, INFEASIBLE)
-        end
+    if !isnothing(get_global_primal_sol(space.inc_primal_manager))
+        add_ip_primal_sol!(space.optstate, get_global_primal_sol(space.inc_primal_manager))
+    end
+
+    if all_leaves_infeasible && length(untreated_nodes) == 0
+        setterminationstatus!(space.optstate, INFEASIBLE)
+    elseif ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
+        setterminationstatus!(space.optstate, OPTIMAL)
     else
         setterminationstatus!(space.optstate, OTHER_LIMIT)
     end
-
+    
     #env.kpis.node_count = 0 #get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
 
     return space.optstate

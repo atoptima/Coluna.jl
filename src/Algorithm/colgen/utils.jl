@@ -43,7 +43,7 @@ end
 ############################################################################################
 # Information extracted to speed-up some computations.
 ############################################################################################
-function _submatrix(
+function _submatrix_nz_elems(
     form::Formulation, 
     keep_constr::Function, 
     keep_var::Function,
@@ -54,16 +54,30 @@ function _submatrix(
     constr_ids = ConstrId[]
     var_ids = VarId[]
     nz = Float64[]
-    for constr_id in Iterators.filter(keep_constr, Iterators.keys(getconstrs(form)))
-        for (var_id, coeff) in @view matrix[constr_id, :]
-            if keep_var(var_id)
-                c = m(form, is_min, constr_id, var_id)
-                push!(constr_ids, constr_id)
-                push!(var_ids, var_id)
-                push!(nz, c * coeff)
+    for (constr_id, constr) in getconstrs(form)
+        if keep_constr(form, constr_id, constr)
+            for (var_id, coeff) in @view matrix[constr_id, :]
+                var = getvar(form, var_id)
+                @assert !isnothing(var)
+                if keep_var(form, var_id, var)
+                    c = m(form, is_min, constr_id, var_id)
+                    push!(constr_ids, constr_id)
+                    push!(var_ids, var_id)
+                    push!(nz, c * coeff)
+                end
             end
         end
     end
+    return constr_ids, var_ids, nz
+end
+
+function _submatrix(
+    form::Formulation, 
+    keep_constr::Function, 
+    keep_var::Function,
+    m::Function = (form, is_min, constr_id, var_id) -> 1.0
+)
+    constr_ids, var_ids, nz = _submatrix_nz_elems(form, keep_constr, keep_var, m)
     return dynamicsparse(
         constr_ids, var_ids, nz, ConstrId(Coluna.MAX_NB_ELEMS), VarId(Coluna.MAX_NB_ELEMS)
     )
@@ -98,15 +112,15 @@ struct ReducedCostsCalculationHelper
 end
 
 """
-Function `var_duty_func(var_id)` returns `true` if we want to keep the variable `var_id`; `false` otherwise.
-Same for `constr_duty_func(constr_id)`.
+Function `var_duty_func(form, var_id, var)` returns `true` if we want to keep the variable `var_id`; `false` otherwise.
+Same for `constr_duty_func(form, constr_id, constr)`.
 """
 function _get_costs_and_coeffs(master, var_duty_func, constr_duty_func)
     var_ids = VarId[]
     peren_costs = Float64[]
 
-    for var_id in Iterators.keys(getvars(master))
-        if iscuractive(master, var_id) && var_duty_func(var_id)
+    for (var_id, var) in getvars(master)
+        if var_duty_func(master, var_id, var)
             push!(var_ids, var_id)
             push!(peren_costs, getcurcost(master, var_id))
         end
@@ -120,14 +134,14 @@ end
 function ReducedCostsCalculationHelper(master)
     dw_subprob_c, dw_subprob_A = _get_costs_and_coeffs(
         master, 
-        var_id -> getduty(var_id) <= AbstractMasterRepDwSpVar,
-        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr)
+        (form, var_id, var) -> getduty(var_id) <= AbstractMasterRepDwSpVar && iscuractive(form, var),
+        (form, constr_id, constr) -> !(getduty(constr_id) <= MasterConvexityConstr) && iscuractive(form, constr)
     )
 
     master_c, master_A = _get_costs_and_coeffs(
         master, 
-        var_id -> getduty(var_id) <= AbstractOriginMasterVar,
-        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr)
+        (form, var_id, var) -> getduty(var_id) <= AbstractOriginMasterVar && iscuractive(form, var),
+        (form, constr_id, constr) -> !(getduty(constr_id) <= MasterConvexityConstr)
     )
 
     return ReducedCostsCalculationHelper(dw_subprob_c, dw_subprob_A, master_c, master_A)
@@ -191,8 +205,8 @@ function SubgradientCalculationHelper(master)
     a_dual = sparsevec(constr_ids, constr_rhs_dual, Coluna.MAX_NB_ELEMS)
     A = _submatrix(
         master, 
-        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
-        var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar,
+        (form, constr_id, constr) -> !(getduty(constr_id) <= MasterConvexityConstr) && iscuractive(form, constr),
+        (form, var_id, var) -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar,
         m_submatrix
     )
     return SubgradientCalculationHelper(a, a_dual, A)

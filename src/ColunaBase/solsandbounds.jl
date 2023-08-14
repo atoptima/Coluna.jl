@@ -3,7 +3,7 @@ struct Bound <: Real
     min::Bool # max if false.
     primal::Bool # dual if false.
     value::Float64
-    Bound(primal::Bool, min::Bool, x::Number) = new(min, primal, x === NaN ? _defaultboundvalue(primal, min) : x)
+    Bound(min::Bool, primal::Bool, x::Number) = new(min, primal, x === NaN ? _defaultboundvalue(primal, min) : x)
 end
 
 function _defaultboundvalue(primal::Bool, min::Bool)
@@ -13,13 +13,13 @@ function _defaultboundvalue(primal::Bool, min::Bool)
 end
 
 """
-    Bound(primal, min)
+    Bound(min, primal)
 
 Create a default primal bound for a problem with objective sense (min or max) in the space (primal or dual).  
 """
-function Bound(primal, min)
+function Bound(min, primal)
     val = _defaultboundvalue(primal, min)
-    return Bound(primal, min, val)
+    return Bound(min, primal, val)
 end
 
 getvalue(b::Bound) = b.value
@@ -36,6 +36,10 @@ function isbetter(b1::Bound, b2::Bound)
     sc2 = b1.primal ? 1 : -1
     return sc1 * sc2 * b1.value < sc1 * sc2 * b2.value
 end
+
+# We use nothing when there is no bound. So we can consider that a new bound is better than
+# nothing.
+isbetter(::Bound, ::Nothing) = true
 
 """
     best(b1, b2)

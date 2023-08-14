@@ -46,9 +46,9 @@ The latest minor release `0.6.0` suffers from regressions as some features are n
   - Column generation (MILP pricing solver/pricing callback)
   - Cut generation (robust and non-robust cut generation)
   - Strong-branching
+  - Stabilization for column generation 
 - ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but these features may have bugs:
   - Benders cut generation
-  - Stabilization for column generation 
 - ![Dev](https://img.shields.io/badge/-dev-orange) Features in development.
   - Stabilization for benders.
   - Clean-up of large scales formulation (regression)

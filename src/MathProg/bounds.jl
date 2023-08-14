@@ -8,18 +8,18 @@ The value of the primal bound is infinity if you do not specify any initial valu
 """
 function PrimalBound(form::AbstractFormulation)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(true, min)
+    return ColunaBase.Bound(min, true)
 end
 
 function PrimalBound(form::AbstractFormulation, val)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(true, min, val)
+    return ColunaBase.Bound(min, true, val)
 end
 
 function PrimalBound(form::AbstractFormulation, pb::ColunaBase.Bound)
     min = getobjsense(form) == MinSense
     @assert pb.primal && pb.min == min
-    return ColunaBase.Bound(true, min, ColunaBase.getvalue(pb))
+    return ColunaBase.Bound(min, true, ColunaBase.getvalue(pb))
 end
 
 PrimalBound(::AbstractFormulation, ::Nothing) = nothing
@@ -34,12 +34,12 @@ The value of the dual bound is infinity if you do not specify any initial value.
 """
 function DualBound(form::AbstractFormulation)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(false, min)
+    return ColunaBase.Bound(min, false)
 end
 
 function DualBound(form::AbstractFormulation, val::Real)
     min = getobjsense(form) == MinSense
-    return ColunaBase.Bound(false, min, val)
+    return ColunaBase.Bound(min, false, val)
 end
 
 DualBound(::AbstractFormulation, ::Nothing) = nothing
@@ -47,7 +47,7 @@ DualBound(::AbstractFormulation, ::Nothing) = nothing
 function DualBound(form::AbstractFormulation, db::ColunaBase.Bound)
     min = getobjsense(form) == MinSense
     @assert !db.primal && db.min == min
-    return ColunaBase.Bound(false, min, ColunaBase.getvalue(db))
+    return ColunaBase.Bound(min, false, ColunaBase.getvalue(db))
 end
 
 # ObjValues
@@ -86,24 +86,31 @@ function ObjValues(
     return ov
 end
 
+
 ## Gaps
 _ip_gap(ov::ObjValues) = gap(ov.ip_primal_bound, ov.ip_dual_bound)
 _lp_gap(ov::ObjValues) = gap(ov.lp_primal_bound, ov.lp_dual_bound)
 
+function gap_closed(
+    pb::Bound, db::Bound; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
+)
+    return gap(pb, db) <= 0 || _gap_closed(
+        pb.value, db.value, atol = atol, rtol = rtol
+    )
+end
+
+
 function _ip_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return _ip_gap(ov) <= 0 || _gap_closed(
-        ov.ip_primal_bound.value, ov.ip_dual_bound.value, atol = atol, rtol = rtol
-    )
+    return gap_closed(ov.ip_primal_bound, ov.ip_dual_bound, atol = atol, rtol = rtol)
 end
+
 
 function _lp_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return _lp_gap(ov) <= 0 || _gap_closed(
-       ov.lp_primal_bound.value, ov.lp_dual_bound.value, atol = atol, rtol = rtol
-    )
+    return gap_closed(ov.lp_primal_bound, ov.lp_dual_bound, atol = atol, rtol = rtol)
 end
 
 function _gap_closed(
@@ -116,7 +123,7 @@ end
 ## Bound updates
 function _update_lp_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
     @assert pb.primal && pb.min == ov.min
-    if ColunaBase.isbetter(pb, ov.lp_primal_bound)
+    if isnothing(ov.lp_primal_bound) || ColunaBase.isbetter(pb, ov.lp_primal_bound)
         ov.lp_primal_bound = pb
         return true
     end
@@ -125,7 +132,7 @@ end
 
 function _update_lp_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
     @assert !db.primal && db.min == ov.min
-    if ColunaBase.isbetter(db, ov.lp_dual_bound)
+    if isnothing(ov.lp_dual_bound) || ColunaBase.isbetter(db, ov.lp_dual_bound)
         ov.lp_dual_bound = db
         return true
     end
@@ -134,7 +141,7 @@ end
 
 function _update_ip_primal_bound!(ov::ObjValues, pb::ColunaBase.Bound)
     @assert pb.primal && pb.min == ov.min
-    if ColunaBase.isbetter(pb, ov.ip_primal_bound)
+    if isnothing(ov.ip_primal_bound) || ColunaBase.isbetter(pb, ov.ip_primal_bound)
         ov.ip_primal_bound = pb
         return true
     end
@@ -143,7 +150,7 @@ end
 
 function _update_ip_dual_bound!(ov::ObjValues, db::ColunaBase.Bound)
     @assert !db.primal && db.min == ov.min
-    if ColunaBase.isbetter(db, ov.ip_dual_bound)
+    if isnothing(ov.ip_dual_bound) || ColunaBase.isbetter(db, ov.ip_dual_bound)
         ov.ip_dual_bound = db
         return true
     end

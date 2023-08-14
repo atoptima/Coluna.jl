@@ -36,7 +36,7 @@ end
         lp_primal_bound = nothing, 
         lp_dual_bound = nothing,
         max_length_ip_primal_sols = 1, 
-        max_length_lp_primal_sols = 1, 
+        max_length_lp_primal_sols = 1,
         max_length_lp_dual_sols = 1,
         insert_function_ip_primal_sols = bestbound!, 
         insert_function_lp_primal_sols = bestbound!, 
@@ -78,8 +78,15 @@ function OptimizationState(
     max_length_lp_dual_sols = 1,
     insert_function_ip_primal_sols = bestbound!,
     insert_function_lp_primal_sols = bestbound!,
-    insert_function_lp_dual_sols = bestbound!
+    insert_function_lp_dual_sols = bestbound!,
+    global_primal_bound_handler = nothing
 ) where {F <: AbstractFormulation}
+    if !isnothing(global_primal_bound_handler)
+        if !isnothing(ip_primal_bound)
+            @warn "Value of `ip_primal_bound` will be replaced by the value of the best primal bound stored in `global_primal_bound_manager``."
+        end
+        ip_primal_bound = get_global_primal_bound(global_primal_bound_handler)
+    end
     incumbents = MathProg.ObjValues(
         form;
         ip_primal_bound = ip_primal_bound,
@@ -269,7 +276,7 @@ Similar methods :
 """
 function update_ip_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_ip_primal_sols == 0 && return
-    b = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
+    b = ColunaBase.Bound(state.incumbents.min, true, getvalue(sol))
     if update_ip_primal_bound!(state, b)
         state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     end
@@ -292,7 +299,7 @@ Similar methods :
 function add_ip_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_ip_primal_sols == 0 && return
     state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
-    pb = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
+    pb = ColunaBase.Bound(state.incumbents.min, true, getvalue(sol))
     update_ip_primal_bound!(state, pb)
     return
 end
@@ -336,7 +343,7 @@ empty_ip_primal_sols!(state::OptimizationState) = empty!(state.ip_primal_sols)
 "Similar to [`update_ip_primal_sol!`](@ref)."
 function update_lp_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_lp_primal_sols == 0 && return
-    pb = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
+    pb = ColunaBase.Bound(state.incumbents.min, true, getvalue(sol))
     if update_lp_primal_bound!(state, pb)
         state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     end
@@ -347,7 +354,7 @@ end
 function add_lp_primal_sol!(state::OptimizationState{F}, sol::PrimalSolution{F}) where {F}
     state.max_length_lp_primal_sols == 0 && return
     state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
-    pb = ColunaBase.Bound(true, state.incumbents.min, getvalue(sol))
+    pb = ColunaBase.Bound(state.incumbents.min, true, getvalue(sol))
     update_lp_primal_bound!(state, pb)
     return
 end
@@ -365,7 +372,7 @@ empty_lp_primal_sols!(state::OptimizationState) = empty!(state.lp_primal_sols)
 "Similar to [`update_ip_primal_sol!`](@ref)."
 function update_lp_dual_sol!(state::OptimizationState{F}, sol::DualSolution{F}) where {F}
     state.max_length_lp_dual_sols == 0 && return
-    db = ColunaBase.Bound(false, state.incumbents.min, getvalue(sol))
+    db = ColunaBase.Bound(state.incumbents.min, false, getvalue(sol))
     if update_lp_dual_bound!(state, db)
         state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     end
@@ -376,7 +383,7 @@ end
 function add_lp_dual_sol!(state::OptimizationState{F}, sol::DualSolution{F}) where {F}
     state.max_length_lp_dual_sols == 0 && return
     state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
-    db = ColunaBase.Bound(false, state.incumbents.min, getvalue(sol))
+    db = ColunaBase.Bound(state.incumbents.min, false, getvalue(sol))
     update_lp_dual_bound!(state, db)
     return
 end

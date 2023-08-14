@@ -38,9 +38,18 @@ ClA.get_child_algorithms(a::Algorithm4, reform::ClMP.Reformulation) = Dict(
 ClA.check_parameter(::Algorithm4, ::Val{:alg2}, value, reform) = true
 ClA.check_parameter(::Algorithm4, ::Val{:alg3}, value, reform) = true
 
-function check_parameters_1()
+function _check_parameters_reform()
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
-    reform = ClMP.Reformulation(env)
+    origform = Coluna.MathProg.create_formulation!(env, MathProg.Original())
+    master = Coluna.MathProg.create_formulation!(env, MathProg.DwMaster())
+    dw_pricing_sps = Dict{ClMP.FormId, ClMP.Formulation{ClMP.DwSp}}()
+    bend_pricing_sps = Dict{ClMP.FormId, ClMP.Formulation{ClMP.BendersSp}}()
+    reform = ClMP.Reformulation(env, origform, master, dw_pricing_sps, bend_pricing_sps)
+    return reform
+end
+
+function check_parameters_1()
+    reform = _check_parameters_reform()
     alg1 = Algorithm1(1, 2) # ok, ok
     alg2 = Algorithm2(alg1, "3") # ok, not ok
     alg3 = Algorithm3("4", 5)    # not ok, ok
@@ -54,8 +63,7 @@ register!(unit_tests, "Algorithm", check_parameters_1)
 
 # we test with all checks returning false
 function check_parameters_2()
-    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
-    reform = ClMP.Reformulation(env)
+    reform = _check_parameters_reform()
     alg1 = Algorithm1(-1, -3) # not ok, not ok
     alg2 = Algorithm2(alg1, "N")  # not ok, not ok
     alg3 = Algorithm3("N", 4)     # not ok, not ok

@@ -85,11 +85,11 @@ function benders_decomposition()
     reform = Coluna.MathProg.get_reformulation(problem)
 
     # Test first stage variables & constraints
-    # Coluna.MathProg.MinSense + 1.0 x1 + 4.0 x2 + 1.0 η[5]  
+    # Coluna.MathProg.MinSense + 1.0 x1 + 4.0 x2 + 1.0 η[4]  
     # c3 : + 1.0 x1 + 1.0 x2  >= 0.0 (MasterPureConstrConstraintu3 | true)
     # 0.0 <= x1 <= Inf (Continuous | MasterPureVar | true)
     # 0.0 <= x2 <= Inf (Continuous | MasterPureVar | true)
-    # 0.0 <= η[5] <= Inf (Continuous | MasterBendSecondStageCostVar | true)
+    # 0.0 <= η[4] <= Inf (Continuous | MasterBendSecondStageCostVar | true)
 
     master = Coluna.MathProg.getmaster(reform)
     fs_vars = Dict(getname(master, varid) => var for (varid, var) in Coluna.MathProg.getvars(master))
@@ -99,19 +99,19 @@ function benders_decomposition()
 
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(fs_vars["x1"])) <= Coluna.MathProg.MasterPureVar
     @test Coluna.MathProg.getduty(Coluna.MathProg.getid(fs_vars["x2"])) <= Coluna.MathProg.MasterPureVar
-    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(fs_vars["η[5]"])) <= Coluna.MathProg.MasterBendSecondStageCostVar
+    @test Coluna.MathProg.getduty(Coluna.MathProg.getid(fs_vars["η[4]"])) <= Coluna.MathProg.MasterBendSecondStageCostVar
 
     @test Coluna.MathProg.getcurlb(master, fs_vars["x1"]) == 0.0
     @test Coluna.MathProg.getcurlb(master, fs_vars["x2"]) == 0.0
-    @test Coluna.MathProg.getcurlb(master, fs_vars["η[5]"]) == -Inf
+    @test Coluna.MathProg.getcurlb(master, fs_vars["η[4]"]) == -Inf
 
     @test Coluna.MathProg.getcurub(master, fs_vars["x1"]) == Inf
     @test Coluna.MathProg.getcurub(master, fs_vars["x2"]) == Inf
-    @test Coluna.MathProg.getcurub(master, fs_vars["η[5]"]) == Inf
+    @test Coluna.MathProg.getcurub(master, fs_vars["η[4]"]) == Inf
 
     @test Coluna.MathProg.getcurcost(master, fs_vars["x1"]) == 1.0
     @test Coluna.MathProg.getcurcost(master, fs_vars["x2"]) == 4.0
-    @test Coluna.MathProg.getcurcost(master, fs_vars["η[5]"]) == 1.0
+    @test Coluna.MathProg.getcurcost(master, fs_vars["η[4]"]) == 1.0
 
     @test length(fs_constrs) == 1
 

@@ -122,8 +122,7 @@ BlockDecomposition.customconstrs!(model, MyCustomCutData);
 # We implement the `computecoeff` method for the custom data we defined.
 
 function Coluna.MathProg.computecoeff(
-    ::Coluna.MathProg.Variable, var_custom_data::MyCustomVarData,
-    ::Coluna.MathProg.Constraint, constr_custom_data::MyCustomCutData
+    var_custom_data::MyCustomVarData, constr_custom_data::MyCustomCutData
 )
     return (var_custom_data.nb_items >= constr_custom_data.min_items) ? 1.0 : 0.0
 end

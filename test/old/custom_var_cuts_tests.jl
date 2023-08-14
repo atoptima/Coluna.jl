@@ -21,8 +21,7 @@ struct MyCustomCutData <: BD.AbstractCustomData
 end
 
 function Coluna.MathProg.computecoeff(
-    ::ClMP.Variable, var_custom_data::MyCustomVarData,
-    ::ClMP.Constraint, constr_custom_data::MyCustomCutData
+    var_custom_data::MyCustomVarData, constr_custom_data::MyCustomCutData
 )
     return (var_custom_data.nb_items >= constr_custom_data.min_items) ? 1.0 : 0.0
 end

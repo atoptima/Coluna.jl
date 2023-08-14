@@ -2,6 +2,7 @@
 function printer_colgen_iteration_master_ok_pricing_ok()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
+        Inf,
         22.5,
         22.5 - 23/4,
         1,
@@ -24,6 +25,7 @@ register!(unit_tests, "colgen_printer", printer_colgen_iteration_master_ok_prici
 function printer_colgen_iteration_master_infeasible()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
+        Inf,
         nothing,
         Inf,
         0,
@@ -46,6 +48,7 @@ register!(unit_tests, "colgen_printer", printer_colgen_iteration_master_infeasib
 function printer_colgen_iteration_pricing_infeasible()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
+        Inf,
         nothing,
         Inf,
         0,
@@ -68,6 +71,7 @@ register!(unit_tests, "colgen_printer", printer_colgen_iteration_pricing_infeasi
 function printer_colgen_iteration_master_unbounded()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
+        Inf,
         nothing,
         -Inf,
         0,
@@ -90,6 +94,7 @@ register!(unit_tests, "colgen_printer", printer_colgen_iteration_master_unbounde
 function printer_colgen_iteration_pricing_unbounded()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
+        Inf,
         nothing,
         nothing,
         0,
@@ -134,6 +139,7 @@ register!(unit_tests, "colgen_printer", printer_colgen_iteration_pricing_unbound
 function printer_colgen_new_cuts_in_master()
     output = Coluna.Algorithm.ColGenIterationOutput(
         true,
+        Inf,
         nothing,
         nothing,
         0,

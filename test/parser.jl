@@ -298,10 +298,10 @@ module Parser
 
     read_variables!(::Any, ::Any, ::ReadCache, ::AbstractString) = nothing
 
-    function create_subproblems!(::Val{:subproblem}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache, ::Nothing)
+    function create_subproblems!(::Val{:subproblem}, env::Env{ClMP.VarId}, cache::ReadCache, ::Nothing)
         i = 1
         constraints = ClMP.Constraint[]
-        subproblems = []
+        subproblems = ClMP.Formulation{ClMP.DwSp}[]
         all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.DwSp}}}()
         for (_, sp) in cache.subproblems
             spform = nothing
@@ -338,17 +338,16 @@ module Parser
                 i += 1
             end
             push!(subproblems, spform)
-            ClMP.add_dw_pricing_sp!(reform, spform)
         end
         return subproblems, all_spvars, constraints
     end
 
-    function create_subproblems!(::Val{:separation}, env::Env{ClMP.VarId}, reform::ClMP.Reformulation, cache::ReadCache, master, mastervars)
+    function create_subproblems!(::Val{:separation}, env::Env{ClMP.VarId}, cache::ReadCache, master, mastervars)
         i = 1
         constraints = ClMP.Constraint[]
-        subproblems = []
+        subproblems = ClMP.Formulation{ClMP.BendersSp}[]
         all_spvars = Dict{String, Tuple{ClMP.Variable, ClMP.Formulation{ClMP.BendersSp}}}()
-        for (_, sp) in cache.subproblems
+        for (_, sp) in cache.subproblems 
             spform = ClMP.create_formulation!(
                 env,
                 ClMP.BendersSp();
@@ -396,7 +395,6 @@ module Parser
                 i += 1
             end
             push!(subproblems, spform)
-            ClMP.add_benders_sep_sp!(reform, spform)
         end
         return subproblems, all_spvars, constraints
     end
@@ -449,7 +447,7 @@ module Parser
         return mastervars
     end
 
-    function add_master_constraints!(reform, master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, constraints::Vector{ClMP.Constraint}, cache::ReadCache)
+    function add_master_constraints!(subproblems, master::ClMP.Formulation, mastervars::Dict{String, ClMP.Variable}, constraints::Vector{ClMP.Constraint}, cache::ReadCache)
         #create master constraints
         i = 1
         for constr in cache.master.constraints
@@ -476,7 +474,7 @@ module Parser
             c = ClMP.setconstr!(master, "c$i", constr_duty; rhs = constr.rhs, sense = constr.sense, members = members)
             if constr_duty <= ClMP.MasterConvexityConstr
                 setup_var_id = collect(keys(filter(x -> ClMP.getduty(x[1]) <= ClMP.MasterRepPricingSetupVar, members)))[1]
-                spform = collect(values(filter(sp -> haskey(sp[2], setup_var_id), ClMP.get_dw_pricing_sps(reform))))[1]
+                spform = collect(values(filter(sp -> haskey(sp, setup_var_id), subproblems)))[1] # dw pricing sps
                 if constr.sense == ClMP.Less
                     spform.duty_data.upper_multiplicity_constr_id = ClMP.getid(c)
                 elseif constr.sense == ClMP.Greater
@@ -498,35 +496,48 @@ module Parser
             throw(UndefVarParserError("No variable duty and kind defined"))
         end
         env = Env{ClMP.VarId}(CL.Params())
-        reform = ClMP.Reformulation(env)
 
         dec = cache.benders_sp_type ? Val(:separation) : Val(:subproblem)
         master_duty = cache.benders_sp_type ? ClMP.BendersMaster() : ClMP.DwMaster()
 
+        dw_sps = Dict{ClMP.FormId, ClMP.Formulation{ClMP.DwSp}}()
+        benders_sps = Dict{ClMP.FormId, ClMP.Formulation{ClMP.BendersSp}}()
+
+        origform = ClMP.create_formulation!(
+            env,
+            ClMP.Original();
+            obj_sense = cache.master.sense,
+        )
+
+        # Create master first.
+        master =  ClMP.create_formulation!(
+            env,
+            master_duty;
+            obj_sense = cache.master.sense,
+        )
+        # ugly trick here.
+        dw_sps = Dict{ClMP.FormId, ClMP.Formulation{ClMP.DwSp}}()
+        benders_sps = Dict{ClMP.FormId, ClMP.Formulation{ClMP.BendersSp}}()
+        reform = ClMP.Reformulation(env, origform, master, dw_sps, benders_sps)
+        master.parent_formulation = reform
+    
+        # Populate master & create subproblems then.
         if cache.benders_sp_type
-            master = ClMP.create_formulation!(
-                env,
-                master_duty;
-                obj_sense = cache.master.sense,
-                parent_formulation = reform
-            )
-            ClMP.setmaster!(reform, master)
             mastervars = add_bend_master_vars!(master, master_duty, cache)
             ClMP.setobjconst!(master, cache.master.objective.constant)
-            subproblems, all_spvars, constraints = create_subproblems!(dec, env, reform, cache, master, mastervars)
-            add_master_constraints!(reform, master, mastervars, constraints, cache)
+            subproblems, all_spvars, constraints = create_subproblems!(dec, env, cache, master, mastervars)
+            for sp in subproblems
+                reform.benders_sep_subprs[ClMP.getuid(sp)] = sp
+            end
+            add_master_constraints!(subproblems, master, mastervars, constraints, cache)
         else
-            subproblems, all_spvars, constraints = create_subproblems!(dec, env, reform, cache, nothing)
-            master = ClMP.create_formulation!(
-                env,
-                master_duty;
-                obj_sense = cache.master.sense,
-                parent_formulation = reform
-            )
-            ClMP.setmaster!(reform, master)
+            subproblems, all_spvars, constraints = create_subproblems!(dec, env, cache, nothing)
+            for sp in subproblems
+                reform.dw_pricing_subprs[ClMP.getuid(sp)] = sp
+            end
             mastervars = add_dw_master_vars!(master, master_duty, all_spvars, cache)
             ClMP.setobjconst!(master, cache.master.objective.constant)
-            add_master_constraints!(reform, master, mastervars, constraints, cache)
+            add_master_constraints!(subproblems, master, mastervars, constraints, cache)
         end
 
         for sp in subproblems
@@ -534,7 +545,6 @@ module Parser
             closefillmode!(ClMP.getcoefmatrix(sp))
         end
         closefillmode!(ClMP.getcoefmatrix(master))
-
         return env, master, subproblems, constraints, reform
     end
 
@@ -584,7 +594,6 @@ module Parser
         end
 
         env, master, subproblems, constraints, reform = reformfromcache(cache)
-
         return env, master, subproblems, constraints, reform
     end
     export reformfromstring

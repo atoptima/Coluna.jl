@@ -3,23 +3,21 @@
 ############################################################################################
 "Conquer input object created by the strong branching algorithm."
 struct ConquerInputFromSb <: AbstractConquerInput
+    global_primal_handler::GlobalPrimalBoundHandler
     children_candidate::SbNode
     children_units_to_restore::UnitsUsage
 end
 
-get_conquer_input_ip_primal_bound(i::ConquerInputFromSb) = get_ip_primal_bound(i.children_candidate.optstate)
 get_conquer_input_ip_dual_bound(i::ConquerInputFromSb) = get_ip_dual_bound(i.children_candidate.optstate)
+get_global_primal_handler(i::ConquerInputFromSb) = i.global_primal_handler
 get_node_depth(i::ConquerInputFromSb) = i.children_candidate.depth
 get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
-get_run_conquer(::ConquerInputFromSb) = true
 
 ############################################################################################
 # NoBranching
 ############################################################################################
 
 """
-    NoBranching
-
 Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: AlgoAPI.AbstractDivideAlgorithm end
@@ -36,9 +34,17 @@ end
     ClassicBranching(
         selection_criterion = MostFractionalCriterion()
         rules = [Branching.PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+        int_tol = 1e-6
     )
 
 Chooses the best candidate according to a selection criterion and generates the two children.
+
+**Parameters**
+- `selection_criterion`: selection criterion to choose the best candidate
+- `rules`: branching rules to generate the candidates
+- `int_tol`: tolerance to determine if a variable is integer
+
+It is implemented as a specific case of the strong branching algorithm.
 """
 struct ClassicBranching <: AlgoAPI.AbstractDivideAlgorithm
     selection_criterion::Branching.AbstractSelectionCriterion
@@ -131,10 +137,11 @@ Branching.new_divide_output(::Nothing, optimization_state) = DivideOutput(SbNode
 # Branching API implementation for the strong branching
 ############################################################################################
 """
-    BranchingPhase(max_nb_candidates, conquer_algo)
+    BranchingPhase(max_nb_candidates, conquer_algo, score)
 
 Define a phase in strong branching. It contains the maximum number of candidates
-to evaluate and the conquer algorithm which does evaluation.
+to evaluate, the conquer algorithm which does evaluation, and the score used to sort the 
+candidates.
 """
 struct BranchingPhase
     max_nb_candidates::Int64
@@ -143,7 +150,13 @@ struct BranchingPhase
 end
 
 """
-    StrongBranching
+    StrongBranching(
+        phases = [],
+        rules = [Branching.PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)],
+        selection_criterion = MostFractionalCriterion(),
+        verbose = true,
+        int_tol = 1e-6
+    )
 
 The algorithm that performs a (multi-phase) (strong) branching in a tree search algorithm.
 
@@ -162,6 +175,14 @@ branching candidates. This is called a **phase**. The goal is to first evaluate 
 of candidates with a very fast conquer algorithm and retain a certain number of promising ones. 
 Then, over the phases, it evaluates the improvement with a more precise conquer algorithm and
 restrict the number of retained candidates until only one is left.
+
+**Parameters**:
+
+- `phases`: a vector of [`Coluna.Algorithm.BranchingPhase`](@ref)
+- `rules`: a vector of [`Coluna.Algorithm.Branching.PrioritisedBranchingRule`](@ref)
+- `selection_criterion`: a selection criterion to choose the initial candidates
+- `verbose`: if true, print the progress of the strong branching procedure
+- `int_tol`: tolerance to determine if a variable is integer
 """
 struct StrongBranching <: AlgoAPI.AbstractDivideAlgorithm
     phases::Vector{BranchingPhase}
@@ -258,29 +279,22 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
     # strong branching procedure but also the best primal bound found so far (in the whole optimization).
     update_ip_primal_bound!(child_state, get_ip_primal_bound(ip_primal_sols_found))
-
-    # TODO: We consider that all branching algorithms don't exploit the primal solution 
-    # at the moment.
-    # best_ip_primal_sol = get_best_ip_primal_sol(sbstate)
-    # if !isnothing(best_ip_primal_sol)
-    #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
-    # end
     
     if !ip_gap_closed(child_state)
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
-        input = ConquerInputFromSb(child, units_to_restore)
-        conquer_output = run!(Branching.get_conquer(phase), env, reform, input)
-        child.optstate = conquer_output
-        # @show child.optstate
-        # update!(child_state, conquer_output)
-        # @show child_state
+        conquer_input = ConquerInputFromSb(Branching.get_global_primal_handler(input), child, units_to_restore)
+        child_state = run!(Branching.get_conquer(phase), env, reform, conquer_input)
+        child.optstate = child_state
         TreeSearch.set_records!(child, create_records(reform))
     end
     child.conquerwasrun = true
 
     # Store new primal solutions found during the evaluation of the child.
     add_ip_primal_sols!(ip_primal_sols_found, get_ip_primal_sols(child_state)...)
+    for sol in get_ip_primal_sols(child_state)
+        store_ip_primal_sol!(Branching.get_global_primal_handler(input), sol)
+    end
     return
 end
 

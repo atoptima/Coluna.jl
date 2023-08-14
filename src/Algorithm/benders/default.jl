@@ -121,7 +121,7 @@ function Benders.treat_unbounded_master_problem_case!(master, ctx::BendersContex
     if ip_solver
         relax_integrality!(master)
         rm_input = OptimizationState(master)
-        opt_state = run!(SolveLpForm(get_dual_solution = true), env, master, rm_input, ctx.restr_master_optimizer_id)
+        opt_state = run!(SolveLpForm(get_dual_sol = true), env, master, rm_input, ctx.restr_master_optimizer_id)
         enforce_integrality!(master)
     end
 

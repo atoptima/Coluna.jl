@@ -1,4 +1,4 @@
-for dir in ["MustImplement", "ColunaBase", "MathProg", "ColGen", "Benders", "Branching", "Algorithm"]
+for dir in ["MustImplement", "ColunaBase", "MathProg", "ColGen", "Benders", "Branching", "Algorithm", "TreeSearch", "Presolve"]
     dirpath = joinpath(@__DIR__, dir)
     for filename in readdir(dirpath)
         includet(joinpath(dirpath, filename))

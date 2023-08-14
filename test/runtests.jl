@@ -1,7 +1,7 @@
 using Revise
 
 using Base.CoreLogging: error
-using DynamicSparseArrays, SparseArrays, Coluna, TOML
+using DynamicSparseArrays, SparseArrays, Coluna, TOML, JET
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))

@@ -55,7 +55,7 @@ function ColGen.update_master_constrs_dual_vals!(ctx::ColGenPrinterContext, mast
 end
 
 ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx::ColGenPrinterContext, phase, env) = ColGen.check_primal_ip_feasibility!(mast_primal_sol, ctx.inner, phase, env)
-ColGen.update_inc_primal_sol!(ctx::ColGenPrinterContext, ip_primal_sol) = ColGen.update_inc_primal_sol!(ctx.inner, ip_primal_sol)
+ColGen.update_inc_primal_sol!(ctx::ColGenPrinterContext, ip_primal_sol, new_ip_primal_sol) = ColGen.update_inc_primal_sol!(ctx.inner, ip_primal_sol, new_ip_primal_sol)
 
 ColGen.get_subprob_var_orig_costs(ctx::ColGenPrinterContext) = ColGen.get_subprob_var_orig_costs(ctx.inner)
 ColGen.get_subprob_var_coef_matrix(ctx::ColGenPrinterContext) = ColGen.get_subprob_var_coef_matrix(ctx.inner)
@@ -123,15 +123,11 @@ function ColGen.colgen_iteration_output_type(ctx::ColGenPrinterContext)
     return ColGen.colgen_iteration_output_type(ctx.inner)
 end
 
-function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
-    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, inc_dual_bound, colgen_iteration)
+function ColGen.stop_colgen_phase(ctx::ColGenPrinterContext, phase, env, colgen_iter_output, inc_dual_bound, ip_primal_sol, colgen_iteration)
+    return ColGen.stop_colgen_phase(ctx.inner, phase, env, colgen_iter_output, inc_dual_bound, ip_primal_sol, colgen_iteration)
 end
 
 ColGen.before_colgen_iteration(ctx::ColGenPrinterContext, phase) = nothing
-
-function _get_inc_pb(sol)
-    return isnothing(sol) ? Inf : getvalue(sol)
-end
 
 function _colgen_iter_str(
     colgen_iteration, colgen_iter_output::ColGenIterationOutput, phase::Int, stage::Int, sp_time::Float64, mst_time::Float64, optim_time::Float64, alpha
@@ -177,7 +173,7 @@ function _colgen_iter_str(
 
     mlp::Float64 = colgen_iter_output.mlp
     db::Float64 = colgen_iter_output.db
-    pb::Float64 = _get_inc_pb(colgen_iter_output.master_ip_primal_sol)
+    pb::Float64 = colgen_iter_output.ipb
 
     nb_new_col::Int = ColGen.get_nb_new_cols(colgen_iter_output)
 
@@ -187,7 +183,7 @@ function _colgen_iter_str(
     )
 end
 
-function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, colgen_iter_output)
+function ColGen.after_colgen_iteration(ctx::ColGenPrinterContext, phase, stage, env, colgen_iteration, stab, ip_primal_sol, colgen_iter_output)
     println(_colgen_iter_str(colgen_iteration, colgen_iter_output, ctx.phase, ColGen.stage_id(stage), ctx.sp_elapsed_time, ctx.mst_elapsed_time, elapsed_optim_time(env), ColGen.get_output_str(stab)))
     return
 end
