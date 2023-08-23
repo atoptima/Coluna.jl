@@ -379,8 +379,6 @@ end
 
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     ctx = new_context(type_of_context(algo), algo, reform, input)
-    node = get_node(input)
-    restore_from_records!(get_units_to_restore(input), TreeSearch.get_records(node))
     return run_colcutgen_conquer!(ctx, env, reform, input)
 end
 
