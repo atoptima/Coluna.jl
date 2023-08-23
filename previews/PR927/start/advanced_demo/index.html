@@ -502,25 +502,25 @@ routes_costs = Dict(
     sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])));</code></pre><p>We perform the decomposition over the axis and we optimize the problem.</p><pre><code class="language-julia hljs">@benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
 Version 0.6.5 | https://github.com/atoptima/Coluna.jl
-&lt;it=  1&gt; &lt;et= 9.69&gt; &lt;mst= 0.64&gt; &lt;sp= 0.63&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
-&lt;it=  2&gt; &lt;et=10.68&gt; &lt;mst= 0.54&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
-&lt;it=  3&gt; &lt;et=10.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
-&lt;it=  4&gt; &lt;et=10.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
-&lt;it=  5&gt; &lt;et=10.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
-&lt;it=  6&gt; &lt;et=10.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
-&lt;it=  7&gt; &lt;et=10.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
-&lt;it=  8&gt; &lt;et=10.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
-&lt;it=  9&gt; &lt;et=10.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
-&lt;it= 10&gt; &lt;et=10.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
+&lt;it=  1&gt; &lt;et= 3.42&gt; &lt;mst= 0.08&gt; &lt;sp= 0.42&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
+&lt;it=  2&gt; &lt;et= 4.03&gt; &lt;mst= 0.36&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
+&lt;it=  3&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
+&lt;it=  4&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
+&lt;it=  5&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
+&lt;it=  6&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
+&lt;it=  7&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
+&lt;it=  8&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
+&lt;it=  9&gt; &lt;et= 4.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
+&lt;it= 10&gt; &lt;et= 4.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:          103s /  18.1%           4.56GiB /  21.1%
+    Tot / % measured:         94.9s /  30.4%           5.64GiB /  36.2%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               5    18.6s  100.0%   3.73s   0.96GiB  100.0%   197MiB
-   SolveLpForm       20    1.83s    9.8%  91.5ms   62.4MiB    6.3%  3.12MiB
+ Coluna               5    28.8s  100.0%   5.76s   2.04GiB  100.0%   419MiB
+   SolveLpForm      143    2.06s    7.2%  14.4ms   95.2MiB    4.5%   681KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -586,4 +586,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Monday 14 August 2023 22:06">Monday 14 August 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Wednesday 23 August 2023 07:08">Wednesday 23 August 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
