@@ -353,7 +353,7 @@ function get_basis(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     vars = Dict{VarId,MOI.BasisStatusCode}()
     for (varid, var) in getvars(form)
         iscuractive(form, varid) && isexplicit(form, varid) || continue
-        moi_index = getindex(getmoirecord(var))
+        moi_index = getmoiindex(getmoirecord(var))
         if moi_index.value != -1
             vars[varid] = MOI.get(inner, MOI.VariableBasisStatus(), moi_index)
         end
@@ -362,7 +362,7 @@ function get_basis(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     constrs = Dict{ConstrId,MOI.BasisStatusCode}()
     for (constrid, constr) in getconstrs(form)
         iscuractive(form, constrid) && isexplicit(form, constrid) || continue
-        moi_index = getindex(getmoirecord(constr))
+        moi_index = getmoiindex(getmoirecord(constr))
         if moi_index.value != -1
             constrs[constrid] = MOI.get(inner, MOI.ConstraintBasisStatus(), moi_index)
         end
@@ -374,7 +374,7 @@ function set_basis!(form::F, optimizer::MoiOptimizer, basis::Basis) where {F <: 
     inner = getinner(optimizer)
     for (varid, var) in getvars(form)
         iscuractive(form, varid) && isexplicit(form, varid) || continue
-        moi_index = getindex(getmoirecord(var))
+        moi_index = getmoiindex(getmoirecord(var))
         var_basis = get(basis.vars, varid, nothing)
         if !isnothing(var_basis)
             MOI.set(inner, MOI.VariableBasisStatus(), moi_index, var_basis)
@@ -382,7 +382,7 @@ function set_basis!(form::F, optimizer::MoiOptimizer, basis::Basis) where {F <: 
     end
     for (constrid, constr) in getconstrs(form)
         iscuractive(form, constrid) && isexplicit(form, constrid) || continue
-        moi_index = getindex(getmoirecord(constr))
+        moi_index = getmoiindex(getmoirecord(constr))
         constr_basis = get(basis.constrs, constrid, nothing)
         if !isnothing(constr_basis)
             MOI.set(inner, MOI.ConstraintBasisStatus(), moi_index, constr_basis)
