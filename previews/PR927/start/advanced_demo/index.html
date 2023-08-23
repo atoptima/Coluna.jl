@@ -252,9 +252,58 @@ end</code></pre><p>To identify violated valid inequalities from a current master
         constr = JuMP.@build_constraint(x[ineq.customer_id, ineq.facility_id] &lt;= y[ineq.facility_id])
         MOI.submit(model, MOI.UserCut(cbdata), constr)
     end
-end;</code></pre><p>We re-declare the model and optimize it with these valid inequalities:</p><pre><code class="language- hljs">model, x, y, z, _ = create_model(coluna, pricing_callback);
+end;</code></pre><p>We re-declare the model and optimize it with these valid inequalities:</p><pre><code class="language-julia hljs">model, x, y, z, _ = create_model(coluna, pricing_callback);
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
-JuMP.optimize!(model)</code></pre><h3 id="Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)"><a class="docs-heading-anchor" href="#Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)">Strengthening the master with valid inequalities on the column generation variables (so-called &quot;non-robust&quot; cuts)</a><a id="Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)" title="Permalink"></a></h3><p>In order to further strengthen the linear relaxation of the Dantzig-Wolfe reformulation, we separate a family of subset-row cuts, which is a subfamily of Chvátal-Gomory rank-1 cuts (R1C), obtained from the set-partitioning constraints. These cuts cannot be expressed as a linear combination of the original variables of the model. Instead, they are expressed with the master columns variables <span>$λ_k$</span>, <span>$k \in K$</span>, where <span>$K$</span> is the set of generated columns or set of solutions returned by the pricing subproblems. Subset-row cuts are &quot;non-robust&quot; in the sense that they modify the structure of the pricing subproblems, and not just the reduced cost of subproblem variables. Thus, the implementation of the pricing callback should be updated to take into account dual costs associated with non-robust cutting planes.</p><p>Each Chvátal-Gomory rank-1 cut is characterized by a subset of set-partitioning constraints, or equivalently by a subset <span>$C$</span> of customers, and a multiplier <span>$\alpha_i$</span> for each customer <span>$i\in C$</span>:</p><p class="math-container">\[\sum_{k \in K} \lfloor \sum_{i \in C} \alpha_i \tilde{x}^k_{i,j} \lambda_{k} \rfloor \leq \lfloor \sum_{i\in C} \alpha_i \rfloor, \;  C \subseteq I,\]</p><p>where <span>$\tilde{x}^k_{ij}$</span> is the value of the variable <span>$x_{ij}$</span> in the <span>$k$</span>-th column generated. For subset-row cuts, <span>$|C|=3$</span>, and <span>$\alpha_i=\frac{1}{2}$</span>, <span>$i\in C$</span>.</p><p>Since we obtain subset-row cuts based on set-partitioning constraints, we must be able to differentiate them from the other constraints of the model. To do this, we exploit a feature of Coluna that allows us to attach custom data to the constraints and variables of a model, via the add-ons of BlockDecomposition package.</p><p>First, we create special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint.</p><pre><code class="language-julia hljs">struct CoverConstrData &lt;: BlockDecomposition.AbstractCustomData
+JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 0.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 0.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+Cut separation callback adds 0 new essential cuts and 7 new facultative cuts.
+avg. viol. = 0.12, max. viol. = 0.12, zero viol. = 0.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.95&gt; &lt;mst= 0.06&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  278.2000&gt; &lt;mlp=  283.5000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.4125&gt; &lt;mlp=  283.3125&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  282.8750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  283.0750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
+Cut separation callback adds 0 new essential cuts and 7 new facultative cuts.
+avg. viol. = 0.12, max. viol. = 0.12, zero viol. = 0.
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  268.0667&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.3286&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:          112s /  30.0%           4.79GiB /  34.2%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               2    33.8s  100.0%   16.9s   1.64GiB  100.0%   840MiB
+   SolveLpForm       43    1.49s    4.4%  34.6ms   42.2MiB    2.5%  0.98MiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 289.8
+[ Info: Dual bound: 289.79999999999995</code></pre><h3 id="Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)"><a class="docs-heading-anchor" href="#Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)">Strengthening the master with valid inequalities on the column generation variables (so-called &quot;non-robust&quot; cuts)</a><a id="Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)" title="Permalink"></a></h3><p>In order to further strengthen the linear relaxation of the Dantzig-Wolfe reformulation, we separate a family of subset-row cuts, which is a subfamily of Chvátal-Gomory rank-1 cuts (R1C), obtained from the set-partitioning constraints. These cuts cannot be expressed as a linear combination of the original variables of the model. Instead, they are expressed with the master columns variables <span>$λ_k$</span>, <span>$k \in K$</span>, where <span>$K$</span> is the set of generated columns or set of solutions returned by the pricing subproblems. Subset-row cuts are &quot;non-robust&quot; in the sense that they modify the structure of the pricing subproblems, and not just the reduced cost of subproblem variables. Thus, the implementation of the pricing callback should be updated to take into account dual costs associated with non-robust cutting planes.</p><p>Each Chvátal-Gomory rank-1 cut is characterized by a subset of set-partitioning constraints, or equivalently by a subset <span>$C$</span> of customers, and a multiplier <span>$\alpha_i$</span> for each customer <span>$i\in C$</span>:</p><p class="math-container">\[\sum_{k \in K} \lfloor \sum_{i \in C} \alpha_i \tilde{x}^k_{i,j} \lambda_{k} \rfloor \leq \lfloor \sum_{i\in C} \alpha_i \rfloor, \;  C \subseteq I,\]</p><p>where <span>$\tilde{x}^k_{ij}$</span> is the value of the variable <span>$x_{ij}$</span> in the <span>$k$</span>-th column generated. For subset-row cuts, <span>$|C|=3$</span>, and <span>$\alpha_i=\frac{1}{2}$</span>, <span>$i\in C$</span>.</p><p>Since we obtain subset-row cuts based on set-partitioning constraints, we must be able to differentiate them from the other constraints of the model. To do this, we exploit a feature of Coluna that allows us to attach custom data to the constraints and variables of a model, via the add-ons of BlockDecomposition package.</p><p>First, we create special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint.</p><pre><code class="language-julia hljs">struct CoverConstrData &lt;: BlockDecomposition.AbstractCustomData
     customer::Int
 end</code></pre><p>We re-create the model:</p><pre><code class="language-julia hljs">(model, x, y, z, cov) = create_model(coluna, pricing_callback);</code></pre><p>We declare our custom data to Coluna and we attach one custom data to each cover constraint</p><pre><code class="language-julia hljs">BlockDecomposition.customconstrs!(model, CoverConstrData);
 
@@ -322,7 +371,7 @@ end;</code></pre><p>When creating non-robust constraints, only the linear (i.e.,
         end
     end
     return cost
-end;</code></pre><p>We re-write our pricing callback to:</p><ul><li>retrieve the dual cost of the subset-row cuts</li><li>take into account the contribution of the subset-row cuts in the reduced cost of the route</li><li>attach custom data to the route so that its coefficient in the existing non-robust cuts can be computed</li></ul><pre><code class="language- hljs">function pricing_callback(cbdata)
+end;</code></pre><p>We re-write our pricing callback to:</p><ul><li>retrieve the dual cost of the subset-row cuts</li><li>take into account the contribution of the subset-row cuts in the reduced cost of the route</li><li>attach custom data to the route so that its coefficient in the existing non-robust cuts can be computed</li></ul><pre><code class="language-julia hljs">function pricing_callback(cbdata)
     j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
     z_red_costs = Dict(
         &quot;z_$(u)_$(v)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
@@ -382,7 +431,90 @@ end;</code></pre><p>We re-write our pricing callback to:</p><ul><li>retrieve the
 end
 
 MOI.set(model, MOI.UserCutCallback(), r1c_callback);
-JuMP.optimize!(model)</code></pre><h3 id="Multi-stage-pricing-callback"><a class="docs-heading-anchor" href="#Multi-stage-pricing-callback">Multi-stage pricing callback</a><a id="Multi-stage-pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-stage-pricing-callback" title="Permalink"></a></h3><p>In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate subproblems solutions.</p><p>The idea of the heuristic is very simple:</p><ul><li>Given a facility <code>j</code>, the heuristic finds the closest customer to <code>j</code> and adds it to the route.</li><li>Then, while the reduced cost keeps improving and the maximum length of the route is not reached, the heuristic computes and adds to the route the nearest neighbor to the last customer of the route.</li></ul><p>We first define an auxiliary function used to compute the route tail&#39;s nearest neighbor at each step:</p><pre><code class="language-julia hljs">function add_nearest_neighbor(route::Route, customers, costs)
+JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+Cut separation callback adds 0 new essential cuts and 17 new facultative cuts.
+avg. viol. = 17.35, max. viol. = 21.00, zero viol. = 0.
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 2.48&gt; &lt;mst= 0.03&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-79206.3000&gt; &lt;mlp=  297.7000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 2.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   69.1000&gt; &lt;mlp=  297.7000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 2.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  224.1000&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 2.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  200.7667&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 2.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  232.5000&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 2.50&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  226.6000&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 2.51&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  220.1462&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 2.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  188.1400&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 2.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  227.6222&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 2.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  238.3000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 2.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  214.3636&gt; &lt;mlp=  289.5273&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 2.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.03&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  235.7286&gt; &lt;mlp=  286.5571&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 2.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  220.7143&gt; &lt;mlp=  285.5429&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 2.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  249.7143&gt; &lt;mlp=  285.5429&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 2.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  228.6286&gt; &lt;mlp=  285.5429&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 2.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  214.2833&gt; &lt;mlp=  284.1833&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 2.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  248.9556&gt; &lt;mlp=  283.6667&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 2.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  249.6000&gt; &lt;mlp=  283.6000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 19&gt; &lt;et= 2.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  263.8000&gt; &lt;mlp=  283.6000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 20&gt; &lt;et= 2.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.5727&gt; &lt;mlp=  283.5364&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 21&gt; &lt;et= 2.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.6091&gt; &lt;mlp=  283.5364&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 22&gt; &lt;et= 2.62&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  282.7000&gt; &lt;mlp=  283.4400&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 23&gt; &lt;et= 2.62&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.9600&gt; &lt;mlp=  283.4400&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 24&gt; &lt;et= 2.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  283.3727&gt; &lt;mlp=  283.3727&gt; &lt;PB=289.8000&gt;
+Cut separation callback adds 0 new essential cuts and 16 new facultative cuts.
+avg. viol. = 41.00, max. viol. = 46.00, zero viol. = 0.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 2.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-59558.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 2.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -200.0000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 2.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  165.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 2.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  225.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 2.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  220.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 2.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  187.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 2.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  179.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 2.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  245.0000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 2.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  244.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 2.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  273.6000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 2.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.6000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 2.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  284.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 2.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  287.9500&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 2.81&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  288.0000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 2.81&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.6000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 2.82&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         5.07s /  55.7%            402MiB /  80.5%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    2.82s  100.0%   2.82s    324MiB  100.0%   324MiB
+   SolveLpForm       58   62.7ms    2.2%  1.08ms   8.26MiB    2.6%   146KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 289.79999999999995
+[ Info: Dual bound: 289.7999999999999</code></pre><h3 id="Multi-stage-pricing-callback"><a class="docs-heading-anchor" href="#Multi-stage-pricing-callback">Multi-stage pricing callback</a><a id="Multi-stage-pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-stage-pricing-callback" title="Permalink"></a></h3><p>In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate subproblems solutions.</p><p>The idea of the heuristic is very simple:</p><ul><li>Given a facility <code>j</code>, the heuristic finds the closest customer to <code>j</code> and adds it to the route.</li><li>Then, while the reduced cost keeps improving and the maximum length of the route is not reached, the heuristic computes and adds to the route the nearest neighbor to the last customer of the route.</li></ul><p>We first define an auxiliary function used to compute the route tail&#39;s nearest neighbor at each step:</p><pre><code class="language-julia hljs">function add_nearest_neighbor(route::Route, customers, costs)
     # Get the last customer of the route.
     loc = last(route.path)
     # Initialize its nearest neighbor to zero and mincost to infinity.
@@ -502,25 +634,25 @@ routes_costs = Dict(
     sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])));</code></pre><p>We perform the decomposition over the axis and we optimize the problem.</p><pre><code class="language-julia hljs">@benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
 Version 0.6.5 | https://github.com/atoptima/Coluna.jl
-&lt;it=  1&gt; &lt;et= 3.42&gt; &lt;mst= 0.08&gt; &lt;sp= 0.42&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
-&lt;it=  2&gt; &lt;et= 4.03&gt; &lt;mst= 0.36&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
-&lt;it=  3&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
-&lt;it=  4&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
-&lt;it=  5&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
-&lt;it=  6&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
-&lt;it=  7&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
-&lt;it=  8&gt; &lt;et= 4.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
-&lt;it=  9&gt; &lt;et= 4.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
-&lt;it= 10&gt; &lt;et= 4.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
+&lt;it=  1&gt; &lt;et= 4.51&gt; &lt;mst= 0.11&gt; &lt;sp= 0.57&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
+&lt;it=  2&gt; &lt;et= 5.38&gt; &lt;mst= 0.53&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
+&lt;it=  3&gt; &lt;et= 5.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
+&lt;it=  4&gt; &lt;et= 5.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
+&lt;it=  5&gt; &lt;et= 5.38&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
+&lt;it=  6&gt; &lt;et= 5.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
+&lt;it=  7&gt; &lt;et= 5.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
+&lt;it=  8&gt; &lt;et= 5.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
+&lt;it=  9&gt; &lt;et= 5.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
+&lt;it= 10&gt; &lt;et= 5.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         94.9s /  30.4%           5.64GiB /  36.2%
+    Tot / % measured:         14.9s /  41.4%            561MiB /  33.2%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               5    28.8s  100.0%   5.76s   2.04GiB  100.0%   419MiB
-   SolveLpForm      143    2.06s    7.2%  14.4ms   95.2MiB    4.5%   681KiB
+ Coluna               2    6.18s  100.0%   3.09s    186MiB  100.0%  93.1MiB
+   SolveLpForm       42    1.22s   19.8%  29.1ms   45.0MiB   24.2%  1.07MiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -586,4 +718,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Wednesday 23 August 2023 07:08">Wednesday 23 August 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Wednesday 23 August 2023 08:07">Wednesday 23 August 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

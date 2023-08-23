@@ -1,4 +1,5 @@
 ## dot -Tpdf thisfile > thisfile.pdf 
 
 digraph Branching_Tree {
-	edge[fontname = "Courier", fontsize = 10];}
+	edge[fontname = "Courier", fontsize = 10];
+	n1 [label= "N_1 (2 s) \n[440.3950 , Inf]"];}
