@@ -200,3 +200,59 @@ function projection_from_dw_reform_to_master_1()
     @test Coluna.MathProg.proj_cols_is_integer(solution) == false
 end
 register!(unit_tests, "projection", projection_from_dw_reform_to_master_1)
+
+
+function projection_from_dw_reform_to_master_2()
+    env, master, sps, reform = identical_subproblems_vrp()
+    mastervarids = Dict(CL.getname(master, var) => varid for (varid, var) in CL.getvars(master))
+
+    # Register column in the pool
+    spform = first(sps)
+    pool = ClMP.get_primal_sol_pool(spform)
+
+    var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
+ 
+    # VarId[Variableu2, Variableu1, Variableu3, Variableu4, Variableu5, Variableu6]
+    for (name, vals) in Iterators.zip(
+            ["MC1", "MC2"],
+            [
+                [0.9999999, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.9999999],
+            ]
+    )
+        col_id = ClMP.VarId(mastervarids[name]; duty = DwSpPrimalSol)
+        ClMP.push_in_pool!(pool, ClMP.PrimalSolution(spform, var_ids, vals, 1.0, ClMP.FEASIBLE_SOL), col_id, 1.0)
+    end
+
+    # Create primal solution where each route is used 1/2 time.
+    # This solution is integer feasible.
+    solution = Coluna.MathProg.PrimalSolution(
+        master,
+        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid = 4), ["MC1", "MC2"]),
+        [1.0, 1.0],
+        2.0,
+        ClB.FEASIBLE_SOL
+    )
+
+    # Test integration
+    columns, values = Coluna.MathProg._extract_data_for_mapping(solution)
+    rolls = Coluna.MathProg._mapping_by_subproblem(columns, values)
+
+    # Expected:
+    # | 1 of  [0.9999999, 0.0, 0.0, 0.0, 0.0, 0.0]
+    # | 1 of  [0.0, 0.0, 0.0, 0.0, 0.0, 0.9999999]
+
+    @show rolls
+
+    @test rolls == Dict( 4 => [
+        Dict(mastervarids["x_34"] => 0.9999999),
+        Dict(mastervarids["x_12"] => 0.9999999)
+    ])
+
+    proj = Coluna.MathProg.proj_cols_on_rep(solution)
+    @test proj[mastervarids["x_12"]] == 0.9999999
+    @test proj[mastervarids["x_34"]] == 0.9999999
+
+    @test Coluna.MathProg.proj_cols_is_integer(solution) == true 
+end
+register!(unit_tests, "projection", projection_from_dw_reform_to_master_2; f=true)

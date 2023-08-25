@@ -37,11 +37,11 @@ end
 
 _new_set_of_rolls(::Type{Vector{E}}) where {E} = Vector{Float64}[]
 _new_roll(::Type{Vector{E}}, col_len) where {E} = zeros(Float64, col_len)
-_roll_is_integer(roll::Vector{Float64}) = all(isinteger.(roll))
+_roll_is_integer(roll::Vector{Float64}) = all(map(r -> abs(r - round(r)) <= Coluna.DEF_OPTIMALITY_ATOL, roll))
 
 _new_set_of_rolls(::Type{DynamicMatrixColView{VarId, VarId, Float64}}) = Dict{VarId, Float64}[]
 _new_roll(::Type{DynamicMatrixColView{VarId, VarId, Float64}}, _) = Dict{VarId, Float64}()
-_roll_is_integer(roll::Dict{VarId, Float64}) = all(isinteger.(values(roll)))
+_roll_is_integer(roll::Dict{VarId, Float64}) = all(map(r -> abs(r - round(r)) <= Coluna.DEF_OPTIMALITY_ATOL, values(roll)))
 
 function _mapping(columns::Vector{A}, values::Vector{B}; col_len::Int = 10) where {A,B}
     p = sortperm(columns, rev=true)
