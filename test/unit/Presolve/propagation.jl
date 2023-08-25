@@ -26,54 +26,6 @@
 # - DwSpPureConstr
 
 ############################################################################################
-# Variable removing propagation.
-############################################################################################
-
-## MasterRepPricingVar -> OriginalVar (mapping exists)
-## MasterPureVar -> OriginalVar (mapping exists)
-## otherwise no propagation
-function test_var_removing_propagation_from_master_to_original()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from_master_to_original; f = true)
-
-## MasterRepPricingVar -> DwSpPricingVar (mapping exists)
-## otherwise no propagation
-function test_var_removing_propagation_from_master_to_subproblem()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from_master_to_subproblem; f = true)
-
-## OriginalVar -> DwSpPricingVar (mapping exists)
-## otherwise no propagation
-function test_var_removing_propagation_from_original_to_subproblem()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from_original_to_subproblem; f = true)
-
-## OriginalVar -> MasterRepPricingVar (mapping exists)
-## OriginalVar -> MasterPureVar (mapping exists)
-## otherwise no propagation
-function test_var_removing_propagation_from_original_to_master()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from_original_to_master; f = true)
-
-## DwSpPricingVar -> MasterRepPricingVar (mapping exists)
-## otherwise no propagation
-function test_var_removing_propagation_from_subproblem_to_master()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from_subproblem_to_master; f = true)
-
-## DwSpPricingVar -> OriginalVar (mapping exists)
-## otherwise no propagation
-function test_var_removing_propagation_from_subproblem_to_original()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from_subproblem_to_original; f = true)
-
-############################################################################################
 # Constraint removing propagation.
 ############################################################################################
 
@@ -81,7 +33,7 @@ register!(unit_tests, "presolve_propagation", test_var_removing_propagation_from
 ## MasterMixedConstr -> OriginalConstr (mapping exists)
 ## otherwise no propagation
 function test_constr_removing_propagation_from_master_to_original()
-
+    
 end
 register!(unit_tests, "presolve_propagation", test_constr_removing_propagation_from_master_to_original; f = true)
 

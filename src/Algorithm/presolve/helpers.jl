@@ -93,7 +93,7 @@ function rows_to_deactivate!(form::PresolveFormRepr)
         sense = form.sense[row]
         rhs = form.rhs[row]
         if _infeasible_row(sense, min_slacks[row], max_slacks[row], 1e-6)
-            error("Infeasible.")
+            error("Infeasible row $row.")
         end
         if _unbounded_row(sense, rhs) || _row_bounded_by_var_bounds(sense, min_slacks[row], max_slacks[row], 1e-6)
             push!(rows_to_deactivate, row)
@@ -103,19 +103,19 @@ function rows_to_deactivate!(form::PresolveFormRepr)
 end
 
 function bounds_tightening(form::PresolveFormRepr)
-    length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
+    #length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
 
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
     min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
     max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
 
-    for col in 1:form.nb_cols
+    for col in 1:form.nb_vars
         var_lb = form.lbs[col]
         var_ub = form.ubs[col]
         tighter_lb = false
         tighter_ub = false
-        for row in 1:form.nb_rows
+        for row in 1:form.nb_constrs
             min_slack = min_slacks[row]
             max_slack = max_slacks[row]
             var_coef_in_row = form.coef_matrix[row, col]
