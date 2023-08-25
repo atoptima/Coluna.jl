@@ -96,8 +96,8 @@ include("benders.jl")
 
 # Presolve
 include("presolve/helpers.jl")
-include("presolve/propagation.jl")
 include("presolve/interface.jl")
+include("presolve/propagation.jl")
 
 # Conquer
 include("conquer.jl")

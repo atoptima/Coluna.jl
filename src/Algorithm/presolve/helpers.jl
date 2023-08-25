@@ -111,17 +111,20 @@ function bounds_tightening(form::PresolveFormRepr)
     max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
 
     for col in 1:form.nb_vars
+        println("--- $col ----")
         var_lb = form.lbs[col]
         var_ub = form.ubs[col]
         tighter_lb = false
         tighter_ub = false
         for row in 1:form.nb_constrs
+            println("---- $row ----")
             min_slack = min_slacks[row]
             max_slack = max_slacks[row]
             var_coef_in_row = form.coef_matrix[row, col]
             sense = form.sense[row]
     
             var_lb_from_row = _var_lb_from_row(sense, min_slack, max_slack, var_coef_in_row, var_lb, var_ub)
+            @show var_lb_from_row
             if var_lb_from_row > var_lb
                 var_lb = var_lb_from_row
                 tighter_lb = true
