@@ -4,7 +4,7 @@
 # original formulation. Same in the subproblems.
 # Master and subproblems do not share any constraints.
 function propagation_of_constraint_deactivation!(reform::DwPresolveReform)
-    # Original -> Master
+    # Original -> Representatives Master
 
     # Original -> Subproblem
 
@@ -22,26 +22,26 @@ end
 # - from the subproblems to the master when we perform variable bounds
 # tightening on subproblem variables.
 function propagation_of_var_bounds!(reform::DwPresolveReform)
-    # Original -> Master
-    
+    # Original -> Representatives Master
+
     # Original -> Subproblem
 
-    # Master -> Subproblem
+    # Master -> Representatives Master -> Subproblem
 
-    # Subproblem -> Master
+    # Subproblem -> Representatives Master -> Master (TODO later)
 
     return
 end
 
 # Variable fixing propagates the same way as variable bounds.
 function propagation_of_var_fixing!(reform::DwPresolveReform)
-    # Original -> Master
+    # Original -> Representatives Master
 
     # Original -> Subproblem
 
-    # Master -> Subproblem
+    # Master -> Representatives Master -> Subproblem
 
-    # Subproblem -> Master
+    # Subproblem -> Representatives Master -> Master (TODO later)
     
     return
 end

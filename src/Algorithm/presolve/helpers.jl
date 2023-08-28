@@ -116,12 +116,12 @@ function bounds_tightening(form::PresolveFormRepr)
 
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    for col in 1:form.nb_cols
+    for col in 1:form.nb_vars
         var_lb = form.lbs[col]
         var_ub = form.ubs[col]
         tighter_lb = false
         tighter_ub = false
-        for row in 1:form.nb_rows
+        for row in 1:form.nb_constrs
             min_slack = row_min_slack(form, row, i -> i == col)
             max_slack = row_max_slack(form, row, i -> i == col)
             var_coef_in_row = form.col_major_coef_matrix[row, col]
