@@ -255,4 +255,4 @@ function projection_from_dw_reform_to_master_2()
 
     @test Coluna.MathProg.proj_cols_is_integer(solution) == true 
 end
-register!(unit_tests, "projection", projection_from_dw_reform_to_master_2; f=true)
+register!(unit_tests, "projection", projection_from_dw_reform_to_master_2)
