@@ -287,7 +287,7 @@ function build_dw_presolve_reformulation()
     ]
 
     for (c, v, val) in restricted_coef_matrix
-        @test presolve_restricted_master.form.coef_matrix[c, v] == val
+        @test presolve_restricted_master.form.col_major_coef_matrix[c, v] == val
     end
 
     dw_sp = ClMP.get_dw_pricing_sps(reform)[5]
@@ -326,13 +326,13 @@ function build_dw_presolve_reformulation()
     end
 
     # Test coefficient matrix
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_11"]] == 2.0
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_12"]] == 3.0
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_13"]] == 3.0
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_14"]] == 1.0
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_15"]] == 2.0
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_16"]] == 1.0
-    @test presolve_dw_sp.form.coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_11"]] == 2.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_12"]] == 3.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_13"]] == 3.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_14"]] == 1.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_15"]] == 2.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_16"]] == 1.0
+    @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
 end
 register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation)
 

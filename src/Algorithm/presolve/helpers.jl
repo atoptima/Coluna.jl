@@ -4,7 +4,8 @@ Temporary data structure where we store a representation of the formulation that
 struct PresolveFormRepr
     nb_vars::Int
     nb_constrs::Int
-    coef_matrix::SparseMatrixCSC{Float64,Int64}
+    col_major_coef_matrix::SparseMatrixCSC{Float64,Int64} # col major
+    row_major_coef_matrix::SparseMatrixCSC{Float64,Int64} # row major
     rhs::Vector{Float64} # on constraints
     sense::Vector{ConstrSense} # on constraints
     lbs::Vector{Float64} # on variables
@@ -17,11 +18,11 @@ function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
     nb_vars = length(lbs)
     nb_constrs = length(rhs)
     return PresolveFormRepr(
-        nb_vars, nb_constrs, coef_matrix, rhs, sense, lbs, ubs
+        nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs
     )
 end
 
-function _act_contrib((a, l, u))
+function _act_contrib(a, l, u)
     if a > 0
         return l*a
     elseif a < 0
@@ -30,27 +31,35 @@ function _act_contrib((a, l, u))
     return 0.0
 end
 
-# Expensive operation because the sparse matrix is col major and this operation is row major.
-function row_min_activity(form::PresolveFormRepr, row::Int)
-    return mapreduce(_act_contrib, +, Iterators.zip(
-        form.coef_matrix[row,:], form.lbs, form.ubs
-    ), init = 0.0)
+function row_min_activity(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
+    activity = 0.0
+    var_coefs_lbs_ubs = zip(form.row_major_coef_matrix[:, row], form.lbs, form.ubs)
+    for (i, (a, l, u)) in enumerate(var_coefs_lbs_ubs)
+        if !except_col(i)
+            activity += _act_contrib(a, l, u)
+        end
+    end
+    return activity
 end
 
-# Expensive operation because the sparse matrix is col major and this operation is row major.
-function row_max_activity(form::PresolveFormRepr, row::Int)
-    return mapreduce(_act_contrib, +, Iterators.zip(
-        form.coef_matrix[row,:], form.ubs, form.lbs
-    ), init = 0.0)
+function row_max_activity(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
+    activity = 0.0
+    var_coefs_lbs_ubs = zip(form.row_major_coef_matrix[:, row], form.lbs, form.ubs)
+    for (i, (a, l, u)) in enumerate(var_coefs_lbs_ubs)
+        if !except_col(i)
+            activity += _act_contrib(a, u, l)
+        end
+    end
+    return activity
 end
 
-function row_max_slack(form::PresolveFormRepr, row::Int)
-    min_act = row_min_activity(form, row)
+function row_max_slack(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
+    min_act = row_min_activity(form, row, except_col)
     return form.rhs[row] - min_act
 end
 
-function row_min_slack(form::PresolveFormRepr, row::Int)
-    max_act = row_max_activity(form, row)
+function row_min_slack(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
+    max_act = row_max_activity(form, row, except_col)
     return form.rhs[row] - max_act
 end
 
@@ -69,16 +78,16 @@ function _infeasible_row(sense::ConstrSense, min_slack::Real, max_slack::Real, Ï
            (sense == Less || sense == Equal) && max_slack < -Ïµ
 end
 
-function _var_lb_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real, var_lb::Real, var_ub::Real)
+function _var_lb_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real)
     if sense == Equal || sense == Greater && var_coef_in_row > 0 || sense == Less && var_coef_in_row < 0
-        return (min_slack + _act_contrib((var_coef_in_row, var_ub, var_lb))) / var_coef_in_row
+        return min_slack / var_coef_in_row
     end
     return -Inf
 end
 
-function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real, var_lb::Real, var_ub::Real)
+function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real)
     if sense == Equal || sense == Less && var_coef_in_row > 0 || sense == Greater && var_coef_in_row < 0
-        return (max_slack + _act_contrib((var_coef_in_row, var_lb, var_ub))) / var_coef_in_row
+        return max_slack / var_coef_in_row
     end
     return Inf
 end
@@ -86,8 +95,8 @@ end
 function rows_to_deactivate!(form::PresolveFormRepr)
     # Compute slacks of each constraints
     rows_to_deactivate = Int[]
-    min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
-    max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
+    min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs]
+    max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs]
 
     for row in 1:form.nb_constrs
         sense = form.sense[row]
@@ -107,30 +116,24 @@ function bounds_tightening(form::PresolveFormRepr)
 
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
-    max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs] # Expensive!
-
-    for col in 1:form.nb_vars
-        println("--- $col ----")
+    for col in 1:form.nb_cols
         var_lb = form.lbs[col]
         var_ub = form.ubs[col]
         tighter_lb = false
         tighter_ub = false
-        for row in 1:form.nb_constrs
-            println("---- $row ----")
-            min_slack = min_slacks[row]
-            max_slack = max_slacks[row]
-            var_coef_in_row = form.coef_matrix[row, col]
+        for row in 1:form.nb_rows
+            min_slack = row_min_slack(form, row, i -> i == col)
+            max_slack = row_max_slack(form, row, i -> i == col)
+            var_coef_in_row = form.col_major_coef_matrix[row, col]
             sense = form.sense[row]
-    
-            var_lb_from_row = _var_lb_from_row(sense, min_slack, max_slack, var_coef_in_row, var_lb, var_ub)
-            @show var_lb_from_row
+
+            var_lb_from_row = _var_lb_from_row(sense, min_slack, max_slack, var_coef_in_row)
             if var_lb_from_row > var_lb
                 var_lb = var_lb_from_row
                 tighter_lb = true
             end
 
-            var_ub_from_row = _var_ub_from_row(sense, min_slack, max_slack, var_coef_in_row, var_lb, var_ub)
+            var_ub_from_row = _var_ub_from_row(sense, min_slack, max_slack, var_coef_in_row)
             if var_ub_from_row < var_ub
                 var_ub = var_ub_from_row
                 tighter_ub = true
@@ -178,7 +181,7 @@ function PresolveFormRepr(
 )
     nb_cols = form.nb_vars
     nb_rows = form.nb_constrs
-    coef_matrix = form.coef_matrix
+    coef_matrix = form.col_major_coef_matrix
     rhs = form.rhs
     sense = form.sense
     lbs = form.lbs

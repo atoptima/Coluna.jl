@@ -90,7 +90,7 @@ end
 
 function Base.isinteger(sol::PrimalSolution)
     for (vc_id, val) in sol
-        if getperenkind(getmodel(sol), vc_id) !== Continuous && abs(round(val) - val) > 1e-5
+        if getperenkind(getmodel(sol), vc_id) !== Continuous && abs(round(val) - val) > Coluna.DEF_OPTIMALITY_ATOL
             return false
         end
     end
