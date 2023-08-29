@@ -39,6 +39,27 @@ coluna = optimizer_with_attributes(
 );
 ```
 
+If you get a Gurobi error 10002, you should wrap the Gurobi environment as a reference to initialize it during runtime instead of compile time ([reference](https://github.com/jump-dev/Gurobi.jl/issues/424)).
+
+```julia
+const GRB_ENV_REF = Ref{Gurobi.Env}()
+
+function __init__()
+    GRB_ENV_REF[] = Gurobi.Env()
+    return nothing
+end
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    "params" => Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm() # default branch-cut-and-price
+    ),
+    "default_optimizer" => () -> Gurobi.Optimizer(GRB_ENV_REF[])
+);
+```
+
+
+
 #### How to disable all outputs from Gurobi?
 
 You can refer to the following [article](https://support.gurobi.com/hc/en-us/articles/360044784552-How-do-I-suppress-all-console-output-from-Gurobi-) from Gurobi's knowledge base.
