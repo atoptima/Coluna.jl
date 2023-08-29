@@ -444,4 +444,4 @@ function build_dw_presolve_reformulation_2()
     # println("\e[41m ********** \e[00m")
     # Coluna.Algorithm.treat!(Coluna.Algorithm.PresolveAlgorithm(), reform)
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_2; f = true)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_2; x = true)
