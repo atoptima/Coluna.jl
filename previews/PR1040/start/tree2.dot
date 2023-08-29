@@ -1,0 +1,8 @@
+## dot -Tpdf thisfile > thisfile.pdf 
+
+digraph Branching_Tree {
+	edge[fontname = "Courier", fontsize = 10];
+	n1 [label= "N_1 (2 s) \n[440.3950 , Inf]"];
+	n3 [label= "N_3 (2 s) \n[PRUNED , Inf]"];
+	n1 -> n3 [label= "x[3,1]<=0.0"];
+}

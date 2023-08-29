@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Column Generation and Benders on Location Routing · Coluna.jl</title><meta name="title" content="Column Generation and Benders on Location Routing · Coluna.jl"/><meta property="og:title" content="Column Generation and Benders on Location Routing · Coluna.jl"/><meta property="twitter:title" content="Column Generation and Benders on Location Routing · Coluna.jl"/><meta name="description" content="Documentation for Coluna.jl."/><meta property="og:description" content="Documentation for Coluna.jl."/><meta property="twitter:description" content="Documentation for Coluna.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Tutorials</span><ul><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox"/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li><a class="tocitem" href="../cuts/">Cut Generation</a></li><li><a class="tocitem" href="../pricing/">Pricing callback</a></li><li><a class="tocitem" href="../identical_sp/">Identical subproblems</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li><a class="tocitem" href="../initial_columns/">Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox" checked/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li class="is-active"><a class="tocitem" href>Column Generation and Benders on Location Routing</a><ul class="internal"><li><a class="tocitem" href="#Direct-model"><span>Direct model</span></a></li><li><a class="tocitem" href="#Dantzig-Wolfe-decomposition-and-Branch-and-Price"><span>Dantzig-Wolfe decomposition and Branch-and-Price</span></a></li><li><a class="tocitem" href="#Benders-decomposition"><span>Benders decomposition</span></a></li><li><a class="tocitem" href="#Example-of-comparison-of-the-dual-bounds"><span>Example of comparison of the dual bounds</span></a></li></ul></li><li><a class="tocitem" href="../other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><span class="tocitem">Manual</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/algos/">Algorithms</a></li><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Advanced tutorials</a></li><li class="is-active"><a href>Column Generation and Benders on Location Routing</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Column Generation and Benders on Location Routing</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/advanced_demo.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Advanced-tutorial-Location-Routing"><a class="docs-heading-anchor" href="#Advanced-tutorial-Location-Routing">Advanced tutorial - Location Routing</a><a id="Advanced-tutorial-Location-Routing-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-tutorial-Location-Routing" title="Permalink"></a></h1><p>We demonstrate the main features of Coluna on a variant of the Location Routing problem. In the Location Routing Problem, we are given a set of facilities and a set of customers. Each customer must be delivered by a route starting from one facility. Each facility has a setup cost, while the cost of a route is the distance traveled.</p><p>A route is defined as a vector of locations that satisfies the following rules:</p><ul><li>it must start from an open facility location</li><li>it can finish at any customer (open route variant)</li><li>its length is limited (the maximum number of visited locations is equal to a constant <code>nb_positions</code>)</li></ul><p>Our objective is to minimize the sum of fixed costs for opening facilities and the total traveled distance while ensuring that each customer is covered by a route.</p><p>In this tutorial, we will show you how to solve this problem by applying:</p><ul><li>a direct approach with JuMP and a MILP solver (without Coluna)</li><li>a branch-and-price algorithm provided by Coluna, which uses a custom pricing callback to optimize pricing subproblems</li><li>a robust branch-cut-and-price algorithm, which separates valid inequalities on the original arc variables (so-called &quot;robust&quot; cuts)</li><li>a non-robust branch-cut-and-price algorithm, which separates valid inequalities on the route variables of the Dantzig-Wolfe reformulation (so-called &quot;non-robust&quot; cuts)</li><li>a multi-stage column generation algorithm using two different pricing solvers</li><li>a classic Benders decomposition approach, which uses the LP relaxation of the subproblem</li></ul><p>For illustration purposes, we use a small instance with 2 facilities and 7 customers. The maximum length of a route is fixed to 4. We also provide a larger instance in the last section of the tutorial.</p><pre><code class="language-julia hljs">nb_positions = 4
+facilities_fixed_costs = [120, 150]
+facilities = [1, 2]
+customers = [3, 4, 5, 6, 7, 8, 9]
+arc_costs =
+    [
+        0.0 25.3 25.4 25.4 35.4 37.4 31.9 24.6 34.2;
+        25.3 0.0 21.2 16.2 27.1 26.8 17.8 16.7 23.2;
+        25.4 21.2 0.0 14.2 23.4 23.8 18.3 17.0 21.6;
+        25.4 16.2 14.2 0.0 28.6 28.8 22.6 15.6 29.5;
+        35.4 27.1 23.4 28.6 0.0 42.1 30.4 24.9 39.1;
+        37.4 26.8 23.8 28.8 42.1 0.0 32.4 29.5 38.2;
+        31.9 17.8 18.3 22.6 30.4 32.4 0.0 22.5 30.7;
+        24.6 16.7 17.0 15.6 24.9 29.5 22.5 0.0 21.4;
+        34.2 23.2 21.6 29.5 39.1 38.2 30.7 21.4 0.0;
+    ]
+locations = vcat(facilities, customers)
+nb_customers = length(customers)
+nb_facilities = length(facilities)
+positions = 1:nb_positions;</code></pre><p>In this tutorial, we will use the following packages:</p><pre><code class="language-julia hljs">using JuMP, HiGHS, GLPK, BlockDecomposition, Coluna;</code></pre><p>We want to set an upper bound <code>nb_routes_per_facility</code> on the number of routes starting from a facility. This limit is computed as follows:</p><pre><code class="language-julia hljs"># We compute the minimum number of routes needed to visit all customers:
+nb_routes = Int(ceil(nb_customers / nb_positions))
+# We define the upper bound `nb_routes_per_facility`:
+nb_routes_per_facility = min(Int(ceil(nb_routes / nb_facilities)) * 2, nb_routes)
+routes_per_facility = 1:nb_routes_per_facility;</code></pre><h2 id="Direct-model"><a class="docs-heading-anchor" href="#Direct-model">Direct model</a><a id="Direct-model-1"></a><a class="docs-heading-anchor-permalink" href="#Direct-model" title="Permalink"></a></h2><p>First, we solve the problem by a direct approach, using the HiGHS solver. We start by creating a JuMP model:</p><pre><code class="language-julia hljs">model = JuMP.Model(HiGHS.Optimizer);</code></pre><p>We declare 3 types of binary variables:</p><pre><code class="language-julia hljs"># y[j] equals 1 if facility j is open; 0 otherwise.
+@variable(model, y[j in facilities], Bin)
+
+# z[u,v] equals 1 if a vehicle travels from u to v; 0 otherwise
+@variable(model, z[u in locations, v in locations], Bin)
+
+# x[i,j,k,p] equals 1 if customer i is delivered from facility j at position p of route k; 0 otherwise
+@variable(model, x[i in customers, j in facilities, k in routes_per_facility, p in positions], Bin);</code></pre><p>We define the constraints:</p><pre><code class="language-julia hljs"># each customer is visited once
+@constraint(model, cov[i in customers],
+    sum(x[i, j, k, p] for j in facilities, k in routes_per_facility, p in positions) == 1)
+
+# a facility is open if there is a route starting from it
+@constraint(model, setup[j in facilities, k in routes_per_facility],
+    sum(x[i, j, k, 1] for i in customers) &lt;= y[j])
+
+# flow conservation
+@constraint(model, flow_conservation[j in facilities, k in routes_per_facility, p in positions; p &gt; 1],
+    sum(x[i, j, k, p] for i in customers) &lt;= sum(x[i, j, k, p-1] for i in customers))
+
+# there is an arc between two customers whose demand is satisfied by the same route at consecutive positions
+@constraint(model, route_arc[i in customers, l in customers, j in facilities, k in routes_per_facility, p in positions; p &gt; 1 &amp;&amp; i != l],
+    z[i, l] &gt;= x[l, j, k, p] + x[i, j, k, p-1] - 1)
+
+# there is an arc between facility `j` and the first customer visited by route `k` from facility `j`
+@constraint(model, start_arc[i in customers, j in facilities, k in routes_per_facility],
+    z[j, i] &gt;= x[i, j, k, 1]);</code></pre><p>We set the objective function:</p><pre><code class="language-julia hljs">@objective(model, Min,
+    sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations)
+    +
+    sum(facilities_fixed_costs[j] * y[j] for j in facilities));</code></pre><p>and we optimize the model:</p><pre><code class="language-julia hljs">optimize!(model)
+objective_value(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">289.8</code></pre><p>We find an optimal solution involving two routes starting from facility 1:</p><ul><li><code>1</code> -&gt; <code>8</code> -&gt; <code>9</code> -&gt; <code>3</code> -&gt; <code>6</code></li><li><code>1</code> -&gt; <code>4</code> -&gt; <code>5</code> -&gt; <code>7</code></li></ul><h2 id="Dantzig-Wolfe-decomposition-and-Branch-and-Price"><a class="docs-heading-anchor" href="#Dantzig-Wolfe-decomposition-and-Branch-and-Price">Dantzig-Wolfe decomposition and Branch-and-Price</a><a id="Dantzig-Wolfe-decomposition-and-Branch-and-Price-1"></a><a class="docs-heading-anchor-permalink" href="#Dantzig-Wolfe-decomposition-and-Branch-and-Price" title="Permalink"></a></h2><p>One can solve the problem by exploiting its structure with a Dantzig-Wolfe decomposition approach. The subproblem induced by such decomposition amounts to generate routes starting from each facility. A possible decomposition is to consider a subproblem associated with each vehicle, generating the vehicle route. However, for a given facility, the vehicles that are identical will give rise to the same subproblem and route solutions. So instead of this decomposition with several identical subproblems for each facility, we define below a single subproblem per facility. For each subproblem, we define its multiplicity, i.e. we bound the number of solutions of this subproblem that can be used in a master solution.</p><p>The following method creates the model according to the decomposition described:</p><pre><code class="language-julia hljs">function create_model(optimizer, pricing_algorithms)
+    # A user should resort to axes to communicate to Coluna how to decompose a formulation.
+    # For our problem, we declare an axis over the facilities, thus `facilities_axis` contain subproblem indices.
+    # We must use `facilities_axis` instead of `facilities` in the declaration of the
+    # variables and constraints that belong to pricing subproblems.
+    @axis(facilities_axis, collect(facilities))
+
+    # We declare a `BlockModel` instead of `Model`.
+    model = BlockModel(optimizer)
+
+    # `y[j]` is a master variable equal to 1 if the facility j is open; 0 otherwise
+    @variable(model, y[j in facilities], Bin)
+
+    # `x[i,j]` is a subproblem variable equal to 1 if customer i is delivered from facility j; 0 otherwise.
+    @variable(model, x[i in customers, j in facilities_axis], Bin)
+    # `z[u,v]` is assimilated to a subproblem variable equal to 1 if a vehicle travels from u to v; 0 otherwise.
+    # we don&#39;t use the `facilities_axis` axis here because the `z` variables are defined as
+    # representatives of the subproblem variables later in the model.
+    @variable(model, z[u in locations, v in locations], Bin)
+
+    # `cov` constraints are master constraints ensuring that each customer is visited once.
+    @constraint(model, cov[i in customers],
+        sum(x[i, j] for j in facilities) &gt;= 1)
+
+    # `open_facilities` are master constraints ensuring that the depot is open if one vehicle
+    # leaves it.
+    @constraint(model, open_facility[j in facilities],
+        sum(z[j, i] for i in customers) &lt;= y[j] * nb_routes_per_facility)
+
+    # We don&#39;t need to describe the subproblem constraints because we use a pricing callback.
+
+    # We set the objective function:
+    @objective(model, Min,
+        sum(arc_costs[u, v] * z[u, v] for u in locations, v in locations) +
+        sum(facilities_fixed_costs[j] * y[j] for j in facilities)
+    )
+
+    # We perform decomposition over the facilities.
+    @dantzig_wolfe_decomposition(model, dec, facilities_axis)
+
+    # Subproblems generate routes starting from each facility.
+    # The number of routes from each facility is at most `nb_routes_per_facility`.
+    subproblems = BlockDecomposition.getsubproblems(dec)
+    specify!.(subproblems, lower_multiplicity=0, upper_multiplicity=nb_routes_per_facility, solver=pricing_algorithms)
+
+    # We define `z` as a subproblem variable common to all subproblems.
+    # Each implicit variable `z` replaces a sum of explicit `z&#39;` variables: `z[u,v] = sum(z&#39;[j,u,v] for j in facilities_axis)`
+    # This way the model is simplified, and column generation is accelerated as the reduced cost for pair `z[u,v]` is calculated only once
+    # instead of performing the same reduced cost calculation for variables `z&#39;[j,u,v]`, `j in facilities_axis`.
+    subproblemrepresentative.(z, Ref(subproblems))
+
+    return model, x, y, z, cov
+end;</code></pre><p>Contrary to the direct model, we do not add constraints to ensure the feasibility of the routes because we solve our subproblems in a pricing callback. The user who implements the pricing callback has the responsibility to create only feasible routes.</p><p>We setup Coluna:</p><pre><code class="language-julia hljs">coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver=Coluna.Algorithm.TreeSearchAlgorithm( ## default branch-and-bound of Coluna
+            maxnumnodes=100,
+            conqueralg=Coluna.ColCutGenConquer() ## default column and cut generation of Coluna
+        ) ## default branch-cut-and-price
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
+);</code></pre><h3 id="Pricing-callback"><a class="docs-heading-anchor" href="#Pricing-callback">Pricing callback</a><a id="Pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Pricing-callback" title="Permalink"></a></h3><p>If the user declares all the necessary subproblem constraints and possibly additional subproblem variables to describe the set of feasible subproblem solutions, Coluna may perform automatic Dantzig-Wolfe decomposition in which the pricing subproblems are solved by applying a (default) MIP solver. In our case, applying a MIP solver is not the most efficient way to solve the pricing problem. Therefore, we implement an ad-hoc algorithm for solving the pricing subproblems and declare it as a pricing callback. In our pricing callback for a given facility, we inspect all feasible routes enumerated before calling the branch-cut-and-price algorithm. The inspection algorithm calculates the reduced cost for each enumerated route and returns a route with the minimum reduced cost.</p><p>We first define a structure to store the routes:</p><pre><code class="language-julia hljs">mutable struct Route
+    length::Int # record the length of the route (number of visited customers + 1)
+    path::Vector{Int} # record the sequence of visited customers
+end;</code></pre><p>We can reduce the number of enumerated routes by exploiting the following property. Consider two routes starting from the same facility and visiting the same subset of locations (customers). These two routes correspond to columns with the same vector of coefficients in master constraints. A solution containing the route with a larger traveled distance (i.e., larger route original cost) is dominated: this dominated route can be replaced by the other route without increasing the total solution cost. Therefore, for each subset of locations of a size not exceeding the maximum one, the enumeration procedure keeps only one route visiting this subset, the one with the smallest cost.</p><p>A method that computes the cost of a route:</p><pre><code class="language-julia hljs">function route_original_cost(arc_costs, route::Route)
+    route_cost = 0.0
+    path = route.path
+    path_length = route.length
+    for i in 1:(path_length-1)
+        route_cost += arc_costs[path[i], path[i+1]]
+    end
+    return route_cost
+end;</code></pre><p>This procedure finds a least-cost sequence of visiting the given set of customers starting from a given facility.</p><pre><code class="language-julia hljs">function best_visit_sequence(arc_costs, cust_subset, facility_id)
+    # generate all the possible visit orders
+    set_size = size(cust_subset)[1]
+    all_paths = collect(multiset_permutations(cust_subset, set_size))
+    all_routes = Vector{Route}()
+    for path in all_paths
+        # add the first index i.e. the facility id
+        enpath = vcat([facility_id], path)
+        # length of the route = 1 + number of visited customers
+        route = Route(set_size + 1, enpath)
+        push!(all_routes, route)
+    end
+    # compute each route original cost
+    routes_costs = map(r -&gt;
+            (r, route_original_cost(arc_costs, r)), all_routes)
+    # keep only the best visit sequence
+    tmp = argmin([c for (_, c) in routes_costs])
+    (best_order, _) = routes_costs[tmp]
+    return best_order
+end;</code></pre><p>We are now able to compute a dominating route for all the possible customers&#39; subsets, given a facility id:</p><pre><code class="language-julia hljs">using Combinatorics
+
+function best_route_forall_cust_subsets(arc_costs, customers, facility_id, max_size)
+    best_routes = Vector{Route}()
+    all_subsets = Vector{Vector{Int}}()
+    for subset_size in 1:max_size
+        subsets = collect(combinations(customers, subset_size))
+        for s in subsets
+            push!(all_subsets, s)
+        end
+    end
+    for s in all_subsets
+        route_s = best_visit_sequence(arc_costs, s, facility_id)
+        push!(best_routes, route_s)
+    end
+    return best_routes
+end;</code></pre><p>We store all the information given by the enumeration phase in a dictionary. For each facility id, we match a vector of routes that are the best visiting sequences for each possible subset of customers.</p><pre><code class="language-julia hljs">routes_per_facility = Dict(
+    j =&gt; best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
+)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Dict{Int64, Vector{Main.Route}} with 2 entries:
+  2 =&gt; [Route(2, [2, 3]), Route(2, [2, 4]), Route(2, [2, 5]), Route(2, [2, 6]),…
+  1 =&gt; [Route(2, [1, 3]), Route(2, [1, 4]), Route(2, [1, 5]), Route(2, [1, 6]),…</code></pre><p>Our pricing callback must compute the reduced cost of each route, given the reduced cost of the subproblem variables <code>x</code> and <code>z</code>. Remember that subproblem variables <code>z</code> are implicitly defined by master representative variables <code>z</code>. We remark that <code>z</code> variables participate only in the objective function. Thus their reduced costs are initially equal to the original costs (i.e., objective coefficients) This is not true anymore after adding branching constraints and robust cuts involving variables <code>z</code>.</p><p>We need methods to compute the contributions to the reduced cost of the <code>x</code> and <code>z</code> variables:</p><pre><code class="language-julia hljs">function x_contribution(route::Route, j::Int, x_red_costs)
+    x = 0.0
+    visited_customers = route.path[2:route.length]
+    for i in visited_customers
+        x += x_red_costs[&quot;x_$(i)_$(j)&quot;]
+    end
+    return x
+end;
+
+function z_contribution(route::Route, z_red_costs)
+    z = 0.0
+    for i in 1:(route.length-1)
+        current_position = route.path[i]
+        next_position = route.path[i+1]
+        z += z_red_costs[&quot;z_$(current_position)_$(next_position)&quot;]
+    end
+    return z
+end;</code></pre><p>We are now able to write our pricing callback:</p><pre><code class="language-julia hljs">function pricing_callback(cbdata)
+    # Get the id of the facility.
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
+
+    # Retrieve variables reduced costs.
+    z_red_costs = Dict(
+        &quot;z_$(u)_$(v)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations)
+    x_red_costs = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+    )
+
+    # Keep route with minimum reduced cost.
+    red_costs_j = map(r -&gt; (
+            r,
+            x_contribution(r, j, x_red_costs) + z_contribution(r, z_red_costs) # the reduced cost of a route is the sum of the contribution of the variables
+        ), routes_per_facility[j]
+    )
+    min_index = argmin([x for (_, x) in red_costs_j])
+    (best_route, min_reduced_cost) = red_costs_j[min_index]
+
+    # Retrieve the route&#39;s arcs.
+    best_route_arcs = Vector{Tuple{Int,Int}}()
+    for i in 1:(best_route.length-1)
+        push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
+    end
+    best_route_customers = best_route.path[2:best_route.length]
+
+    # Create the solution (send only variables with non-zero values).
+    z_vars = [z[u, v] for (u, v) in best_route_arcs]
+    x_vars = [x[i, j] for i in best_route_customers]
+    sol_vars = vcat(z_vars, x_vars)
+    sol_vals = ones(Float64, length(z_vars) + length(x_vars))
+    sol_cost = min_reduced_cost
+
+    # Submit the solution to the subproblem to Coluna.
+    MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+
+    # Submit the dual bound to the solution of the subproblem.
+    # This bound is used to compute the contribution of the subproblem to the lagrangian
+    # bound in column generation.
+    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost) ## optimal solution
+
+end;</code></pre><p>Create the model:</p><pre><code class="language-julia hljs">model, x, y, z, _ = create_model(coluna, pricing_callback);</code></pre><p>Solve:</p><pre><code class="language-julia hljs">JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 5.49 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=20.83&gt; &lt;mst= 1.10&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=21.12&gt; &lt;mst= 0.05&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=21.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=21.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=21.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et=21.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et=21.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et=21.60&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et=21.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et=21.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et=21.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et=21.61&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
+**** Local DB = 275.7500, global bounds: [ -Inf , 297.7000 ], time = 23.84 sec.
+**** Branching constraint: z[4,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.30&gt; &lt;mst= 0.11&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.1500&gt; &lt;mlp=  276.6500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.30&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.1000&gt; &lt;mlp=  276.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.31&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  276.5000&gt; &lt;mlp=  276.5000&gt; &lt;PB=297.7000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°5, parent N°3, depth 2, 2 untreated nodes
+**** Local DB = 276.5000, global bounds: [ 275.7500 , 297.7000 ], time = 24.31 sec.
+**** Branching constraint: z[1,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.31&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  257.5000&gt; &lt;mlp=  279.1000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.31&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  277.2500&gt; &lt;mlp=  277.2500&gt; &lt;PB=297.7000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°7, parent N°5, depth 3, 3 untreated nodes
+**** Local DB = 277.2500, global bounds: [ 275.7500 , 297.7000 ], time = 24.31 sec.
+**** Branching constraint: z[3,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.31&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -103.2200&gt; &lt;mlp=  288.4200&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  235.7231&gt; &lt;mlp=  280.6154&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  211.1375&gt; &lt;mlp=  278.9875&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.6875&gt; &lt;mlp=  278.9875&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  275.8500&gt; &lt;mlp=  278.4500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  278.4500&gt; &lt;mlp=  278.4500&gt; &lt;PB=297.7000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°9, parent N°7, depth 4, 4 untreated nodes
+**** Local DB = 278.4500, global bounds: [ 275.7500 , 297.7000 ], time = 24.32 sec.
+**** Branching constraint: z[3,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -101.3500&gt; &lt;mlp=  305.7500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  222.5600&gt; &lt;mlp=  301.4000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  275.7000&gt; &lt;mlp=  296.3000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  284.3000&gt; &lt;mlp=  296.3000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  285.3500&gt; &lt;mlp=  294.2500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.9500&gt; &lt;mlp=  294.2500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  288.4500&gt; &lt;mlp=  294.2500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  292.7500&gt; &lt;mlp=  294.2500&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et=24.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  291.7000&gt; &lt;mlp=  293.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et=24.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  293.5000&gt; &lt;mlp=  293.5000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°8, parent N°7, depth 4, 3 untreated nodes
+**** Local DB = 278.4500, global bounds: [ 275.7500 , 293.5000 ], time = 24.35 sec.
+**** Branching constraint: z[3,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  136.0000&gt; &lt;mlp=  307.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  291.7000&gt; &lt;mlp=  298.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  293.3000&gt; &lt;mlp=  298.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  291.5000&gt; &lt;mlp=  296.3000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  296.3000&gt; &lt;mlp=  296.3000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°6, parent N°5, depth 3, 2 untreated nodes
+**** Local DB = 277.2500, global bounds: [ 275.7500 , 293.5000 ], time = 24.36 sec.
+**** Branching constraint: z[3,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.7000&gt; &lt;mlp=  279.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.03&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  277.9000&gt; &lt;mlp=  279.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  279.2500&gt; &lt;mlp=  279.2500&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°11, parent N°6, depth 4, 3 untreated nodes
+**** Local DB = 279.2500, global bounds: [ 275.7500 , 293.5000 ], time = 24.39 sec.
+**** Branching constraint: z[7,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.5000&gt; &lt;mlp=  280.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  280.5000&gt; &lt;mlp=  280.5000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°13, parent N°11, depth 5, 4 untreated nodes
+**** Local DB = 280.5000, global bounds: [ 275.7500 , 293.5000 ], time = 24.40 sec.
+**** Branching constraint: y[1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-4808.4500&gt; &lt;mlp=  304.4500&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  252.1000&gt; &lt;mlp=  288.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  279.7000&gt; &lt;mlp=  284.3000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  283.7250&gt; &lt;mlp=  283.7250&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°15, parent N°13, depth 6, 5 untreated nodes
+**** Local DB = 283.7250, global bounds: [ 275.7500 , 293.5000 ], time = 24.40 sec.
+**** Branching constraint: z[7,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.9000&gt; &lt;mlp=  318.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  270.4500&gt; &lt;mlp=  293.1500&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  286.0800&gt; &lt;mlp=  290.8800&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  286.0000&gt; &lt;mlp=  290.4000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=24.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.4000&gt; &lt;mlp=  290.4000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°17, parent N°15, depth 7, 6 untreated nodes
+**** Local DB = 290.4000, global bounds: [ 275.7500 , 293.5000 ], time = 24.42 sec.
+**** Branching constraint: z[5,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-9853.7000&gt; &lt;mlp=  318.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  264.0000&gt; &lt;mlp=  317.7333&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  293.1000&gt; &lt;mlp=  304.3000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  296.9000&gt; &lt;mlp=  304.3000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°16, parent N°15, depth 7, 5 untreated nodes
+**** Local DB = 290.4000, global bounds: [ 275.7500 , 293.5000 ], time = 24.42 sec.
+**** Branching constraint: z[5,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  168.2000&gt; &lt;mlp=  334.2000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  282.5000&gt; &lt;mlp=  311.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  294.2000&gt; &lt;mlp=  298.6000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°14, parent N°13, depth 6, 4 untreated nodes
+**** Local DB = 283.7250, global bounds: [ 275.7500 , 293.5000 ], time = 24.43 sec.
+**** Branching constraint: z[7,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  295.3000&gt; &lt;mlp=  299.5000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°12, parent N°11, depth 5, 3 untreated nodes
+**** Local DB = 280.5000, global bounds: [ 275.7500 , 293.5000 ], time = 24.43 sec.
+**** Branching constraint: y[1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.0000&gt; &lt;mlp=  304.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  292.8000&gt; &lt;mlp=  292.8000&gt; &lt;PB=292.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°10, parent N°6, depth 4, 2 untreated nodes
+**** Local DB = 279.2500, global bounds: [ 275.7500 , 292.8000 ], time = 24.43 sec.
+**** Branching constraint: z[7,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.8000&gt; &lt;mlp=  307.8000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  286.4000&gt; &lt;mlp=  293.8000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  284.6000&gt; &lt;mlp=  293.8000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  293.8000&gt; &lt;mlp=  293.8000&gt; &lt;PB=292.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°4, parent N°3, depth 2, 1 untreated node
+**** Local DB = 276.5000, global bounds: [ 275.7500 , 292.8000 ], time = 24.44 sec.
+**** Branching constraint: z[1,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   76.3000&gt; &lt;mlp=  297.7000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  277.1400&gt; &lt;mlp=  279.5400&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.5400&gt; &lt;mlp=  279.5400&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=24.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  279.3400&gt; &lt;mlp=  279.3400&gt; &lt;PB=292.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°19, parent N°4, depth 3, 2 untreated nodes
+**** Local DB = 279.3400, global bounds: [ 275.7500 , 290.3000 ], time = 24.44 sec.
+**** Branching constraint: z[7,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  263.9714&gt; &lt;mlp=  286.0571&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  267.7200&gt; &lt;mlp=  281.6400&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  281.6400&gt; &lt;mlp=  281.6400&gt; &lt;PB=290.3000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°21, parent N°19, depth 4, 3 untreated nodes
+**** Local DB = 281.6400, global bounds: [ 275.7500 , 290.3000 ], time = 24.45 sec.
+**** Branching constraint: z[3,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  101.9000&gt; &lt;mlp=  322.7000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  288.8500&gt; &lt;mlp=  293.9500&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  291.4000&gt; &lt;mlp=  291.4000&gt; &lt;PB=290.3000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°20, parent N°19, depth 4, 2 untreated nodes
+**** Local DB = 281.6400, global bounds: [ 275.7500 , 290.3000 ], time = 24.45 sec.
+**** Branching constraint: z[3,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  285.1400&gt; &lt;mlp=  285.1400&gt; &lt;PB=290.3000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°23, parent N°20, depth 5, 3 untreated nodes
+**** Local DB = 285.1400, global bounds: [ 275.7500 , 290.3000 ], time = 24.46 sec.
+**** Branching constraint: x[3,2]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  224.7000&gt; &lt;mlp=  307.1000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  285.7500&gt; &lt;mlp=  293.8500&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°22, parent N°20, depth 5, 2 untreated nodes
+**** Local DB = 285.1400, global bounds: [ 275.7500 , 289.8000 ], time = 24.46 sec.
+**** Branching constraint: x[3,2]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  125.6000&gt; &lt;mlp=  292.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  238.0286&gt; &lt;mlp=  292.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  291.8000&gt; &lt;mlp=  292.8000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°18, parent N°4, depth 3, 1 untreated node
+**** Local DB = 279.3400, global bounds: [ 275.7500 , 289.8000 ], time = 24.47 sec.
+**** Branching constraint: z[7,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  238.5667&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  259.0667&gt; &lt;mlp=  283.7333&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=24.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  282.0800&gt; &lt;mlp=  282.0800&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°25, parent N°18, depth 4, 2 untreated nodes
+**** Local DB = 282.0800, global bounds: [ 275.7500 , 289.8000 ], time = 24.47 sec.
+**** Branching constraint: z[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  285.9200&gt; &lt;mlp=  285.9200&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°27, parent N°25, depth 5, 3 untreated nodes
+**** Local DB = 285.9200, global bounds: [ 275.7500 , 289.8000 ], time = 24.47 sec.
+**** Branching constraint: y[1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB= 5283.7600&gt; &lt;mlp= 5286.7600&gt; &lt;PB=289.8000&gt;
+# &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB= 5000.0000&gt; &lt;mlp= 5000.0000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°26, parent N°25, depth 5, 2 untreated nodes
+**** Local DB = 285.9200, global bounds: [ 275.7500 , 289.8000 ], time = 24.99 sec.
+**** Branching constraint: y[1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  280.1000&gt; &lt;mlp=  301.1000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=24.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.6000&gt; &lt;mlp=  290.6000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°24, parent N°18, depth 4, 1 untreated node
+**** Local DB = 282.0800, global bounds: [ 275.7500 , 289.8000 ], time = 24.99 sec.
+**** Branching constraint: z[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=24.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  180.1000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.2000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  273.3000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  284.5000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.3000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°2, parent N°1, depth 1, 0 untreated node
+**** Local DB = 275.7500, global bounds: [ 275.7500 , 289.8000 ], time = 25.00 sec.
+**** Branching constraint: z[4,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  217.6000&gt; &lt;mlp=  284.3200&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  273.1000&gt; &lt;mlp=  279.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  273.9000&gt; &lt;mlp=  279.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=25.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  278.6250&gt; &lt;mlp=  278.6250&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°29, parent N°2, depth 2, 1 untreated node
+**** Local DB = 278.6250, global bounds: [ 289.8000 , 289.8000 ], time = 25.01 sec.
+**** Branching constraint: z[1,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -74.2000&gt; &lt;mlp=  301.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.0750&gt; &lt;mlp=  280.4750&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  280.4750&gt; &lt;mlp=  280.4750&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°31, parent N°29, depth 3, 2 untreated nodes
+**** Local DB = 280.4750, global bounds: [ 278.6250 , 289.8000 ], time = 25.01 sec.
+**** Branching constraint: z[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.9250&gt; &lt;mlp=  282.7250&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  282.7250&gt; &lt;mlp=  282.7250&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°33, parent N°31, depth 4, 3 untreated nodes
+**** Local DB = 282.7250, global bounds: [ 278.6250 , 289.8000 ], time = 25.02 sec.
+**** Branching constraint: y[1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  253.0000&gt; &lt;mlp=  291.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  286.2500&gt; &lt;mlp=  286.2500&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°35, parent N°33, depth 5, 4 untreated nodes
+**** Local DB = 286.2500, global bounds: [ 278.6250 , 289.8000 ], time = 25.02 sec.
+**** Branching constraint: z[8,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  260.3000&gt; &lt;mlp=  298.1000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  280.2500&gt; &lt;mlp=  288.6500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  288.6500&gt; &lt;mlp=  288.6500&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°37, parent N°35, depth 6, 5 untreated nodes
+**** Local DB = 288.6500, global bounds: [ 278.6250 , 289.8000 ], time = 25.02 sec.
+**** Branching constraint: z[3,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  158.7000&gt; &lt;mlp=  315.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  276.5500&gt; &lt;mlp=  311.2500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  289.6000&gt; &lt;mlp=  303.2000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=25.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  298.7000&gt; &lt;mlp=  303.2000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°36, parent N°35, depth 6, 4 untreated nodes
+**** Local DB = 288.6500, global bounds: [ 278.6250 , 289.8000 ], time = 25.03 sec.
+**** Branching constraint: z[3,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  225.9000&gt; &lt;mlp=  311.5000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  287.3000&gt; &lt;mlp=  303.3667&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  298.7000&gt; &lt;mlp=  298.7000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°34, parent N°33, depth 5, 3 untreated nodes
+**** Local DB = 286.2500, global bounds: [ 278.6250 , 289.8000 ], time = 25.04 sec.
+**** Branching constraint: z[8,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  249.4000&gt; &lt;mlp=  307.4000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  294.3000&gt; &lt;mlp=  297.9000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°32, parent N°31, depth 4, 2 untreated nodes
+**** Local DB = 282.7250, global bounds: [ 278.6250 , 289.8000 ], time = 25.04 sec.
+**** Branching constraint: y[1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  282.7000&gt; &lt;mlp=  302.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  284.3000&gt; &lt;mlp=  302.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  293.5000&gt; &lt;mlp=  293.5000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°30, parent N°29, depth 3, 1 untreated node
+**** Local DB = 280.4750, global bounds: [ 278.6250 , 289.8000 ], time = 25.04 sec.
+**** Branching constraint: z[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  118.2000&gt; &lt;mlp=  301.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  214.6000&gt; &lt;mlp=  301.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  290.3000&gt; &lt;mlp=  297.2333&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°28, parent N°2, depth 2, 0 untreated node
+**** Local DB = 278.6250, global bounds: [ 278.6250 , 289.8000 ], time = 25.05 sec.
+**** Branching constraint: z[1,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  119.9000&gt; &lt;mlp=  299.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  170.8000&gt; &lt;mlp=  299.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  284.9375&gt; &lt;mlp=  286.7125&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  286.7125&gt; &lt;mlp=  286.7125&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°39, parent N°28, depth 3, 1 untreated node
+**** Local DB = 286.7125, global bounds: [ 289.8000 , 289.8000 ], time = 25.05 sec.
+**** Branching constraint: z[1,8]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  206.9000&gt; &lt;mlp=  292.5909&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.06&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.5875&gt; &lt;mlp=  289.5875&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°41, parent N°39, depth 4, 2 untreated nodes
+**** Local DB = 289.5875, global bounds: [ 286.7125 , 289.8000 ], time = 25.06 sec.
+**** Branching constraint: x[8,1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.06&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  278.3000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.02&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  283.9000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  286.8000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.5000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  292.9000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°40, parent N°39, depth 4, 1 untreated node
+**** Local DB = 289.5875, global bounds: [ 286.7125 , 289.8000 ], time = 25.09 sec.
+**** Branching constraint: x[8,1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  268.8000&gt; &lt;mlp=  302.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  279.5000&gt; &lt;mlp=  293.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  293.7000&gt; &lt;mlp=  293.7000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°38, parent N°28, depth 3, 0 untreated node
+**** Local DB = 286.7125, global bounds: [ 286.7125 , 289.8000 ], time = 25.09 sec.
+**** Branching constraint: z[1,8]&gt;=1.0
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  254.3000&gt; &lt;mlp=  290.5000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et=25.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.5000&gt; &lt;mlp=  290.5000&gt; &lt;PB=289.8000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         84.0s /  30.0%           4.80GiB /  35.5%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    25.2s  100.0%   25.2s   1.70GiB  100.0%  1.70GiB
+   SolveLpForm      147    1.27s    5.1%  8.67ms   55.3MiB    3.2%   385KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 289.8
+[ Info: Dual bound: 289.8</code></pre><h3 id="Strengthening-the-master-with-linear-valid-inequalities-on-the-original-variables-(so-called-&quot;robust&quot;-cuts)"><a class="docs-heading-anchor" href="#Strengthening-the-master-with-linear-valid-inequalities-on-the-original-variables-(so-called-&quot;robust&quot;-cuts)">Strengthening the master with linear valid inequalities on the original variables (so-called &quot;robust&quot; cuts)</a><a id="Strengthening-the-master-with-linear-valid-inequalities-on-the-original-variables-(so-called-&quot;robust&quot;-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthening-the-master-with-linear-valid-inequalities-on-the-original-variables-(so-called-&quot;robust&quot;-cuts)" title="Permalink"></a></h3><p>To improve the quality of the linear relaxation, a family of classic facility location valid inequalities can be used:</p><p class="math-container">\[x_{ij} \leq y_j\; \forall i \in I, \forall j \in J\]</p><p>where <span>$I$</span> is the set of customers and <span>$J$</span> the set of facilities.</p><p>We declare a structure representing an inequality in this family:</p><pre><code class="language-julia hljs">struct OpenFacilityInequality
+    facility_id::Int
+    customer_id::Int
+end</code></pre><p>To identify violated valid inequalities from a current master LP solution, we proceed by enumeration (i.e. iterating over all pairs of customer and facility). Enumeration separation procedure is implemented in the following callback.</p><pre><code class="language-julia hljs">function valid_inequalities_callback(cbdata)
+    # Get variables valuations and store them in dictionaries.
+    x_vals = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_value(cbdata, x[i, j]) for i in customers, j in facilities
+    )
+    y_vals = Dict(
+        &quot;y_$(j)&quot; =&gt; BlockDecomposition.callback_value(cbdata, y[j]) for j in facilities
+    )
+
+    # Separate the valid inequalities (i.e. retrieve the inequalities that are violated by
+    # the current solution) by enumeration.
+    inequalities = OpenFacilityInequality[]
+
+    for j in facilities
+        y_j = y_vals[&quot;y_$(j)&quot;]
+        for i in customers
+            x_i_j = x_vals[&quot;x_$(i)_$(j)&quot;]
+            if x_i_j &gt; y_j
+                push!(inequalities, OpenFacilityInequality(j, i))
+            end
+        end
+    end
+
+    # Add the valid inequalities to the model.
+    for ineq in inequalities
+        constr = JuMP.@build_constraint(x[ineq.customer_id, ineq.facility_id] &lt;= y[ineq.facility_id])
+        MOI.submit(model, MOI.UserCut(cbdata), constr)
+    end
+end;</code></pre><p>We re-declare the model and optimize it with these valid inequalities:</p><pre><code class="language-julia hljs">model, x, y, z, _ = create_model(coluna, pricing_callback);
+MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
+JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.12&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+Cut separation callback adds 0 new essential cuts and 7 new facultative cuts.
+avg. viol. = 0.12, max. viol. = 0.12, zero viol. = 0.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  278.2000&gt; &lt;mlp=  283.5000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.4125&gt; &lt;mlp=  283.3125&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  282.8750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  283.0750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
+Cut separation callback adds 0 new essential cuts and 7 new facultative cuts.
+avg. viol. = 0.12, max. viol. = 0.12, zero viol. = 0.
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  268.0667&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.3286&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         864ms /  81.9%           74.8MiB /  77.1%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    707ms  100.0%   707ms   57.7MiB  100.0%  57.7MiB
+   SolveLpForm       25   5.60ms    0.8%   224μs   1.65MiB    2.9%  67.6KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 289.8
+[ Info: Dual bound: 289.79999999999995</code></pre><h3 id="Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)"><a class="docs-heading-anchor" href="#Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)">Strengthening the master with valid inequalities on the column generation variables (so-called &quot;non-robust&quot; cuts)</a><a id="Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)-1"></a><a class="docs-heading-anchor-permalink" href="#Strengthening-the-master-with-valid-inequalities-on-the-column-generation-variables-(so-called-&quot;non-robust&quot;-cuts)" title="Permalink"></a></h3><p>In order to further strengthen the linear relaxation of the Dantzig-Wolfe reformulation, we separate a family of subset-row cuts, which is a subfamily of Chvátal-Gomory rank-1 cuts (R1C), obtained from the set-partitioning constraints. These cuts cannot be expressed as a linear combination of the original variables of the model. Instead, they are expressed with the master columns variables <span>$λ_k$</span>, <span>$k \in K$</span>, where <span>$K$</span> is the set of generated columns or set of solutions returned by the pricing subproblems. Subset-row cuts are &quot;non-robust&quot; in the sense that they modify the structure of the pricing subproblems, and not just the reduced cost of subproblem variables. Thus, the implementation of the pricing callback should be updated to take into account dual costs associated with non-robust cutting planes.</p><p>Each Chvátal-Gomory rank-1 cut is characterized by a subset of set-partitioning constraints, or equivalently by a subset <span>$C$</span> of customers, and a multiplier <span>$\alpha_i$</span> for each customer <span>$i\in C$</span>:</p><p class="math-container">\[\sum_{k \in K} \lfloor \sum_{i \in C} \alpha_i \tilde{x}^k_{i,j} \lambda_{k} \rfloor \leq \lfloor \sum_{i\in C} \alpha_i \rfloor, \;  C \subseteq I,\]</p><p>where <span>$\tilde{x}^k_{ij}$</span> is the value of the variable <span>$x_{ij}$</span> in the <span>$k$</span>-th column generated. For subset-row cuts, <span>$|C|=3$</span>, and <span>$\alpha_i=\frac{1}{2}$</span>, <span>$i\in C$</span>.</p><p>Since we obtain subset-row cuts based on set-partitioning constraints, we must be able to differentiate them from the other constraints of the model. To do this, we exploit a feature of Coluna that allows us to attach custom data to the constraints and variables of a model, via the add-ons of BlockDecomposition package.</p><p>First, we create special custom data with the only information we need to characterize our cover constraints: the customer id that corresponds to this constraint.</p><pre><code class="language-julia hljs">struct CoverConstrData &lt;: BlockDecomposition.AbstractCustomData
+    customer::Int
+end</code></pre><p>We re-create the model:</p><pre><code class="language-julia hljs">(model, x, y, z, cov) = create_model(coluna, pricing_callback);</code></pre><p>We declare our custom data to Coluna and we attach one custom data to each cover constraint</p><pre><code class="language-julia hljs">BlockDecomposition.customconstrs!(model, CoverConstrData);
+
+for i in customers
+    customdata!(cov[i], CoverConstrData(i))
+end</code></pre><p>We perform the separation by enumeration (i.e. iterating over all subsets of customers of size three).</p><p>The subset-row cut has the following form:</p><p class="math-container">\[\sum_{k \in K} \tilde{\alpha}(C, k) \lambda_{k} \leq 1\; C \subseteq I, |C| = 3,\]</p><p>where coefficient <span>$\tilde{\alpha}(C, k)$</span> equals <span>$1$</span> if route <span>$k$</span> visits at least two customers of <span>$C$</span>; <span>$0$</span> otherwise.</p><p>For instance, if we consider separating a cut over constraints <code>cov[3]</code>, <code>cov[6]</code> and <code>cov[8]</code>, then the route <code>1</code>-&gt;<code>4</code>-&gt;<code>6</code>-&gt;<code>7</code> has a zero coefficient while the route <code>1</code>-&gt;<code>4</code>-&gt;<code>6</code>-&gt;<code>3</code> has a coefficient equal to one.</p><p>Since columns are generated dynamically, we cannot pre-compute the coefficients of columns in the subset-row cuts. Instead, coefficients are computed dynamically via a user-defined <code>computecoeff</code> method which takes a cut and a column as arguments. To recognize which cut and which column are passed to the method, custom data structures are attached to the cut constraints and the master variables. When a new column is generated, Coluna computes its coefficients in the original constraints and robust cuts using coefficients of subproblem variables in the master constraints. Coluna retrieves coefficients of the new column in the non-robust cuts by calling the <code>computecoeff</code> method for the column and each such cut. When a new non-robust cut is generated, Coluna retrieves the coefficients of columns in this cut by calling the <code>computecoeff</code> method for the cut and all existing columns.</p><p>We now proceed to the implementation of necessary data structures and methods needed to support the subset-row cuts. First, we attach a custom data structure to master columns <code>λ_k</code> associated with a given route <code>k</code>. They record the set of customers that are visited by the given route <code>k</code>.</p><p>Thus, to each <code>λ_k</code>, we associate a <code>R1cVarData</code> structure that carries the customers it visits.</p><pre><code class="language-julia hljs">struct R1cVarData &lt;: BlockDecomposition.AbstractCustomData
+    visited_locations::Vector{Int}
+end</code></pre><p>Then, we attach a <code>R1cCutData</code> custom data structure to the subset-row cuts. It contains the set <span>$C$</span> of customers characterizing the cut.</p><pre><code class="language-julia hljs">struct R1cCutData &lt;: BlockDecomposition.AbstractCustomData
+    cov_constrs::Vector{Int}
+end</code></pre><p>We declare our custom data to Coluna via BlockDecomposition add-ons:</p><pre><code class="language-julia hljs">BlockDecomposition.customvars!(model, R1cVarData)
+BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);</code></pre><p>The next method calculates the coefficients of a column <code>λ_k</code> in a subset-row cut:</p><pre><code class="language-julia hljs">function Coluna.MathProg.computecoeff(
+    var_custom_data::R1cVarData, constr_custom_data::R1cCutData
+)
+    return floor(1 / 2 * length(var_custom_data.visited_locations ∩ constr_custom_data.cov_constrs))
+end</code></pre><p>We also need to define a second method for the case of the cover constraints. Indeed, we use custom data to know the customer attached to each cover constraint There is no contribution of the non-robust part of the coefficient of the <code>λ_k</code>, so the method returns 0.</p><pre><code class="language-julia hljs">function Coluna.MathProg.computecoeff(::R1cVarData, ::CoverConstrData)
+    return 0
+end</code></pre><p>We are now able to write our rank-one cut callback completely:</p><pre><code class="language-julia hljs">function r1c_callback(cbdata)
+    original_sol = cbdata.orig_sol
+    master = Coluna.MathProg.getmodel(original_sol)
+    # Retrieve the cover constraints.
+    cov_constrs = Int[]
+    for constr in values(Coluna.MathProg.getconstrs(master))
+        constr_custom_data = Coluna.MathProg.getcustomdata(master, constr)
+        if typeof(constr_custom_data) &lt;: CoverConstrData
+            push!(cov_constrs, constr_custom_data.customer)
+        end
+    end
+
+    # Retrieve the master columns λ and their values in the current fractional solution
+    lambdas = Tuple{Float64,Coluna.MathProg.Variable}[]
+    for (var_id, val) in original_sol
+        if Coluna.MathProg.getduty(var_id) &lt;= Coluna.MathProg.MasterCol
+            push!(lambdas, (val, Coluna.MathProg.getvar(master, var_id)))
+        end
+    end
+
+    # Separate the valid subset-row cuts violated by the current solution.
+    # For a fixed subset of customers of size three, iterate on the master columns
+    # and check if lhs &gt; 1:
+    for cov_constr_subset in collect(combinations(cov_constrs, 3))
+        lhs = 0
+        for lambda in lambdas
+            (val, var) = lambda
+            var_custom_data = Coluna.MathProg.getcustomdata(master, var)
+            if !isnothing(var_custom_data)
+                coeff = floor(1 / 2 * length(var_custom_data.visited_locations ∩ cov_constr_subset))
+                lhs += coeff * val
+            end
+        end
+        if lhs &gt; 1
+            # Create the constraint and add it to the model.
+            MOI.submit(model,
+                MOI.UserCut(cbdata),
+                JuMP.ScalarConstraint(JuMP.AffExpr(0.0), MOI.LessThan(1.0)),
+                R1cCutData(cov_constr_subset)
+            )
+        end
+    end
+end;</code></pre><p>When creating non-robust constraints, only the linear (i.e., robust) part is passed to the model. In our case, the constraint <code>0 &lt;= 1</code> is passed. As explained above, the non-robust part is computed by calling the <code>computecoeff</code> method using the structure of type <code>R1cCutData</code> provided.</p><p>Finally, we need to update our pricing callback to take into account the active non-robust cuts. The contribution of these cuts to the reduced cost of a column is not captured by the reduced cost of subproblem variables. We must therefore take this contribution into account manually, by inquiring the set of existing non-robust cuts and their values in the current dual solution.</p><p>The contribution of a subset-row cut to the reduced cost of a route is managed by the following method:</p><pre><code class="language-julia hljs">function r1c_contrib(route::Route, custduals)
+    cost = 0
+    if !isempty(custduals)
+        for (r1c_cov_constrs, dual) in custduals
+            coeff = floor(1 / 2 * length(route.path ∩ r1c_cov_constrs))
+            cost += coeff * dual
+        end
+    end
+    return cost
+end;</code></pre><p>We re-write our pricing callback to:</p><ul><li>retrieve the dual cost of the subset-row cuts</li><li>take into account the contribution of the subset-row cuts in the reduced cost of the route</li><li>attach custom data to the route so that its coefficient in the existing non-robust cuts can be computed</li></ul><pre><code class="language-julia hljs">function pricing_callback(cbdata)
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
+    z_red_costs = Dict(
+        &quot;z_$(u)_$(v)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
+    )
+    x_red_costs = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+    )
+
+    # FIRST CHANGE HERE:
+    # Get the dual values of the constraints of the specific type to compute the contributions of
+    # non-robust cuts to the cost of the solution:
+    master = cbdata.form.parent_formulation
+    custduals = Tuple{Vector{Int},Float64}[]
+    for (_, constr) in Coluna.MathProg.getconstrs(master)
+        constr_custom_data = Coluna.MathProg.getcustomdata(master, constr)
+        if typeof(constr_custom_data) == R1cCutData
+            push!(custduals, (
+                constr_custom_data.cov_constrs,
+                Coluna.MathProg.getcurincval(master, constr)
+            ))
+        end
+    end
+    # END OF FIRST CHANGE
+
+    # SECOND CHANGE HERE:
+    # Keep route with the minimum reduced cost: contribution of the subproblem variables and
+    # the non-robust cuts.
+    red_costs_j = map(r -&gt; (
+            r,
+            x_contribution(r, j, x_red_costs) + z_contribution(r, z_red_costs) - r1c_contrib(r, custduals)
+        ), routes_per_facility[j]
+    )
+    # END OF SECOND CHANGE
+    min_index = argmin([x for (_, x) in red_costs_j])
+    best_route, min_reduced_cost = red_costs_j[min_index]
+
+    best_route_arcs = Tuple{Int,Int}[]
+    for i in 1:(best_route.length-1)
+        push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
+    end
+    best_route_customers = best_route.path[2:best_route.length]
+    z_vars = [z[u, v] for (u, v) in best_route_arcs]
+    x_vars = [x[i, j] for i in best_route_customers]
+    sol_vars = vcat(z_vars, x_vars)
+    sol_vals = ones(Float64, length(z_vars) + length(x_vars))
+    sol_cost = min_reduced_cost
+
+    # Submit the solution of the subproblem to Coluna
+    # THIRD CHANGE HERE:
+    # You must attach the visited customers in the structure of type `R1cVarData` to the solution of the subproblem
+    MOI.submit(
+        model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals,
+        R1cVarData(best_route.path)
+    )
+    # END OF THIRD CHANGE
+    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), sol_cost)
+end
+
+MOI.set(model, MOI.UserCutCallback(), r1c_callback);
+JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 1.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 1.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 1.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 1.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 1.49&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+Cut separation callback adds 0 new essential cuts and 17 new facultative cuts.
+avg. viol. = 17.35, max. viol. = 21.00, zero viol. = 0.
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-79206.3000&gt; &lt;mlp=  297.7000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   69.1000&gt; &lt;mlp=  297.7000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  224.1000&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  200.7667&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 1.89&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  232.5000&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 1.89&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  226.6000&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 1.90&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  220.1462&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 1.90&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  188.1400&gt; &lt;mlp=  294.5000&gt; &lt;PB=297.7000&gt;
+Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 1.90&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  227.6222&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 1.91&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  238.3000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 1.91&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  214.3636&gt; &lt;mlp=  289.5273&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 1.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  235.7286&gt; &lt;mlp=  286.5571&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  220.7143&gt; &lt;mlp=  285.5429&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  249.7143&gt; &lt;mlp=  285.5429&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  228.6286&gt; &lt;mlp=  285.5429&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  214.2833&gt; &lt;mlp=  284.1833&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  248.9556&gt; &lt;mlp=  283.6667&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  249.6000&gt; &lt;mlp=  283.6000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 19&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  263.8000&gt; &lt;mlp=  283.6000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 20&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.5727&gt; &lt;mlp=  283.5364&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 21&gt; &lt;et= 1.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.6091&gt; &lt;mlp=  283.5364&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 22&gt; &lt;et= 1.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  282.7000&gt; &lt;mlp=  283.4400&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 23&gt; &lt;et= 1.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.9600&gt; &lt;mlp=  283.4400&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 24&gt; &lt;et= 1.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  283.3727&gt; &lt;mlp=  283.3727&gt; &lt;PB=289.8000&gt;
+Cut separation callback adds 0 new essential cuts and 16 new facultative cuts.
+avg. viol. = 41.00, max. viol. = 46.00, zero viol. = 0.
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 2.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-59558.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -200.0000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  165.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 2.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  225.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 2.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  220.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 2.05&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  187.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 2.07&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  179.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 2.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  245.0000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 2.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  244.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 2.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  273.6000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 2.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.6000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 2.10&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  284.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 2.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.01&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  287.9500&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 2.12&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  288.0000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 2.12&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.6000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 2.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         3.80s /  56.1%            402MiB /  80.6%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    2.13s  100.0%   2.13s    324MiB  100.0%   324MiB
+   SolveLpForm       58   25.3ms    1.2%   435μs   8.26MiB    2.6%   146KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 289.79999999999995
+[ Info: Dual bound: 289.7999999999999</code></pre><h3 id="Multi-stage-pricing-callback"><a class="docs-heading-anchor" href="#Multi-stage-pricing-callback">Multi-stage pricing callback</a><a id="Multi-stage-pricing-callback-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-stage-pricing-callback" title="Permalink"></a></h3><p>In this section, we implement a pricing heuristic that can be used together with the exact pricing callback to generate subproblems solutions.</p><p>The idea of the heuristic is very simple:</p><ul><li>Given a facility <code>j</code>, the heuristic finds the closest customer to <code>j</code> and adds it to the route.</li><li>Then, while the reduced cost keeps improving and the maximum length of the route is not reached, the heuristic computes and adds to the route the nearest neighbor to the last customer of the route.</li></ul><p>We first define an auxiliary function used to compute the route tail&#39;s nearest neighbor at each step:</p><pre><code class="language-julia hljs">function add_nearest_neighbor(route::Route, customers, costs)
+    # Get the last customer of the route.
+    loc = last(route.path)
+    # Initialize its nearest neighbor to zero and mincost to infinity.
+    (nearest, mincost) = (0, Inf)
+    # Compute nearest and mincost.
+    for i in customers
+        if !(i in route.path) # implying in particular (i != loc)
+            if (costs[loc, i] &lt; mincost)
+                nearest = i
+                mincost = costs[loc, i]
+            end
+        end
+    end
+    # Add the last customer&#39;s nearest neighbor to the route.
+    if nearest != 0
+        push!(route.path, nearest)
+        route.length += 1
+    end
+end;</code></pre><p>We then define our heuristic for the enumeration of the routes, the method returns the best route found by the heuristic together with its cost:</p><pre><code class="language-julia hljs">function enumeration_heuristic(x_red_costs, z_red_costs, j)
+    # Initialize our &quot;greedy best route&quot;.
+    best_route = Route(1, [j])
+    # Initialize the route&#39;s cost to zero.
+    current_redcost = 0.0
+    old_redcost = Inf
+
+    # main loop
+    while (current_redcost &lt; old_redcost)
+        add_nearest_neighbor(best_route, customers, arc_costs)
+        old_redcost = current_redcost
+        current_redcost = x_contribution(best_route, j, x_red_costs) +
+                          z_contribution(best_route, z_red_costs)
+        # Max length is reached.
+        if best_route.length == nb_positions
+            break
+        end
+    end
+    return (best_route, current_redcost)
+end;</code></pre><p>We can now define our heuristic pricing callback:</p><pre><code class="language-julia hljs">function approx_pricing(cbdata)
+
+    j = BlockDecomposition.indice(BlockDecomposition.callback_spid(cbdata, model))
+    z_red_costs = Dict(
+        &quot;z_$(u)_$(v)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, z[u, v]) for u in locations, v in locations
+    )
+    x_red_costs = Dict(
+        &quot;x_$(i)_$(j)&quot; =&gt; BlockDecomposition.callback_reduced_cost(cbdata, x[i, j]) for i in customers
+    )
+
+    # Call the heuristic to elect the &quot;greedy best route&quot;:
+    best_route, sol_cost = enumeration_heuristic(x_red_costs, z_red_costs, j)
+
+    # Build the solution:
+    best_route_arcs = Vector{Tuple{Int,Int}}()
+    for i in 1:(best_route.length-1)
+        push!(best_route_arcs, (best_route.path[i], best_route.path[i+1]))
+    end
+    best_route_customers = best_route.path[2:length(best_route.path)]
+
+    z_vars = [z[u, v] for (u, v) in best_route_arcs]
+    x_vars = [x[i, j] for i in best_route_customers]
+    sol_vars = vcat(z_vars, x_vars)
+    sol_vals = ones(Float64, length(z_vars) + length(x_vars))
+
+    MOI.submit(model, BlockDecomposition.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+    # As the procedure is inexact, no dual bound can be computed, we set it to -Inf.
+    MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), -Inf)
+end;</code></pre><p>We set the solver; <code>colgen_stages_pricing_solvers</code> indicates which solver to use first (here it is <code>approx_pricing</code>)</p><pre><code class="language-julia hljs">coluna = JuMP.optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver=Coluna.Algorithm.BranchCutAndPriceAlgorithm(
+            maxnumnodes=100,
+            colgen_stages_pricing_solvers=[2, 1]
+        )
+    )
+);</code></pre><p>We add the two pricing algorithms to our model:</p><pre><code class="language-julia hljs">model, x, y, z, cov = create_model(coluna, [approx_pricing, pricing_callback]);</code></pre><p>We declare our custom data to Coluna:</p><pre><code class="language-julia hljs">BlockDecomposition.customvars!(model, R1cVarData)
+BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData]);
+for i in customers
+    customdata!(cov[i], CoverConstrData(i))
+end</code></pre><p>Optimize:</p><pre><code class="language-julia hljs">JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 2&gt; &lt;it=  2&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=40114.4000&gt; &lt;PB=Inf&gt;
+  &lt;st= 2&gt; &lt;it=  3&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=40114.4000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-119113.8000&gt; &lt;mlp=40114.4000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -431.9000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -403.5000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -298.5000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -91.8333&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -67.3000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -76.5000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -187.1000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -90.5000&gt; &lt;mlp=  309.1000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -87.1500&gt; &lt;mlp=  304.8500&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  266.9500&gt; &lt;mlp=  279.8500&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  270.2250&gt; &lt;mlp=  277.2750&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  272.0750&gt; &lt;mlp=  277.2750&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  271.2000&gt; &lt;mlp=  277.0000&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  273.6750&gt; &lt;mlp=  276.2750&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 19&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  272.6750&gt; &lt;mlp=  276.2750&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 20&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  275.2250&gt; &lt;mlp=  275.8250&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 21&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  275.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=309.1000&gt;
+  &lt;st= 1&gt; &lt;it= 22&gt; &lt;et= 0.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=309.1000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
+**** Local DB = 275.7500, global bounds: [ -Inf , 293.8000 ], time = 0.47 sec.
+**** Branching constraint: z[4,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  276.5500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7500&gt; &lt;mlp=  276.5500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  276.1500&gt; &lt;mlp=  276.5500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  276.5000&gt; &lt;mlp=  276.5000&gt; &lt;PB=293.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°5, parent N°3, depth 2, 2 untreated nodes
+**** Local DB = 276.5000, global bounds: [ 275.7500 , 293.8000 ], time = 0.48 sec.
+**** Branching constraint: z[1,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  277.6000&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  270.6000&gt; &lt;mlp=  277.6000&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  277.2500&gt; &lt;mlp=  277.2500&gt; &lt;PB=293.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°7, parent N°5, depth 3, 3 untreated nodes
+**** Local DB = 277.2500, global bounds: [ 275.7500 , 293.8000 ], time = 0.48 sec.
+**** Branching constraint: z[3,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  278.4500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  278.4500&gt; &lt;mlp=  278.4500&gt; &lt;PB=293.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°9, parent N°7, depth 4, 4 untreated nodes
+**** Local DB = 278.4500, global bounds: [ 275.7500 , 293.8000 ], time = 0.52 sec.
+**** Branching constraint: z[3,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  295.3500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  116.0500&gt; &lt;mlp=  295.3500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  180.0500&gt; &lt;mlp=  294.2500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.4500&gt; &lt;mlp=  294.2500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  291.3500&gt; &lt;mlp=  294.2500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  292.7500&gt; &lt;mlp=  294.2500&gt; &lt;PB=293.8000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  292.1000&gt; &lt;mlp=  293.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  292.3000&gt; &lt;mlp=  293.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  293.5000&gt; &lt;mlp=  293.5000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°8, parent N°7, depth 4, 3 untreated nodes
+**** Local DB = 278.4500, global bounds: [ 275.7500 , 293.5000 ], time = 0.53 sec.
+**** Branching constraint: z[3,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  312.0000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  130.2000&gt; &lt;mlp=  312.0000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  288.7000&gt; &lt;mlp=  298.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  292.9000&gt; &lt;mlp=  298.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  288.3000&gt; &lt;mlp=  298.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  290.3000&gt; &lt;mlp=  298.9000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  296.3000&gt; &lt;mlp=  296.3000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°6, parent N°5, depth 3, 2 untreated nodes
+**** Local DB = 277.2500, global bounds: [ 275.7500 , 293.5000 ], time = 0.54 sec.
+**** Branching constraint: z[3,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  293.8000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  112.8000&gt; &lt;mlp=  293.8000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  255.9000&gt; &lt;mlp=  279.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  277.9000&gt; &lt;mlp=  279.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  279.2500&gt; &lt;mlp=  279.2500&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°11, parent N°6, depth 4, 3 untreated nodes
+**** Local DB = 279.2500, global bounds: [ 275.7500 , 293.5000 ], time = 0.55 sec.
+**** Branching constraint: z[7,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  280.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  280.5000&gt; &lt;mlp=  280.5000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°13, parent N°11, depth 5, 4 untreated nodes
+**** Local DB = 280.5000, global bounds: [ 275.7500 , 293.5000 ], time = 0.55 sec.
+**** Branching constraint: y[1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  316.2000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-4860.0000&gt; &lt;mlp=  316.2000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  259.1200&gt; &lt;mlp=  287.2400&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  256.1750&gt; &lt;mlp=  283.7250&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.7250&gt; &lt;mlp=  283.7250&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  283.7250&gt; &lt;mlp=  283.7250&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°15, parent N°13, depth 6, 5 untreated nodes
+**** Local DB = 283.7250, global bounds: [ 275.7500 , 293.5000 ], time = 0.56 sec.
+**** Branching constraint: z[7,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  302.4833&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  215.5833&gt; &lt;mlp=  302.4833&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  241.6833&gt; &lt;mlp=  302.4833&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  270.6500&gt; &lt;mlp=  292.3500&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  272.8500&gt; &lt;mlp=  292.3500&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.56&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.4000&gt; &lt;mlp=  290.4000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°17, parent N°15, depth 7, 6 untreated nodes
+**** Local DB = 290.4000, global bounds: [ 275.7500 , 293.5000 ], time = 0.56 sec.
+**** Branching constraint: z[5,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  318.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  261.1000&gt; &lt;mlp=  318.7000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  296.9000&gt; &lt;mlp=  304.3000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°16, parent N°15, depth 7, 5 untreated nodes
+**** Local DB = 290.4000, global bounds: [ 275.7500 , 293.5000 ], time = 0.57 sec.
+**** Branching constraint: z[5,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  334.2000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-2713.1143&gt; &lt;mlp=  334.2000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  273.9000&gt; &lt;mlp=  311.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  296.0000&gt; &lt;mlp=  298.6000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°14, parent N°13, depth 6, 4 untreated nodes
+**** Local DB = 283.7250, global bounds: [ 275.7500 , 293.5000 ], time = 0.57 sec.
+**** Branching constraint: z[7,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.57&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  299.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  110.1000&gt; &lt;mlp=  299.5000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  293.8000&gt; &lt;mlp=  299.5000&gt; &lt;PB=293.5000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°12, parent N°11, depth 5, 3 untreated nodes
+**** Local DB = 280.5000, global bounds: [ 275.7500 , 293.5000 ], time = 0.58 sec.
+**** Branching constraint: y[1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  304.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  247.6000&gt; &lt;mlp=  304.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  277.5000&gt; &lt;mlp=  304.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  268.6000&gt; &lt;mlp=  304.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.0000&gt; &lt;mlp=  304.6000&gt; &lt;PB=293.5000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  292.8000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  292.8000&gt; &lt;mlp=  292.8000&gt; &lt;PB=292.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°10, parent N°6, depth 4, 2 untreated nodes
+**** Local DB = 279.2500, global bounds: [ 275.7500 , 292.8000 ], time = 0.59 sec.
+**** Branching constraint: z[7,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  293.8000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  284.6000&gt; &lt;mlp=  293.8000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  292.8000&gt; &lt;mlp=  293.8000&gt; &lt;PB=292.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°4, parent N°3, depth 2, 1 untreated node
+**** Local DB = 276.5000, global bounds: [ 275.7500 , 292.8000 ], time = 0.59 sec.
+**** Branching constraint: z[1,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  291.2000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  151.0000&gt; &lt;mlp=  291.2000&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  257.0200&gt; &lt;mlp=  279.3400&gt; &lt;PB=292.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.59&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  279.3400&gt; &lt;mlp=  279.3400&gt; &lt;PB=292.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°19, parent N°4, depth 3, 2 untreated nodes
+**** Local DB = 279.3400, global bounds: [ 275.7500 , 290.3000 ], time = 0.60 sec.
+**** Branching constraint: z[7,3]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.63&gt; &lt;mst= 0.03&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  292.8000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  171.6000&gt; &lt;mlp=  292.8000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  281.6400&gt; &lt;mlp=  281.6400&gt; &lt;PB=290.3000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°21, parent N°19, depth 4, 3 untreated nodes
+**** Local DB = 281.6400, global bounds: [ 275.7500 , 290.3000 ], time = 0.63 sec.
+**** Branching constraint: z[3,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  293.9500&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  288.8500&gt; &lt;mlp=  293.9500&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.9000&gt; &lt;mlp=  291.4000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  291.4000&gt; &lt;mlp=  291.4000&gt; &lt;PB=290.3000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°20, parent N°19, depth 4, 2 untreated nodes
+**** Local DB = 281.6400, global bounds: [ 275.7500 , 290.3000 ], time = 0.64 sec.
+**** Branching constraint: z[3,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  292.8000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  235.2000&gt; &lt;mlp=  292.8000&gt; &lt;PB=290.3000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  235.4000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  285.1400&gt; &lt;mlp=  285.1400&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°23, parent N°20, depth 5, 3 untreated nodes
+**** Local DB = 285.1400, global bounds: [ 275.7500 , 289.8000 ], time = 0.64 sec.
+**** Branching constraint: x[3,2]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  286.2000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°22, parent N°20, depth 5, 2 untreated nodes
+**** Local DB = 285.1400, global bounds: [ 275.7500 , 289.8000 ], time = 0.64 sec.
+**** Branching constraint: x[3,2]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  292.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  292.8000&gt; &lt;mlp=  292.8000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°18, parent N°4, depth 3, 1 untreated node
+**** Local DB = 279.3400, global bounds: [ 275.7500 , 289.8000 ], time = 0.65 sec.
+**** Branching constraint: z[7,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=   77.9000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  183.2333&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  273.9600&gt; &lt;mlp=  286.7600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.5200&gt; &lt;mlp=  282.9200&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  282.0800&gt; &lt;mlp=  282.0800&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°25, parent N°18, depth 4, 2 untreated nodes
+**** Local DB = 282.0800, global bounds: [ 275.7500 , 289.8000 ], time = 0.66 sec.
+**** Branching constraint: z[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  285.9200&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  285.9200&gt; &lt;mlp=  285.9200&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°27, parent N°25, depth 5, 3 untreated nodes
+**** Local DB = 285.9200, global bounds: [ 275.7500 , 289.8000 ], time = 0.66 sec.
+**** Branching constraint: y[1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp= 5286.7600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB= 5281.7600&gt; &lt;mlp= 5286.7600&gt; &lt;PB=289.8000&gt;
+# &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB= 5000.0000&gt; &lt;mlp= 5000.0000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°26, parent N°25, depth 5, 2 untreated nodes
+**** Local DB = 285.9200, global bounds: [ 275.7500 , 289.8000 ], time = 0.92 sec.
+**** Branching constraint: y[1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  301.1000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  280.1000&gt; &lt;mlp=  301.1000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.6000&gt; &lt;mlp=  290.6000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°24, parent N°18, depth 4, 1 untreated node
+**** Local DB = 282.0800, global bounds: [ 275.7500 , 289.8000 ], time = 0.92 sec.
+**** Branching constraint: z[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  248.6000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  280.2500&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  281.8000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.6000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  289.2000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.3000&gt; &lt;mlp=  290.3000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°2, parent N°1, depth 1, 0 untreated node
+**** Local DB = 275.7500, global bounds: [ 275.7500 , 289.8000 ], time = 0.93 sec.
+**** Branching constraint: z[4,3]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  299.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  168.0333&gt; &lt;mlp=  299.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -51.9000&gt; &lt;mlp=  299.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  251.9000&gt; &lt;mlp=  281.5400&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  273.9000&gt; &lt;mlp=  279.3000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  278.6250&gt; &lt;mlp=  278.6250&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°29, parent N°2, depth 2, 1 untreated node
+**** Local DB = 278.6250, global bounds: [ 289.8000 , 289.8000 ], time = 0.94 sec.
+**** Branching constraint: z[1,4]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  280.4750&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.0750&gt; &lt;mlp=  280.4750&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  280.0750&gt; &lt;mlp=  280.4750&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  280.4750&gt; &lt;mlp=  280.4750&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°31, parent N°29, depth 3, 2 untreated nodes
+**** Local DB = 280.4750, global bounds: [ 278.6250 , 289.8000 ], time = 0.94 sec.
+**** Branching constraint: z[1,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  282.7250&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  278.9250&gt; &lt;mlp=  282.7250&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  282.7250&gt; &lt;mlp=  282.7250&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°33, parent N°31, depth 4, 3 untreated nodes
+**** Local DB = 282.7250, global bounds: [ 278.6250 , 289.8000 ], time = 0.95 sec.
+**** Branching constraint: y[1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  290.6600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  259.1800&gt; &lt;mlp=  290.6600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  264.9800&gt; &lt;mlp=  290.6600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  277.8500&gt; &lt;mlp=  287.4500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 0.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  285.8500&gt; &lt;mlp=  286.2500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 0.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  286.2500&gt; &lt;mlp=  286.2500&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°35, parent N°33, depth 5, 4 untreated nodes
+**** Local DB = 286.2500, global bounds: [ 278.6250 , 289.8000 ], time = 0.96 sec.
+**** Branching constraint: z[8,5]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  290.6600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.5800&gt; &lt;mlp=  290.6600&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  288.6500&gt; &lt;mlp=  288.6500&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°37, parent N°35, depth 6, 5 untreated nodes
+**** Local DB = 288.6500, global bounds: [ 278.6250 , 289.8000 ], time = 0.98 sec.
+**** Branching constraint: z[3,6]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  315.4000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  269.8000&gt; &lt;mlp=  315.4000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.8000&gt; &lt;mlp=  312.2000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  298.1000&gt; &lt;mlp=  304.9000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°36, parent N°35, depth 6, 4 untreated nodes
+**** Local DB = 288.6500, global bounds: [ 278.6250 , 289.8000 ], time = 0.99 sec.
+**** Branching constraint: z[3,6]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  306.1000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  291.3000&gt; &lt;mlp=  306.1000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°34, parent N°33, depth 5, 3 untreated nodes
+**** Local DB = 286.2500, global bounds: [ 278.6250 , 289.8000 ], time = 0.99 sec.
+**** Branching constraint: z[8,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  315.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=-3160.0667&gt; &lt;mlp=  315.0000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  292.3500&gt; &lt;mlp=  303.4500&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°32, parent N°31, depth 4, 2 untreated nodes
+**** Local DB = 282.7250, global bounds: [ 278.6250 , 289.8000 ], time = 0.99 sec.
+**** Branching constraint: y[1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 0.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  302.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  279.1000&gt; &lt;mlp=  302.7000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  291.9000&gt; &lt;mlp=  295.1000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°30, parent N°29, depth 3, 1 untreated node
+**** Local DB = 280.4750, global bounds: [ 278.6250 , 289.8000 ], time = 1.00 sec.
+**** Branching constraint: z[1,5]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  303.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  148.9000&gt; &lt;mlp=  303.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  205.7500&gt; &lt;mlp=  303.7500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  291.1667&gt; &lt;mlp=  297.2333&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°28, parent N°2, depth 2, 0 untreated node
+**** Local DB = 278.6250, global bounds: [ 278.6250 , 289.8000 ], time = 1.00 sec.
+**** Branching constraint: z[1,4]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 1.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  293.5000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  188.7000&gt; &lt;mlp=  293.5000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  239.6333&gt; &lt;mlp=  289.6111&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  286.7125&gt; &lt;mlp=  286.7125&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°39, parent N°28, depth 3, 1 untreated node
+**** Local DB = 286.7125, global bounds: [ 289.8000 , 289.8000 ], time = 1.01 sec.
+**** Branching constraint: z[1,8]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  289.5875&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.5875&gt; &lt;mlp=  289.5875&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°41, parent N°39, depth 4, 2 untreated nodes
+**** Local DB = 289.5875, global bounds: [ 286.7125 , 289.8000 ], time = 1.01 sec.
+**** Branching constraint: x[6,1]&lt;=0.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  303.8500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  242.9500&gt; &lt;mlp=  303.8500&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  290.4000&gt; &lt;mlp=  297.4000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°40, parent N°39, depth 4, 1 untreated node
+**** Local DB = 289.5875, global bounds: [ 286.7125 , 289.8000 ], time = 1.02 sec.
+**** Branching constraint: x[6,1]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  255.8000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  283.1000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  292.9000&gt; &lt;mlp=  292.9000&gt; &lt;PB=289.8000&gt;
+***************************************************************************************
+**** B&amp;B tree node N°38, parent N°28, depth 3, 0 untreated node
+**** Local DB = 286.7125, global bounds: [ 286.7125 , 289.8000 ], time = 1.02 sec.
+**** Branching constraint: z[1,8]&gt;=1.0
+***************************************************************************************
+  &lt;st= 2&gt; &lt;it=  1&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=      -Inf&gt; &lt;mlp=  290.5000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  264.7667&gt; &lt;mlp=  290.5000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  290.5000&gt; &lt;mlp=  290.5000&gt; &lt;PB=289.8000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         1.80s /  57.0%            224MiB /  70.8%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    1.03s  100.0%   1.03s    159MiB  100.0%   159MiB
+   SolveLpForm      181   81.2ms    7.9%   448μs   17.6MiB   11.1%   100KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 289.8
+[ Info: Dual bound: 289.7999999999999</code></pre><h2 id="Benders-decomposition"><a class="docs-heading-anchor" href="#Benders-decomposition">Benders decomposition</a><a id="Benders-decomposition-1"></a><a class="docs-heading-anchor-permalink" href="#Benders-decomposition" title="Permalink"></a></h2><p>In this section, we show how one can solve the linear relaxation of the master program of a Benders Decomposition approach to this facility location demo problem.</p><p>The first-stage decisions consist in choosing a subset of facilities to open. The second-stage decisions consist in choosing the routes that are assigned to each facility. The second stage problem is an integer program, so for simplicity, we use its linear relaxation instead. To improve the quality of this relaxation, we enumerate the routes and use one variable per route. As this approach is practical only for small instances, we use it only for illustration purposes. For larger instances, we would have to implement a column generation approach to solve the subproblem, i.e., the Benders cut separation problem.</p><p>In the same spirit as the above models, we use the variables. Let <code>y[j]</code> equal 1 if the facility <code>j</code> is open and 0 otherwise. Let <code>λ[j,k]</code> equal 1 if route <code>k</code> starting from facility <code>j</code> is selected and 0 otherwise.</p><p>Since there is only one subproblem in the second stage, we introduce a fake axis that contains only one element. This approach can be generalized to the case where customer demand uncertainty is expressed with scenarios. In this case, we would have one subproblem for each scenario, and the axis would have been defined for the set of scenarios. In our case, the set of scenarios consists of one &quot;fake&quot; scenario.</p><pre><code class="language-julia hljs">fake = 1
+@axis(axis, collect(fake:fake))
+
+coluna = JuMP.optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(solver=Coluna.Algorithm.BendersCutGeneration()
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer
+)
+
+model = BlockModel(coluna);</code></pre><p>We introduce auxiliary structures to improve the clarity of the code.</p><pre><code class="language-julia hljs"># routes covering customer i from facility j.
+covering_routes = Dict(
+    (j, i) =&gt; findall(r -&gt; (i in r.path), routes_per_facility[j]) for i in customers, j in facilities
+);
+# routes costs from facility j.
+routes_costs = Dict(
+    j =&gt; [route_original_cost(arc_costs, r) for r in routes_per_facility[j]] for j in facilities
+);</code></pre><p>We declare the variables.</p><pre><code class="language-julia hljs">@variable(model, 0 &lt;= y[j in facilities] &lt;= 1) ## 1st stage
+@variable(model, 0 &lt;= λ[f in axis, j in facilities, k in 1:length(routes_per_facility[j])] &lt;= 1); ## 2nd stage</code></pre><p>We declare the constraints.</p><pre><code class="language-julia hljs"># Linking constraints
+@constraint(model, open[fake in axis, j in facilities, k in 1:length(routes_per_facility[j])],
+    y[j] &gt;= λ[fake, j, k])
+
+# Second-stage constraints
+@constraint(model, cover[fake in axis, i in customers],
+    sum(λ[fake, j, k] for j in facilities, k in covering_routes[(j, i)]) &gt;= 1)
+
+# Second-stage constraints
+@constraint(model, limit_nb_routes[fake in axis, j in facilities],
+    sum(λ[fake, j, q] for q in 1:length(routes_per_facility[j])) &lt;= nb_routes_per_facility
+)
+
+# First-stage constraint
+# This constraint is redundant, we add it in order not to start with an empty master problem
+@constraint(model, min_opening,
+    sum(y[j] for j in facilities) &gt;= 1)
+
+@objective(model, Min,
+    sum(facilities_fixed_costs[j] * y[j] for j in facilities) +
+    sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])));</code></pre><p>We perform the decomposition over the axis and we optimize the problem.</p><pre><code class="language-julia hljs">@benders_decomposition(model, dec, axis)
+JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.5 | https://github.com/atoptima/Coluna.jl
+&lt;it=  1&gt; &lt;et= 3.45&gt; &lt;mst= 0.08&gt; &lt;sp= 0.41&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
+&lt;it=  2&gt; &lt;et= 4.07&gt; &lt;mst= 0.36&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
+&lt;it=  3&gt; &lt;et= 4.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
+&lt;it=  4&gt; &lt;et= 4.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
+&lt;it=  5&gt; &lt;et= 4.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
+&lt;it=  6&gt; &lt;et= 4.08&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
+&lt;it=  7&gt; &lt;et= 4.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
+&lt;it=  8&gt; &lt;et= 4.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
+&lt;it=  9&gt; &lt;et= 4.09&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
+&lt;it= 10&gt; &lt;et= 4.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         9.93s /  42.3%            454MiB /  31.9%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    4.20s  100.0%   4.20s    145MiB  100.0%   145MiB
+   SolveLpForm       20    867ms   20.6%  43.3ms   42.8MiB   29.5%  2.14MiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: Inf
+[ Info: Dual bound: 271.8230769230769</code></pre><h2 id="Example-of-comparison-of-the-dual-bounds"><a class="docs-heading-anchor" href="#Example-of-comparison-of-the-dual-bounds">Example of comparison of the dual bounds</a><a id="Example-of-comparison-of-the-dual-bounds-1"></a><a class="docs-heading-anchor-permalink" href="#Example-of-comparison-of-the-dual-bounds" title="Permalink"></a></h2><p>In this section, we use a larger instance with 3 facilities and 13 customers. We solve only the root node and look at the dual bound:</p><ul><li>with the standard column generation (without cut separation)</li><li>by adding robust cuts</li><li>by adding non-robust cuts</li><li>by adding both robust and non-robust cuts</li></ul><pre><code class="language-julia hljs">nb_positions = 6
+facilities_fixed_costs = [120, 150, 110]
+facilities = [1, 2, 3]
+customers = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+arc_costs = [
+    0.0 125.6 148.9 182.2 174.9 126.2 158.6 172.9 127.4 133.1 152.6 183.8 182.4 176.9 120.7 129.5;
+    123.6 0.0 175.0 146.7 191.0 130.4 142.5 139.3 130.1 133.3 163.8 127.8 139.3 128.4 186.4 115.6;
+    101.5 189.6 0.0 198.2 150.5 159.6 128.3 133.0 195.1 167.3 187.3 178.1 171.7 161.5 142.9 142.1;
+    159.4 188.4 124.7 0.0 174.5 174.0 142.6 102.5 135.5 184.4 121.6 112.1 139.9 105.5 190.9 140.7;
+    157.7 160.3 184.2 196.1 0.0 115.5 175.2 153.5 137.7 141.3 109.5 107.7 125.3 151.0 133.1 140.6;
+    145.2 120.4 106.7 138.8 157.3 0.0 153.6 192.2 153.2 184.4 133.6 164.9 163.6 126.3 121.3 161.4;
+    182.6 152.1 178.8 184.1 150.8 163.5 0.0 164.1 104.0 100.5 117.3 156.1 115.1 168.6 186.5 100.2;
+    144.9 193.8 146.1 191.4 136.8 172.7 108.1 0.0 131.0 166.3 116.4 187.0 161.3 148.2 162.1 116.0;
+    173.4 199.1 132.9 133.2 139.8 112.7 138.1 118.8 0.0 173.4 131.8 180.6 191.0 133.9 178.7 108.7;
+    150.5 171.0 163.8 171.5 116.3 149.1 124.0 192.5 188.8 0.0 112.2 188.7 197.3 144.9 110.7 186.6;
+    153.6 104.4 141.1 124.7 121.1 137.5 190.3 177.1 194.4 135.3 0.0 146.4 132.7 103.2 150.3 118.4;
+    112.5 133.7 187.1 170.0 130.2 177.7 159.2 169.9 183.8 101.6 156.2 0.0 114.7 169.3 149.9 125.3;
+    151.5 165.6 162.1 133.4 159.4 200.5 132.7 199.9 136.8 121.3 118.1 123.4 0.0 104.8 197.1 134.4;
+    195.0 101.1 194.1 160.1 147.1 164.6 137.2 138.6 166.7 191.2 169.2 186.0 171.2 0.0 106.8 150.9;
+    158.2 152.7 104.0 136.0 168.9 175.7 139.2 163.2 102.7 153.3 185.9 164.0 113.2 200.7 0.0 127.4;
+    136.6 174.3 103.2 131.4 107.8 191.6 115.1 127.6 163.2 123.2 173.3 133.0 120.5 176.9 173.8 0.0;
+]
+
+locations = vcat(facilities, customers)
+nb_customers = length(customers)
+nb_facilities = length(facilities)
+positions = 1:nb_positions;
+
+routes_per_facility = Dict(
+    j =&gt; best_route_forall_cust_subsets(arc_costs, customers, j, nb_positions) for j in facilities
+);</code></pre><p>We set <code>maxnumnodes</code> to zero to optimize only the root node:</p><pre><code class="language-julia hljs">coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver=Coluna.Algorithm.TreeSearchAlgorithm(
+            maxnumnodes=0,
+            conqueralg=Coluna.ColCutGenConquer()
+        )
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer
+);</code></pre><p>We define a method to call both <code>valid_inequalities_callback</code> and <code>r1c_callback</code>:</p><pre><code class="language-julia hljs">function cuts_callback(cbdata)
+    valid_inequalities_callback(cbdata)
+    r1c_callback(cbdata)
+end
+
+function attach_data(model, cov)
+    BlockDecomposition.customvars!(model, R1cVarData)
+    BlockDecomposition.customconstrs!(model, [CoverConstrData, R1cCutData])
+    for i in customers
+        customdata!(cov[i], CoverConstrData(i))
+    end
+end;</code></pre><p>First, we solve the root node with the &quot;raw&quot; decomposition model:</p><pre><code class="language-julia hljs">model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)</code></pre><p>dual bound found after optimization = 1588.00</p><p>Then, we re-solve it with the robust cuts:</p><pre><code class="language-julia hljs">model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);</code></pre><p>dual bound found after optimization = 1591.55</p><p>And with non-robust cuts:</p><pre><code class="language-julia hljs">model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+MOI.set(model, MOI.UserCutCallback(), r1c_callback);</code></pre><p>dual bound found after optimization = 1598.26</p><p>Finally we add both robust and non-robust cuts:</p><pre><code class="language-julia hljs">model, x, y, z, cov = create_model(coluna, pricing_callback)
+attach_data(model, cov)
+MOI.set(model, MOI.UserCutCallback(), cuts_callback);</code></pre><p>dual bound found after optimization =  1600.63</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Tuesday 29 August 2023 12:19">Tuesday 29 August 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
