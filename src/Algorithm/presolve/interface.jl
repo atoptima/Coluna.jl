@@ -133,4 +133,11 @@ end
 
 function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
     presolve_reform = create_presolve_reform(reform)
+    
+    @show presolve_reform.original_master.form
+
+    @show rows_to_deactivate!(presolve_reform.original_master.form)
+    @show bounds_tightening(presolve_reform.original_master.form)
+
+    @show presolve_reform
 end
