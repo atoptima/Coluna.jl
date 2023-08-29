@@ -102,7 +102,7 @@ function rows_to_deactivate!(form::PresolveFormRepr)
         sense = form.sense[row]
         rhs = form.rhs[row]
         if _infeasible_row(sense, min_slacks[row], max_slacks[row], 1e-6)
-            error("Infeasible.")
+            error("Infeasible row $row.")
         end
         if _unbounded_row(sense, rhs) || _row_bounded_by_var_bounds(sense, min_slacks[row], max_slacks[row], 1e-6)
             push!(rows_to_deactivate, row)
@@ -112,16 +112,16 @@ function rows_to_deactivate!(form::PresolveFormRepr)
 end
 
 function bounds_tightening(form::PresolveFormRepr)
-    length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
+    #length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
 
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    for col in 1:form.nb_cols
+    for col in 1:form.nb_vars
         var_lb = form.lbs[col]
         var_ub = form.ubs[col]
         tighter_lb = false
         tighter_ub = false
-        for row in 1:form.nb_rows
+        for row in 1:form.nb_constrs
             min_slack = row_min_slack(form, row, i -> i == col)
             max_slack = row_max_slack(form, row, i -> i == col)
             var_coef_in_row = form.col_major_coef_matrix[row, col]
@@ -151,11 +151,16 @@ function _fix_var(lb::Real, ub::Real, ϵ::Real)
     return abs(lb - ub) <= ϵ
 end
 
-function vars_to_fix(nb_cols::Int, tightened_bound::Vector{Tuple{Float64, Bool, Float64, Bool}})
+function vars_to_fix(form::PresolveFormRepr, tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}})
     vars_to_fix = Int[]
-    for col in 1:nb_cols
-        var_lb, _, var_ub, _ = tightened_bound[col]
+    for (col, tb) in tightened_bounds
+        var_lb, _, var_ub, _ = tb
         if _fix_var(var_lb, var_ub, 1e-6)
+            push!(vars_to_fix, col)
+        end
+    end
+    for col in 1:form.nb_vars
+        if !haskey(tightened_bounds, col) && _fix_var(form.lbs[col], form.ubs[col], 1e-6)
             push!(vars_to_fix, col)
         end
     end
