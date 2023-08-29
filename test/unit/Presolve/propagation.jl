@@ -55,16 +55,22 @@ function _presolve_propagation_constrs(form, constr_descriptions)
     return constrs
 end
 
-function _presolve_formulation!(env, form_duty, var_descriptions, constr_descriptions, matrix)
+function _mathprog_formulation!(env, form_duty, var_descriptions, constr_descriptions)
     form = Coluna.MathProg.create_formulation!(env, form_duty)
 
     vars = _presolve_propagation_vars(form, var_descriptions)
     constrs = _presolve_propagation_constrs(form, constr_descriptions)
-    
-    rhs = [rhs for (_, _, rhs, _, _) in constr_descriptions]
-    sense = [sense for (_, _, _, sense, _) in constr_descriptions]
-    lbs = [lb for (_, _, _, lb, _, _) in var_descriptions]
-    ubs = [ub for (_, _, _, _, ub, _) in var_descriptions]
+
+    name_to_vars = Dict(name => var for (name, var) in vars)
+    name_to_constrs = Dict(name => constr for (name, constr) in constrs)
+    return form, name_to_vars, name_to_constrs
+end
+
+function _presolve_formulation(var_names, constr_names, matrix, form, name_to_vars, name_to_constrs)
+    rhs = [Coluna.MathProg.getcurrhs(form, name_to_constrs[name]) for name in constr_names]
+    sense = [Coluna.MathProg.getcursense(form, name_to_constrs[name]) for name in constr_names]
+    lbs = [Coluna.MathProg.getcurlb(form, name_to_vars[name]) for name in var_names]
+    ubs = [Coluna.MathProg.getcurub(form, name_to_vars[name]) for name in var_names]
 
     form_repr = Coluna.Algorithm.PresolveFormRepr(
         matrix,
@@ -74,10 +80,10 @@ function _presolve_formulation!(env, form_duty, var_descriptions, constr_descrip
         ubs
     )
 
-    col_to_var = [var for (_, var) in vars]
-    row_to_constr = [constr for (_, constr) in constrs]
-    var_to_col = Dict(ClMP.getid(var) => i for (i, var) in enumerate(col_to_var))
-    constr_to_row = Dict(ClMP.getid(constr) => i for (i, constr) in enumerate(row_to_constr))
+    col_to_var = [name_to_vars[name] for name in var_names]
+    row_to_constr = [name_to_constrs[name] for name in constr_names]
+    var_to_col = Dict(ClMP.getid(name_to_vars[name]) => i for (i, name) in enumerate(var_names))
+    constr_to_row = Dict(ClMP.getid(name_to_constrs[name]) => i for (i, name) in enumerate(constr_names))
 
     presolve_form = Coluna.Algorithm.PresolveFormulation(
         col_to_var,
@@ -86,10 +92,7 @@ function _presolve_formulation!(env, form_duty, var_descriptions, constr_descrip
         constr_to_row,
         form_repr
     )
-
-    name_to_var = Dict(name => var for (name, var) in vars)
-    name_to_constr = Dict(name => constr for (name, constr) in constrs)
-    return presolve_form, name_to_var, name_to_constr
+    return presolve_form
 end
 
 ############################################################################################
@@ -117,7 +120,7 @@ function test_constr_removing_propagation_from_original_to_master()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
-    orig_presolve_form, orig_name_to_var, orig_name_to_constr = _presolve_formulation!(
+    orig_form, orig_name_to_var, orig_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.Original(),
         [
@@ -129,34 +132,34 @@ function test_constr_removing_propagation_from_original_to_master()
             # name, duty, rhs, sense, id
             ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing),
             ("c2", Coluna.MathProg.OriginalConstr, 3.0, ClMP.Less, nothing)
-        ],
-        [ 1 1; 1 1 ]
+        ]
     )
 
-    master_presolve_form, master_name_to_var, master_constr_to_var = _presolve_formulation!(
+    orig_presolve_form = _presolve_formulation(
+        ["x", "y"], ["c1", "c2"], [1 1; 1 1], orig_form, orig_name_to_var, orig_name_to_constr
+    )
+
+    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
             ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x"])),
             ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y"])),
-            #("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            #("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing)
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
             ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c1"])),
             ("c2", Coluna.MathProg.MasterPureConstr, 3.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c2"]))
-        ],
-        [ 1 1; 1 1]
+        ]
     )
 
-    presolve_reform = Coluna.Algorithm.DwPresolveReform(
-        orig_presolve_form,
-        master_presolve_form,
-        Dict{Coluna.MathProg.FormId, Coluna.Algorithm.PresolveFormulation}()
+    master_repr_presolve_form = _presolve_formulation(
+        ["_x", "_y"], ["c1", "c2"], [1 1; 1 1], master_form, master_name_to_var, master_constr_to_var
     )
-    
+
     # Run the presolve row deactivation on the original formulation.
     result = Coluna.Algorithm.rows_to_deactivate!(orig_presolve_form.form)
 
@@ -191,7 +194,7 @@ function test_constr_removing_propagation_from_original_to_subproblem()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
-    orig_presolve_form, orig_name_to_var, orig_name_to_constr = _presolve_formulation!(
+    orig_form, orig_name_to_var, orig_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.Original(),
         [
@@ -206,45 +209,53 @@ function test_constr_removing_propagation_from_original_to_subproblem()
             ("c1", Coluna.MathProg.OriginalConstr, 3.0, ClMP.Less, nothing),
             ("c2", Coluna.MathProg.OriginalConstr, 2.0, ClMP.Less, nothing),
             ("c3", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing)
-        ],
-        [ 1 1 1 1; 1 1 0 0; 0 0 1 1 ]
+        ]
     )
 
-    sp1_presolve_form, sp1_name_to_var, sp1_name_to_constr = _presolve_formulation!(
-        env,
+    orig_presolve_form = _presolve_formulation(
+        ["x1", "x2", "y1", "y2"], ["c1", "c2", "c3"], [1 1 1 1; 1 1 0 0; 0 0 1 1], orig_form, orig_name_to_var, orig_name_to_constr
+    )
+
+    sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
+        env, 
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x1"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x1"])),
             ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x2"]))
         ],
         [
             # name, duty, rhs, sense, id
             ("c2", Coluna.MathProg.DwSpPureConstr, 2.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c2"]))
         ],
-        [ 1 1; ]
     )
 
-    sp2_presolve_form, sp2_name_to_var, sp2_name_to_constr = _presolve_formulation!(
+    sp1_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c2"], [1 1;], sp1_form, sp1_name_to_var, sp1_name_to_constr
+    )
+
+    sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y1"]))
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y1"])),
             ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y2"]))
         ],
         [
             # name, duty, rhs, sense, id
             ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c3"]))
         ],
-        [ 1 1; ]
     )
 
-        
+    sp2_presolve_form = _presolve_formulation(
+        ["y1", "y2"], ["c3"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
+    )
+       
     # Run the presolve row deactivation on the original formulation.
     result = Coluna.Algorithm.rows_to_deactivate!(orig_presolve_form.form)
 
@@ -292,7 +303,7 @@ function test_var_bound_propagation_from_original_to_subproblem()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
-    orig_presolve_form, orig_name_to_var, orig_name_to_constr = _presolve_formulation!(
+    orig_form, orig_name_to_var, orig_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.Original(),
         [
@@ -307,11 +318,14 @@ function test_var_bound_propagation_from_original_to_subproblem()
             ("c1", Coluna.MathProg.OriginalConstr, 2.0, ClMP.Greater, nothing),
             ("c2", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Greater, nothing),
             ("c3", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Greater, nothing)
-        ],
-        [ 1 1 1 1; 1 1 0 0; 0 0 1 1 ]
+        ]
     )
 
-    sp1_presolve_form, sp1_name_to_var, sp1_name_to_constr = _presolve_formulation!(
+    orig_presolve_form = _presolve_formulation(
+        ["x1", "x2", "y1", "y2"], ["c1", "c2", "c3"], [1 1 1 1; 1 1 0 0; 0 0 1 1], orig_form, orig_name_to_var, orig_name_to_constr
+    )
+
+    sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
@@ -324,11 +338,14 @@ function test_var_bound_propagation_from_original_to_subproblem()
         [
             # name, duty, rhs, sense, id
             ("c2", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(orig_name_to_constr["c2"]))
-        ],
-        [ 1 1; ]
+        ]
     )
 
-    sp2_presolve_form, sp2_name_to_var, sp2_name_to_constr = _presolve_formulation!(
+    sp1_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c2"], [1 1;], sp1_form, sp1_name_to_var, sp1_name_to_constr
+    )
+
+    sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
@@ -341,8 +358,11 @@ function test_var_bound_propagation_from_original_to_subproblem()
         [
             # name, duty, rhs, sense, id
             ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(orig_name_to_constr["c3"]))
-        ],
-        [ 1 1; ]
+        ]
+    )
+
+    sp2_presolve_form = _presolve_formulation(
+        ["y1", "y2"], ["c3"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
     )
 
     # Run the presolve bounds tightening on the original formulation.
@@ -372,7 +392,7 @@ function test_var_bound_propagation_from_original_to_master()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
-    orig_presolve_form, orig_name_to_var, orig_name_to_constr = _presolve_formulation!(
+    orig_form, orig_name_to_var, orig_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.Original(),
         [
@@ -383,25 +403,31 @@ function test_var_bound_propagation_from_original_to_master()
         [
             # name, duty, rhs, sense, id
             ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing)
-        ],
-        [ 1 1 ]
+        ]
     )
 
-    master_presolve_form, master_name_to_var, master_constr_to_var = _presolve_formulation!(
+    orig_presolve_form = _presolve_formulation(
+        ["x", "y"], ["c1"], [1 1;], orig_form, orig_name_to_var, orig_name_to_constr
+    )
+
+    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
             ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x"])),
             ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y"])),
-            #("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            #("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing)
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
             ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c1"]))
         ],
-        [ 1 1 ]
+    )
+
+    master_repr_presolve_form = _presolve_formulation(
+        ["_x", "_y"], ["c1"], [1 1;], master_form, master_name_to_var, master_constr_to_var
     )
 
     # Run the presolve bounds tightening on the original formulation.
@@ -434,7 +460,7 @@ function test_var_bound_propagation_from_master_to_subproblem()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
-    master_presolve_form, master_name_to_var, master_constr_to_var = _presolve_formulation!(
+    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwMaster(),
         [
@@ -443,18 +469,25 @@ function test_var_bound_propagation_from_master_to_subproblem()
             ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, nothing),
             ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, nothing),
             ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, nothing),
-            #("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing),
-            #("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            #("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
             ("c1", Coluna.MathProg.MasterPureConstr, 2.0, ClMP.Greater, nothing)
-        ],
-        [ 1 1 1 1]
+        ]
     )
 
-    sp1_presolve_form, sp1_name_to_var, sp1_name_to_constr = _presolve_formulation!(
+    master_repr_presolve_form = _presolve_formulation(
+        ["x1", "x2", "y1", "y2"], ["c1"], [1 1 1;], master_form, master_name_to_var, master_constr_to_var
+    )
+
+    master_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "a"], ["c1"], [1 1 1;], master_form, master_name_to_var, master_constr_to_var
+    )
+
+    sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
@@ -468,10 +501,13 @@ function test_var_bound_propagation_from_master_to_subproblem()
             # name, duty, rhs, sense, id
             ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(master_constr_to_var["c1"]))
         ],
-        [ 1 1; ]
     )
 
-    sp2_presolve_form, sp2_name_to_var, sp2_name_to_constr = _presolve_formulation!(
+    sp1_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c1"], [1 1;], sp1_form, sp1_name_to_var, sp1_name_to_constr
+    )
+
+    sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
@@ -485,7 +521,10 @@ function test_var_bound_propagation_from_master_to_subproblem()
             # name, duty, rhs, sense, id
             ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(master_constr_to_var["c1"]))
         ],
-        [ 1 1; ]
+    )
+
+    sp2_presolve_form = _presolve_formulation(
+        ["y1", "y2"], ["c1"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
     )
 end
 register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_master_to_subproblem; f = true)
@@ -517,7 +556,7 @@ function test_var_bound_propagation_from_subproblem_to_master()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
-    sp1_presolve_form, sp1_name_to_var, sp1_name_to_constr = _presolve_formulation!(
+    sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
@@ -530,11 +569,14 @@ function test_var_bound_propagation_from_subproblem_to_master()
         [
             # name, duty, rhs, sense, id
             ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
-        ],
-        [ 1 1; ]
+        ]
     )
 
-    sp2_presolve_form, sp2_name_to_var, sp2_name_to_constr = _presolve_formulation!(
+    sp1_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c1"], [1 1;], sp1_form, sp1_name_to_var, sp1_name_to_constr
+    )
+    
+    sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwSp(
             nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
@@ -547,11 +589,14 @@ function test_var_bound_propagation_from_subproblem_to_master()
         [
             # name, duty, rhs, sense, id
             ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
-        ],
-        [ 1 1; ]
+        ]
     )
 
-    master_presolve_form, master_name_to_var, master_constr_to_var = _presolve_formulation!(
+    sp2_presolve_form = _presolve_formulation(
+        ["y1", "y2"], ["c1"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
+    )
+
+    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
         env,
         Coluna.MathProg.DwMaster(),
         [
@@ -560,15 +605,22 @@ function test_var_bound_propagation_from_subproblem_to_master()
             ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(sp1_name_to_var["x2"])),
             ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(sp2_name_to_var["y1"])),
             ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(sp2_name_to_var["y2"])),
-            #("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            #("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            #("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
             ("c1", Coluna.MathProg.MasterPureConstr, 2.0, ClMP.Greater, nothing)
-        ],
-        [ 1 1 1 1]
+        ]
+    )
+
+    master_repr_presolve_form = _presolve_formulation(
+        ["x1", "x2", "y1", "y2"], ["c1"], [1 1 1 1;], master_form, master_name_to_var, master_constr_to_var
+    )
+
+    master_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "a"], ["c1"], [1 1 1;], master_form, master_name_to_var, master_constr_to_var
     )
 
     # Run the presolve bounds tightening on the original formulation.
@@ -595,20 +647,201 @@ register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_o
 ## OriginalVar -> MasterPureVar (mapping exists)
 ## otherwise no propagation
 function test_var_fixing_propagation_from_original_to_master()
+    # Original
+    # max x + y
+    # s.t. x + y <= 1
+    #      0 <= x <= 1 (--> x == 0 by bounds tightening)
+    #      y == 1
 
+    # Master
+    # max _x + _y + MC1 + MC2 + MC3 + MC4 + 10000a
+    # s.t. _x + _y + MC1 + MC2 + MC3 + MC4 + a <= 1 ( --> _x + MC3 + MC4 + a <= 0)
+    #      0 <= _x <= 0.5 (repr) (--> x = 0 b y propagation)
+    #      _y >= 0 (repr) ( --> y == 1 by propagation )
+    #      0 <= MC1 <= 1 ( --> MC1 == 0 by propagation )
+    #      0 <= MC2 <= 1 ( --> MC2 == 0 by propagation )
+    #      0 <= MC3 <= 1 ( --> MC3 == 1 by propagation )
+    #      0 <= MC4 <= 1 ( --> MC4 == 0 by propagation )
+    #      a >= 0
+
+    # with:
+    # - MC1 = [x = 1, y = 0] 
+    # - MC2 = [x = 0, y = 0] 
+    # - MC3 = [x = 0, y = 1] 
+    # - MC4 = [x = 1, y = 1] (not suitable because x == 0)
+
+    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+    orig_form, orig_name_to_var, orig_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.Original(),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 1.0, 1.0, nothing)
+        ],
+        [
+            # name, duty, rhs, sense, id
+            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing)
+        ],
+    )
+
+    orig_presolve_form = _presolve_formulation(
+        ["x", "y"], ["c1"], [1 1;], orig_form, orig_name_to_var, orig_name_to_constr
+    )
+
+    master_form, master_name_to_var, master_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwMaster(),
+        [
+            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x"])),
+            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y"])),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 10000.0, 0.0, Inf, nothing)
+        ],
+        [
+            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, nothing)
+        ]
+    )
+
+    master_repr_presolve_form = _presolve_formulation(
+        ["_x", "_y"], ["c1"], [1 1;], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    master_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "MC3", "MC4", "a"], ["c1"], [1 1 1 1 1;], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    # Run the presolve variable fixing on the original formulation.
+    bounds_result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
+    result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
+    @test result == [1, 2]
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master; f = true)
 
-## MasterRepPricingVar -> DwSpPricingVar (mapping exists)
+## MasterColumns -> MasterRepPricingVar -> DwSpPricingVar
 ## otherwise no propagation
 function test_var_fixing_propagation_from_master_to_subproblem()
+    # Master
+    # min x1 + x2 + y1 + y2 + MC1 + MC2 + MC3 + MC4 a 
+    # s.t. 2x1 + 2x2 + 2y1 + 2y2 + 2MC1 + 2MC2 + 2MC3 + 2MC4 + a >= 4
+    #    0 <= x1 <= 0 (repr) --> (fixing x1 == 0)
+    #    0 <= x2 <= 1 (repr)
+    #    0 <= y1 <= 1 (repr)
+    #    1 <= y2 <= 1 (repr) --> (fixing y2 == 1)
+    #    0 <= MC1 <= 1
+    #    0 <= MC2 <= 1
+    #    0 <= MC3 <= 1
+    #    0 <= MC4 <= 1
+    #    a >= 0
 
+    # with:
+    # - MC1 = [x1 = 0, x2 = 0]
+    # - MC2 = [x1 = 1, x2 = 0] (--> fixing MC2 == 0 because x1 == 0 -- propagation)
+    # - MC3 = [x1 = 0, x2 = 1]
+    # - MC4 = [x1 = 1, x2 = 1] (--> fixing MC4 == 0 because x1 == 0 -- propagation)
+    # - MC5 = [y1 = 0, y2 = 0] 
+    # - MC6 = [y1 = 1, y2 = 0]
+    # - MC7 = [y1 = 0, y2 = 1]
+    # - MC8 = [y1 = 1, y2 = 1]
+
+    # Subproblems
+    # min x1 + x2
+    # s.t. x1 + x2 >= 1
+    #     0 <= x1 <= 1 --> (fixing x1 == 0 by propagation)
+    #     0 <= x2 <= 1
+
+    # min y1 + y2
+    # s.t. y1 + y2 >= 1
+    #    0 <= y1 <= 1
+    #    0 <= y2 <= 1 (--> fixing y2 == 1 by propagation)
+
+    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwMaster(),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.0, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 1.0, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+        ],
+        [
+            # name, duty, rhs, sense , id
+            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing)
+        ]
+    )
+
+    master_repr_presolve_form = _presolve_formulation(
+        ["x1", "x2", "y1", "y2"],  ["c1"], [2 2 2 2;], master_form, master_name_to_var, master_constr_to_var
+    )
+
+    master_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "MC3", "MC4", "a"], ["c1"], [2 2 2 2 1;], master_form, master_name_to_var, master_constr_to_var
+    )
+
+    sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwSp(
+            nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
+        ),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, nothing)
+        ],
+        [
+            # name, duty, rhs, sense, id
+            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+        ]
+    )
+     
+    sp1_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c3"], [1 1;], sp1_form, sp1_name_to_var, sp1_name_to_constr
+    )
+
+    sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwSp(
+            nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
+        ),
+        [
+            # name, duty, cost, lb, ub, id
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, nothing)
+        ],
+        [
+            # name, duty, rhs, sense, id
+            ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+        ]
+    )
+
+    sp2_presolve_form = _presolve_formulation(
+        ["y1", "y2"], ["c4"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
+    )
+
+    # Run the presolve variable fixing on the original formulation.
+    bounds_result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
+    @show bounds_result
+    result = Coluna.Algorithm.vars_to_fix(master_repr_presolve_form.form, bounds_result)
+    @show result
+    return
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem; f = true)
 
-## DwSpPricingVar -> MasterRepPricingVar (mapping exists)
+## DwSpPricingVar -> MasterRepPricingVar 
 ## otherwise no propagation
 function test_var_fixing_propagation_from_subproblem_to_master()
-
+ # TODO
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_subproblem_to_master; f = true)

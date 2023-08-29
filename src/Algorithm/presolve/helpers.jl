@@ -151,11 +151,16 @@ function _fix_var(lb::Real, ub::Real, ϵ::Real)
     return abs(lb - ub) <= ϵ
 end
 
-function vars_to_fix(nb_cols::Int, tightened_bound::Vector{Tuple{Float64, Bool, Float64, Bool}})
+function vars_to_fix(form::PresolveFormRepr, tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}})
     vars_to_fix = Int[]
-    for col in 1:nb_cols
-        var_lb, _, var_ub, _ = tightened_bound[col]
+    for (col, tb) in tightened_bounds
+        var_lb, _, var_ub, _ = tb
         if _fix_var(var_lb, var_ub, 1e-6)
+            push!(vars_to_fix, col)
+        end
+    end
+    for col in 1:form.nb_vars
+        if !haskey(tightened_bounds, col) && _fix_var(form.lbs[col], form.ubs[col], 1e-6)
             push!(vars_to_fix, col)
         end
     end

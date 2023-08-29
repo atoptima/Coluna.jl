@@ -5,7 +5,7 @@
 # Master and subproblems do not share any constraints.
 function propagation_of_constraint_deactivation!(reform::DwPresolveReform)
     # Original -> Representatives Master
-
+    
     # Original -> Subproblem
 
     return
