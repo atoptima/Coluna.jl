@@ -242,8 +242,6 @@ function projection_from_dw_reform_to_master_2()
     # | 1 of  [0.9999999, 0.0, 0.0, 0.0, 0.0, 0.0]
     # | 1 of  [0.0, 0.0, 0.0, 0.0, 0.0, 0.9999999]
 
-    @show rolls
-
     @test rolls == Dict( 4 => [
         Dict(mastervarids["x_34"] => 0.9999999),
         Dict(mastervarids["x_12"] => 0.9999999)

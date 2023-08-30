@@ -171,7 +171,7 @@ function test_constr_removing_propagation_from_original_to_master()
 
     # Test propagation
 end
-register!(unit_tests, "presolve_propagation", test_constr_removing_propagation_from_original_to_master; x = true)
+register!(unit_tests, "presolve_propagation", test_constr_removing_propagation_from_original_to_master)
 
 ## OriginalConstr -> DwSpPureConstr
 function test_constr_removing_propagation_from_original_to_subproblem()
@@ -262,7 +262,7 @@ function test_constr_removing_propagation_from_original_to_subproblem()
     # Test if the constraint was deactivated.
     @test result == [2] # remove row 2 of original formulation
 end
-register!(unit_tests, "presolve_propagation", test_constr_removing_propagation_from_original_to_subproblem; x = true)
+register!(unit_tests, "presolve_propagation", test_constr_removing_propagation_from_original_to_subproblem)
 
 ############################################################################################
 # Variable bound propagation.
@@ -370,7 +370,7 @@ function test_var_bound_propagation_from_original_to_subproblem()
     @test result[2] == (0.5, true, Inf, false)
     @test result[4] == (0.3, true, Inf, false)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_subproblem; x = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_subproblem)
 
 ## OriginalVar -> MasterRepPricingVar (mapping exists)
 ## OriginalVar -> MasterPureVar (mapping exists)
@@ -434,7 +434,7 @@ function test_var_bound_propagation_from_original_to_master()
     result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
     @test result[2] == (0.0, false, 1.0, true)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_master; x = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_master)
 
 ## MasterRepPricingVar -> DwSpPricingVar (mapping exists)
 ## otherwise no propagation
@@ -443,15 +443,15 @@ function test_var_bound_propagation_from_master_to_subproblem()
     # min x1 + x2 + y1 + y2 + 2MC1 + MC2 + a
     # s.t. x1 + x2 + y1 + y2 + MC1 + 2MC2 + a >= 2
     #      0 <= x1 <= 0.5
+    #      0 <= x2 <= 0.5
     #      0 <= y1 <= 0.7
-    #      x2 >= 0  ( --> x2 >= 0.5)
-    #      y2 >= 0  ( --> y2 >= 0.3)
+    #      y2 >= 0 ( --> y2 >= 0.3 )
 
     # Subproblems
     # min x1 + x2
     # s.t. x1 + x2 >= 1
     #      0 <= x1 <= 0.5 
-    #      x2 >= 0 ( --> x2 >= 0.5 by propagation)
+    #      0 <= x2 <= 0.5
 
     # min y1 + y2
     # s.t. y1 + y2 >= 1
@@ -466,7 +466,7 @@ function test_var_bound_propagation_from_master_to_subproblem()
         [
             # name, duty, cost, lb, ub, id
             ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, nothing),
             ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, nothing),
             ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, nothing),
             ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing),
@@ -480,7 +480,7 @@ function test_var_bound_propagation_from_master_to_subproblem()
     )
 
     master_repr_presolve_form = _presolve_formulation(
-        ["x1", "x2", "y1", "y2"], ["c1"], [1 1 1;], master_form, master_name_to_var, master_constr_to_var
+        ["x1", "x2", "y1", "y2"], ["c1"], [1 1 1 1;], master_form, master_name_to_var, master_constr_to_var
     )
 
     master_presolve_form = _presolve_formulation(
@@ -526,8 +526,12 @@ function test_var_bound_propagation_from_master_to_subproblem()
     sp2_presolve_form = _presolve_formulation(
         ["y1", "y2"], ["c1"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
     )
+
+    # Run the presolve bounds tightening on the master formulation.
+    result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
+    @test result[4] == (0.3, true, Inf, false)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_master_to_subproblem; x = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_master_to_subproblem)
 
 ## DwSpPricingVar -> MasterRepPricingVar (mapping exists)
 ## otherwise no propagation
@@ -630,7 +634,7 @@ function test_var_bound_propagation_from_subproblem_to_master()
     result = Coluna.Algorithm.bounds_tightening(sp2_presolve_form.form)
     @test result[2] == (0.3, true, Inf, false)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_subproblem_to_master; x = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_subproblem_to_master)
 
 ############################################################################################
 # Var fixing propagation.
@@ -641,7 +645,7 @@ register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_su
 function test_var_fixing_propagation_from_original_to_subproblem()
 
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_subproblem; x = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_subproblem)
 
 ## OriginalVar -> MasterRepPricingVar (mapping exists)
 ## OriginalVar -> MasterPureVar (mapping exists)
@@ -720,7 +724,7 @@ function test_var_fixing_propagation_from_original_to_master()
     result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
     @test result == [1, 2]
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master; x = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master)
 
 ## MasterColumns -> MasterRepPricingVar -> DwSpPricingVar
 ## otherwise no propagation
@@ -832,16 +836,16 @@ function test_var_fixing_propagation_from_master_to_subproblem()
 
     # Run the presolve variable fixing on the original formulation.
     bounds_result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
-    @show bounds_result
+    @test isempty(bounds_result)
     result = Coluna.Algorithm.vars_to_fix(master_repr_presolve_form.form, bounds_result)
-    @show result
+    @test result == [1, 4]
     return
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem; x = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem)
 
 ## DwSpPricingVar -> MasterRepPricingVar 
 ## otherwise no propagation
 function test_var_fixing_propagation_from_subproblem_to_master()
  # TODO
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_subproblem_to_master; x = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_subproblem_to_master)

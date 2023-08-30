@@ -1,3 +1,41 @@
+function test_lb_precision()
+    z = 1.19999999999999999
+    a = 1.2 + 1e-5
+    b = 1.2 + 1e-6
+    c = 0.30000000000000004 # floating point error
+    d = 0.30000000000000008 # floating point error
+    e = 0.29999999999999998 # floating point error
+    f = 0.29999999999999994 # floating point error
+
+    @test Coluna.Algorithm._lb_prec(z) == 1.2
+    @test Coluna.Algorithm._lb_prec(a) == a
+    @test Coluna.Algorithm._lb_prec(b) == 1.2
+    @test Coluna.Algorithm._lb_prec(c) == 0.3
+    @test Coluna.Algorithm._lb_prec(d) == 0.3
+    @test Coluna.Algorithm._lb_prec(e) == 0.3
+    @test Coluna.Algorithm._lb_prec(f) == 0.3
+end
+register!(unit_tests, "presolve_helper", test_lb_precision)
+
+function test_ub_precision()
+    z = 1.20000000000000001
+    a = 1.2 - 1e-5
+    b = 1.2 - 1e-6
+    c = 0.30000000000000004 # floating point error
+    d = 0.30000000000000008 # floating point error
+    e = 0.29999999999999998 # floating point error
+    f = 0.29999999999999994 # floating point error
+
+    @test Coluna.Algorithm._ub_prec(z) == 1.2
+    @test Coluna.Algorithm._ub_prec(a) == a
+    @test Coluna.Algorithm._ub_prec(b) == 1.2
+    @test Coluna.Algorithm._ub_prec(c) == 0.3
+    @test Coluna.Algorithm._ub_prec(d) == 0.3
+    @test Coluna.Algorithm._ub_prec(e) == 0.3
+    @test Coluna.Algorithm._ub_prec(f) == 0.3
+end
+register!(unit_tests, "presolve_helper", test_ub_precision)
+
 function test_presolve_builder1()
     coef_matrix = sparse([
         0  0 -1    1  0  1  2.5 # <= 4

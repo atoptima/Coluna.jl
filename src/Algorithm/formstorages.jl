@@ -13,8 +13,6 @@ end
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
     if isfixed(form, var)
         println("var $(getname(form, var)) is fixed -- ", isfixed(form, var))
-        @show isexplicit(form, var)
-        @show iscuractive(form, var)
         unfix!(form, var)
     end
     if getcurlb(form, var) != var_state.lb
