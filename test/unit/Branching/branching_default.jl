@@ -246,9 +246,6 @@ function test_strong_branching()
     )
     original_sol = Coluna.Algorithm.get_original_sol(reform, conquer_output)
 
-    @show extended_sol
-    @show original_sol
-
     Branching.run_branching!(ctx, env, reform, input, extended_sol, original_sol)
 end
 register!(unit_tests, "branching", test_strong_branching)

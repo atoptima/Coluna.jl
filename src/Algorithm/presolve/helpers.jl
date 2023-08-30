@@ -1,3 +1,5 @@
+const PRECISION_DIGITS = 6 # floating point numbers have between 6 and 9 significant digits
+
 """
 Temporary data structure where we store a representation of the formulation that we presolve.
 """
@@ -21,6 +23,9 @@ function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
         nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs
     )
 end
+
+_lb_prec(lb) = floor(round(lb, sigdigits = PRECISION_DIGITS + 1), sigdigits = PRECISION_DIGITS)
+_ub_prec(ub) = ceil(round(ub, sigdigits = PRECISION_DIGITS + 1), sigdigits = PRECISION_DIGITS)
 
 function _act_contrib(a, l, u)
     if a > 0
@@ -141,7 +146,7 @@ function bounds_tightening(form::PresolveFormRepr)
         end
 
         if tighter_lb || tighter_ub
-            push!(tightened_bounds, col => (var_lb, tighter_lb, var_ub, tighter_ub))
+            push!(tightened_bounds, col => (_lb_prec(var_lb), tighter_lb, _ub_prec(var_ub), tighter_ub))
         end
     end
     return tightened_bounds
