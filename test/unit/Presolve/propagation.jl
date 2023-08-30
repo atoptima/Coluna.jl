@@ -723,8 +723,12 @@ function test_var_fixing_propagation_from_original_to_master()
 
     # Run the presolve variable fixing on the original formulation.
     bounds_result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
+    @test bounds_result[1] == (0, false, 0, true)
+    @test length(bounds_result) == 1
     result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
-    @test result == [1, 2]
+    @test result[1] == 0
+    @test result[2] == 1
+    @test length(result) == 2
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master)
 
@@ -845,7 +849,7 @@ function test_var_fixing_propagation_from_master_to_subproblem1()
     @test length(result) == 2
     return
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem1; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem1)
 
 function test_var_fixing_propagation_from_master_to_subproblem2()
     # Master
@@ -997,7 +1001,7 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
     @test length(sp2_result) == 1
     return
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem2; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem2)
 
 ## DwSpPricingVar -> MasterRepPricingVar 
 ## otherwise no propagation
