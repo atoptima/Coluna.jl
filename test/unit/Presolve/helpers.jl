@@ -84,7 +84,7 @@ function test_presolve_builder2()
 
     # Deactivate some rows.
     rows_to_deactivate = [1, 3, 6]
-    vars_to_fix = Int[]
+    vars_to_fix = Dict{Int, Float64}()
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
     form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
@@ -118,7 +118,7 @@ function test_presolve_builder3()
 
     # Deactivate some rows.
     rows_to_deactivate = Int[]
-    vars_to_fix = Int[1, 3, 6, 7]
+    vars_to_fix = Dict{Int, Float64}(1 => 10, 3 => 1, 6 => 0, 7 => -1)
     tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}()
 
     #      -1  - 2.5  # <= 4  ->  7.5
@@ -158,7 +158,7 @@ function test_presolve_builder4()
     form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
 
     rows_to_deactivate = Int[]
-    vars_to_fix = Int[]
+    vars_to_fix = Dict{Int,Float64}()
     tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}(
         1 => (1, false, 2, true),
         2 => (0, true, 1, true),
