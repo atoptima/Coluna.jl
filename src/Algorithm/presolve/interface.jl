@@ -4,6 +4,8 @@ struct PresolveFormulation
     var_to_col::Dict{VarId,Int64}
     constr_to_row::Dict{ConstrId,Int64}
     form::PresolveFormRepr
+    deactivated_constrs::Vector{ConstrId}
+    fixed_vars::Dict{VarId,Int}
 end
 
 struct DwPresolveReform
@@ -61,7 +63,58 @@ function create_presolve_form(form::Formulation, keep_var::Function, keep_constr
         ubs_vals,
     )
 
-    return PresolveFormulation(col_to_var, row_to_constr, var_to_col, constr_to_row, form)
+    deactivated_constrs = ConstrId[]
+    fixed_vars = Dict{VarId,Float64}()
+
+    return PresolveFormulation(
+        col_to_var,
+        row_to_constr,
+        var_to_col,
+        constr_to_row,
+        form,
+        deactivated_constrs,
+        fixed_vars
+    )
+end
+
+function propagate_in_presolve_form(
+    form::PresolveFormulation,
+    rows_to_deactivate::Vector{Int},
+    vars_to_fix::Dict{Int, Float64},
+    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}
+)
+    col_mask = ones(Bool, form.form.nb_vars)
+    col_mask[collect(keys(vars_to_fix))] .= false
+    row_mask = ones(Bool, form.form.nb_constrs)
+    row_mask[rows_to_deactivate] .= false
+
+    col_to_var = form.col_to_var[col_mask]
+    row_to_constr = form.row_to_constr[row_mask]
+
+    var_to_col = Dict(getid(var) => k for (k, var) in  enumerate(col_to_var))
+    constr_to_row = Dict(getid(constr) => k for (k, constr) in enumerate(row_to_constr))
+
+    deactivated_constrs = form.deactivated_constrs
+    for constr in form.row_to_constr[rows_to_deactivate]
+        push!(deactivated_constrs, getid(constr))
+    end
+
+    fixed_vars = form.fixed_vars
+    for (col, val) in vars_to_fix
+        var_id = getid(form.col_to_var[col])
+        @assert !haskey(fixed_vars, var_id)
+        fixed_vars[var_id] = val
+    end
+
+    return PresolveFormulation(
+        col_to_var,
+        row_to_constr, 
+        var_to_col,
+        constr_to_row,
+        PresolveFormRepr(form.form, rows_to_deactivate, vars_to_fix, tightened_bounds),
+        deactivated_constrs,
+        fixed_vars
+    )
 end
 
 function create_presolve_reform(reform::Reformulation{DwMaster})

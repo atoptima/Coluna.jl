@@ -157,26 +157,26 @@ function _fix_var(lb::Real, ub::Real, ϵ::Real)
 end
 
 function vars_to_fix(form::PresolveFormRepr, tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}})
-    vars_to_fix = Int[]
+    vars_to_fix = Dict{Int, Float64}()
     for (col, tb) in tightened_bounds
         var_lb, _, var_ub, _ = tb
         if _fix_var(var_lb, var_ub, 1e-6)
-            push!(vars_to_fix, col)
+            vars_to_fix[col] = var_lb
         end
     end
     for col in 1:form.nb_vars
         if !haskey(tightened_bounds, col) && _fix_var(form.lbs[col], form.ubs[col], 1e-6)
-            push!(vars_to_fix, col)
+            vars_to_fix[col] = form.lbs[col]
         end
     end
     return vars_to_fix
 end
 
-function _check_if_vars_can_be_fixed(vars_to_fix::Vector{Int}, lbs::Vector{Float64}, ubs::Vector{Float64})
-    for col in vars_to_fix
+function _check_if_vars_can_be_fixed(vars_to_fix::Dict{Int,Float64}, lbs::Vector{Float64}, ubs::Vector{Float64})
+    for (col, val) in vars_to_fix
         lb = lbs[col]
         ub = ubs[col]
-        if !_fix_var(lb, ub, 1e-6)
+        if !_fix_var(lb, ub, 1e-6) || !_fix_var(lb, val, 1e-6) || !_fix_var(val, ub, 1e-6)
             throw(ArgumentError("Cannot fix variable $col."))
         end
     end
@@ -186,7 +186,7 @@ end
 function PresolveFormRepr(
     form::PresolveFormRepr,
     rows_to_deactivate::Vector{Int},
-    vars_to_fix::Vector{Int},
+    vars_to_fix::Dict{Int, Float64},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}
 )
     nb_cols = form.nb_vars
@@ -198,7 +198,8 @@ function PresolveFormRepr(
     ubs = form.ubs
 
     col_mask = ones(Bool, nb_cols)
-    col_mask[vars_to_fix] .= false
+    col_mask[collect(keys(vars_to_fix))] .= false
+    fixed_col_mask = .!col_mask
     row_mask = ones(Bool, nb_rows)
     row_mask[rows_to_deactivate] .= false
 
@@ -223,7 +224,7 @@ function PresolveFormRepr(
     _check_if_vars_can_be_fixed(vars_to_fix, lbs, ubs)
     
     # Update rhs
-    new_rhs = new_rhs - coef_matrix[row_mask, vars_to_fix] * lbs[vars_to_fix]
+    new_rhs = new_rhs - coef_matrix[row_mask, fixed_col_mask] * lbs[fixed_col_mask]
     new_lbs = lbs[col_mask]
     new_ubs = ubs[col_mask]
 
