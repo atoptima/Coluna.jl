@@ -181,7 +181,7 @@ function _check_if_vars_can_be_fixed(vars_to_fix::Dict{Int,Float64}, lbs::Vector
         lb = lbs[col]
         ub = ubs[col]
         if !_fix_var(lb, ub, 1e-6) || !_fix_var(lb, val, 1e-6) || !_fix_var(val, ub, 1e-6)
-            throw(ArgumentError("Cannot fix variable $col."))
+            throw(ArgumentError("Cannot fix variable $col (lb = $lb, ub = $ub, val = $val)."))
         end
     end
     return true
