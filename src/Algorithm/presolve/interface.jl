@@ -171,6 +171,45 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
     return DwPresolveReform(original_master, restricted_master, dw_sps)
 end
 
+function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFormulation)
+    # Deactivate Constraints
+    for constr_id in presolve_form.deactivated_constrs
+        deactivate!(form, getconstr(form, constr_id))
+    end
+
+    # Fix variables
+    for (var_id, val) in presolve_form.fixed_vars
+        fix!(form, getvar(form, var_id), val)
+    end
+
+    # Update bounds
+    for (col, (lb, ub)) in enumerate(Iterators.zip(
+        presolve_form.form.lbs,
+        presolve_form.form.ubs
+    ))
+        setcurlb!(form, presolve_form.col_to_var[col], lb)
+        setcurub!(form, presolve_form.col_to_var[col], ub)
+    end
+
+    # Update rhs
+    for (row, rhs) in enumerate(presolve_form.form.rhs)
+        setcurrhs!(form, presolve_form.row_to_constr[row], rhs)
+    end
+    return
+end
+
+function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_reform::DwPresolveReform)
+    master = getmaster(reform)
+    # Update master
+
+    update_form_from_presolve!(master, presolve_reform.restricted_master.form)
+    # Update subproblems
+    for (spid, sp) in get_dw_pricing_sps(reform)
+        update_form_from_presolve!(sp, presolve_reform.dw_sps[spid].form)
+    end
+    return
+end
+
 """
 Presolve algorithm
 """

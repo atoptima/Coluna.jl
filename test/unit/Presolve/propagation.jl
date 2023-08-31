@@ -939,7 +939,7 @@ register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_o
 ## otherwise no propagation
 function test_var_fixing_propagation_from_master_to_subproblem1()
     # Master
-    # min x1 + x2 + y1 + y2 + MC1 + MC2 + MC3 + MC4 a 
+    # min x1 + x2 + y1 + y2 + MC1 + MC2 + MC3 + MC4 + a 
     # s.t. 2x1 + 2x2 + 2y1 + 2y2 + 2MC1 + 2MC2 + 2MC3 + 2MC4 + a >= 4
     #    0 <= x1 <= 0 (repr) --> (fixing x1 == 0)
     #    0 <= x2 <= 1 (repr)
@@ -1212,3 +1212,138 @@ function test_var_fixing_propagation_from_subproblem_to_master()
  # TODO
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_subproblem_to_master)
+
+################################################################################
+# Update DW reformulation
+################################################################################
+
+function update_master_repr_formulation()
+    # min x1 + x2 + y1 + y2 + MC1 + MC2 + MC3 + MC4 + a1 + a2
+    # s.t. x1 + x2 + y1 + y2 + 2MC1 + MC2 + MC3 + MC4 + a1 >= 4
+    #      2x1 + x2    + 3y2 + 3MC1 + 2MC2 + 3MC3     + a2 >= 4
+    # 0 <= x1 <= 1
+    # 0 <= x2 <= 1
+    # 0 <= y1 <= 1
+    # 0 <= y2 <= 1
+    # 0 <= MC1 <= 1
+    # 0 <= MC2 <= 1
+    # 0 <= MC3 <= 1
+    # 0 <= MC4 <= 1
+    # a1 >= 0
+    # a2 >= 0
+    # with following columns
+    # MC1 = [x1 = 1, x2 = 1]
+    # MC2 = [x1 = 1]
+    # MC3 = [y2 = 1]
+    # MC4 = [y1 = 1]
+
+    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+    master_form, master_name_to_var, master_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwMaster(),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
+            ("a1", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing),
+            ("a2", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+        ],
+        [
+            # name, duty, rhs, sense , id
+            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing),
+            ("c2", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing)
+        ]
+    )
+
+    coeffs = [
+        ("c1", "x1", 1.0),
+        ("c1", "x2", 1.0),
+        ("c1", "y1", 1.0),
+        ("c1", "y2", 1.0),
+        ("c1", "MC1", 2.0),
+        ("c1", "MC2", 1.0),
+        ("c1", "MC3", 1.0),
+        ("c1", "MC4", 1.0),
+        ("c1", "a1", 1.0),
+        ("c2", "x1", 2.0),
+        ("c2", "x2", 1.0),
+        ("c2", "y2", 3.0),
+        ("c2", "MC1", 3.0),
+        ("c2", "MC2", 2.0),
+        ("c2", "MC3", 3.0),
+        ("c2", "a2", 1.0)
+    ]
+
+    master_form_coef_matrix = Coluna.MathProg.getcoefmatrix(master_form)
+    for (constr_name, var_name, coef) in coeffs
+        constr = master_name_to_constr[constr_name]
+        var = master_name_to_var[var_name]
+        master_form_coef_matrix[ClMP.getid(constr), ClMP.getid(var)] = coef
+    end
+    DynamicSparseArrays.closefillmode!(master_form_coef_matrix)
+    
+    master_repr_presolve_form = _presolve_formulation(
+        ["x1", "x2", "y1", "y2"],  ["c1", "c2"], [1 1 1 1; 2 1 3 3;], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    updated_master_repr_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(
+        master_repr_presolve_form,
+        Int[2],
+        Dict(1 => 1.0),
+        Dict(1 => (1.0, true, 1.0, false), 2 => (0.1, true, 0.5, true))
+    )
+
+    @test updated_master_repr_presolve_form.form.col_major_coef_matrix == [1 1 1;]
+    @test updated_master_repr_presolve_form.form.rhs == [3]
+    @test updated_master_repr_presolve_form.form.sense == [ClMP.Greater]
+    @test updated_master_repr_presolve_form.form.lbs == [0.1, 0.0, 0.0]
+    @test updated_master_repr_presolve_form.form.ubs == [0.5, 1.0, 1.0]
+    
+    Coluna.Algorithm.update_form_from_presolve!(master_form, updated_master_repr_presolve_form)
+
+    vars = [
+        # name, lb, ub, fixed
+        ("x1", 1.0, 1.0, true),
+        ("x2", 0.1, 0.5, false),
+        ("y1", 0.0, 1.0, false),
+        ("y2", 0.0, 1.0, false),
+        ("MC1", 0.0, 1.0, false),
+        ("MC2", 0.0, 1.0, false),
+        ("MC3", 0.0, 1.0, false),
+        ("MC4", 0.0, 1.0, false),
+        ("a1", 0.0, Inf, false),
+        ("a2", 0.0, Inf, false)
+    ]
+
+    for (var_name, lb, ub, fixed) in vars
+        var = master_name_to_var[var_name]
+        @test ClMP.getcurlb(master_form, var) == lb
+        @test ClMP.getcurub(master_form, var) == ub
+        @test ClMP.isfixed(master_form, var) == fixed
+    end
+
+    constrs = [
+        ("c1", ClMP.Greater, 3.0),
+    ]
+    for (constr_name, sense, rhs) in constrs
+        constr = master_name_to_constr[constr_name]
+        @test ClMP.getcursense(master_form, constr) == sense
+        @test ClMP.getcurrhs(master_form, constr) == rhs
+    end
+end
+register!(unit_tests, "presolve_formulation", update_master_repr_formulation)
+
+function update_master_formulation()
+end
+register!(unit_tests, "presolve_formulation", update_master_formulation; x = true)
+
+function update_sp_formulation()
+end
+register!(unit_tests, "presolve_formulation", update_sp_formulation; x = true)

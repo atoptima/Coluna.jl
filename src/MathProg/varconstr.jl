@@ -215,12 +215,12 @@ end
 
 ## fix cur bounds
 function _propagate_fix!(form, var_id, value)
-    var_members = @view getcoefmatrix(form)[:, var_id]
-    for (constr_id, coef) in var_members
-        fixed_term = value * coef
-        rhs = getcurrhs(form, constr_id)
-        setcurrhs!(form, constr_id, rhs - fixed_term)
-    end
+    # var_members = @view getcoefmatrix(form)[:, var_id]
+    # for (constr_id, coef) in var_members
+    #     fixed_term = value * coef
+    #     rhs = getcurrhs(form, constr_id)
+    #     setcurrhs!(form, constr_id, rhs - fixed_term)
+    # end
     return
 end
 
