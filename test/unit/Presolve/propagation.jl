@@ -645,7 +645,7 @@ register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_su
 function test_var_fixing_propagation_within_formulation1()
     # Original
     # max x + y + z
-    # s.t. 2x + y + z <= 15 # test with rhs = 1 ==> bug
+    # s.t. 2x + y + z <= 15
     #      x == 2
     #      y >= 0
     #      z >= 0
@@ -707,7 +707,7 @@ function test_var_fixing_propagation_within_formulation1()
     @test new_form.fixed_vars[ClMP.getid(orig_name_to_var["x"])] == 2.0
     @test length(new_form.fixed_vars) == 1
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation1; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation1)
 
 function test_var_fixing_propagation_within_formulation2()
     # Original
@@ -772,7 +772,7 @@ function test_var_fixing_propagation_within_formulation2()
     @test new_form.fixed_vars[ClMP.getid(orig_name_to_var["x"])] == 4.0
     @test length(new_form.fixed_vars) == 1
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation2; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation2)
 
 function test_var_fixing_propagation_within_formulation3()
     # Original
@@ -806,7 +806,9 @@ function test_var_fixing_propagation_within_formulation3()
     )
 
     bounds_result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
-    @show bounds_result
+    @test bounds_result[2] == (0.0, false, 610.0, true)
+    @test bounds_result[3] == (0.0, false, 610.0, true)
+    @test length(bounds_result) == 2    
 
     result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
     @test result[1] == 10.0
@@ -819,13 +821,13 @@ function test_var_fixing_propagation_within_formulation3()
     )
 
     @test new_form.form.col_major_coef_matrix == [1 1; 1 1;]
-    @test new_form.form.rhs == [150.0 + 20, 600.0 + 20]
+    @test new_form.form.rhs == [150.0 + 20, 600.0 + 10]
     @test new_form.form.sense == [ClMP.Greater, ClMP.Less]
     @test new_form.form.lbs == [0.0, 0.0]
-    @test new_form.form.ubs == [Inf, Inf]
+    @test new_form.form.ubs == [610.0, 610.0]
 
     @test new_form.col_to_var == [orig_name_to_var["y"], orig_name_to_var["z"]]
-    @test new_form.row_to_constr == [orig_name_to_constr["c1"]]
+    @test new_form.row_to_constr == [orig_name_to_constr["c1"], orig_name_to_constr["c2"]]
 
     @test new_form.var_to_col[ClMP.getid(orig_name_to_var["y"])] == 1
     @test new_form.var_to_col[ClMP.getid(orig_name_to_var["z"])] == 2
@@ -840,7 +842,7 @@ function test_var_fixing_propagation_within_formulation3()
     @test new_form.fixed_vars[ClMP.getid(orig_name_to_var["x"])] == 10.0
     @test length(new_form.fixed_vars) == 1
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation3; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation3)
 
 
 ## OriginalVar -> DwSpPricingVar (mapping exists)
