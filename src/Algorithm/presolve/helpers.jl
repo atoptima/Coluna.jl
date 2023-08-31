@@ -59,13 +59,13 @@ function row_max_activity(form::PresolveFormRepr, row::Int, except_col::Function
 end
 
 function row_max_slack(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
-    min_act = row_min_activity(form, row, except_col)
-    return form.rhs[row] - min_act
+    act = row_min_activity(form, row, except_col)
+    return form.rhs[row] - act
 end
 
 function row_min_slack(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
-    max_act = row_max_activity(form, row, except_col)
-    return form.rhs[row] - max_act
+    act = row_max_activity(form, row, except_col)
+    return form.rhs[row] - act
 end
 
 function _unbounded_row(sense::ConstrSense, rhs::Real)
@@ -84,14 +84,18 @@ function _infeasible_row(sense::ConstrSense, min_slack::Real, max_slack::Real, Ï
 end
 
 function _var_lb_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real)
-    if sense == Equal || sense == Greater && var_coef_in_row > 0 || sense == Less && var_coef_in_row < 0
+    if sense == Equal || sense == Greater && var_coef_in_row > 0
         return min_slack / var_coef_in_row
+    elseif sense == Less && var_coef_in_row < 0 
+        return max_slack / var_coef_in_row
     end
     return -Inf
 end
 
 function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real)
-    if sense == Equal || sense == Less && var_coef_in_row > 0 || sense == Greater && var_coef_in_row < 0
+    if sense == Greater && var_coef_in_row < 0
+        return min_slack / var_coef_in_row
+    elseif  sense == Equal || sense == Less && var_coef_in_row > 0
         return max_slack / var_coef_in_row
     end
     return Inf
