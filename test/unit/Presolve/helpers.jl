@@ -358,15 +358,16 @@ register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_3)
 
 function test_var_bounds_from_row1()
     # x + 2y + 3z >= 10
+    # -x - 2y - 3z <= -10
     # 0 <= x <= 10
     # 0 <= y <= 2
     # 0 <= z <= 1
     # therefore x >= 10 - 2*2 - 3*1 >= 3
     # x >= rhs - max_act(y,z)
 
-    coef_matrix = sparse([1 2 3;])
-    rhs = [10]
-    sense = [Greater]
+    coef_matrix = sparse([1 2 3; -1 -2 -3;])
+    rhs = [10, -10]
+    sense = [Greater; Less]
     lbs = [0, 0, 0]
     ubs = [10, 2, 1]
 
@@ -380,21 +381,31 @@ function test_var_bounds_from_row1()
     
     ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 1.0)
     @test isinf(ub) && ub > 0
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[2], min_slack, max_slack, -1.0)
+    @test lb == 3
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, -1.0)
+    @test isinf(ub) && ub > 0
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row1)
 
 function test_var_bounds_from_row2()
     # -3x + y + 2z <= 2
+    #  3x - y - 2z >= -2
     # 0 <= x <= 10
     # 0 <= y <= 1
     # 0 <= z <= 1
-    # therefore -3x + ub_y + 2*ub_z <= 2
-    #           -3x + 1 + 2*1 <= 2
-    #           -3x <= -1
-    #           x >= 1/3
-    coef_matrix = sparse([-3 1 2;])
-    rhs = [2]
-    sense = [Less]
+    # therefore -3x <= 2 - y - 2z
+    #           3x >= -2 + y + 2z
+    #           3x >= -2 + 0 + 2*0
+    #           x >= -2/3
+    coef_matrix = sparse([-3 1 2; 3 -1 -2])
+    rhs = [2, -2]
+    sense = [Less, Greater]
     lbs = [0, 0, 0]
     ubs = [10, 1, 1]
 
@@ -404,29 +415,37 @@ function test_var_bounds_from_row2()
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
 
     lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, -3)
-    @test lb == 1/3
+    @test lb == -2/3
 
     ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, -3)
+    @test isinf(ub) && ub > 0
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[2], min_slack, max_slack, 3)
+    @test lb == -2/3
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 3)
     @test isinf(ub) && ub > 0
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row2)
 
-
 function test_var_bounds_from_row3()
     # 2x + 3y - 4z <= 9
+    # -2x - 3y + 4z >= -9
     # 0 <= x <= 10
     # 4 <= y <= 8
     # 0 <= z <= 1
-    # therefore 2x + 3*lb_y - 4*ub_z <= 9
-    #           2x + 3*4 - 4*1 <= 9
+    # therefore 2x <= 9 - 3y + 4z
     #           2x <= 9 - 12 + 4
     #           2x <= 1
 
-    coef_matrix = sparse([2 3 -4;])
+    coef_matrix = sparse([2 3 -4; -2 -3 4;])
     lbs = [0, 4, 0]
     ubs = [10, 8, 1]
-    rhs = [9]
-    sense = [Less]
+    rhs = [9, -9]
+    sense = [Less, Greater]
 
     form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
 
@@ -438,23 +457,33 @@ function test_var_bounds_from_row3()
 
     ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 2)
     @test ub == 1/2
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[2], min_slack, max_slack, -2)
+    @test isinf(lb) && lb < 0
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, -2)
+    @test ub == 1/2
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row3)
 
 function test_var_bounds_from_row4()
     # -2x + 2y + 3z >= 10
+    # 2x - 2y - 3z <= 10
     # -10 <= x <= 0
     # 1 <= y <= 2
     # 1 <= z <= 2
-    # therefore -2*x + 2*lb_y + 3*lb_z >= 10
-    #           -2*x + 2*1 + 3*1 >= 10
-    #           -2*x >= 10 - 2 - 3
-    #           -2*x >= 5
-    coef_matrix = sparse([-2 2 3;])
+    # therefore -2*x >= 10 - 2y - 3z
+    #           2*x <= -10 + 2y + 3z
+    #           2*x <= -10 + 2*2 + 3*2
+    #           x <= 0
+    coef_matrix = sparse([-2 2 3; 2 -2 -3])
     lbs = [-10, 1, 1]
     ubs = [0, 2, 2]
-    rhs = [10]
-    sense = [Greater]
+    rhs = [10, -10]
+    sense = [Greater, Less]
 
     form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
 
@@ -465,7 +494,16 @@ function test_var_bounds_from_row4()
     @test lb == -Inf
 
     ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, -2)
-    @test ub == -5/2
+    @test ub == 0
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[2], min_slack, max_slack, 2)
+    @test lb == -Inf
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 2)
+    @test ub == 0
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row4)
 
@@ -477,16 +515,13 @@ function test_var_bounds_from_row5()
 
     # Sense1:
     # 2x + 3y + 4z >= 5
-    # 2x + 3*ub_y + 4*ub_z >= 5
-    # 2x + 3*1 + 4*1 >= 5
+    # 2x >= 5 - 3y - 4z
     # 2x >= -2
 
     # Sense 2:
     # 2x + 3y + 4z <= 5
-    # 2x + 3*lb_y + 4*lb_z <= 5
-    # 2x + 3*0 + 4*0 <= 5
+    # 2x <= 5 - 3y - 4z
     # 2x <= 5
-
 
     coef_matrix = sparse([2 3 4;])
     lbs = [-5, 0, 0]
@@ -545,3 +580,76 @@ function test_var_bounds_from_row6()
     @test ub == Inf
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row6)
+
+function test_var_bounds_from_row7()
+    # -2x + y + z >= 150
+    # -x + y + z <= 600
+    # x == 10
+    # y >= 0
+    # z >= 0
+
+    coef_matrix = sparse([-2 1 1; -1 1 1])
+    lbs = [10, 0, 0]
+    ubs = [10, Inf, Inf]
+    rhs = [150, 600]
+    sense = [Greater, Less]
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
+
+    # -2x + y + z >= 150
+    # -2x >= 150 - y - z
+    # 2x <= -150 + y + z
+    # x <= Inf
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, -2)
+    @test isinf(lb) && lb < 0
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, -2)
+    @test isinf(ub) && ub > 0
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+
+    # -x + y + z <= 600
+    # -x <= 600 - y - z
+    # x >= -600 + y + z
+    # x >= -600
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[2], min_slack, max_slack, -1)
+    @test lb == -600
+    
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, -1)
+    @test isinf(ub) && ub > 0
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row7)
+
+function test_var_bounds_from_row8() # this was producing a bug
+    # 2x + y + z <= 1
+    #      x == 2
+    #      y >= 0
+    #      z >= 0
+
+    coef_matrix = sparse([2 1 1;])
+    lbs = [2, 0, 0]
+    ubs = [2, Inf, Inf]
+    rhs = [1]
+    sense = [Less]
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
+
+    # 2x <= 1 - y - z
+    # x <= 1/2
+    lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, 2)
+    @test lb == -Inf
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 2)
+    @test ub == 1/2
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row8)
+
