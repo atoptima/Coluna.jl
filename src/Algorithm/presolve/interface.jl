@@ -179,7 +179,14 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
 
     # Fix variables
     for (var_id, val) in presolve_form.fixed_vars
-        fix!(form, getvar(form, var_id), val)
+        # Do not propagate variable fixing! The new rhs of constraints is updated in the 
+        # next step.
+        fix!(form, getvar(form, var_id), val, false)
+    end
+
+    # Update rhs
+    for (row, rhs) in enumerate(presolve_form.form.rhs)
+        setcurrhs!(form, presolve_form.row_to_constr[row], rhs)
     end
 
     # Update bounds
@@ -189,11 +196,6 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
     ))
         setcurlb!(form, presolve_form.col_to_var[col], lb)
         setcurub!(form, presolve_form.col_to_var[col], ub)
-    end
-
-    # Update rhs
-    for (row, rhs) in enumerate(presolve_form.form.rhs)
-        setcurrhs!(form, presolve_form.row_to_constr[row], rhs)
     end
     return
 end

@@ -215,33 +215,36 @@ end
 
 ## fix cur bounds
 function _propagate_fix!(form, var_id, value)
-    # var_members = @view getcoefmatrix(form)[:, var_id]
-    # for (constr_id, coef) in var_members
-    #     fixed_term = value * coef
-    #     rhs = getcurrhs(form, constr_id)
-    #     setcurrhs!(form, constr_id, rhs - fixed_term)
-    # end
+    var_members = @view getcoefmatrix(form)[:, var_id]
+    for (constr_id, coef) in var_members
+        fixed_term = value * coef
+        rhs = getcurrhs(form, constr_id)
+        setcurrhs!(form, constr_id, rhs - fixed_term)
+    end
     return
 end
 
 """
-    fix!(formulation, varid, value)
-    fix!(formulation, variable, value)
+    fix!(formulation, varid, value, propagation = true)
+    fix!(formulation, variable, value, propagation = true)
     
 Fixes the current bounds of an active and explicit variable to a given value.
-It deactives the variable and updates the rhs of the constraints that involve this variable.
+It deactives the variable and updates the rhs of the constraints that involve this variable
+if `propagation` is equal to `true`.
 
 You must use `unfix!` to change the bounds of the variable.
 """
-fix!(form::Formulation, varid::VarId, value) = fix!(form, getvar(form, varid), value)
-function fix!(form::Formulation, var::Variable, value)
+fix!(form::Formulation, varid::VarId, value, propagation = true) = fix!(form, getvar(form, varid), value, propagation)
+function fix!(form::Formulation, var::Variable, value, propagation = true)
     if !isfixed(form, var) && isexplicit(form, var) && iscuractive(form, var)
         deactivate!(form, var)
         var.curdata.is_fixed = true
         var.curdata.ub = value
         var.curdata.lb = value
         _fixvar!(form.manager, var)
-        _propagate_fix!(form, getid(var), value)
+        if propagation
+            _propagate_fix!(form, getid(var), value)
+        end
         return true
     end
     name = getname(form, var)
@@ -250,20 +253,22 @@ function fix!(form::Formulation, var::Variable, value)
 end
 
 """
-    unfix!(formulation, varid)
-    unfix!(formulation, variable)
+    unfix!(formulation, varid, propagation = true)
+    unfix!(formulation, variable, propagation = true)
 
 Unfixes the variable.
 It activates the variable and update the rhs of the constraints that involve this variable.
 """
-unfix!(form::Formulation, varid::VarId) = unfix!(form, getvar(form, varid))
-function unfix!(form::Formulation, var::Variable)
+unfix!(form::Formulation, varid::VarId, propagation = true) = unfix!(form, getvar(form, varid), propagation)
+function unfix!(form::Formulation, var::Variable, propagation = true)
     if isfixed(form, var) && isexplicit(form, var) && !iscuractive(form, var)
         value = getcurlb(form, var)
         var.curdata.is_fixed = false
         _unfixvar!(form.manager, var)
         activate!(form, var)
-        _propagate_fix!(form, getid(var), -value)
+        if propagation
+            _propagate_fix!(form, getid(var), -value)
+        end
         return true
     end
     name = getname(form, var)
