@@ -29,15 +29,7 @@ export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,
 
 const _to = TO.TimerOutput()
 
-const _COLUNA_VERSION = Ref{VersionNumber}()
-
-function __init__()
-    # Read Coluna version from Project.toml file
-    coluna_ver = VersionNumber(TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
-    _COLUNA_VERSION[] = coluna_ver
-end
-
-version() = _COLUNA_VERSION[]
+version() = v"0.6.5"
 
 include("kpis.jl")
 include("parameters.jl")
