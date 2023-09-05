@@ -29,7 +29,7 @@ export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,
 
 const _to = TO.TimerOutput()
 
-version() = v"0.6.5"
+version() = v"0.6.6"
 
 include("kpis.jl")
 include("parameters.jl")
