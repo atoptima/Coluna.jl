@@ -74,4 +74,7 @@ include("MOIwrapper.jl")
 include("MOIcallbacks.jl")
 include("decomposition.jl")
 
+# For testing purposes
+include("Tests/Tests.jl")
+
 end # module
