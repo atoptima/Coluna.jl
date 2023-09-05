@@ -1,6 +1,9 @@
 # Coluna 0.6.6
 
 - DynamicSparseArrays 0.7 main features are tested against JET.
+- Bug with the integer tolerance of projected solutions fixed
+- Improvements about the construction of the reformulation
+- Strong branching was not returning ip solution found when evaluating candidates
 
 # Coluna 0.6.5
 
