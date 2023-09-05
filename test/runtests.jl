@@ -25,8 +25,7 @@ using Coluna.ColunaBase, Coluna.MathProg, Coluna.ColGen, Coluna.Branching
 include("TestRegistry/TestRegistry.jl")
 using .TestRegistry
 
-includet("parser.jl")
-using .Parser
+using Coluna.Tests.Parser
 
 unit_tests = Registry()
 integration_tests = Registry()
