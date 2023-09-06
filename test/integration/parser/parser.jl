@@ -542,3 +542,103 @@ function minimize_test3()
     @test c3.rhs == 2.0
 end
 register!(integration_tests, "parser", minimize_test3)
+
+function columns_test()
+    form = """
+    master
+        min
+        100.0 local_art_of_cov_5 + 100.0 local_art_of_cov_4 + 100.0 local_art_of_cov_6 + 100.0 local_art_of_cov_7 + 100.0 local_art_of_cov_2 + 100.0 local_art_of_cov_3 + 100.0 local_art_of_cov_1 + 100.0 local_art_of_sp_lb_5 + 100.0 local_art_of_sp_ub_5 + 100.0 local_art_of_sp_lb_4 + 100.0 local_art_of_sp_ub_4 + 1000.0 global_pos_art_var + 1000.0 global_neg_art_var + 51.0 MC_30 + 38.0 MC_31 + 31.0 MC_32 + 35.0 MC_33 + 48.0 MC_34 + 13.0 MC_35 + 53.0 MC_36 + 28.0 MC_37 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17 + 1.0 x_21 + 12.0 x_22 + 11.0 x_23 + 12.0 x_24 + 14.0 x_25 + 8.0 x_26 + 5.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_34 + 1.0 MC_35 + 1.0 MC_36  >= 1.0
+        1.0 x_12 + 1.0 x_22 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_32 + 1.0 MC_33 >= 1.0
+        1.0 x_13 + 1.0 x_23 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_37  >= 1.0
+        1.0 x_14 + 1.0 x_24 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_33 + 1.0 MC_34 + 1.0 MC_35 + 1.0 MC_36 + 1.0 MC_37  >= 1.0
+        1.0 x_15 + 1.0 x_25 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_31  >= 1.0
+        1.0 x_16 + 1.0 x_26 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_36  >= 1.0
+        1.0 x_17 + 1.0 x_27 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_30 + 1.0 MC_34 + 1.0 MC_36 + 1.0 MC_37 >= 1.0
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_36  >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 + 1.0 MC_30 + 1.0 MC_32 + 1.0 MC_34 + 1.0 MC_36  <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_37  >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 + 1.0 MC_31 + 1.0 MC_33 + 1.0 MC_35 + 1.0 MC_37  <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_5  
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+        origin
+        MC_30, MC_32, MC_34, MC_36
+
+    dw_sp
+        min
+        x_21 + x_22 + x_23 + x_24 + x_25 + x_26 + x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+        origin
+        MC_31, MC_33, MC_35, MC_37
+
+    continuous
+        columns
+            MC_30, MC_31, MC_32, MC_33, MC_34, MC_35, MC_36, MC_37
+
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_5, local_art_of_sp_ub_5, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+    """
+    env, master, sps, constrs, reform = Coluna.Tests.Parser.reformfromstring(form)
+
+    @show master
+
+    varids = Dict(
+        Coluna.MathProg.getname(master, varid) => varid for (varid, var) in Coluna.MathProg.getvars(master)
+    )
+    
+    @test varids["MC_30"].origin_form_uid == varids["PricingSetupVar_sp_5"].assigned_form_uid
+    @test varids["MC_31"].origin_form_uid == varids["PricingSetupVar_sp_4"].assigned_form_uid
+    @test varids["MC_32"].origin_form_uid == varids["PricingSetupVar_sp_5"].assigned_form_uid
+    @test varids["MC_33"].origin_form_uid == varids["PricingSetupVar_sp_4"].assigned_form_uid
+    @test varids["MC_34"].origin_form_uid == varids["PricingSetupVar_sp_5"].assigned_form_uid
+    @test varids["MC_35"].origin_form_uid == varids["PricingSetupVar_sp_4"].assigned_form_uid
+    @test varids["MC_36"].origin_form_uid == varids["PricingSetupVar_sp_5"].assigned_form_uid
+    @test varids["MC_37"].origin_form_uid == varids["PricingSetupVar_sp_4"].assigned_form_uid
+    return
+end
+register!(integration_tests, "parser", columns_test)
