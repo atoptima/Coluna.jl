@@ -11,6 +11,7 @@ module Parser
     const _KW_SEPARATION = Val{:separation}()
     const _KW_BOUNDS = Val{:bounds}()
     const _KW_CONSTRAINTS = Val{:constraints}()
+    const _KW_ORIGIN = Val{:origin}()
 
     const _KW_SECTION = Dict(
         # _KW_MASTER
@@ -52,6 +53,8 @@ module Parser
         "such that" => _KW_CONSTRAINTS,
         "st" => _KW_CONSTRAINTS,
         "s.t." => _KW_CONSTRAINTS,
+        # Origin of variables
+        "origin" => _KW_ORIGIN,
         # MasterPureVar
         "pure" => ClMP.MasterPureVar,
         "pures" => ClMP.MasterPureVar,
@@ -113,6 +116,8 @@ module Parser
         sense::Type{<:ClB.AbstractSense}
         objective::ExprCache
         constraints::Vector{ConstrCache}
+        origin::Set{String} # names of variables.
+        generated_formulation::Union{Coluna.MathProg.Formulation,Nothing}
     end
 
     mutable struct ReadCache
@@ -141,7 +146,9 @@ module Parser
                 ExprCache(
                     Dict{String, Float64}(), 0.0
                 ),
-                ConstrCache[]
+                ConstrCache[],
+                Set{String}(),
+                nothing
             ),
             Dict{Int64,ProblemCache}(),
             Dict{String,VarCache}()
@@ -254,7 +261,7 @@ module Parser
             cache.subproblems[nb_sp].sense = sense
             cache.subproblems[nb_sp].obj = obj
         else
-            cache.subproblems[nb_sp] = ProblemCache(sense, obj, [])
+            cache.subproblems[nb_sp] = ProblemCache(sense, obj, [], Set{String}(), nothing)
         end
     end
 
@@ -265,6 +272,14 @@ module Parser
                 push!(cache.subproblems[nb_sp].constraints, constr)
             end
         end
+    end
+
+    function read_subproblem!(::Val{:origin}, cache::ReadCache, line::AbstractString, nb_sp::Int64)
+        vars = _get_vars_list(line)
+        for var in vars
+            push!(cache.subproblems[nb_sp].origin, var)
+        end
+        return
     end
 
     function read_bounds!(cache::ReadCache, line::AbstractString)
@@ -315,6 +330,7 @@ module Parser
                                 ClMP.DwSp(nothing, nothing, nothing, ClMP.Integ);
                                 obj_sense = sp.sense
                             )
+                            sp.generated_formulation = spform
                         end
                         duty = ClMP.DwSpPricingVar
                         if var.duty <= ClMP.MasterRepPricingSetupVar
@@ -399,14 +415,37 @@ module Parser
         return subproblems, all_spvars, constraints
     end
 
+    function _get_orig_spid_of_col(cache::ReadCache, varname::String)
+        for (spid, sp) in cache.subproblems
+            if varname ∈ sp.origin
+                return spid
+            end
+        end
+        return nothing
+    end
+
+    function _get_orig_sp_of_col(cache::ReadCache, varname::String, default)
+        # find the subproblem th
+        id = _get_orig_spid_of_col(cache, varname)
+        if !isnothing(id)
+            return cache.subproblems[id].generated_formulation
+        end
+        return default
+    end
+
     function add_dw_master_vars!(master::ClMP.Formulation, master_duty, all_spvars::Dict, cache::ReadCache)
         mastervars = Dict{String, ClMP.Variable}()
         for (varid, cost) in cache.master.objective.vars
             if haskey(cache.variables, varid)
                 var = cache.variables[varid]
                 if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
-                    is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
-                    v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
+                    if var.duty <= ClMP.MasterCol
+                        origin_sp = _get_orig_sp_of_col(cache, varid, master)
+                        v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = true, origin = origin_sp)
+                    else
+                        is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
+                        v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
+                    end
                 else
                     if haskey(all_spvars, varid)
                         var, sp = all_spvars[varid]
