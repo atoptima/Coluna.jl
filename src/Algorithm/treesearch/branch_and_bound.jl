@@ -300,7 +300,7 @@ end
 
 number_of_children(divide_output::DivideOutput) = length(divide_output.children)
 
-function node_is_leaf(space::AbstractColunaSearchSpace, current::Node, conquer_output::OptimizationState)
+function node_is_leaf(space::BaBSearchSpace, current::Node, conquer_output::OptimizationState)
     leaves_status = space.leaves_status
     if getterminationstatus(conquer_output) != INFEASIBLE
         leaves_status.infeasible = false
