@@ -31,3 +31,19 @@ function Branching.select_candidates!(
     return candidates
 end
 
+"""
+Select the candidate with the smallest distance to the closest non-zero integer.
+"""
+struct LeastFractionalCriterion <: Branching.AbstractSelectionCriterion end
+
+function Branching.select_candidates!(
+    candidates::Vector{C}, ::LeastFractionalCriterion, max_nb_candidates::Int
+) where {C <: Branching.AbstractBranchingCandidate}
+    sort!(candidates, by = c -> dist_to_int(Branching.get_lhs(c)))
+    filter!(c -> !iszero(round(Branching.get_lhs(c))), candidates)
+    if length(candidates) > max_nb_candidates
+        resize!(candidates, max_nb_candidates)
+    end
+    return candidates
+end
+
