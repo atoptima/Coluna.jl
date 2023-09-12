@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Initial columns callback · Coluna.jl</title><meta name="title" content="Initial columns callback · Coluna.jl"/><meta property="og:title" content="Initial columns callback · Coluna.jl"/><meta property="twitter:title" content="Initial columns callback · Coluna.jl"/><meta name="description" content="Documentation for Coluna.jl."/><meta property="og:description" content="Documentation for Coluna.jl."/><meta property="twitter:description" content="Documentation for Coluna.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.048/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.4/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/js/init.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Coluna.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs (Ctrl + /)"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Tutorials</span><ul><li><input class="collapse-toggle" id="menuitem-2-1" type="checkbox" checked/><label class="tocitem" for="menuitem-2-1"><span class="docs-label">Getting Started</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../start/">Column generation</a></li><li><a class="tocitem" href="../cuts/">Cut Generation</a></li><li><a class="tocitem" href="../pricing/">Pricing callback</a></li><li><a class="tocitem" href="../identical_sp/">Identical subproblems</a></li><li><a class="tocitem" href="../custom_data/">Custom data</a></li><li class="is-active"><a class="tocitem" href>Initial columns callback</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Advanced tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../advanced_demo/">Column Generation and Benders on Location Routing</a></li><li><a class="tocitem" href="../other_pbs/">Other classic problems</a></li></ul></li></ul></li><li><span class="tocitem">Manual</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">Decomposition</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../man/decomposition/">Decomposition paradigms</a></li><li><a class="tocitem" href="../../man/blockdecomposition/">Setup decomposition using BlockDecomposition</a></li></ul></li><li><a class="tocitem" href="../../man/config/">Configuration</a></li><li><a class="tocitem" href="../../man/algorithm/">Built-in algorithms</a></li><li><a class="tocitem" href="../../man/callbacks/">User-defined Callbacks</a></li></ul></li><li><span class="tocitem">API</span><ul><li><a class="tocitem" href="../../api/algos/">Algorithms</a></li><li><a class="tocitem" href="../../api/benders/">Benders</a></li><li><a class="tocitem" href="../../api/branching/">Branching</a></li><li><a class="tocitem" href="../../api/colgen/">ColGen</a></li><li><a class="tocitem" href="../../api/treesearch/">TreeSearch</a></li><li><a class="tocitem" href="../../api/storage/">Storage</a></li></ul></li><li><a class="tocitem" href="../../dynamic_sparse_arrays/">Dynamic Sparse Arrays</a></li><li><a class="tocitem" href="../../qa/">Q&amp;A</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><div class="docs-left"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Getting Started</a></li><li class="is-active"><a href>Initial columns callback</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Initial columns callback</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/start/initial_columns.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Initial-columns"><a class="docs-heading-anchor" href="#Initial-columns">Initial columns</a><a id="Initial-columns-1"></a><a class="docs-heading-anchor-permalink" href="#Initial-columns" title="Permalink"></a></h1><p>The initial columns callback let you provide initial columns associated to each problem ahead the optimization. This callback is useful when you have an efficient heuristic that finds feasible solutions to the problem. You can then extract columns from the solutions and give them to Coluna through the callback. You have to make sure the columns you provide are feasible because Coluna won&#39;t check their feasibility. The cost of the columns will be computed using the perennial cost of subproblem variables.</p><p>Let us see an example with the following generalized assignment problem :</p><pre><code class="language-julia hljs">M = 1:3;
+J = 1:5;
+c = [1 1 1 1 1; 1.2 1.2 1.1 1.1 1; 1.3 1.3 1.1 1.2 1.4];
+Q = [3, 2, 3];</code></pre><p>with the following Coluna configuration</p><pre><code class="language-julia hljs">using JuMP, GLPK, BlockDecomposition, Coluna;
+
+coluna = optimizer_with_attributes(
+    Coluna.Optimizer,
+    &quot;params&quot; =&gt; Coluna.Params(
+        solver = Coluna.Algorithm.TreeSearchAlgorithm() # default branch-cut-and-price
+    ),
+    &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
+);</code></pre><p>for which the JuMP model takes the form:</p><pre><code class="language-julia hljs">@axis(M_axis, M);
+model = BlockModel(coluna);
+
+@variable(model, x[m in M_axis, j in J], Bin);
+@constraint(model, cov[j in J], sum(x[m, j] for m in M_axis) &gt;= 1);
+@constraint(model, knp[m in M_axis], sum(x[m, j] for j in J) &lt;= Q[m]);
+@objective(model, Min, sum(c[m, j] * x[m, j] for m in M_axis, j in J));
+
+@dantzig_wolfe_decomposition(model, decomposition, M_axis)
+
+subproblems = getsubproblems(decomposition)
+specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = 1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3-element Vector{Nothing}:
+ nothing
+ nothing
+ nothing</code></pre><p>Let&#39;s consider that the following assignment patterns are good candidates:</p><pre><code class="language-julia hljs">machine1 = [[1,2,4], [1,3,4], [2,3,4], [2,3,5]];
+machine2 = [[1,2], [1,5], [2,5], [3,4]];
+machine3 = [[1,2,3], [1,3,4], [1,3,5], [2,3,4]];
+
+initial_columns = [machine1, machine2, machine3];</code></pre><p>We can write the initial columns callback:</p><pre><code class="language-julia hljs">function initial_columns_callback(cbdata)
+    # Retrieve the index of the subproblem (it will be one of the values in M_axis)
+    spid = BlockDecomposition.callback_spid(cbdata, model)
+    println(&quot;initial columns callback $spid&quot;)
+
+    # Retrieve assignment patterns of a given machine
+    for col in initial_columns[spid]
+        # Create the column in the good representation
+        vars = [x[spid, j] for j in col]
+        vals = [1.0 for _ in col]
+
+        # Submit the column
+        MOI.submit(model, BlockDecomposition.InitialColumn(cbdata), vars, vals)
+    end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_columns_callback (generic function with 1 method)</code></pre><p>The initial columns callback is a function. It takes as argument <code>cbdata</code> which is a data structure that allows the user to interact with Coluna within the callback.</p><p>We provide the initial columns callback to Coluna through the following method:</p><pre><code class="language-julia hljs">MOI.set(model, BlockDecomposition.InitialColumnsCallback(), initial_columns_callback)</code></pre><p>You can then optimize:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.6.6 | https://github.com/atoptima/Coluna.jl
+initial columns callback 3
+initial columns callback 2
+initial columns callback 1
+***************************************************************************************
+**** B&amp;B tree root node
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.54 sec.
+***************************************************************************************
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   -5.3000&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 0.55&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+ ──────────────────────────────────────────────────────────────────────────
+                                  Time                    Allocations
+                         ───────────────────────   ────────────────────────
+    Tot / % measured:         2.28s /  23.9%            154MiB /  27.9%
+
+ Section         ncalls     time    %tot     avg     alloc    %tot      avg
+ ──────────────────────────────────────────────────────────────────────────
+ Coluna               1    547ms  100.0%   547ms   42.8MiB  100.0%  42.8MiB
+   SolveLpForm        3    595μs    0.1%   198μs    149KiB    0.3%  49.5KiB
+ ──────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 5.1
+[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../custom_data/">« Custom data</a><a class="docs-footer-nextpage" href="../advanced_demo/">Column Generation and Benders on Location Routing »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.28.0-DEV on <span class="colophon-date" title="Tuesday 12 September 2023 14:29">Tuesday 12 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
