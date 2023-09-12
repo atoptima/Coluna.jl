@@ -441,7 +441,7 @@ module Parser
                 if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
                     if var.duty <= ClMP.MasterCol
                         origin_sp = _get_orig_sp_of_col(cache, varid, master)
-                        v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = true, origin = origin_sp)
+                        v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = ClMP.Integ, is_explicit = true, origin = origin_sp)
                     else
                         is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
                         v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
