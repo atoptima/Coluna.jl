@@ -12,15 +12,17 @@ struct PresolveFormRepr
     sense::Vector{ConstrSense} # on constraints
     lbs::Vector{Float64} # on variables
     ubs::Vector{Float64} # on variables
+    lower_multiplicity::Float64
+    upper_multiplicity::Float64
 end
 
-function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, lm, um)
     length(lbs) == length(ubs) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
     length(rhs) == length(sense) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
     nb_vars = length(lbs)
     nb_constrs = length(rhs)
     return PresolveFormRepr(
-        nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs
+        nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs, lm, um
     )
 end
 
@@ -191,7 +193,9 @@ function PresolveFormRepr(
     form::PresolveFormRepr,
     rows_to_deactivate::Vector{Int},
     vars_to_fix::Dict{Int, Float64},
-    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}
+    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
+    lm::Float64,
+    um::Float64
 )
     nb_cols = form.nb_vars
     nb_rows = form.nb_constrs
@@ -232,5 +236,5 @@ function PresolveFormRepr(
     new_lbs = lbs[col_mask]
     new_ubs = ubs[col_mask]
 
-    return PresolveFormRepr(new_coef_matrix, new_rhs, new_sense, new_lbs, new_ubs)
+    return PresolveFormRepr(new_coef_matrix, new_rhs, new_sense, new_lbs, new_ubs, lm, um)
 end

@@ -14,7 +14,13 @@ struct DwPresolveReform
     dw_sps::Dict{FormId, PresolveFormulation}
 end
 
-function create_presolve_form(form::Formulation, keep_var::Function, keep_constr::Function)
+function create_presolve_form(
+    form::Formulation,
+    keep_var::Function,
+    keep_constr::Function;
+    lower_multiplicity = 1, 
+    upper_multiplicity = 1
+)
     constr_ids, var_ids, nz = _submatrix_nz_elems(form, keep_constr, keep_var)
 
     var_to_col = Dict{VarId,Int64}()
@@ -61,6 +67,8 @@ function create_presolve_form(form::Formulation, keep_var::Function, keep_constr
         sense_vals,
         lbs_vals,
         ubs_vals,
+        lower_multiplicity,
+        upper_multiplicity
     )
 
     deactivated_constrs = ConstrId[]
@@ -73,7 +81,7 @@ function create_presolve_form(form::Formulation, keep_var::Function, keep_constr
         constr_to_row,
         form,
         deactivated_constrs,
-        fixed_vars
+        fixed_vars,
     )
 end
 
@@ -111,7 +119,7 @@ function propagate_in_presolve_form(
         row_to_constr, 
         var_to_col,
         constr_to_row,
-        PresolveFormRepr(form.form, rows_to_deactivate, vars_to_fix, tightened_bounds),
+        PresolveFormRepr(form.form, rows_to_deactivate, vars_to_fix, tightened_bounds, form.form.lower_multiplicity, form.form.upper_multiplicity),
         deactivated_constrs,
         fixed_vars
     )
@@ -166,7 +174,9 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
 
     dw_sps = Dict{FormId, PresolveFormulation}()
     for (spid, sp) in get_dw_pricing_sps(reform)
-        dw_sps[spid] = create_presolve_form(sp, sp_vars, sp_constrs)
+        lm = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        um = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        dw_sps[spid] = create_presolve_form(sp, sp_vars, sp_constrs, lower_multiplicity = lm, upper_multiplicity = um)
     end
     return DwPresolveReform(original_master, restricted_master, dw_sps)
 end
@@ -254,4 +264,6 @@ function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
     @show bounds_tightening(presolve_reform.original_master.form)
 
     @show presolve_reform
+
+    update_reform!(reform, presolve_reform)
 end
