@@ -5,6 +5,11 @@
 is_cont_var(form, var_id) = getperenkind(form, var_id) == Continuous
 is_int_val(val, tol) = abs(round(val) - val) < tol
 dist_to_int(val) = min(val - floor(val), ceil(val) - val)
+function dist_to_non_zero_int(val) 
+    dist_to_floor = iszero(floor(val)) ? 1.0 : val - floor(val)
+    dist_to_ceil = iszero(ceil(val)) ? 1.0 : ceil(val) - val
+    return min(dist_to_floor, dist_to_ceil)
+end
 
 ############################################################################################
 # Iterate over variables and constraints

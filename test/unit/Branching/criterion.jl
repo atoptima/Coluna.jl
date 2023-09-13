@@ -40,13 +40,25 @@ end
 register!(unit_tests, "branching", test_most_fractional_criterion1)
 
 function test_least_fractional_criterion1()
-    candidates = _mock_candidates([0.4, 0.3, 0.6, -0.4, -0.8])
+    candidates = _mock_candidates([0.4, 0.3, 0.45, -0.4, -0.8])
     selected_candidates = Coluna.Branching.select_candidates!(
-        candidates, Coluna.Algorithm.LeastFractionalCriterion(), 3
+        candidates, Coluna.Algorithm.LeastFractionalCriterion(), 2
+    )
+
+    @test length(selected_candidates) == 2
+    @test selected_candidates[1].local_id == 5
+    @test selected_candidates[2].local_id == 2
+end
+register!(unit_tests, "branching", test_least_fractional_criterion1)
+
+function test_closest_to_non_zero_integer_criterion1()
+    candidates = _mock_candidates([0.4, 0.3, 0.45, -0.4, -0.8])
+    selected_candidates = Coluna.Branching.select_candidates!(
+        candidates, Coluna.Algorithm.ClosestToNonZeroIntegerCriterion(), 2
     )
 
     @test length(selected_candidates) == 2
     @test selected_candidates[1].local_id == 5
     @test selected_candidates[2].local_id == 3
 end
-register!(unit_tests, "branching", test_least_fractional_criterion1)
+register!(unit_tests, "branching", test_closest_to_non_zero_integer_criterion1)
