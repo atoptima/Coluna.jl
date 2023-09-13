@@ -337,7 +337,7 @@ module Parser
                             duty = ClMP.DwSpSetupVar
                         end
                         v = ClMP.setvar!(spform, varid, duty; lb = var.lb, ub = var.ub, kind = var.kind)
-                        if var.duty <= ClMP.DwSpPricingVar
+                        if var.duty <= ClMP.DwSpSetupVar
                             spform.duty_data.setup_var = ClMP.getid(v)
                         end
                         ClMP.setperencost!(spform, v, cost)
