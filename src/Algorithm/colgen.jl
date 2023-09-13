@@ -181,6 +181,7 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterBasisUnit, READ_AND_WRITE))
     #push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
     if stabilization_is_used(algo)
         #push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))

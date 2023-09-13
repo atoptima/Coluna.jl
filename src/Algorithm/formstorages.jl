@@ -232,6 +232,42 @@ function ClB.restore_from_record!(
 end
 
 
+####
+####
+struct MasterBasisUnit <: AbstractRecordUnit end
+
+struct MasterBasisRecord <: AbstractRecord
+    basis::Union{Nothing,MathProg.Basis}
+end
+
+struct MasterBasisKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{MasterBasisUnit}) = MasterBasisKey()
+record_type_from_key(::MasterBasisKey) = MasterBasisRecord
+
+ClB.storage_unit(::Type{MasterBasisUnit}, _) = MasterBasisUnit()
+
+function ClB.record(::Type{MasterBasisRecord}, id::Int, form::Formulation, unit::MasterBasisUnit)
+    optimizer = getoptimizer(form, 1)
+    basis = MathProg.get_basis(form, optimizer)
+    return MasterBasisRecord(basis)
+end
+
+ClB.record_type(::Type{MasterBasisUnit}) = MasterBasisRecord
+ClB.storage_unit_type(::Type{MasterBasisRecord}) = MasterBasisUnit
+
+apply_set_basis!(form, optimizer::MoiOptimizer, basis) = MathProg.set_basis!(form, optimizer, basis)
+apply_set_basis!(form, _, basis) = nothing
+
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterBasisUnit, state::MasterBasisRecord
+)
+    optimizer = getoptimizer(form, 1)
+    if !isnothing(state.basis)
+        apply_set_basis!(form, optimizer, state.basis)
+    end
+    return
+end
 
 ##### UNCOVERED CODE BELOW #####
 

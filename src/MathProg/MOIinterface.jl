@@ -337,6 +337,60 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
     return solutions
 end
 
+
+struct Basis
+    vars::Dict{VarId,MOI.BasisStatusCode}
+    constrs::Dict{ConstrId,MOI.BasisStatusCode}
+end
+
+function get_basis(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
+    inner = getinner(optimizer)
+    nb_primal_sols = MOI.get(inner, MOI.ResultCount())
+    if nb_primal_sols <= 0 || MOI.get(inner, MOI.PrimalStatus(1)) != MOI.FEASIBLE_POINT
+        return nothing
+    end
+
+    vars = Dict{VarId,MOI.BasisStatusCode}()
+    for (varid, var) in getvars(form)
+        iscuractive(form, varid) && isexplicit(form, varid) || continue
+        moi_index = getmoiindex(getmoirecord(var))
+        if moi_index.value != -1
+            vars[varid] = MOI.get(inner, MOI.VariableBasisStatus(), moi_index)
+        end
+    end
+
+    constrs = Dict{ConstrId,MOI.BasisStatusCode}()
+    for (constrid, constr) in getconstrs(form)
+        iscuractive(form, constrid) && isexplicit(form, constrid) || continue
+        moi_index = getmoiindex(getmoirecord(constr))
+        if moi_index.value != -1
+            constrs[constrid] = MOI.get(inner, MOI.ConstraintBasisStatus(), moi_index)
+        end
+    end
+    return Basis(vars, constrs)
+end
+
+function set_basis!(form::F, optimizer::MoiOptimizer, basis::Basis) where {F <: Formulation}
+    inner = getinner(optimizer)
+    for (varid, var) in getvars(form)
+        iscuractive(form, varid) && isexplicit(form, varid) || continue
+        moi_index = getmoiindex(getmoirecord(var))
+        var_basis = get(basis.vars, varid, nothing)
+        if !isnothing(var_basis)
+            MOI.set(inner, MOI.VariableBasisStatus(), moi_index, var_basis)
+        end
+    end
+    for (constrid, constr) in getconstrs(form)
+        iscuractive(form, constrid) && isexplicit(form, constrid) || continue
+        moi_index = getmoiindex(getmoirecord(constr))
+        constr_basis = get(basis.constrs, constrid, nothing)
+        if !isnothing(constr_basis)
+            MOI.set(inner, MOI.ConstraintBasisStatus(), moi_index, constr_basis)
+        end
+    end
+    return
+end
+
 function get_dual_infeasibility_certificate(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_certificates = MOI.get(inner, MOI.ResultCount())
