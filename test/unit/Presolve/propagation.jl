@@ -66,7 +66,7 @@ function _mathprog_formulation!(env, form_duty, var_descriptions, constr_descrip
     return form, name_to_vars, name_to_constrs
 end
 
-function _presolve_formulation(var_names, constr_names, matrix, form, name_to_vars, name_to_constrs)
+function _presolve_formulation(var_names, constr_names, matrix, form, name_to_vars, name_to_constrs; lm=1, um=1)
     rhs = [Coluna.MathProg.getcurrhs(form, name_to_constrs[name]) for name in constr_names]
     sense = [Coluna.MathProg.getcursense(form, name_to_constrs[name]) for name in constr_names]
     lbs = [Coluna.MathProg.getcurlb(form, name_to_vars[name]) for name in var_names]
@@ -77,7 +77,9 @@ function _presolve_formulation(var_names, constr_names, matrix, form, name_to_va
         rhs,
         sense,
         lbs, 
-        ubs
+        ubs,
+        lm,
+        um
     )
 
     col_to_var = [name_to_vars[name] for name in var_names]

@@ -129,6 +129,9 @@ function build_dw_presolve_reformulation()
         (mast_var_ids["x_26"], 0.0, 1.0),
         (mast_var_ids["x_27"], 0.0, 1.0)
     ]
+
+    @test presolve_original_master.form.lower_multiplicity == 1
+    @test presolve_original_master.form.upper_multiplicity == 1
   
     for (varuid, lb, ub) in var_ids_lbs_ubs
         @test presolve_original_master.form.lbs[varuid] == lb
@@ -153,6 +156,10 @@ function build_dw_presolve_reformulation()
     end
 
     presolve_restricted_master = presolve_reform.restricted_master
+
+    @test presolve_restricted_master.form.lower_multiplicity == 1
+    @test presolve_restricted_master.form.upper_multiplicity == 1
+
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_restricted_master.col_to_var))
    
     var_ids_lbs_ubs = [
@@ -292,6 +299,9 @@ function build_dw_presolve_reformulation()
 
     dw_sp = ClMP.get_dw_pricing_sps(reform)[5]
     presolve_dw_sp = presolve_reform.dw_sps[5]
+
+    @test presolve_dw_sp.form.lower_multiplicity == 0
+    @test presolve_dw_sp.form.upper_multiplicity == 1
     
     sp_var_ids = Dict{String, Int}(ClMP.getname(dw_sp, var) => k for (k,var) in enumerate(presolve_dw_sp.col_to_var))
 
