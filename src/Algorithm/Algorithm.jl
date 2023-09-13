@@ -139,8 +139,8 @@ export getterminationstatus, setterminationstatus!,
 
 # Algorithms
 export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterIPHeuristic,
-    SolveLpForm, NoBranching, Branching, StrongBranching,
-    FirstFoundCriterion, MostFractionalCriterion, SingleVarBranchingRule
+    SolveLpForm, NoBranching, Branching, StrongBranching, PresolveAlgorithm, PresolveOutput,
+    FirstFoundCriterion, MostFractionalCriterion, LeastFractionalCriterion, ClosestToNonZeroIntegerCriterion, SingleVarBranchingRule
 
 # Algorithm's types
 export AbstractOptimizationAlgorithm,

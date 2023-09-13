@@ -217,12 +217,32 @@ Presolve algorithm
 """
 struct PresolveAlgorithm <: AlgoAPI.AbstractAlgorithm
     ϵ::Float64
-    PresolveAlgorithm(;ϵ = 1e-6) = new(ϵ)
+    update_sp_var_bounds::Bool
+    PresolveAlgorithm(;ϵ = 1e-6, update_sp_var_bounds = false) = new(ϵ, update_sp_var_bounds)
 end
 
-function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, _)
+# PresolveAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
+
+function get_units_usage(algo::PresolveAlgorithm, reform::Reformulation) 
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
+    master = getmaster(reform)
+    push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterColumnsUnit, READ_ONLY))
+    for (_, dw_sp) in get_dw_pricing_sps(reform)
+        push!(units_usage, (dw_sp, StaticVarConstrUnit, READ_AND_WRITE))
+    end
+    return units_usage
+end
+
+struct PresolveOutput 
+    feasible::Bool
+end
+
+function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, _)::PresolveOutput
     treat!(algo, reform)
-    return
+    return PresolveOutput(true)
 end
 
 function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
