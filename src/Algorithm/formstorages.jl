@@ -13,7 +13,7 @@ end
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
     if isfixed(form, var)
         println("var $(getname(form, var)) is fixed -- ", isfixed(form, var))
-        unfix!(form, var)
+        unfix!(form, var, false) 
     end
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)
@@ -26,7 +26,7 @@ function apply_state!(form::Formulation, var::Variable, var_state::VarState)
     end
     if var_state.fixed
         @assert var_state.lb == var_state.ub
-        fix!(form, var, var_state.lb)
+        fix!(form, var, var_state.lb, false)
     end
     return
 end
@@ -132,8 +132,7 @@ ClB.storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
 function ClB.record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
     record = MasterColumnsRecord(Dict{VarId,ConstrState}())
     for (id, var) in getvars(form)
-        if getduty(id) <= MasterCol && 
-           ((iscuractive(form, var) && isexplicit(form, var) || isfixed(form, var)))
+        if getduty(id) <= MasterCol && isexplicit(form, var) && iscuractive(form, var) || isfixed(form, var)
             varstate = VarState(
                 getcurcost(form, var),
                 getcurlb(form, var),
@@ -231,27 +230,30 @@ function ClB.restore_from_record!(
     end
 end
 
+"""
+    StaticVarConstrUnit
 
+Unit for static variables and constraints of a formulation.
+Can be restored using a StaticVarConstrRecord.    
+"""
 
-##### UNCOVERED CODE BELOW #####
+struct StaticVarConstrUnit <: AbstractRecordUnit end
 
-# """
-#     StaticVarConstrUnit
+StaticVarConstrUnit(::Formulation) = StaticVarConstrUnit()
 
-# Unit for static variables and constraints of a formulation.
-# Can be restored using a StaticVarConstrRecord.    
-# """
+mutable struct StaticVarConstrRecord <: AbstractRecord
+    constrs::Dict{ConstrId,ConstrState}
+    vars::Dict{VarId,VarState}
+end
 
-# struct StaticVarConstrUnit <: AbstractStorageUnit end
+# TO DO: we need to keep here only the difference with the initial data
 
-# StaticVarConstrUnit(::Formulation) = StaticVarConstrUnit()
+struct StaticVarConstrKey <: AbstractStorageUnitKey end
 
-# mutable struct StaticVarConstrRecord <: AbstractRecord
-#     constrs::Dict{ConstrId,ConstrState}
-#     vars::Dict{VarId,VarState}
-# end
+key_from_storage_unit_type(::Type{StaticVarConstrUnit}) = StaticVarConstrKey()
+record_type_from_key(::StaticVarConstrKey) = StaticVarConstrRecord
 
-# # TO DO: we need to keep here only the difference with the initial data
+ClB.storage_unit(::Type{StaticVarConstrUnit}, _) = StaticVarConstrUnit()
 
 # function Base.show(io::IO, record::StaticVarConstrRecord)
 #     print(io, "[vars:")
@@ -265,64 +267,65 @@ end
 #     print(io, "]")
 # end
 
-# function StaticVarConstrRecord(form::Formulation, unit::StaticVarConstrUnit)
-#     @logmsg LogLevel(-2) string("Storing static vars and consts")
-#     record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
-#     for (id, constr) in getconstrs(form)
-#         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
-#             constrstate = ConstrState(getcurrhs(form, constr))
-#             record.constrs[id] = constrstate
-#         end
-#     end
-#     for (id, var) in getvars(form)
-#         if isaStaticDuty(getduty(id)) && iscuractive(form, var) && isexplicit(form, var)            
-#             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
-#             record.vars[id] = varstate
-#         end
-#     end
-#     return record
-# end
+function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, unit::StaticVarConstrUnit)
+    @logmsg LogLevel(-2) string("Storing static vars and consts")
+    record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
+    for (id, constr) in getconstrs(form)
+        if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr) 
+            constrstate = ConstrState(getcurrhs(form, constr))
+            record.constrs[id] = constrstate
+        end
+    end
+    for (id, var) in getvars(form)
+        if isaStaticDuty(getduty(id)) && isexplicit(form, var) && iscuractive(form, var) || isfixed(form, var)           
+            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var), isfixed(form, var))
+            record.vars[id] = varstate
+        end
+    end
+    return record
+end
 
-# function ColunaBase.restore_from_record!(
-#     form::Formulation, unit::StaticVarConstrUnit, record::StaticVarConstrRecord
-# )
-#     @logmsg LogLevel(-2) "Restoring static vars and consts"
-#     for (id, constr) in getconstrs(form)
-#         if isaStaticDuty(getduty(id)) && isexplicit(form, constr)
-#             @logmsg LogLevel(-4) "Checking " getname(form, constr)
-#             if haskey(record.constrs, id) 
-#                 if !iscuractive(form, constr) 
-#                     @logmsg LogLevel(-2) string("Activating constraint", getname(form, constr))
-#                     activate!(form, constr)
-#                 end
-#                 @logmsg LogLevel(-4) "Updating data"
-#                 apply_data!(form, constr, record.constrs[id])
-#             else
-#                 if iscuractive(form, constr) 
-#                     @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
-#                     deactivate!(form, constr)
-#                 end
-#             end    
-#         end
-#     end
-#     for (id, var) in getvars(form)
-#         if isaStaticDuty(getduty(id)) && isexplicit(form, var)
-#             @logmsg LogLevel(-4) "Checking " getname(form, var)
-#             if haskey(record.vars, id) 
-#                 if !iscuractive(form, var) 
-#                     @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
-#                     activate!(form, var)
-#                 end
-#                 @logmsg LogLevel(-4) "Updating data"
-#                 apply_data!(form, var, record.vars[id])
-#             else
-#                 if iscuractive(form, var) 
-#                     @logmsg LogLevel(-4) string("Deactivating variable", getname(form, var))
-#                     deactivate!(form, var)
-#                 end
-#             end    
-#         end
-#     end
-# end
+ClB.record_type(::Type{StaticVarConstrUnit}) = StaticVarConstrRecord
+ClB.storage_unit_type(::Type{StaticVarConstrRecord}) = StaticVarConstrUnit
 
-# ColunaBase.record_type(::Type{StaticVarConstrUnit}) = StaticVarConstrRecord
+function ClB.restore_from_record!(
+    form::Formulation, ::StaticVarConstrUnit, record::StaticVarConstrRecord
+)
+    @logmsg LogLevel(-2) "Restoring static vars and consts"
+    for (id, constr) in getconstrs(form)
+        if isaStaticDuty(getduty(id)) && isexplicit(form, constr)
+            @logmsg LogLevel(-4) "Checking " getname(form, constr)
+            if haskey(record.constrs, id) 
+                if !iscuractive(form, constr) 
+                    @logmsg LogLevel(-2) string("Activating constraint", getname(form, constr))
+                    activate!(form, constr)
+                end
+                @logmsg LogLevel(-4) "Updating data"
+                apply_state!(form, constr, record.constrs[id])
+            else
+                if iscuractive(form, constr) 
+                    @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
+                    deactivate!(form, constr)
+                end
+            end    
+        end
+    end
+    for (id, var) in getvars(form)
+        if isaStaticDuty(getduty(id)) && isexplicit(form, var)
+            @logmsg LogLevel(-4) "Checking " getname(form, var)
+            if haskey(record.vars, id) 
+                if !iscuractive(form, var) && !isfixed(form, var)
+                    @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
+                    activate!(form, var)
+                end
+                @logmsg LogLevel(-4) "Updating data"
+                apply_state!(form, var, record.vars[id])
+            else
+                if iscuractive(form, var) 
+                    @logmsg LogLevel(-4) string("Deactivating variable", getname(form, var))
+                    deactivate!(form, var)
+                end
+            end    
+        end
+    end
+end

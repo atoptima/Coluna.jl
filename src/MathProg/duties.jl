@@ -133,7 +133,7 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= DwSpSetupVar ||
     #duty <= DwSpPureVar ||
     duty <= DwSpPrimalSol ||
-    duty <= DwSpDualSol ||
+    #duty <= DwSpDualSol ||
     duty <= BendSpSepVar ||
     #duty <= BendSpPureVar ||
     duty <= BendSpSlackFirstStageVar  ||
