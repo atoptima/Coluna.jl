@@ -172,11 +172,33 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
     sp_vars = (form, varid, var) -> iscuractive(form, var) && getduty(varid) <= DwSpPricingVar
     sp_constrs = (form, constrid, constr) -> iscuractive(form, constr) && getduty(constrid) <= DwSpPureConstr
 
+    master_repr_lb_ub = Dict{VarId, Tuple{Float64,Float64}}()
+
     dw_sps = Dict{FormId, PresolveFormulation}()
     for (spid, sp) in get_dw_pricing_sps(reform)
         lm = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
         um = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
         dw_sps[spid] = create_presolve_form(sp, sp_vars, sp_constrs, lower_multiplicity = lm, upper_multiplicity = um)
+        
+        # Update bounds on master repr variables using multiplicity.
+        for (varid, var) in getvars(sp)
+            if getduty(varid) <= DwSpPricingVar
+                lb = getcurlb(sp, var)
+                ub = getcurub(sp, var)
+                
+                (global_lb, global_ub) = get(master_repr_lb_ub, varid, (0.0, 0.0))
+                global_lb += lm * lb
+                global_ub += um * ub
+            
+                master_repr_lb_ub[varid] = (global_lb, global_ub)
+            end
+        end
+    end
+
+    for (varid, (lb, ub)) in master_repr_lb_ub
+        var_col = original_master.var_to_col[varid]
+        original_master.form.lbs[var_col] = lb
+        original_master.form.ubs[var_col] = ub
     end
     return DwPresolveReform(original_master, restricted_master, dw_sps)
 end
