@@ -71,17 +71,19 @@ function unit_static_var_constr_record()
     ClMP.setcurlb!(form, vars["v1"], 5.0)
     ClMP.setcurub!(form, vars["v2"], 12.0)
     ClMP.setcurcost!(form, vars["v3"], 4.6)
-    ClMP.fix!(form, vars["v3"], 3.5)
+    ClMP.fix!(form, vars["v3"], 3.5, false)
     ClMP.setcurrhs!(form, constrs["c1"], 1.0)
+    ClMP.deactivate!(form, constrs["c2"])
 
     r2 = ClB.create_record(storage, ClA.StaticVarConstrUnit)
 
     @test isempty(setdiff(keys(r2.vars), ClMP.getid.(values(vars))))
-    @test isempty(setdiff(keys(r2.constrs), ClMP.getid.(values(constrs))))
+    @test length(r2.constrs) == 2
     test_var_record(r2.vars[ClMP.getid(vars["v1"])], 1, 5, 10, false)
     test_var_record(r2.vars[ClMP.getid(vars["v2"])], 2, 0, 12, false)
     test_var_record(r2.vars[ClMP.getid(vars["v3"])], 4.6, 3.5, 3.5, true)
     test_constr_record(r2.constrs[ClMP.getid(constrs["c1"])], 1)
+    test_constr_record(r2.constrs[ClMP.getid(constrs["c3"])], 3)
 
     ClB.restore_from_record!(storage, r1)
 
@@ -89,6 +91,7 @@ function unit_static_var_constr_record()
     test_var(form, vars["v2"], 2, 0, 20, false)
     test_var(form, vars["v3"], 4, 0, 30, false)
     test_constr(form, constrs["c1"], 4)
+    @test ClMP.iscuractive(form, constrs["c2"])
 
     ClB.restore_from_record!(storage, r2)
 
@@ -96,5 +99,6 @@ function unit_static_var_constr_record()
     test_var(form, vars["v2"], 2, 0, 12, false)
     test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
     test_constr(form, constrs["c1"], 1)
+    @test !ClMP.iscuractive(form, constrs["c2"])
 end
-register!(unit_tests, "master_columns_record", unit_static_var_constr_record)
+register!(unit_tests, "master_columns_record", unit_static_var_constr_record, f = true)
