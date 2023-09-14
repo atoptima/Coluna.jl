@@ -45,9 +45,19 @@ Base.transpose(m::CoefficientMatrix) = transpose(m.matrix)
 mutable struct FormulationManager
     vars::Dict{VarId, Variable}
     constrs::Dict{ConstrId, Constraint}
-    objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
+    objective_constant::Float64
+
+    # When a variable is fixed, the variable is deactivated (not in the formulation anymore).
+    # Cost of the fixed variable is put in the objective constant.
     fixed_vars::Set{VarId}
+
+    # The partial value is a lower bound on the value of the variables in the solution.
+    # We remove this fixed part from the formulation and treat the variable like a classic
+    # non-negative one (>= 0).
+    # Cost of the partial value of the variable is put in the objective constant.
+    partial_values::Dict{VarId, Float64}
+
     robust_constr_generators::Vector{RobustConstraintsGenerator}
     custom_families_id::Dict{DataType,Int}
 end
@@ -58,9 +68,10 @@ function FormulationManager(buffer; custom_families_id = Dict{BD.AbstractCustomD
     return FormulationManager(
         vars,
         constrs,
-        0.0,
         ConstrVarMatrix(buffer),
+        0.0,
         Set{VarId}(),
+        Dict{VarId, Float64}(),
         RobustConstraintsGenerator[],
         custom_families_id
     )
