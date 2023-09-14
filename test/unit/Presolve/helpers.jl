@@ -52,7 +52,7 @@ function test_presolve_builder1()
     ubs = [10, Inf, 3, 2,  1,   0,  1]
 
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1.0, 1.0)
     @test form.nb_vars == 7
     @test form.nb_constrs == 6
     @test all(form.col_major_coef_matrix .== coef_matrix)
@@ -80,14 +80,14 @@ function test_presolve_builder2()
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     # Deactivate some rows.
     rows_to_deactivate = [1, 3, 6]
     vars_to_fix = Dict{Int, Float64}()
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 3
     @test all(form2.col_major_coef_matrix .== coef_matrix[[2, 4, 5], :])
@@ -114,7 +114,7 @@ function test_presolve_builder3()
     lbs = [10, 2,  1, 1, -1,  0,  -1]
     ubs = [10, 3,  1, 2,  1,  0,  -1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     # Deactivate some rows.
     rows_to_deactivate = Int[]
@@ -128,7 +128,7 @@ function test_presolve_builder3()
     #      2          # <= 1  ->   -1
     # 10+  3     -1   # == 6  ->   -6
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix[:, [2, 4, 5]])
@@ -155,7 +155,7 @@ function test_presolve_builder4()
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1.0, 1.0)
 
     rows_to_deactivate = Int[]
     vars_to_fix = Dict{Int,Float64}()
@@ -165,7 +165,7 @@ function test_presolve_builder4()
         3 => (-1, false, 3, false),
         6 => (0.5, true, 0.5, true) # the flag forces the update!
     )
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds)
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix)
@@ -196,7 +196,7 @@ function row_activity()
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     @test Coluna.Algorithm.row_min_activity(form, 1) == 0 + 0 - 1 * ubs[3] + 1 * lbs[4] + 0 + 1 * lbs[6] + 2.5 * lbs[7]
     @test Coluna.Algorithm.row_max_activity(form, 1) == 0 + 0 - 1 * lbs[3] + 1 * ubs[4] + 0 + 1 * ubs[6] + 2.5 * ubs[7]
@@ -228,7 +228,7 @@ function row_slack()
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     @test Coluna.Algorithm.row_min_slack(form, 1) == rhs[1] - Coluna.Algorithm.row_max_activity(form, 1) # ok
     @test Coluna.Algorithm.row_max_slack(form, 1) == rhs[1] - Coluna.Algorithm.row_min_activity(form, 1) # ok
@@ -371,7 +371,7 @@ function test_var_bounds_from_row1()
     lbs = [0, 0, 0]
     ubs = [10, 2, 1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -409,7 +409,7 @@ function test_var_bounds_from_row2()
     lbs = [0, 0, 0]
     ubs = [10, 1, 1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -447,7 +447,7 @@ function test_var_bounds_from_row3()
     rhs = [9, -9]
     sense = [Less, Greater]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -485,7 +485,7 @@ function test_var_bounds_from_row4()
     rhs = [10, -10]
     sense = [Greater, Less]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -529,7 +529,7 @@ function test_var_bounds_from_row5()
     rhs = [5]
     sense = [Equal]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -559,7 +559,7 @@ function test_var_bounds_from_row6()
     sense = [Greater, Greater]
     rhs = [1, 1]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack1 = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 2)
     max_slack1 = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 2)
@@ -594,7 +594,7 @@ function test_var_bounds_from_row7()
     rhs = [150, 600]
     sense = [Greater, Less]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -638,7 +638,7 @@ function test_var_bounds_from_row8() # this was producing a bug
     rhs = [1]
     sense = [Less]
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
