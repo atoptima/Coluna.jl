@@ -131,10 +131,10 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurlb!(form::Formulation, var::Variable, lb)
-    if isfixed(form, var)
-        @warn "Cannot change lower bound of fixed variable."
-        return
-    end
+    # TODO: if isfixed(form, var)
+    #     @warn "Cannot change lower bound of fixed variable."
+    #     return
+    # end
 
     var.curdata.lb = lb
     if isexplicit(form, var) && iscuractive(form, var)
@@ -195,10 +195,10 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurub!(form::Formulation, var::Variable, ub)
-    if isfixed(form, var)
-        @warn "Cannot change upper bound of fixed variable."
-        return
-    end
+    # TODO: if isfixed(form, var)
+    #     @warn "Cannot change upper bound of fixed variable."
+    #     return
+    # end
 
     var.curdata.ub = ub
     if isexplicit(form, var) && iscuractive(form, var)
@@ -665,10 +665,10 @@ function activate!(form::Formulation, constr::Constraint)
 end
 
 function activate!(form::Formulation, var::Variable)
-    if isfixed(form, var)
-        @warn "Cannot activate fixed variable."
-        return
-    end
+    # TODO: if isfixed(form, var)
+    #     @warn "Cannot activate fixed variable."
+    #     return
+    # end
     _activate!(form, var)
     return
 end

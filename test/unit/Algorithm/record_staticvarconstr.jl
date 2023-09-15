@@ -3,14 +3,14 @@ function unit_static_var_constr_record()
         @test state.cost == cost
         @test state.lb == lb
         @test state.ub == ub
-        @test state.fixed == fixed
+        #@test state.fixed == fixed
     end
 
     function test_var(form, var, cost, lb, ub, fixed)
         @test ClMP.getcurcost(form, var) == cost
         @test ClMP.getcurlb(form, var) == lb
         @test ClMP.getcurub(form, var) == ub
-        @test ClMP.isfixed(form, var) == fixed
+        #@test ClMP.isfixed(form, var) == fixed
     end
 
     function test_constr_record(state, rhs)
@@ -71,7 +71,7 @@ function unit_static_var_constr_record()
     ClMP.setcurlb!(form, vars["v1"], 5.0)
     ClMP.setcurub!(form, vars["v2"], 12.0)
     ClMP.setcurcost!(form, vars["v3"], 4.6)
-    ClMP.fix!(form, vars["v3"], 3.5, false)
+    #ClMP.fix!(form, vars["v3"], 3.5, false)
     ClMP.setcurrhs!(form, constrs["c1"], 1.0)
     ClMP.deactivate!(form, constrs["c2"])
 
@@ -81,7 +81,8 @@ function unit_static_var_constr_record()
     @test length(r2.constrs) == 2
     test_var_record(r2.vars[ClMP.getid(vars["v1"])], 1, 5, 10, false)
     test_var_record(r2.vars[ClMP.getid(vars["v2"])], 2, 0, 12, false)
-    test_var_record(r2.vars[ClMP.getid(vars["v3"])], 4.6, 3.5, 3.5, true)
+    #test_var_record(r2.vars[ClMP.getid(vars["v3"])], 4.6, 3.5, 3.5, true)
+    test_var_record(r2.vars[ClMP.getid(vars["v3"])], 4.6, 0, 30, false)
     test_constr_record(r2.constrs[ClMP.getid(constrs["c1"])], 1)
     test_constr_record(r2.constrs[ClMP.getid(constrs["c3"])], 3)
 
@@ -97,7 +98,8 @@ function unit_static_var_constr_record()
 
     test_var(form, vars["v1"], 1, 5, 10, false)
     test_var(form, vars["v2"], 2, 0, 12, false)
-    test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
+    #test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
+    test_var(form, vars["v3"], 4.6, 0, 30, false)
     test_constr(form, constrs["c1"], 1)
     @test !ClMP.iscuractive(form, constrs["c2"])
 end

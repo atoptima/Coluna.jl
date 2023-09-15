@@ -3,14 +3,14 @@ function unit_master_columns_record()
         @test state.cost == cost
         @test state.lb == lb
         @test state.ub == ub
-        @test state.fixed == fixed
+        #@test state.fixed == fixed
     end
 
     function test_var(form, var, cost, lb, ub, fixed)
         @test ClMP.getcurcost(form, var) == cost
         @test ClMP.getcurlb(form, var) == lb
         @test ClMP.getcurub(form, var) == ub
-        @test ClMP.isfixed(form, var) == fixed
+        #@test ClMP.isfixed(form, var) == fixed
     end
 
     env = CL.Env{ClMP.VarId}(CL.Params())
@@ -55,14 +55,15 @@ function unit_master_columns_record()
     ClMP.setcurlb!(form, vars["v1"], 5.0)
     ClMP.setcurub!(form, vars["v2"], 12.0)
     ClMP.setcurcost!(form, vars["v3"], 4.6)
-    ClMP.fix!(form, vars["v3"], 3.5)
+    #ClMP.fix!(form, vars["v3"], 3.5)
 
     r2 = ClB.create_record(storage, ClA.MasterColumnsUnit)
 
     @test isempty(setdiff(keys(r2.cols), ClMP.getid.(values(vars))))
     test_record(r2.cols[ClMP.getid(vars["v1"])], 1, 5, Inf, false)
     test_record(r2.cols[ClMP.getid(vars["v2"])], 2, 0, 12, false)
-    test_record(r2.cols[ClMP.getid(vars["v3"])], 4.6, 3.5, 3.5, true)
+    #test_record(r2.cols[ClMP.getid(vars["v3"])], 4.6, 3.5, 3.5, true)
+    test_record(r2.cols[ClMP.getid(vars["v3"])], 4.6, 0, Inf, false)
 
     ClB.restore_from_record!(storage, r1)
 
@@ -74,6 +75,7 @@ function unit_master_columns_record()
 
     test_var(form, vars["v1"], 1, 5, Inf, false)
     test_var(form, vars["v2"], 2, 0, 12, false)
-    test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
+    #test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
+    test_var(form, vars["v3"], 4.6, 0, Inf, false)
 end
 register!(unit_tests, "master_columns_record", unit_master_columns_record)

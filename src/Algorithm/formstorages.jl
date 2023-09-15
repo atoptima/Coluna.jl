@@ -146,7 +146,7 @@ function ClB.restore_from_record!(
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && isexplicit(form, var)
             if haskey(state.cols, id) 
-                if !iscuractive(form, var) && !isfixed(form, var)
+                if !iscuractive(form, var)# && !isfixed(form, var)
                     activate!(form, var)
                 end
                 apply_state!(form, var, state.cols[id])
@@ -311,7 +311,7 @@ function ClB.restore_from_record!(
         if isaStaticDuty(getduty(id)) && isexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
             if haskey(record.vars, id) 
-                if !iscuractive(form, var) && !isfixed(form, var)
+                if !iscuractive(form, var) #&& !isfixed(form, var)
                     @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
                     activate!(form, var)
                 end
