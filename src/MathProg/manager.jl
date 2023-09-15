@@ -37,7 +37,6 @@ Base.view(m::CoefficientMatrix{C,V,T}, row::C, ::Colon) where {C,V,T} = view(m.m
 Base.view(m::CoefficientMatrix{C,V,T}, ::Colon, col::V) where {C,V,T} = view(m.matrix, :, col)
 Base.transpose(m::CoefficientMatrix) = transpose(m.matrix)
 
-
 # The formulation manager is an internal data structure that contains & manager
 # all the elements which constitute a MILP formulation: variables, constraints,
 # objective constant (costs stored in variables), coefficient matrix, 
@@ -48,15 +47,12 @@ mutable struct FormulationManager
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     objective_constant::Float64
 
-    # When a variable is fixed, the variable is deactivated (not in the formulation anymore).
-    # Cost of the fixed variable is put in the objective constant.
-    fixed_vars::Set{VarId}
-
-    # The partial value is a lower bound on the value of the variables in the solution.
+    # The partial solution is a lower bound on the value of the variables in the solution.
     # We remove this fixed part from the formulation and treat the variable like a classic
     # non-negative one (>= 0).
-    # Cost of the partial value of the variable is put in the objective constant.
-    partial_values::Dict{VarId, Float64}
+    # When the bounds of the variable are [0, 0], the variable is deactivated (not in the formulation anymore).
+    # Cost of the partial solution is not stored in objective constant.
+    partial_solution::Dict{VarId, Float64}
 
     robust_constr_generators::Vector{RobustConstraintsGenerator}
     custom_families_id::Dict{DataType,Int}
@@ -70,7 +66,6 @@ function FormulationManager(buffer; custom_families_id = Dict{BD.AbstractCustomD
         constrs,
         ConstrVarMatrix(buffer),
         0.0,
-        Set{VarId}(),
         Dict{VarId, Float64}(),
         RobustConstraintsGenerator[],
         custom_families_id
@@ -90,17 +85,18 @@ function _addvar!(m::FormulationManager, var::Variable)
 end
 
 # Internal method to fix a variable in the formulation manager.
-function _fixvar!(m::FormulationManager, var::Variable)
-    push!(m.fixed_vars, getid(var))
+function _add_partial_value!(m::FormulationManager, var::Variable, value)
+    partial_value = get(m.partial_solution, var.id, 0.0)
+    new_value = partial_value + value
+    if abs(new_value) <= 1e-6
+        delete!(m.partial_solution, var.id)
+    else
+        m.partial_solution[var.id] = new_value
+    end
     return
 end
 
-function _unfixvar!(m::FormulationManager, var::Variable)
-    delete!(m.fixed_vars, getid(var))
-    return
-end
-
-_fixedvars(m::FormulationManager) = m.fixed_vars
+_partial_sol(m::FormulationManager) = m.partial_solution
 
 # Internal methods to store a Constraint in the formulation manager.
 function _addconstr!(m::FormulationManager, constr::Constraint)

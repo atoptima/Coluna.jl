@@ -246,13 +246,10 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
             end
         end
         fixed_obj = 0.0
-        for var_id in getfixedvars(form)
-            fixed_val = getcurlb(form, var_id)
-            if abs(fixed_val) > Coluna.TOL
-                push!(solvars, var_id)
-                push!(solvals, fixed_val)
-                fixed_obj += getcurcost(form, var_id) * fixed_val
-            end
+        for (var_id, fixed_val) in getpartialsol(form)
+            push!(solvars, var_id)
+            push!(solvals, fixed_val)
+            fixed_obj += getcurcost(form, var_id) * fixed_val
         end
         solcost += fixed_obj
         push!(solutions, PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL))
@@ -322,10 +319,10 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             end
         end
         fixed_obj = 0.0
-        for var_id in getfixedvars(form)
+        for (var_id, fixed_val) in getpartialsol(form)
             cost = getcurcost(form, var_id)
             if abs(cost) > Coluna.TOL
-                fixed_obj += cost * getcurlb(form, var_id)
+                fixed_obj += cost * fixed_val
             end
         end
         solcost += fixed_obj

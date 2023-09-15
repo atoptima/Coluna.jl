@@ -8,7 +8,7 @@ mutable struct VarData <: AbstractVcData
     inc_val::Float64
     is_active::Bool
     is_explicit::Bool
-    is_fixed::Bool
+    is_in_partial_sol::Bool
 end
 
 """
@@ -25,7 +25,7 @@ function VarData(
 end
 
 VarData(vd::VarData) = VarData(
-    vd.cost, vd.lb, vd.ub, vd.kind, vd.inc_val, vd.is_active, vd.is_explicit, vd.is_fixed
+    vd.cost, vd.lb, vd.ub, vd.kind, vd.inc_val, vd.is_active, vd.is_explicit, vd.is_in_partial_sol
 )
 
 """
