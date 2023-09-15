@@ -7,7 +7,6 @@ struct VarState
     cost::Float64
     lb::Float64
     ub::Float64
-    partial_value::Float64
 end
 
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
@@ -128,8 +127,7 @@ function ClB.record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, uni
             varstate = VarState(
                 getcurcost(form, var),
                 getcurlb(form, var),
-                getcurub(form, var),
-                0.0 # partial value
+                getcurub(form, var)
             )
             record.cols[id] = varstate
         end
@@ -273,8 +271,7 @@ function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, u
             varstate = VarState(
                 getcurcost(form, var), 
                 getcurlb(form, var), 
-                getcurub(form, var), 
-                0.0 # partial value
+                getcurub(form, var),
             )
             record.vars[id] = varstate
         end

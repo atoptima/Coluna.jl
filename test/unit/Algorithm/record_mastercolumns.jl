@@ -1,16 +1,14 @@
 function unit_master_columns_record()
-    function test_record(state, cost, lb, ub, fixed)
+    function test_record(state, cost, lb, ub)
         @test state.cost == cost
         @test state.lb == lb
         @test state.ub == ub
-        #@test state.fixed == fixed
     end
 
-    function test_var(form, var, cost, lb, ub, fixed)
+    function test_var(form, var, cost, lb, ub)
         @test ClMP.getcurcost(form, var) == cost
         @test ClMP.getcurlb(form, var) == lb
         @test ClMP.getcurub(form, var) == ub
-        #@test ClMP.isfixed(form, var) == fixed
     end
 
     env = CL.Env{ClMP.VarId}(CL.Params())
@@ -47,35 +45,32 @@ function unit_master_columns_record()
     r1 = ClB.create_record(storage, ClA.MasterColumnsUnit)
 
     @test isempty(setdiff(keys(r1.cols), ClMP.getid.(values(vars))))
-    test_record(r1.cols[ClMP.getid(vars["v1"])], 1, 0, Inf, false)
-    test_record(r1.cols[ClMP.getid(vars["v2"])], 2, 0, Inf, false)
-    test_record(r1.cols[ClMP.getid(vars["v3"])], 4, 0, Inf, false)
+    test_record(r1.cols[ClMP.getid(vars["v1"])], 1, 0, Inf)
+    test_record(r1.cols[ClMP.getid(vars["v2"])], 2, 0, Inf)
+    test_record(r1.cols[ClMP.getid(vars["v3"])], 4, 0, Inf)
 
     # make changes on the formulation
     ClMP.setcurlb!(form, vars["v1"], 5.0)
     ClMP.setcurub!(form, vars["v2"], 12.0)
     ClMP.setcurcost!(form, vars["v3"], 4.6)
-    #ClMP.fix!(form, vars["v3"], 3.5)
 
     r2 = ClB.create_record(storage, ClA.MasterColumnsUnit)
 
     @test isempty(setdiff(keys(r2.cols), ClMP.getid.(values(vars))))
-    test_record(r2.cols[ClMP.getid(vars["v1"])], 1, 5, Inf, false)
-    test_record(r2.cols[ClMP.getid(vars["v2"])], 2, 0, 12, false)
-    #test_record(r2.cols[ClMP.getid(vars["v3"])], 4.6, 3.5, 3.5, true)
-    test_record(r2.cols[ClMP.getid(vars["v3"])], 4.6, 0, Inf, false)
+    test_record(r2.cols[ClMP.getid(vars["v1"])], 1, 5, Inf)
+    test_record(r2.cols[ClMP.getid(vars["v2"])], 2, 0, 12)
+    test_record(r2.cols[ClMP.getid(vars["v3"])], 4.6, 0, Inf)
 
     ClB.restore_from_record!(storage, r1)
 
-    test_var(form, vars["v1"], 1, 0, Inf, false)
-    test_var(form, vars["v2"], 2, 0, Inf, false)
-    test_var(form, vars["v3"], 4, 0, Inf, false)
+    test_var(form, vars["v1"], 1, 0, Inf)
+    test_var(form, vars["v2"], 2, 0, Inf)
+    test_var(form, vars["v3"], 4, 0, Inf)
 
     ClB.restore_from_record!(storage, r2)
 
-    test_var(form, vars["v1"], 1, 5, Inf, false)
-    test_var(form, vars["v2"], 2, 0, 12, false)
-    #test_var(form, vars["v3"], 4.6, 3.5, 3.5, true)
-    test_var(form, vars["v3"], 4.6, 0, Inf, false)
+    test_var(form, vars["v1"], 1, 5, Inf)
+    test_var(form, vars["v2"], 2, 0, 12)
+    test_var(form, vars["v3"], 4.6, 0, Inf)
 end
 register!(unit_tests, "master_columns_record", unit_master_columns_record)
