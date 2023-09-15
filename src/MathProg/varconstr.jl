@@ -213,17 +213,19 @@ function setcurub!(form::Formulation, varid::VarId, ub)
     return setcurub!(form, var, ub)
 end
 
-## fix cur bounds
-function _propagate_fix!(form, var_id, value)
-    var_members = @view getcoefmatrix(form)[:, var_id]
-    for (constr_id, coef) in var_members
-        fixed_term = value * coef
-        rhs = getcurrhs(form, constr_id)
-        setcurrhs!(form, constr_id, rhs - fixed_term)
+function _propagate_partial_value_bounds!(form, var, cumulative_value)
+    var_id = getid(var)
+    peren_lb = getperenlb(form, var)
+    peren_ub = getperenub(form, var)
+    if cumulative_value < 0
+        setcurlb!(form, var, peren_lb - cumulative_value)
+        setcurub!(form, var, min(peren_ub, 0.0))
+    elseif cumulative_value > 0
+        setcurlb!(form, var, max(peren_lb, 0.0))
+        setcurub!(form, var, peren_ub - cumulative_value)
     end
     return
 end
-
 
 """
     add_to_partial_solution!(formulation, varid, value)
@@ -232,22 +234,47 @@ Set the minimal value that the variable with id `varid` takes into the optimal s
 If the variable is already in the partial solution, the value cumulates with the current.
 If the cumulative value is 0, the variable is removed from the partial solution.
 
-**Warning**: there is no propagation, no change on variable bounds, you must call the presolve algorithm.
+**Warning**: by default, there is no propagation, no change on variable bounds, 
+you must call the presolve algorithm.
 """
-function add_to_partial_solution!(form::Formulation, varid::VarId, value)
+function add_to_partial_solution!(form::Formulation, varid::VarId, value, propagation = false)
     var = getvar(form, varid)
     @assert !isnothing(var)
-    return add_to_partial_solution!(form, var, value)
+    return add_to_partial_solution!(form, var, value, propagation)
 end
 
-function add_to_partial_solution!(form::Formulation, var::Variable, value)
+function add_to_partial_solution!(form::Formulation, var::Variable, value, propagation = false)
     if isexplicit(form, var) && iscuractive(form, var)
-        
+        cumulative_val = _add_partial_value!(form.manager, var, value)
+        if propagation
+            _propagate_partial_value_bounds!(form, var, cumulative_val)
+        end
         return true
     end
     name = getname(form, var)
     @warn "Cannot add variable $name to partial solution because it is unactive or non-explicit."
     return false
+end
+
+"""
+    in_partial_sol(form, varid)
+    in_partial_sol(form, variable)
+
+Return `true` if the variable is in the partial solution; `false` otherwise.
+"""
+in_partial_sol(form::Formulation, varid::VarId) = in_partial_sol(form, getvar(form, varid))
+in_partial_sol(::Formulation, var::Variable) = var.curdata.is_in_partial_sol
+
+"""
+    get_value_in_partial_sol(formulation, varid)
+    get_value_in_partial_sol(formulation, variable)
+
+Return the value of the variable in the partial solution.
+"""
+get_value_in_partial_sol(form::Formulation, varid::VarId) = get_value_in_partial_sol(form, getvar(form, varid))
+function get_value_in_partial_sol(form::Formulation, var::Variable)
+    !in_partial_sol(form, var) && return 0
+    return get(form.manager.partial_solution, getid(var), 0)
 end
 
 """

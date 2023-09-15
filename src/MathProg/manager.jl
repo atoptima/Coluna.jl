@@ -93,7 +93,7 @@ function _add_partial_value!(m::FormulationManager, var::Variable, value)
     else
         m.partial_solution[var.id] = new_value
     end
-    return
+    return new_value
 end
 
 _partial_sol(m::FormulationManager) = m.partial_solution
