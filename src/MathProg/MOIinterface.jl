@@ -376,7 +376,7 @@ function set_basis!(form::F, optimizer::MoiOptimizer, basis::Basis) where {F <: 
         iscuractive(form, varid) && isexplicit(form, varid) || continue
         moi_index = getmoiindex(getmoirecord(var))
         var_basis = get(basis.vars, varid, nothing)
-        if !isnothing(var_basis)
+        if !isnothing(var_basis) && moi_index.value != -1
             MOI.set(inner, MOI.VariableBasisStatus(), moi_index, var_basis)
         end
     end
@@ -384,7 +384,7 @@ function set_basis!(form::F, optimizer::MoiOptimizer, basis::Basis) where {F <: 
         iscuractive(form, constrid) && isexplicit(form, constrid) || continue
         moi_index = getmoiindex(getmoirecord(constr))
         constr_basis = get(basis.constrs, constrid, nothing)
-        if !isnothing(constr_basis)
+        if !isnothing(constr_basis) && moi_index.value != -1
             MOI.set(inner, MOI.ConstraintBasisStatus(), moi_index, constr_basis)
         end
     end
