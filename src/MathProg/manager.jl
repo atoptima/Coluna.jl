@@ -47,9 +47,13 @@ mutable struct FormulationManager
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     objective_constant::Float64
 
-    # The partial solution is a lower bound on the value of the variables in the solution.
-    # We remove this fixed part from the formulation and treat the variable like a classic
+    # The partial solution is a lower bound on the absolute value of the variables in the solution.
+    # When the variable is positive, we remove this fixed part from the formulation and treat the variable like a classic
     # non-negative one (>= 0).
+    # When the variable is negative, we remove this fixed part form the formulation and treat the variable as
+    # a non-positive one (<= 0).
+    # When the variable has negative lower bound and positive upper bound, we treat it as a 
+    # non-negative (non-positive) one if the partial solution is positive (negative).
     # When the bounds of the variable are [0, 0], the variable is deactivated (not in the formulation anymore).
     # Cost of the partial solution is not stored in objective constant.
     partial_solution::Dict{VarId, Float64}
@@ -89,8 +93,10 @@ function _add_partial_value!(m::FormulationManager, var::Variable, value)
     partial_value = get(m.partial_solution, var.id, 0.0)
     new_value = partial_value + value
     if abs(new_value) <= 1e-6
+        var.curdata.is_in_partial_sol = false
         delete!(m.partial_solution, var.id)
     else
+        var.curdata.is_in_partial_sol = true
         m.partial_solution[var.id] = new_value
     end
     return new_value

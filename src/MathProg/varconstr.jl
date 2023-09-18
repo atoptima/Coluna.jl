@@ -217,12 +217,15 @@ function _propagate_partial_value_bounds!(form, var, cumulative_value)
     var_id = getid(var)
     peren_lb = getperenlb(form, var)
     peren_ub = getperenub(form, var)
-    if cumulative_value < 0
+    if cumulative_value < -1e-6
         setcurlb!(form, var, peren_lb - cumulative_value)
         setcurub!(form, var, min(peren_ub, 0.0))
-    elseif cumulative_value > 0
+    elseif cumulative_value > 1e-6
         setcurlb!(form, var, max(peren_lb, 0.0))
         setcurub!(form, var, peren_ub - cumulative_value)
+    else 
+        setcurlb!(form, var, peren_lb)
+        setcurub!(form, var, peren_ub)
     end
     return
 end
@@ -274,6 +277,7 @@ Return the value of the variable in the partial solution.
 get_value_in_partial_sol(form::Formulation, varid::VarId) = get_value_in_partial_sol(form, getvar(form, varid))
 function get_value_in_partial_sol(form::Formulation, var::Variable)
     !in_partial_sol(form, var) && return 0
+    @show form.manager.partial_solution
     return get(form.manager.partial_solution, getid(var), 0)
 end
 

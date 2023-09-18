@@ -147,7 +147,7 @@ register!(unit_tests, "variables", record)
 function add_in_partial_sol_variable_1()
     form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
     var = ClMP.setvar!(
-        form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
+        form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -3.0, ub = 3.0, 
         kind = ClMP.Integ, inc_val = 4.0
     )
     DynamicSparseArrays.closefillmode!(ClMP.getcoefmatrix(form))
@@ -162,9 +162,9 @@ function add_in_partial_sol_variable_1()
     ClMP.add_to_partial_solution!(form, var, -1.0, true)
 
     @test ClMP.getcurub(form, var) == 0
-    @test ClMP.getcurlb(form, var) == 0
-    @test ClMP.getperenub(form, var) == 1
-    @test ClMP.getperenlb(form, var) == -1
+    @test ClMP.getcurlb(form, var) == -2
+    @test ClMP.getperenub(form, var) == 3
+    @test ClMP.getperenlb(form, var) == -3
     @test ClMP.in_partial_sol(form, var)
     @test ClMP.get_value_in_partial_sol(form, var) == -1
     @test ClMP.iscuractive(form, var)
@@ -174,7 +174,7 @@ register!(unit_tests, "variables", add_in_partial_sol_variable_1)
 function add_in_partial_sol_variable_2()
     form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
     var = ClMP.setvar!(
-        form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
+        form, "var1", ClMP.OriginalVar, cost = 2.0, lb = -3.0, ub = 3.0, 
         kind = ClMP.Integ, inc_val = 4.0
     )
     DynamicSparseArrays.closefillmode!(ClMP.getcoefmatrix(form))
@@ -183,10 +183,11 @@ function add_in_partial_sol_variable_2()
     ClMP.deactivate!(form, varid)
     @test !ClMP.iscuractive(form, varid)
     ClMP.add_to_partial_solution!(form, var, -1.0, true) # try an unactive variable -> should not work.
-    @test ClMP.getcurub(form, var) == 1
-    @test ClMP.getcurlb(form, var) == -1
-    @test ClMP.getperenub(form, var) == 1
-    @test ClMP.getperenlb(form, var) == -1
+    @test ClMP.getcurub(form, var) == 3
+    @test ClMP.getcurlb(form, var) == -3
+    @test ClMP.getperenub(form, var) == 3
+    @test ClMP.getperenlb(form, var) == -3
+    @test ClMP.get_value_in_partial_sol(form, var) == 0
 end
 register!(unit_tests, "variables", add_in_partial_sol_variable_2)
 
@@ -201,30 +202,40 @@ function add_in_partial_sol_variable_3()
 
     varid = ClMP.getid(var)
 
-
-    #ClMP.fix!(form, var, 0.0)
+    ClMP.add_to_partial_solution!(form, var, 0.0, true)
 
     @test ClMP.getcurub(form, var) == 3
     @test ClMP.getcurlb(form, var) == -3
     @test ClMP.getperenub(form, var) == 3
     @test ClMP.getperenlb(form, var) == -3
+    @test ClMP.get_value_in_partial_sol(form, var) == 0
 
     @test ClMP.iscuractive(form, var)
 
-    #ClMP.unfix!(form, var)
-    @test ClMP.getcurub(form, var) == 3
-    @test ClMP.getcurlb(form, var) == -3
+    ClMP.add_to_partial_solution!(form, var, 1.0, true)
+    @test ClMP.getcurub(form, var) == 2
+    @test ClMP.getcurlb(form, var) == 0
     @test ClMP.getperenub(form, var) == 3
     @test ClMP.getperenlb(form, var) == -3
+    @test ClMP.get_value_in_partial_sol(form, var) == 1
 
     @test ClMP.iscuractive(form, var)
 
-
-    #ClMP.fix!(form, var, 1.0)
+    ClMP.add_to_partial_solution!(form, var, -1.0, true)
     @test ClMP.getcurub(form, var) == 3
     @test ClMP.getcurlb(form, var) == -3
     @test ClMP.getperenub(form, var) == 3
     @test ClMP.getperenlb(form, var) == -3
+    @test ClMP.get_value_in_partial_sol(form, var) == 0
+
+    @test ClMP.iscuractive(form, var)
+
+    ClMP.add_to_partial_solution!(form, var, -1.0, true)
+    @test ClMP.getcurub(form, var) == 0
+    @test ClMP.getcurlb(form, var) == -2
+    @test ClMP.getperenub(form, var) == 3
+    @test ClMP.getperenlb(form, var) == -3
+    @test ClMP.get_value_in_partial_sol(form, var) == -1
 
     @test ClMP.iscuractive(form, var)
 end
