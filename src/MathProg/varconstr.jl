@@ -131,10 +131,9 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurlb!(form::Formulation, var::Variable, lb)
-    # TODO: if isfixed(form, var)
-    #     @warn "Cannot change lower bound of fixed variable."
-    #     return
-    # end
+    if in_partial_sol(form, var)
+        @warn "Changing lower bound of fixed variable."
+    end
 
     var.curdata.lb = lb
     if isexplicit(form, var) && iscuractive(form, var)
@@ -195,10 +194,9 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurub!(form::Formulation, var::Variable, ub)
-    # TODO: if isfixed(form, var)
-    #     @warn "Cannot change upper bound of fixed variable."
-    #     return
-    # end
+    if in_partial_sol(form, var)
+        @warn "Changing upper bound of fixed variable."
+    end
 
     var.curdata.ub = ub
     if isexplicit(form, var) && iscuractive(form, var)
@@ -214,13 +212,12 @@ function setcurub!(form::Formulation, varid::VarId, ub)
 end
 
 function _propagate_partial_value_bounds!(form, var, cumulative_value)
-    var_id = getid(var)
     peren_lb = getperenlb(form, var)
     peren_ub = getperenub(form, var)
-    if cumulative_value < -1e-6
+    if cumulative_value < - Coluna.TOL
         setcurlb!(form, var, peren_lb - cumulative_value)
         setcurub!(form, var, min(peren_ub, 0.0))
-    elseif cumulative_value > 1e-6
+    elseif cumulative_value > Coluna.TOL
         setcurlb!(form, var, max(peren_lb, 0.0))
         setcurub!(form, var, peren_ub - cumulative_value)
     else 
@@ -696,10 +693,6 @@ function activate!(form::Formulation, constr::Constraint)
 end
 
 function activate!(form::Formulation, var::Variable)
-    # TODO: if isfixed(form, var)
-    #     @warn "Cannot activate fixed variable."
-    #     return
-    # end
     _activate!(form, var)
     return
 end
