@@ -131,9 +131,8 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurlb!(form::Formulation, var::Variable, lb)
-    if isfixed(form, var)
-        @warn "Cannot change lower bound of fixed variable."
-        return
+    if in_partial_sol(form, var)
+        @warn "Changing lower bound of fixed variable."
     end
 
     var.curdata.lb = lb
@@ -195,9 +194,8 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurub!(form::Formulation, var::Variable, ub)
-    if isfixed(form, var)
-        @warn "Cannot change upper bound of fixed variable."
-        return
+    if in_partial_sol(form, var)
+        @warn "Changing upper bound of fixed variable."
     end
 
     var.curdata.ub = ub
@@ -213,75 +211,79 @@ function setcurub!(form::Formulation, varid::VarId, ub)
     return setcurub!(form, var, ub)
 end
 
-## fix cur bounds
-function _propagate_fix!(form, var_id, value)
-    var_members = @view getcoefmatrix(form)[:, var_id]
-    for (constr_id, coef) in var_members
-        fixed_term = value * coef
-        rhs = getcurrhs(form, constr_id)
-        setcurrhs!(form, constr_id, rhs - fixed_term)
+function _propagate_partial_value_bounds!(form, var, cumulative_value)
+    peren_lb = getperenlb(form, var)
+    peren_ub = getperenub(form, var)
+    if cumulative_value < - Coluna.TOL
+        setcurlb!(form, var, peren_lb - cumulative_value)
+        setcurub!(form, var, min(peren_ub, 0.0))
+    elseif cumulative_value > Coluna.TOL
+        setcurlb!(form, var, max(peren_lb, 0.0))
+        setcurub!(form, var, peren_ub - cumulative_value)
+    else 
+        setcurlb!(form, var, peren_lb)
+        setcurub!(form, var, peren_ub)
     end
     return
 end
 
 """
-    fix!(formulation, varid, value, propagation = true)
-    fix!(formulation, variable, value, propagation = true)
-    
-Fixes the current bounds of an active and explicit variable to a given value.
-It deactives the variable and updates the rhs of the constraints that involve this variable
-if `propagation` is equal to `true`.
+    add_to_partial_solution!(formulation, varid, value)
 
-You must use `unfix!` to change the bounds of the variable.
+Set the minimal value that the variable with id `varid` takes into the optimal solution.
+If the variable is already in the partial solution, the value cumulates with the current.
+If the cumulative value is 0, the variable is removed from the partial solution.
+
+**Warning**: by default, there is no propagation, no change on variable bounds, 
+you must call the presolve algorithm.
 """
-fix!(form::Formulation, varid::VarId, value, propagation = true) = fix!(form, getvar(form, varid), value, propagation)
-function fix!(form::Formulation, var::Variable, value, propagation = true)
-    if !isfixed(form, var) && isexplicit(form, var) && iscuractive(form, var)
-        deactivate!(form, var)
-        var.curdata.is_fixed = true
-        var.curdata.ub = value
-        var.curdata.lb = value
-        _fixvar!(form.manager, var)
+function add_to_partial_solution!(form::Formulation, varid::VarId, value, propagation = false)
+    var = getvar(form, varid)
+    @assert !isnothing(var)
+    return add_to_partial_solution!(form, var, value, propagation)
+end
+
+function add_to_partial_solution!(form::Formulation, var::Variable, value, propagation = false)
+    if isexplicit(form, var) && iscuractive(form, var)
+        cumulative_val = _add_partial_value!(form.manager, var, value)
         if propagation
-            _propagate_fix!(form, getid(var), value)
+            _propagate_partial_value_bounds!(form, var, cumulative_val)
         end
         return true
     end
     name = getname(form, var)
-    @warn "Cannot fix variable $name because it is non-explicit or unactive."
+    @warn "Cannot add variable $name to partial solution because it is unactive or non-explicit."
     return false
 end
 
 """
-    unfix!(formulation, varid, propagation = true)
-    unfix!(formulation, variable, propagation = true)
+    in_partial_sol(form, varid)
+    in_partial_sol(form, variable)
 
-Unfixes the variable.
-It activates the variable and update the rhs of the constraints that involve this variable.
+Return `true` if the variable is in the partial solution; `false` otherwise.
 """
-unfix!(form::Formulation, varid::VarId, propagation = true) = unfix!(form, getvar(form, varid), propagation)
-function unfix!(form::Formulation, var::Variable, propagation = true)
-    if isfixed(form, var) && isexplicit(form, var) && !iscuractive(form, var)
-        value = getcurlb(form, var)
-        var.curdata.is_fixed = false
-        _unfixvar!(form.manager, var)
-        activate!(form, var)
-        if propagation
-            _propagate_fix!(form, getid(var), -value)
-        end
-        return true
-    end
-    name = getname(form, var)
-    @warn "Cannot unfix variable $name because it is unfixed, non-explicit, or active."
-    return false
+in_partial_sol(form::Formulation, varid::VarId) = in_partial_sol(form, getvar(form, varid))
+in_partial_sol(::Formulation, var::Variable) = var.curdata.is_in_partial_sol
+
+"""
+    get_value_in_partial_sol(formulation, varid)
+    get_value_in_partial_sol(formulation, variable)
+
+Return the value of the variable in the partial solution.
+"""
+get_value_in_partial_sol(form::Formulation, varid::VarId) = get_value_in_partial_sol(form, getvar(form, varid))
+function get_value_in_partial_sol(form::Formulation, var::Variable)
+    !in_partial_sol(form, var) && return 0
+    @show form.manager.partial_solution
+    return get(form.manager.partial_solution, getid(var), 0)
 end
 
 """
-    getfixedvars(formulation)
+    getpartialsol(formulation) -> Dict{VarId,Float64}
 
-Returns a set that contains the ids of the fixed variables in the formulation.
+Returns the partial solution to the formulation.
 """
-getfixedvars(form::Formulation) = _fixedvars(form.manager)
+getpartialsol(form::Formulation) = _partial_sol(form.manager)
 
 # Constraint
 ## rhs
@@ -619,10 +621,6 @@ function setcurincval!(form::Formulation, constrid::ConstrId, inc_val)
     return setcurincval!(form, constr, inc_val)
 end
 
-## fixed
-isfixed(form::Formulation, varid::VarId) = isfixed(form, getvar(form, varid))
-isfixed(::Formulation, var::Variable) = var.curdata.is_fixed
-
 ## active
 """
     isperenactive(formulation, varconstrid)
@@ -695,10 +693,6 @@ function activate!(form::Formulation, constr::Constraint)
 end
 
 function activate!(form::Formulation, var::Variable)
-    if isfixed(form, var)
-        @warn "Cannot activate fixed variable."
-        return
-    end
     _activate!(form, var)
     return
 end

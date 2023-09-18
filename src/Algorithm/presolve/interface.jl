@@ -213,7 +213,7 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
     for (var_id, val) in presolve_form.fixed_vars
         # Do not propagate variable fixing! The new rhs of constraints is updated in the 
         # next step.
-        fix!(form, getvar(form, var_id), val, false)
+        # TODO: fix!(form, getvar(form, var_id), val, false)
     end
 
     # Update rhs

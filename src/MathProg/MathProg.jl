@@ -90,7 +90,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, setperenkind!, isfixed, fix!, unfix!,
+    isexplicit, getname, getbranchingpriority, reset!, setperenkind!, add_to_partial_solution!,
     getcustomdata
 
 # Types & methods related to solutions & bounds

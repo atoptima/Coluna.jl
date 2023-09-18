@@ -482,7 +482,6 @@ function build_dw_presolve_reformulation2()
     @test presolve_original_master.form.upper_multiplicity == 1
   
     for (varuid, lb, ub) in var_ids_lbs_ubs
-        @show lb, ub
         @test presolve_original_master.form.lbs[varuid] == lb
         @test presolve_original_master.form.ubs[varuid] == ub
     end

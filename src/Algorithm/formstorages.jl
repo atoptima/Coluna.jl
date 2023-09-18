@@ -7,14 +7,9 @@ struct VarState
     cost::Float64
     lb::Float64
     ub::Float64
-    fixed::Bool
 end
 
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
-    if isfixed(form, var)
-        println("var $(getname(form, var)) is fixed -- ", isfixed(form, var))
-        unfix!(form, var, false) 
-    end
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)
     end
@@ -23,10 +18,6 @@ function apply_state!(form::Formulation, var::Variable, var_state::VarState)
     end
     if getcurcost(form, var) != var_state.cost
         setcurcost!(form, var, var_state.cost)
-    end
-    if var_state.fixed
-        @assert var_state.lb == var_state.ub
-        fix!(form, var, var_state.lb, false)
     end
     return
 end
@@ -132,12 +123,11 @@ ClB.storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
 function ClB.record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
     record = MasterColumnsRecord(Dict{VarId,ConstrState}())
     for (id, var) in getvars(form)
-        if getduty(id) <= MasterCol && isexplicit(form, var) && iscuractive(form, var) || isfixed(form, var)
+        if getduty(id) <= MasterCol && isexplicit(form, var) && iscuractive(form, var)
             varstate = VarState(
                 getcurcost(form, var),
                 getcurlb(form, var),
-                getcurub(form, var),
-                isfixed(form, var)
+                getcurub(form, var)
             )
             record.cols[id] = varstate
         end
@@ -154,7 +144,7 @@ function ClB.restore_from_record!(
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && isexplicit(form, var)
             if haskey(state.cols, id) 
-                if !iscuractive(form, var) && !isfixed(form, var)
+                if !iscuractive(form, var)# && !isfixed(form, var)
                     activate!(form, var)
                 end
                 apply_state!(form, var, state.cols[id])
@@ -277,8 +267,12 @@ function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, u
         end
     end
     for (id, var) in getvars(form)
-        if isaStaticDuty(getduty(id)) && isexplicit(form, var) && iscuractive(form, var) || isfixed(form, var)           
-            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var), isfixed(form, var))
+        if isaStaticDuty(getduty(id)) && isexplicit(form, var) && iscuractive(form, var)          
+            varstate = VarState(
+                getcurcost(form, var), 
+                getcurlb(form, var), 
+                getcurub(form, var),
+            )
             record.vars[id] = varstate
         end
     end
@@ -314,7 +308,7 @@ function ClB.restore_from_record!(
         if isaStaticDuty(getduty(id)) && isexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
             if haskey(record.vars, id) 
-                if !iscuractive(form, var) && !isfixed(form, var)
+                if !iscuractive(form, var) #&& !isfixed(form, var)
                     @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
                     activate!(form, var)
                 end
