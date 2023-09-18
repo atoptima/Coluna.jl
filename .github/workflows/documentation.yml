@@ -15,8 +15,6 @@ jobs:
           version: '1'
       - name: Install unregistered pkg
         run: julia --project=docs/ -e 'using Pkg; Pkg.add(url="https://github.com/JuliaDocs/DocumenterMermaid.jl");'
-      - name: Install documenter#master
-        run: julia --project=docs/ -e 'using Pkg; Pkg.add(url="https://github.com/JuliaDocs/Documenter.jl", rev="648ba95768c50ea6d2ab866cc55f085a4a2fc1e4");'
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate();'
       - name: Build and deploy

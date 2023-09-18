@@ -1,4 +1,6 @@
-using Documenter, Coluna, Literate, BlockDecomposition, Parameters, DocumenterMermaid
+using Documenter, Coluna, Literate, BlockDecomposition, Parameters, DocumenterMermaid, DynamicSparseArrays
+
+JULIA_DEBUG=Documenter
 
 TUTORIAL_GAP = joinpath(@__DIR__, "src", "start", "start.jl")
 TUTORIAL_CUTS = joinpath(@__DIR__, "src", "start", "cuts.jl")
@@ -28,7 +30,7 @@ Literate.markdown(TUTORIAL_ADVANCED, OUTPUT_ADVANCED, documenter=true)
 Literate.markdown(TUTORIAL_STORAGE_API, OUTPUT_STORAGE_API, documenter=true)
 
 makedocs(
-    modules = [Coluna, BlockDecomposition],
+    modules = [Coluna, BlockDecomposition, DynamicSparseArrays],
     checkdocs = :exports,
     sitename = "Coluna.jl",
     authors = "Atoptima & contributors",
@@ -37,7 +39,7 @@ makedocs(
         collapselevel = 2,
         assets = ["assets/js/init.js"]
     ),
-    strict = false,
+    warnonly = true,
     pages = Any[
         "Introduction"   => "index.md",
         "Tutorials"  => Any[
