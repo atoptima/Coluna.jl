@@ -5,7 +5,7 @@ struct PresolveFormulation
     constr_to_row::Dict{ConstrId,Int64}
     form::PresolveFormRepr
     deactivated_constrs::Vector{ConstrId}
-    fixed_vars::Dict{VarId,Int}
+    fixed_variables::Dict{VarId, Float64}
 end
 
 struct DwPresolveReform
@@ -49,9 +49,11 @@ function create_presolve_form(
 
     lbs_vals = Float64[]
     ubs_vals = Float64[]
+    partial_sol = Float64[]
     for var in col_to_var
         push!(lbs_vals, getcurlb(form, var))
         push!(ubs_vals, getcurub(form, var))
+        push!(partial_sol, MathProg.get_value_in_partial_sol(form, var))
     end
 
     rhs_vals = Float64[]
@@ -67,12 +69,12 @@ function create_presolve_form(
         sense_vals,
         lbs_vals,
         ubs_vals,
+        partial_sol,
         lower_multiplicity,
         upper_multiplicity
     )
 
     deactivated_constrs = ConstrId[]
-    fixed_vars = Dict{VarId,Float64}()
 
     return PresolveFormulation(
         col_to_var,
@@ -81,18 +83,19 @@ function create_presolve_form(
         constr_to_row,
         form,
         deactivated_constrs,
-        fixed_vars,
+        Dict{VarId, Float64}()
     )
 end
 
 function propagate_in_presolve_form(
     form::PresolveFormulation,
     rows_to_deactivate::Vector{Int},
-    vars_to_fix::Dict{Int, Float64},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}
 )
+    fixed_vars = vars_to_fix(form.form, tightened_bounds)
+
     col_mask = ones(Bool, form.form.nb_vars)
-    col_mask[collect(keys(vars_to_fix))] .= false
+    col_mask[collect(keys(fixed_vars))] .= false
     row_mask = ones(Bool, form.form.nb_constrs)
     row_mask[rows_to_deactivate] .= false
 
@@ -107,19 +110,14 @@ function propagate_in_presolve_form(
         push!(deactivated_constrs, getid(constr))
     end
 
-    fixed_vars = form.fixed_vars
-    for (col, val) in vars_to_fix
-        var_id = getid(form.col_to_var[col])
-        @assert !haskey(fixed_vars, var_id)
-        fixed_vars[var_id] = val
-    end
+    form_repr = PresolveFormRepr(form.form, rows_to_deactivate, tightened_bounds, form.form.lower_multiplicity, form.form.upper_multiplicity)
 
     return PresolveFormulation(
         col_to_var,
         row_to_constr, 
         var_to_col,
         constr_to_row,
-        PresolveFormRepr(form.form, rows_to_deactivate, vars_to_fix, tightened_bounds, form.form.lower_multiplicity, form.form.upper_multiplicity),
+        form_repr,
         deactivated_constrs,
         fixed_vars
     )
@@ -209,11 +207,12 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
         deactivate!(form, getconstr(form, constr_id))
     end
 
-    # Fix variables
-    for (var_id, val) in presolve_form.fixed_vars
-        # Do not propagate variable fixing! The new rhs of constraints is updated in the 
-        # next step.
-        # TODO: fix!(form, getvar(form, var_id), val, false)
+    # Fixed variables
+    for (var_id, val) in presolve_form.fixed_variables
+        setcurlb!(form, var_id, 0.0)
+        setcurub!(form, var_id, 0.0)
+        MathProg.add_to_partial_solution!(form, var_id, val)
+        deactivate!(form, var_id)
     end
 
     # Update rhs
@@ -228,6 +227,11 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
     ))
         setcurlb!(form, presolve_form.col_to_var[col], lb)
         setcurub!(form, presolve_form.col_to_var[col], ub)
+    end
+
+    # Update partial solution
+    for (col, val) in enumerate(presolve_form.form.partial_solution)
+        MathProg.add_to_partial_solution!(form, presolve_form.col_to_var[col], val)
     end
     return
 end

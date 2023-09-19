@@ -37,13 +37,13 @@ function propagate_var_bounds_from!(dest::PresolveFormulation, src::PresolveForm
     end
 
     # Look at fixed variable
-    common_var_ids = intersect(keys(src.fixed_vars), keys(dest.var_to_col))
+    common_var_ids = intersect(keys(src.fixed_variables), keys(dest.var_to_col))
 
     for var_id in common_var_ids
-        src_var_val = src.fixed_vars[var_id]
+        src_var_val = src.fixed_variables[var_id]
         dest_col = dest.var_to_col[var_id]
-        dest.form.lbs[dest_col] = src_var_val
-        dest.form.ubs[dest_col] = src_var_val
+        dest.form.lbs[dest_col] = src_var_val - dest.form.partial_solution[dest_col]
+        dest.form.ubs[dest_col] = src_var_val - dest.form.partial_solution[dest_col]
     end
     return
 end
