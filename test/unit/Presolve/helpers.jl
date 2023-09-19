@@ -84,10 +84,9 @@ function test_presolve_builder2()
 
     # Deactivate some rows.
     rows_to_deactivate = [1, 3, 6]
-    vars_to_fix = Dict{Int, Float64}()
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds, 1.0, 1.0)
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 3
     @test all(form2.col_major_coef_matrix .== coef_matrix[[2, 4, 5], :])
@@ -118,7 +117,6 @@ function test_presolve_builder3()
 
     # Deactivate some rows.
     rows_to_deactivate = Int[]
-    vars_to_fix = Dict{Int, Float64}(1 => 10, 3 => 1, 6 => 0, 7 => -1)
     tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}()
 
     #      -1  - 2.5  # <= 4  ->  7.5
@@ -128,7 +126,7 @@ function test_presolve_builder3()
     #      2          # <= 1  ->   -1
     # 10+  3     -1   # == 6  ->   -6
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds, 1.0, 1.0)
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix[:, [2, 4, 5]])
@@ -158,14 +156,13 @@ function test_presolve_builder4()
     form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1.0, 1.0)
 
     rows_to_deactivate = Int[]
-    vars_to_fix = Dict{Int,Float64}()
     tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}(
         1 => (1, false, 2, true),
         2 => (0, true, 1, true),
         3 => (-1, false, 3, false),
         6 => (0.5, true, 0.5, true) # the flag forces the update!
     )
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, vars_to_fix, tightened_bounds, 1.0, 1.0)
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix)

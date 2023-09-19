@@ -12,17 +12,18 @@ struct PresolveFormRepr
     sense::Vector{ConstrSense} # on constraints
     lbs::Vector{Float64} # on variables
     ubs::Vector{Float64} # on variables
+    partial_solution::Vector{Float64} # on variables
     lower_multiplicity::Float64
     upper_multiplicity::Float64
 end
 
-function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, lm, um)
+function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, lm, um)
     length(lbs) == length(ubs) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
     length(rhs) == length(sense) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
     nb_vars = length(lbs)
     nb_constrs = length(rhs)
     return PresolveFormRepr(
-        nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs, lm, um
+        nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs, partial_solution, lm, um
     )
 end
 
@@ -192,10 +193,9 @@ end
 function PresolveFormRepr(
     form::PresolveFormRepr,
     rows_to_deactivate::Vector{Int},
-    vars_to_fix::Dict{Int, Float64},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
-    lm::Float64,
-    um::Float64
+    lm,
+    um
 )
     nb_cols = form.nb_vars
     nb_rows = form.nb_constrs
@@ -205,19 +205,7 @@ function PresolveFormRepr(
     lbs = form.lbs
     ubs = form.ubs
 
-    col_mask = ones(Bool, nb_cols)
-    col_mask[collect(keys(vars_to_fix))] .= false
-    fixed_col_mask = .!col_mask
-    row_mask = ones(Bool, nb_rows)
-    row_mask[rows_to_deactivate] .= false
-
-    # Deactivate rows
-    new_coef_matrix = coef_matrix[row_mask, col_mask]
-
-    new_rhs = rhs[row_mask]
-    new_sense = sense[row_mask]
-
-    # Tighten Bounds
+    # Tighten bounds
     for (col, (lb, tighter_lb, ub, tighter_ub)) in tightened_bounds
         if tighter_lb
             lbs[col] = lb
@@ -227,14 +215,39 @@ function PresolveFormRepr(
         end
     end
 
-    # Fix variables
-    # Make sure we can fix the variable.
-    _check_if_vars_can_be_fixed(vars_to_fix, lbs, ubs)
-    
-    # Update rhs
-    new_rhs = new_rhs - coef_matrix[row_mask, fixed_col_mask] * lbs[fixed_col_mask]
-    new_lbs = lbs[col_mask]
-    new_ubs = ubs[col_mask]
+    # Update partial solution
+    fixed_col_mask = zeros(Bool, nb_cols)
+    partial_sol = form.partial_solution
+    for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+        if lb > ub
+            error("Infeasible.")
+        end
+        if lb > 0.0
+            partial_sol[i] += lb
+        elseif ub < 0.0
+            partial_sol[i] += ub
+        end
+        if abs(ub - lb) <= Coluna.TOL
+            fixed_col_mask[i] = true
+        end
+    end
 
-    return PresolveFormRepr(new_coef_matrix, new_rhs, new_sense, new_lbs, new_ubs, lm, um)
+    col_mask = .!fixed_col_mask
+    row_mask = ones(Bool, nb_rows)
+    row_mask[rows_to_deactivate] .= false
+
+    new_sense = sense[row_mask]
+    new_coef_matrix = coef_matrix[row_mask, col_mask]
+
+    # Update rhs
+    new_rhs = rhs[row_mask] - coef_matrix[row_mask, :] * partial_sol
+
+    # Update bounds
+    new_lbs = lbs[col_mask] - partial_sol[col_mask]
+    new_ubs = ubs[col_mask] - partial_sol[col_mask]
+
+    # Update partial_sol
+    partial_sol = partial_sol[col_mask]
+
+    return PresolveFormRepr(new_coef_matrix, new_rhs, new_sense, new_lbs, new_ubs, partial_sol, lm, um)
 end

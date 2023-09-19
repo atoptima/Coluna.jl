@@ -71,6 +71,7 @@ function _presolve_formulation(var_names, constr_names, matrix, form, name_to_va
     sense = [Coluna.MathProg.getcursense(form, name_to_constrs[name]) for name in constr_names]
     lbs = [Coluna.MathProg.getcurlb(form, name_to_vars[name]) for name in var_names]
     ubs = [Coluna.MathProg.getcurub(form, name_to_vars[name]) for name in var_names]
+    partial_solution = zeros(Float64, length(lbs))
 
     form_repr = Coluna.Algorithm.PresolveFormRepr(
         matrix,
@@ -78,6 +79,7 @@ function _presolve_formulation(var_names, constr_names, matrix, form, name_to_va
         sense,
         lbs, 
         ubs,
+        partial_solution,
         lm,
         um
     )
@@ -94,7 +96,7 @@ function _presolve_formulation(var_names, constr_names, matrix, form, name_to_va
         constr_to_row,
         form_repr,
         Coluna.MathProg.ConstrId[],
-        Dict{Coluna.MathProg.VarId,Float64}()
+        Dict{Coluna.MathProg.VarId, Float64}()
     )
     return presolve_form
 end
@@ -677,14 +679,9 @@ function test_var_fixing_propagation_within_formulation1()
     @test bounds_result[2] == (0.0, false, 11.0, true)
     @test bounds_result[3] == (0.0, false, 11.0, true)
 
-    result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
-    @test result[1] == 2.0
-    @test length(result) == 1
-
     new_form = Coluna.Algorithm.propagate_in_presolve_form(
         orig_presolve_form,
         Int[],
-        result,
         bounds_result
     )
 
@@ -743,13 +740,10 @@ function test_var_fixing_propagation_within_formulation2()
     bounds_result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
     @test isempty(bounds_result)
 
-    result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
-    @test result[1] == 4.0
-
     new_form = Coluna.Algorithm.propagate_in_presolve_form(
         orig_presolve_form,
         Int[],
-        result,
+        #result,
         bounds_result
     )
 
@@ -812,13 +806,9 @@ function test_var_fixing_propagation_within_formulation3()
     @test bounds_result[3] == (0.0, false, 610.0, true)
     @test length(bounds_result) == 2    
 
-    result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
-    @test result[1] == 10.0
-
     new_form = Coluna.Algorithm.propagate_in_presolve_form(
         orig_presolve_form,
         Int[],
-        result,
         bounds_result
     )
 
@@ -930,10 +920,6 @@ function test_var_fixing_propagation_from_original_to_master()
     bounds_result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
     @test bounds_result[1] == (0, false, 0, true)
     @test length(bounds_result) == 1
-    result = Coluna.Algorithm.vars_to_fix(orig_presolve_form.form, bounds_result)
-    @test result[1] == 0
-    @test result[2] == 1
-    @test length(result) == 2
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master)
 
@@ -1048,10 +1034,6 @@ function test_var_fixing_propagation_from_master_to_subproblem1()
     # Run the presolve variable fixing on the original formulation.
     bounds_result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
     @test isempty(bounds_result)
-    result = Coluna.Algorithm.vars_to_fix(master_repr_presolve_form.form, bounds_result)
-    @test result[1] == 0
-    @test result[4] == 1
-    @test length(result) == 2
     return
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem1)
@@ -1165,13 +1147,11 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
     # Run the presolve variable fixing on the original formulation.
     bounds_result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
     @test isempty(bounds_result)
-    result = Coluna.Algorithm.vars_to_fix(master_repr_presolve_form.form, bounds_result)
-    @test result[1] == 0
-    @test result[4] == 1
-    @test length(result) == 2
 
     new_master_repr_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(
-        master_repr_presolve_form, Int[], result, bounds_result
+        master_repr_presolve_form, 
+        Int[], 
+        bounds_result
     )
     
     # Propagate bounds in subproblems
@@ -1194,16 +1174,9 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
     # Fixing variables in subproblems
     sp1_bounds_result = Coluna.Algorithm.bounds_tightening(sp1_presolve_form.form)
     @test sp1_bounds_result == Dict(2 => (1, true, 1, false))
-    sp1_result = Coluna.Algorithm.vars_to_fix(sp1_presolve_form.form, sp1_bounds_result)
-    @test sp1_result[1] == 0
-    @test sp1_result[2] == 1
-    @test length(sp1_result) == 2
 
     sp2_bounds_result = Coluna.Algorithm.bounds_tightening(sp2_presolve_form.form)
     @test isempty(sp2_bounds_result)
-    sp2_result = Coluna.Algorithm.vars_to_fix(sp2_presolve_form.form, sp2_bounds_result)
-    @test sp2_result[2] == 1
-    @test length(sp2_result) == 1
     return
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem2)
@@ -1292,47 +1265,52 @@ function update_master_repr_formulation()
     DynamicSparseArrays.closefillmode!(master_form_coef_matrix)
     
     master_repr_presolve_form = _presolve_formulation(
-        ["x1", "x2", "y1", "y2"],  ["c1", "c2"], [1 1 1 1; 2 1 3 3;], master_form, master_name_to_var, master_name_to_constr
+        ["x1", "x2", "y1", "y2"], 
+        ["c1", "c2"],
+        [1 1 1 1; 2 1 3 3;],
+        master_form,
+        master_name_to_var,
+        master_name_to_constr
     )
 
     updated_master_repr_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(
         master_repr_presolve_form,
         Int[2],
-        Dict(1 => 1.0),
         Dict(1 => (1.0, true, 1.0, false), 2 => (0.1, true, 0.5, true))
     )
 
     @test updated_master_repr_presolve_form.form.col_major_coef_matrix == [1 1 1;]
-    @test updated_master_repr_presolve_form.form.rhs == [3]
+    @test updated_master_repr_presolve_form.form.rhs == [4 - 1 - 0.1]
     @test updated_master_repr_presolve_form.form.sense == [ClMP.Greater]
-    @test updated_master_repr_presolve_form.form.lbs == [0.1, 0.0, 0.0]
-    @test updated_master_repr_presolve_form.form.ubs == [0.5, 1.0, 1.0]
+    @test updated_master_repr_presolve_form.form.lbs == [0.0, 0.0, 0.0]
+    @test updated_master_repr_presolve_form.form.ubs == [0.4, 1.0, 1.0]
     
     Coluna.Algorithm.update_form_from_presolve!(master_form, updated_master_repr_presolve_form)
 
     vars = [
-        # name, lb, ub, fixed
-        ("x1", 1.0, 1.0, true),
-        ("x2", 0.1, 0.5, false),
-        ("y1", 0.0, 1.0, false),
-        ("y2", 0.0, 1.0, false),
-        ("MC1", 0.0, 1.0, false),
-        ("MC2", 0.0, 1.0, false),
-        ("MC3", 0.0, 1.0, false),
-        ("MC4", 0.0, 1.0, false),
-        ("a1", 0.0, Inf, false),
-        ("a2", 0.0, Inf, false)
+        # name, lb, ub, partial_sol_value, deactivated
+        ("x1", 0.0, 0.0, 1.0, true),
+        ("x2", 0.0, 0.4, 0.1, false),
+        ("y1", 0.0, 1.0, 0.0, false),
+        ("y2", 0.0, 1.0, 0.0, false),
+        ("MC1", 0.0, 1.0, 0.0, false),
+        ("MC2", 0.0, 1.0, 0.0, false),
+        ("MC3", 0.0, 1.0, 0.0, false),
+        ("MC4", 0.0, 1.0, 0.0, false),
+        ("a1", 0.0, Inf, 0.0, false),
+        ("a2", 0.0, Inf, 0.0, false)
     ]
 
-    # for (var_name, lb, ub, fixed) in vars
-    #     var = master_name_to_var[var_name]
-    #     @test ClMP.getcurlb(master_form, var) == lb
-    #     @test ClMP.getcurub(master_form, var) == ub
-    #    # @test ClMP.isfixed(master_form, var) == fixed
-    # end
+    for (var_name, lb, ub, partial_sol_value, deactivated) in vars
+        var = master_name_to_var[var_name]
+        @test ClMP.getcurlb(master_form, var) == lb
+        @test ClMP.getcurub(master_form, var) == ub
+        @test ClMP.get_value_in_partial_sol(master_form, var) == partial_sol_value
+        @test ClMP.iscuractive(master_form, var) == !deactivated
+    end
 
     constrs = [
-        ("c1", ClMP.Greater, 3.0),
+        ("c1", ClMP.Greater, 2.9),
     ]
     for (constr_name, sense, rhs) in constrs
         constr = master_name_to_constr[constr_name]

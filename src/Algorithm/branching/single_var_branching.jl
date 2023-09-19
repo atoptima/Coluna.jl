@@ -142,4 +142,4 @@ function Branching.apply_branching_rule(::SingleVarBranchingRule, env::Env, refo
         return collection
     end
     return candidates
-end
+end 
