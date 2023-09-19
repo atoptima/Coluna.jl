@@ -703,8 +703,8 @@ function test_var_fixing_propagation_within_formulation1()
 
     @test length(new_form.deactivated_constrs) == 0
 
-    @test new_form.fixed_vars[ClMP.getid(orig_name_to_var["x"])] == 2.0
-    @test length(new_form.fixed_vars) == 1
+    @test new_form.fixed_variables[ClMP.getid(orig_name_to_var["x"])] == 2.0
+    @test length(new_form.fixed_variables) == 1
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation1)
 
@@ -765,8 +765,8 @@ function test_var_fixing_propagation_within_formulation2()
 
     @test length(new_form.deactivated_constrs) == 0
 
-    @test new_form.fixed_vars[ClMP.getid(orig_name_to_var["x"])] == 4.0
-    @test length(new_form.fixed_vars) == 1
+    @test new_form.fixed_variables[ClMP.getid(orig_name_to_var["x"])] == 4.0
+    @test length(new_form.fixed_variables) == 1
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation2)
 
@@ -831,8 +831,8 @@ function test_var_fixing_propagation_within_formulation3()
 
     @test length(new_form.deactivated_constrs) == 0
 
-    @test new_form.fixed_vars[ClMP.getid(orig_name_to_var["x"])] == 10.0
-    @test length(new_form.fixed_vars) == 1
+    @test new_form.fixed_variables[ClMP.getid(orig_name_to_var["x"])] == 10.0
+    @test length(new_form.fixed_variables) == 1
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation3)
 

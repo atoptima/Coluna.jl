@@ -49,9 +49,11 @@ function create_presolve_form(
 
     lbs_vals = Float64[]
     ubs_vals = Float64[]
+    partial_sol = Float64[]
     for var in col_to_var
         push!(lbs_vals, getcurlb(form, var))
         push!(ubs_vals, getcurub(form, var))
+        push!(partial_sol, MathProg.get_value_in_partial_sol(form, var))
     end
 
     rhs_vals = Float64[]
@@ -67,6 +69,7 @@ function create_presolve_form(
         sense_vals,
         lbs_vals,
         ubs_vals,
+        partial_sol,
         lower_multiplicity,
         upper_multiplicity
     )

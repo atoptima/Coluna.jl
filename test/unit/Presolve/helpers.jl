@@ -50,9 +50,9 @@ function test_presolve_builder1()
     sense = [Less, Greater, Equal, Greater, Less, Equal]
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
+    partial_sol = zeros(Float64, length(lbs))
 
-
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1.0, 1.0)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1.0, 1.0)
     @test form.nb_vars == 7
     @test form.nb_constrs == 6
     @test all(form.col_major_coef_matrix .== coef_matrix)
@@ -79,8 +79,9 @@ function test_presolve_builder2()
     sense = [Less, Greater, Equal, Greater, Less, Equal]
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
+    partial_sol = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1, 1)
 
     # Deactivate some rows.
     rows_to_deactivate = [1, 3, 6]
@@ -90,10 +91,11 @@ function test_presolve_builder2()
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 3
     @test all(form2.col_major_coef_matrix .== coef_matrix[[2, 4, 5], :])
-    @test all(form2.rhs .== rhs[[2, 4, 5]])
+    @test all(form2.rhs .== rhs[[2, 4, 5]] - [1*2 - 1, 2*2 - 4, 2*2 - 4])
     @test all(form2.sense .== sense[[2, 4, 5]])
-    @test all(form2.lbs .== lbs)
-    @test all(form2.ubs .== ubs)
+    @test all(form2.lbs .== [0, 0, 0, 0, -1, -Inf, 0])
+    @test all(form2.ubs .== [9, Inf, 1, 1, 1, 0, 1])
+    @test all(form2.partial_solution .== [1, 0, 2, 1, 0, 0, 0])
 end
 register!(unit_tests, "presolve_helper", test_presolve_builder2)
 
@@ -112,13 +114,15 @@ function test_presolve_builder3()
     sense = [Less, Greater, Equal, Greater, Less, Equal]
     lbs = [10, 2,  1, 1, -1,  0,  -1]
     ubs = [10, 3,  1, 2,  1,  0,  -1]
+    partial_sol = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1, 1)
 
     # Deactivate some rows.
     rows_to_deactivate = Int[]
     tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}()
 
+    # Fixed variables:
     #      -1  - 2.5  # <= 4  ->  7.5
     #      1   + 2.5  # >= -4 -> -7.5
     # 10              # == 1  ->   -9
@@ -126,14 +130,24 @@ function test_presolve_builder3()
     #      2          # <= 1  ->   -1
     # 10+  3     -1   # == 6  ->   -6
 
+    # Lower bound reduction:
+    # x2 = 2, x4 = 1
+    #  <= 7.5 - 1       -> 6.5
+    #  >= -7.5 + 1      -> -6.5
+    #  == -9            -> -9
+    #  >= 0 - 2 + 4     -> 2
+    #  <= -1 - 2 + 4    -> 1
+    #  == -6 +2*2 - 5.5 -> -7.5
+
     form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix[:, [2, 4, 5]])
-    @test all(form2.rhs .== [7.5, -7.5, -9, 0, -1, -6])
+    @test all(form2.rhs .== [6.5, -6.5, -9, 2, 1, -7.5])
     @test all(form2.sense .== sense)
-    @test all(form2.lbs .== lbs[[2, 4, 5]])
-    @test all(form2.ubs .== ubs[[2, 4, 5]])
+    @test all(form2.lbs .== [0, 0, -1]) # Vars 2, 4 & 5
+    @test all(form2.ubs .== [1, 1, 1]) # Vars 2, 4, & 5
+    @test all(form2.partial_solution .== [2, 1, 0])
 end
 register!(unit_tests, "presolve_helper", test_presolve_builder3)
 
@@ -152,8 +166,9 @@ function test_presolve_builder4()
     sense = [Less, Greater, Equal, Greater, Less, Equal]
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
+    partial_sol = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1.0, 1.0)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1.0, 1.0)
 
     rows_to_deactivate = Int[]
     tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}(
@@ -163,18 +178,51 @@ function test_presolve_builder4()
         6 => (0.5, true, 0.5, true) # the flag forces the update!
     )
     form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
-    @test form2.nb_vars == 7
+    @test form2.nb_vars == 6
     @test form2.nb_constrs == 6
-    @test all(form2.col_major_coef_matrix .== coef_matrix)
-    @test all(form2.rhs .== rhs)
+    @test all(form2.col_major_coef_matrix .== coef_matrix[:, [1, 2, 3, 4, 5, 7]])
+    @test all(form2.rhs .== [4.5, -4.5, 0.0, 2.0, 1.0, -7.0])
     @test all(form2.sense .== sense)
-    @test all(form2.lbs .== [1, 0, 2, 1, -1, 0.5, 0])
-    @test all(form2.ubs .== [2, 1, 3, 2, 1, 0.5, 1])
+    @test all(form2.lbs .== [0, 0, 0, 0, -1, 0])
+    @test all(form2.ubs .== [1, 1, 1, 1, 1, 1])
+    @test all(form2.partial_solution .== [1, 0, 2, 1, 0, 0])
 end
 register!(unit_tests, "presolve_helper", test_presolve_builder4)
 
 function test_presolve_builder5()
+    # 2x1 + 3x2 - 2x3 >= 2
+    # 3x1 - 4x2 + x3 >= 5
+    
+    coef_matrix = sparse([
+        2  3 -2
+        3 -4  1
+    ])
+    rhs = [2, 5]
+    sense = [Greater, Greater]
+    lbs = [0, 0, -3]
+    ubs = [Inf, Inf, 3]
+    partial_sol = [1, 1, 0]
 
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1, 1)
+    rows_to_deactivate = Int[]
+    tightened_bounds = Dict{Int,Tuple{Float64, Bool, Float64, Bool}}(
+        1 => (1, true, Inf, false),
+        2 => (1, true, Inf, false),
+        3 => (1, true, 2, true)
+    )
+
+    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
+    @test form2.nb_vars == 3
+    @test form2.nb_constrs == 2
+    @test all(form2.col_major_coef_matrix .== coef_matrix)
+    @show form2.rhs
+    @test all(form2.rhs .== ([2, 5] - [2 + 3 - 2, 3 - 4 + 1]))
+    @test all(form2.sense .== sense)
+    @show form2.lbs
+    @show form2.ubs
+    @test all(form2.lbs .== [0, 0, 0])
+    @test all(form2.ubs .== [Inf, Inf, 1])
+    @test all(form2.partial_solution .== [2, 2, 1])
 end
 register!(unit_tests, "presolve_helper", test_presolve_builder5)
 
@@ -192,8 +240,9 @@ function row_activity()
     sense = [Less, Greater, Equal, Greater, Less, Equal]
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
+    partial_sol = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1, 1)
 
     @test Coluna.Algorithm.row_min_activity(form, 1) == 0 + 0 - 1 * ubs[3] + 1 * lbs[4] + 0 + 1 * lbs[6] + 2.5 * lbs[7]
     @test Coluna.Algorithm.row_max_activity(form, 1) == 0 + 0 - 1 * lbs[3] + 1 * ubs[4] + 0 + 1 * ubs[6] + 2.5 * ubs[7]
@@ -224,8 +273,9 @@ function row_slack()
     sense = [Less, Greater, Equal, Greater, Less, Equal]
     lbs = [1,   0,  2, 1, -1, -Inf, 0]
     ubs = [10, Inf, 3, 2,  1,   0,  1]
+    partial_sol = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, 1, 1)
 
     @test Coluna.Algorithm.row_min_slack(form, 1) == rhs[1] - Coluna.Algorithm.row_max_activity(form, 1) # ok
     @test Coluna.Algorithm.row_max_slack(form, 1) == rhs[1] - Coluna.Algorithm.row_min_activity(form, 1) # ok
@@ -367,8 +417,9 @@ function test_var_bounds_from_row1()
     sense = [Greater; Less]
     lbs = [0, 0, 0]
     ubs = [10, 2, 1]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -405,8 +456,9 @@ function test_var_bounds_from_row2()
     sense = [Less, Greater]
     lbs = [0, 0, 0]
     ubs = [10, 1, 1]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -443,8 +495,9 @@ function test_var_bounds_from_row3()
     ubs = [10, 8, 1]
     rhs = [9, -9]
     sense = [Less, Greater]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -481,8 +534,9 @@ function test_var_bounds_from_row4()
     ubs = [0, 2, 2]
     rhs = [10, -10]
     sense = [Greater, Less]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -525,8 +579,9 @@ function test_var_bounds_from_row5()
     ubs = [3, 1, 1]
     rhs = [5]
     sense = [Equal]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -555,8 +610,9 @@ function test_var_bounds_from_row6()
     ubs = [0.5, Inf, 0.3, Inf]
     sense = [Greater, Greater]
     rhs = [1, 1]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack1 = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 2)
     max_slack1 = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 2)
@@ -590,8 +646,9 @@ function test_var_bounds_from_row7()
     ubs = [10, Inf, Inf]
     rhs = [150, 600]
     sense = [Greater, Less]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
@@ -634,8 +691,9 @@ function test_var_bounds_from_row8() # this was producing a bug
     ubs = [2, Inf, Inf]
     rhs = [1]
     sense = [Less]
+    partial_solution = zeros(Float64, length(lbs))
 
-    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, 1, 1)
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)

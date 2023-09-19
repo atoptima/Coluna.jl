@@ -217,22 +217,25 @@ function PresolveFormRepr(
 
     # Update partial solution
     fixed_col_mask = zeros(Bool, nb_cols)
-    partial_sol = form.partial_solution
+    nb_fixed_vars = 0
+    new_partial_sol = zeros(Float64, length(form.partial_solution))
     for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
         if lb > ub
             error("Infeasible.")
         end
         if lb > 0.0
-            partial_sol[i] += lb
+            new_partial_sol[i] += lb
         elseif ub < 0.0
-            partial_sol[i] += ub
+            new_partial_sol[i] += ub
         end
         if abs(ub - lb) <= Coluna.TOL
             fixed_col_mask[i] = true
+            nb_fixed_vars += 1
         end
     end
 
     col_mask = .!fixed_col_mask
+    nb_cols -= nb_fixed_vars
     row_mask = ones(Bool, nb_rows)
     row_mask[rows_to_deactivate] .= false
 
@@ -240,14 +243,14 @@ function PresolveFormRepr(
     new_coef_matrix = coef_matrix[row_mask, col_mask]
 
     # Update rhs
-    new_rhs = rhs[row_mask] - coef_matrix[row_mask, :] * partial_sol
+    new_rhs = rhs[row_mask] - coef_matrix[row_mask, :] * new_partial_sol
 
     # Update bounds
-    new_lbs = lbs[col_mask] - partial_sol[col_mask]
-    new_ubs = ubs[col_mask] - partial_sol[col_mask]
+    new_lbs = lbs[col_mask] - new_partial_sol[col_mask]
+    new_ubs = ubs[col_mask] - new_partial_sol[col_mask]
 
     # Update partial_sol
-    partial_sol = partial_sol[col_mask]
+    partial_sol = form.partial_solution[col_mask] + new_partial_sol[col_mask]
 
     return PresolveFormRepr(new_coef_matrix, new_rhs, new_sense, new_lbs, new_ubs, partial_sol, lm, um)
 end
