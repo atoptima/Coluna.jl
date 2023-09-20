@@ -37,7 +37,7 @@ function test_partial_solution1()
     @test form2.ubs == [4.0, 4.0]
     @test form2.partial_solution == [2.0, 4.0]
 end
-register!(unit_tests, "presolve_partial_sol", test_partial_solution1; f = true)
+register!(unit_tests, "presolve_partial_sol", test_partial_solution1)
 
 function test_partial_solution2()
     # 2x + 3y <= 5
