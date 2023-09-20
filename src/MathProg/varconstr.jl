@@ -256,6 +256,22 @@ function add_to_partial_solution!(form::Formulation, var::Variable, value, propa
     return false
 end
 
+function set_value_in_partial_solution!(form::Formulation, varid::VarId, value)
+    var = getvar(form, varid)
+    @assert !isnothing(var)
+    return set_value_in_partial_solution!(form, var, value)
+end
+
+function set_value_in_partial_solution!(form::Formulation, var::Variable, value)
+    if isexplicit(form, var) && iscuractive(form, var)
+        _set_partial_value!(form.manager, var, value)
+        return true
+    end
+    name = getname(form, var)
+    @warn "Cannot set variable $name to partial solution because it is unactive or non-explicit."
+    return false
+end
+
 """
     in_partial_sol(form, varid)
     in_partial_sol(form, variable)
@@ -274,7 +290,6 @@ Return the value of the variable in the partial solution.
 get_value_in_partial_sol(form::Formulation, varid::VarId) = get_value_in_partial_sol(form, getvar(form, varid))
 function get_value_in_partial_sol(form::Formulation, var::Variable)
     !in_partial_sol(form, var) && return 0
-    @show form.manager.partial_solution
     return get(form.manager.partial_solution, getid(var), 0)
 end
 

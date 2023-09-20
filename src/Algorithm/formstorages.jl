@@ -7,9 +7,14 @@ struct VarState
     cost::Float64
     lb::Float64
     ub::Float64
+    partial_sol_value::Float64
 end
 
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
+    # TODO: remove
+    # To avoid warnings when changing variable bounds.
+    var.curdata.is_in_partial_sol = false
+
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)
     end
@@ -18,6 +23,14 @@ function apply_state!(form::Formulation, var::Variable, var_state::VarState)
     end
     if getcurcost(form, var) != var_state.cost
         setcurcost!(form, var, var_state.cost)
+    end
+    if MathProg.get_value_in_partial_sol(form, var) != var_state.partial_sol_value
+        if var_state.partial_sol_value == 0
+            var.curdata.is_in_partial_sol = false
+        else
+            var.curdata.is_in_partial_sol = true
+        end
+        MathProg.set_value_in_partial_solution!(form, var, var_state.partial_sol_value)
     end
     return
 end
@@ -127,7 +140,8 @@ function ClB.record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, uni
             varstate = VarState(
                 getcurcost(form, var),
                 getcurlb(form, var),
-                getcurub(form, var)
+                getcurub(form, var),
+                MathProg.get_value_in_partial_sol(form, var)
             )
             record.cols[id] = varstate
         end
@@ -144,7 +158,7 @@ function ClB.restore_from_record!(
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && isexplicit(form, var)
             if haskey(state.cols, id) 
-                if !iscuractive(form, var)# && !isfixed(form, var)
+                if !iscuractive(form, var)
                     activate!(form, var)
                 end
                 apply_state!(form, var, state.cols[id])
@@ -272,6 +286,7 @@ function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, u
                 getcurcost(form, var), 
                 getcurlb(form, var), 
                 getcurub(form, var),
+                MathProg.get_value_in_partial_sol(form, var)
             )
             record.vars[id] = varstate
         end

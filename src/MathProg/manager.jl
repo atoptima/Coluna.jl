@@ -92,14 +92,18 @@ end
 function _add_partial_value!(m::FormulationManager, var::Variable, value)
     partial_value = get(m.partial_solution, var.id, 0.0)
     new_value = partial_value + value
-    if abs(new_value) <= Coluna.TOL
+    _set_partial_value!(m, var, new_value)
+end
+
+function _set_partial_value!(m::FormulationManager, var::Variable, value)
+    if abs(value) <= Coluna.TOL
         var.curdata.is_in_partial_sol = false
         delete!(m.partial_solution, var.id)
     else
         var.curdata.is_in_partial_sol = true
-        m.partial_solution[var.id] = new_value
+        m.partial_solution[var.id] = value
     end
-    return new_value
+    return value
 end
 
 _partial_sol(m::FormulationManager) = m.partial_solution
