@@ -215,11 +215,8 @@ function test_presolve_builder5()
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 2
     @test all(form2.col_major_coef_matrix .== coef_matrix)
-    @show form2.rhs
     @test all(form2.rhs .== ([2, 5] - [2 + 3 - 2, 3 - 4 + 1]))
     @test all(form2.sense .== sense)
-    @show form2.lbs
-    @show form2.ubs
     @test all(form2.lbs .== [0, 0, 0])
     @test all(form2.ubs .== [Inf, Inf, 1])
     @test all(form2.partial_solution .== [2, 2, 1])
