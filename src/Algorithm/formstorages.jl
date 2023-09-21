@@ -25,11 +25,6 @@ function apply_state!(form::Formulation, var::Variable, var_state::VarState)
         setcurcost!(form, var, var_state.cost)
     end
     if MathProg.get_value_in_partial_sol(form, var) != var_state.partial_sol_value
-        if var_state.partial_sol_value == 0
-            var.curdata.is_in_partial_sol = false
-        else
-            var.curdata.is_in_partial_sol = true
-        end
         MathProg.set_value_in_partial_solution!(form, var, var_state.partial_sol_value)
     end
     return

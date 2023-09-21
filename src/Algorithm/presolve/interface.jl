@@ -8,7 +8,7 @@ struct PresolveFormulation
     fixed_variables::Dict{VarId, Float64}
 end
 
-struct DwPresolveReform
+mutable struct DwPresolveReform
     original_master::PresolveFormulation
     restricted_master::PresolveFormulation
     dw_sps::Dict{FormId, PresolveFormulation}
@@ -240,10 +240,10 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
     master = getmaster(reform)
     # Update master
 
-    update_form_from_presolve!(master, presolve_reform.restricted_master.form)
+    update_form_from_presolve!(master, presolve_reform.restricted_master)
     # Update subproblems
     for (spid, sp) in get_dw_pricing_sps(reform)
-        update_form_from_presolve!(sp, presolve_reform.dw_sps[spid].form)
+        update_form_from_presolve!(sp, presolve_reform.dw_sps[spid])
     end
     return
 end
@@ -289,19 +289,52 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     #         4) update global bounds of subproblem variables participating in columns in input.partial_sol_to_fix 
     #            (see document FixingColumnInColuna.md)
 
-    treat!(algo, reform)
+    # Should be move in the diving (when generating the formulation of the children because
+    # formulation is the single source of truth).
+    @show input
+    for (varid, val) in input.partial_sol_to_fix
+        if MathProg.getduty(varid) <= MasterCol
+            MathProg.setcurlb!(getmaster(reform), varid, val)
+        else # especially for MasterPureVar
+            MathProg.setcurlb!(getmaster(reform), varid, val)
+            MathProg.setcubub!(getmaster(reform), varid, val)
+        end
+    end
+
+    presolve_reform = create_presolve_reform(reform)
+
+    tightened_bounds = bounds_tightening(presolve_reform.restricted_master.form)
+
+    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds)
+
+
+    presolve_reform.restricted_master = new_restricted_master
+
+    # # Compute global bounds of aggregated variables.
+    # new_original_master = compute_global_bounds(presolve_reform.original_master, new_restricted_master)
+
+    # # Propagate bounds from the original master to the subproblems
+    # for (spid, sp) in presolve_reform.dw_sps
+    #     propagate_var_bounds_from!(new_original_master, sp)
+    # end
+
+    update_reform_from_presolve!(reform, presolve_reform)
+
+
+    @show getmaster(reform)
+
     return PresolveOutput(true)
 end
 
-function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
-    presolve_reform = create_presolve_reform(reform)
+# function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
+#     presolve_reform = create_presolve_reform(reform)
     
-    @show presolve_reform.original_master.form
+#     @show presolve_reform.original_master.form
 
-    @show rows_to_deactivate!(presolve_reform.original_master.form)
-    @show bounds_tightening(presolve_reform.original_master.form)
+#     @show rows_to_deactivate!(presolve_reform.original_master.form)
+#     @show bounds_tightening(presolve_reform.original_master.form)
 
-    @show presolve_reform
+#     @show presolve_reform
 
-    update_reform!(reform, presolve_reform)
-end
+#     update_reform!(reform, presolve_reform)
+# end
