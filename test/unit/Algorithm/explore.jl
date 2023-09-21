@@ -9,8 +9,6 @@ struct NodeAe1 <: Coluna.TreeSearch.AbstractNode
     end
 end
 
-Coluna.TreeSearch.get_root(node::NodeAe1) = isnothing(node.parent) ? node : ClA.root(node.parent)
-
 mutable struct CustomSearchSpaceAe1 <: Coluna.TreeSearch.AbstractSearchSpace
     nb_branches::Int
     max_depth::Int
