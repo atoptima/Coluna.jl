@@ -65,7 +65,6 @@ Coluna.TreeSearch.new_space
 ```@docs
 Coluna.TreeSearch.AbstractNode
 Coluna.TreeSearch.new_root
-Coluna.TreeSearch.get_root
 Coluna.TreeSearch.get_parent
 Coluna.TreeSearch.get_priority
 ```
