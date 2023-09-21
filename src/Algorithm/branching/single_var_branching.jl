@@ -13,21 +13,16 @@ mutable struct SingleVarBranchingCandidate <: Branching.AbstractBranchingCandida
     varid::VarId
     local_id::Int64
     lhs::Float64
-    score::Float64
-    children::Vector{SbNode}
-    isconquered::Bool
     function SingleVarBranchingCandidate(
         varname::String, varid::VarId, local_id::Int64, lhs::Float64
     )
-        return new(varname, varid, local_id, lhs, 0.0, SbNode[], false)
+        return new(varname, varid, local_id, lhs)
     end
 end
 
 Branching.getdescription(candidate::SingleVarBranchingCandidate) = candidate.varname
 Branching.get_lhs(candidate::SingleVarBranchingCandidate) = candidate.lhs
 Branching.get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
-Branching.get_children(candidate::SingleVarBranchingCandidate) = candidate.children
-Branching.set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
 
 function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, reform)
     units_to_restore = UnitsUsage()
