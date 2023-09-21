@@ -70,7 +70,7 @@ function unit_static_var_constr_record1()
     # make changes on the formulation
     ClMP.setcurlb!(form, vars["v1"], 5.0)
     ClMP.setcurub!(form, vars["v2"], 12.0)
-    ClMP.setcurcost!(form, vars["v3"], 4.0)
+    ClMP.setcurcost!(form, vars["v3"], 4.6)
     ClMP.setcurrhs!(form, constrs["c1"], 1.0)
     ClMP.deactivate!(form, constrs["c2"])
 

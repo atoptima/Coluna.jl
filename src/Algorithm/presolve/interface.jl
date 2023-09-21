@@ -253,8 +253,7 @@ Presolve algorithm
 """
 struct PresolveAlgorithm <: AlgoAPI.AbstractAlgorithm
     ϵ::Float64
-    update_sp_var_bounds::Bool
-    PresolveAlgorithm(;ϵ = 1e-6, update_sp_var_bounds = false) = new(ϵ, update_sp_var_bounds)
+    PresolveAlgorithm(;ϵ = Coluna.TOL) = new(ϵ)
 end
 
 # PresolveAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
@@ -265,18 +264,31 @@ function get_units_usage(algo::PresolveAlgorithm, reform::Reformulation)
     push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
-    push!(units_usage, (master, MasterColumnsUnit, READ_ONLY))
+    push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
     for (_, dw_sp) in get_dw_pricing_sps(reform)
         push!(units_usage, (dw_sp, StaticVarConstrUnit, READ_AND_WRITE))
     end
     return units_usage
 end
 
+struct PresolveInput
+    partial_sol_to_fix::Dict{VarId, Float64}
+    # may be instead?
+    #partial_sol_to_fix::MathProg.PrimalSolution{Formulation{MasterDuty}}
+end
+
 struct PresolveOutput 
     feasible::Bool
 end
 
-function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, _)::PresolveOutput
+function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::PresolveInput)::PresolveOutput
+    # TO DO : if input.partial_sol_to_fix is not empty, we first need to 
+    #         1) augment partial solution inside reform.master with input.partial_sol_to_fix
+    #         2) change RHS of master constraints correspondigly
+    #         3) fix pure master variables in input.partial_sol_to_fix
+    #         4) update global bounds of subproblem variables participating in columns in input.partial_sol_to_fix 
+    #            (see document FixingColumnInColuna.md)
+
     treat!(algo, reform)
     return PresolveOutput(true)
 end
