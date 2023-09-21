@@ -46,7 +46,7 @@ function get_units_usage(
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-    #push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
+    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
         push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
         push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))

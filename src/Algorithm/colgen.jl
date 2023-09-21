@@ -181,7 +181,15 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
-    #push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
+    push!(units_usage, (master, StaticVarConstrUnit, READ_ONLY))
+
+    # as column generation may call essential cut callbacks
+    # TO DO: it would be good to verify first whether any callback is really defined 
+    push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE)) 
+    
+    for (_, spform) in get_dw_pricing_sps(reform)
+        push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
+    end
     if stabilization_is_used(algo)
         #push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
     end
