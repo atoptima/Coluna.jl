@@ -705,3 +705,40 @@ function test_var_bounds_from_row8() # this was producing a bug
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row8)
 
+function test_var_bounds_from_row9()
+    # x + y + a >= 1
+    # x + y <= 1
+    # x + y >= 0
+    # x >= 0
+    # y >= 1
+    # a >= 0
+
+    coef_matrix = sparse([1 1 1; 1 1 0; 1 1 0])
+    lbs = [0, 1, 0]
+    ubs = [Inf, Inf, Inf]
+    rhs = [1, 1, 0]
+    sense = [Greater, Less, Greater]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+    # x <= 1 - y
+    # x <= 0
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 1)
+    @test ub == 0
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 2)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 2)
+    # y <= 1 - x
+    # y <= 0
+    ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 1)
+    @test ub == 1
+
+    result = Coluna.Algorithm.bounds_tightening(form)
+    @test result[1] === (0.0, false, 0.0, true) 
+    @test result[2] === (1.0, false, 1.0, true)
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row9)
+

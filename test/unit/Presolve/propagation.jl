@@ -274,6 +274,68 @@ register!(unit_tests, "presolve_propagation", test_constr_removing_propagation_f
 # Variable bound propagation.
 ############################################################################################
 
+# Make sure the convexity constraints have correct rhs
+function test_var_bound_propagation_within_restricted_master()
+    # Master
+    # min _x1 + _x2 + _y1 + _y2 + MC1 + 2MC2 + 1000a 
+    # s.t. _x1 + _x2 + _y1 + _y2 + MC1 + MC2 + MC3 + a >= 1
+    #      MC1 + MC2 + MC3 <= 2
+    #      MC1 + MC2 + MC3 >= 0
+    #      0 <= _x1, _x2 <= 1 (repr)
+    #      0 <= _y1, _y2 <= 1 (repr)
+    #      0 <= MC1
+    #      1 <= MC2
+    #      0 <= MC3
+    #      a >= 0
+
+    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwMaster(),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 1.0, Inf, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+        ],
+        [
+            # name, duty, rhs, sense , id
+            ("c1", Coluna.MathProg.MasterMixedConstr, 1.0, ClMP.Greater, nothing),
+            ("c2", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing),
+            ("c3", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing)
+        ]
+    )
+
+    master_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "MC3", "a"],  ["c1", "c2", "c3"], [1 1 1 1; 1 1 1 0; 1 1 1 0], master_form, master_name_to_var, master_constr_to_var
+    )
+
+    result = Coluna.Algorithm.bounds_tightening(master_presolve_form.form)
+    new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(master_presolve_form, Int[], result)
+
+    Coluna.Algorithm.update_form_from_presolve!(master_form, new_master_presolve_form)
+
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC1"]) == 0.0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC1"]) == Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC2"]) == 0.0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC2"]) == Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC3"]) == 0.0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC3"]) == Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["a"]) == 0.0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["a"]) == Inf
+
+    @test Coluna.MathProg.getcurrhs(master_form, master_constr_to_var["c1"]) == 0.0
+    @test Coluna.MathProg.getcurrhs(master_form, master_constr_to_var["c2"]) == 1.0
+    @test Coluna.MathProg.getcurrhs(master_form, master_constr_to_var["c3"]) == 0.0
+end
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_within_restricted_master)
+
 ## OriginalVar -> DwSpPricingVar (mapping exists)
 ## otherwise no propagation
 function test_var_bound_propagation_from_original_to_subproblem()

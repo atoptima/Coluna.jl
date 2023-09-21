@@ -217,7 +217,17 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
 
     # Update rhs
     for (row, rhs) in enumerate(presolve_form.form.rhs)
-        setcurrhs!(form, presolve_form.row_to_constr[row], rhs)
+        constr = presolve_form.row_to_constr[row]
+
+        if getduty(getid(constr)) <= MasterConvexityConstr
+            if getcursense(form, constr) == Less
+                setcurrhs!(form, constr, max(rhs, 0))
+            elseif getcursense(form, constr) == Greater
+                setcurrhs!(form, constr, max(rhs, 0))
+            end
+        else
+            setcurrhs!(form, constr, rhs)
+        end
     end
 
     # Update bounds
@@ -225,8 +235,16 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
         presolve_form.form.lbs,
         presolve_form.form.ubs
     ))
-        setcurlb!(form, presolve_form.col_to_var[col], lb)
-        setcurub!(form, presolve_form.col_to_var[col], ub)
+        var = presolve_form.col_to_var[col]
+
+        if getduty(getid(var)) <= MasterCol
+            @assert iszero(lb)
+            setcurlb!(form, var, 0.0)
+            # ignore the upper bound (we keep Inf)
+        else
+            setcurlb!(form, var, lb)
+            setcurub!(form, var, ub)
+        end
     end
 
     # Update partial solution

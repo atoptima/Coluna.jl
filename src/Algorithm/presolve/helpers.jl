@@ -141,13 +141,13 @@ function bounds_tightening(form::PresolveFormRepr)
 
             var_lb_from_row = _var_lb_from_row(sense, min_slack, max_slack, var_coef_in_row)
             if var_lb_from_row > var_lb
-                var_lb = var_lb_from_row
+                var_lb = min(var_ub, var_lb_from_row)
                 tighter_lb = true
             end
 
             var_ub_from_row = _var_ub_from_row(sense, min_slack, max_slack, var_coef_in_row)
             if var_ub_from_row < var_ub
-                var_ub = var_ub_from_row
+                var_ub = max(var_lb, var_ub_from_row)
                 tighter_ub = true
             end
         end
