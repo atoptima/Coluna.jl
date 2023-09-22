@@ -82,17 +82,13 @@ function select!(rule::AbstractBranchingRule, env, reform, input::Branching.Bran
     local_id = input.local_id + length(candidates)
     select_candidates!(candidates, input.criterion, input.max_nb_candidates)
 
-    for candidate in candidates
-        children = generate_children!(candidate, env, reform, input.input)
-        set_children!(candidate, children)
-    end
     return BranchingRuleOutput(local_id, candidates)
 end
 
 abstract type AbstractBranchingContext <: AbstractDivideContext end
 
-function advanced_select!(ctx::AbstractBranchingContext, candidates, _, reform, input::AbstractDivideInput)
-    children = get_children(first(candidates))
+function advanced_select!(ctx::AbstractBranchingContext, candidates, env, reform, input::AbstractDivideInput)
+    children = generate_children!(first(candidates), env, reform, input)
     return new_divide_output(children, nothing)
 end
 
@@ -132,9 +128,9 @@ strong branching phase.
 @mustimplement "StrongBranchingOptState" new_ip_primal_sols_pool(ctx, reform, input) = nothing
 
 function advanced_select!(ctx::Branching.AbstractStrongBrContext, candidates, env, reform, input::Branching.AbstractDivideInput)
-    ip_primal_sols_found = perform_strong_branching!(ctx, env, reform, input, candidates)
-    children = get_children(first(candidates))
-    return new_divide_output(children, ip_primal_sols_found)
+    return perform_strong_branching!(ctx, env, reform, input, candidates)
+    #children = get_children(first(candidates))
+    #return new_divide_output(children, ip_primal_sols_found)
 end
 
 function perform_strong_branching!(
@@ -144,30 +140,33 @@ function perform_strong_branching!(
 end
 
 function perform_strong_branching_inner!(
-    ctx::AbstractStrongBrContext, env, model, input::Branching.AbstractDivideInput, candidates::Vector{C}
+    ctx::AbstractStrongBrContext, env, reform, input::Branching.AbstractDivideInput, candidates::Vector{C}
 ) where {C<:AbstractBranchingCandidate}
     # We will store all the new ip primal solution found during the strong branching in the
     # following data structure.
-    ip_primal_sols_found = new_ip_primal_sols_pool(ctx, model, input)
+    ip_primal_sols_found = new_ip_primal_sols_pool(ctx, reform, input)
+
+    cand_children = [generate_children!(candidate, env, reform, input) for candidate in candidates]
 
     phases = get_phases(ctx)
     for (phase_index, current_phase) in enumerate(phases)
         nb_candidates_for_next_phase = 1
         if phase_index < length(phases)
             nb_candidates_for_next_phase = get_max_nb_candidates(phases[phase_index + 1])
-            if length(candidates) <= nb_candidates_for_next_phase
+            if length(cand_children) <= nb_candidates_for_next_phase
                 # If at the current phase, we have less candidates than the number of candidates
                 # we want to evaluate at the next phase, we skip the current phase.
                 continue
             end
             # In phase 1, we make sure that the number of candidates for the next phase is 
             # at least equal to the number of initial candidates.
-            nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
+            nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(cand_children))
         end
 
-        scores = perform_branching_phase!(candidates, current_phase, ip_primal_sols_found, env, model, input)
+        scores = perform_branching_phase!(candidates, cand_children, current_phase, ip_primal_sols_found, env, reform, input)
 
         perm = sortperm(scores, rev=true)
+        permute!(cand_children, perm)
         permute!(candidates, perm)
 
         # The case where one/many candidate is conquered is not supported yet.
@@ -176,19 +175,20 @@ function perform_strong_branching_inner!(
         # before deleting branching candidates which are not kept for the next phase
         # we need to remove record kept in these nodes
 
+        resize!(cand_children, nb_candidates_for_next_phase)
         resize!(candidates, nb_candidates_for_next_phase)
     end
-    return ip_primal_sols_found
+    return new_divide_output(first(cand_children), ip_primal_sols_found)
 end
 
-function perform_branching_phase!(candidates, phase, ip_primal_sols_found, env, reform, input)
-    return perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform, input)
+function perform_branching_phase!(candidates, cand_children, phase, ip_primal_sols_found, env, reform, input)
+    return perform_branching_phase_inner!(cand_children, phase, ip_primal_sols_found, env, reform, input)
 end
 
 "Performs a branching phase."
-function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found, env, reform, input)
+function perform_branching_phase_inner!(cand_children, phase, ip_primal_sols_found, env, reform, input)
     
-    return map(candidates) do candidate
+    return map(cand_children) do children
         # TODO; I don't understand why we need to sort the children here.
         # Looks like eval_children_of_candidiate! and the default implementation of
         # eval_child_of_candidate is fully independent of the order of the children.
@@ -205,20 +205,20 @@ function perform_branching_phase_inner!(candidates, phase, ip_primal_sols_found,
         #     by = child -> get_lp_primal_bound(child)
         # )
 
-        return eval_candidate!(candidate, phase, ip_primal_sols_found, env, reform, input)
+        return eval_candidate!(children, phase, ip_primal_sols_found, env, reform, input)
     end
 end
 
-function eval_candidate!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
-    return eval_candidate_inner!(candidate, phase, ip_primal_sols_found, env, reform, input)
+function eval_candidate!(children, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
+    return eval_candidate_inner!(children, phase, ip_primal_sols_found, env, reform, input)
 end
 
 "Evaluates a candidate."
-function eval_candidate_inner!(candidate, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
-    for child in get_children(candidate)
+function eval_candidate_inner!(children, phase::AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)
+    for child in children
         eval_child_of_candidate!(child, phase, ip_primal_sols_found, env, reform, input)
     end
-    return compute_score(get_score(phase), candidate, input)
+    return compute_score(get_score(phase), children, input)
 end
 
 "Evaluate children of a candidate."
