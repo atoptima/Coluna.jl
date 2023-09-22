@@ -24,11 +24,11 @@ abstract type AbstractBranchingCandidate end
 @mustimplement "BranchingCandidate" get_local_id(c::AbstractBranchingCandidate) = nothing
 
 """
-    generate_children!(branching_candidate, lhs, env, reform, node)
+    generate_children!(branching_context, branching_candidate, lhs, env, reform, node)
 
 This method generates the children of a node described by `branching_candidate`.
 """
-@mustimplement "BranchingCandidate" generate_children!(c::AbstractBranchingCandidate, env, reform, parent) = nothing
+@mustimplement "BranchingCandidate" generate_children!(ctx, candidate::AbstractBranchingCandidate, env, reform, parent) = nothing
 
 "List of storage units to restore before evaluating the node."
 @mustimplement "BranchingCandidate" get_branching_candidate_units_usage(::AbstractBranchingCandidate, reform) = nothing
