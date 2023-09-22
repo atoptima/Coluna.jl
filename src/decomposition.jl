@@ -192,6 +192,17 @@ function instantiate_orig_vars!(
         end
         
         if !haskey(masterform, varid)
+            lb, ub = if is_representative(annotations, varid)
+                (
+                    getperenlb(origform, var) * sum(BD.getlowermultiplicity.(annotations.ann_per_repr_var[varid])),
+                    getperenub(origform, var) * sum(BD.getuppermultiplicity.(annotations.ann_per_repr_var[varid]))
+                )
+            else
+                (
+                    getperenlb(origform, var) * BD.getlowermultiplicity(sp_ann),
+                    getperenub(origform, var) * BD.getuppermultiplicity(sp_ann)
+                )
+            end
             clonevar!(
                 origform,
                 masterform,
@@ -199,8 +210,8 @@ function instantiate_orig_vars!(
                 var,
                 MasterRepPricingVar,
                 is_explicit = false,
-                lb = getperenlb(origform, var) * BD.getlowermultiplicity(sp_ann),
-                ub = getperenub(origform, var) * BD.getuppermultiplicity(sp_ann)
+                lb = lb,
+                ub = ub
             )
         end
     end
