@@ -51,19 +51,19 @@ Version 0.6.6 | https://github.com/atoptima/Coluna.jl
   &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 0.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = 396.2954, global bounds: [ -Inf , Inf ], time = 0.70 sec.
+**** Local DB = 396.2954, global bounds: [ -Inf , Inf ], time = 0.69 sec.
 **** Branching constraint: x[4,5]&lt;=0.0
 ***************************************************************************************
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         3.49s /  26.4%            243MiB /  30.3%
+    Tot / % measured:         3.52s /  26.9%            244MiB /  30.2%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               1    921ms  100.0%   921ms   73.5MiB  100.0%  73.5MiB
-   SolveLpForm       18   4.89ms    0.5%   272μs   1.69MiB    2.3%  95.9KiB
+ Coluna               1    946ms  100.0%   946ms   73.5MiB  100.0%  73.5MiB
+   SolveLpForm       18   5.14ms    0.5%   286μs   1.69MiB    2.3%  95.9KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -128,7 +128,7 @@ Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.54, max. viol. = 0.54, zero viol. = 0.
   &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  395.4634&gt; &lt;mlp=  399.3076&gt; &lt;PB=Inf&gt;
   &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  398.1515&gt; &lt;mlp=  399.0815&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 1.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
 Fenchel cuts separation callback...
 Cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.50, max. viol. = 0.50, zero viol. = 0.
@@ -176,12 +176,12 @@ Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         4.27s /  42.7%            342MiB /  52.2%
+    Tot / % measured:         4.29s /  42.5%            342MiB /  52.2%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
  Coluna               1    1.82s  100.0%   1.82s    178MiB  100.0%   178MiB
-   SolveLpForm       34   11.5ms    0.6%   338μs   4.22MiB    2.4%   127KiB
+   SolveLpForm       34   11.9ms    0.7%   351μs   4.22MiB    2.4%   127KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 440.54999999999995
@@ -193,4 +193,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.1 on <span class="colophon-date" title="Friday 22 September 2023 12:35">Friday 22 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.1 on <span class="colophon-date" title="Friday 22 September 2023 13:37">Friday 22 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
