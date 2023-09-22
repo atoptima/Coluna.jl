@@ -192,7 +192,16 @@ function instantiate_orig_vars!(
         end
         
         if !haskey(masterform, varid)
-            clonevar!(origform, masterform, spform, var, MasterRepPricingVar, is_explicit = false)
+            clonevar!(
+                origform,
+                masterform,
+                spform,
+                var,
+                MasterRepPricingVar,
+                is_explicit = false,
+                lb = getperenlb(origform, var) * BD.getlowermultiplicity(sp_ann),
+                ub = getperenub(origform, var) * BD.getuppermultiplicity(sp_ann)
+            )
         end
     end
     return
