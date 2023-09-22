@@ -49,9 +49,6 @@ Branching.AbstractBranchingCandidate
 Branching.getdescription
 Branching.get_lhs
 Branching.get_local_id
-Branching.get_children
-Branching.set_children!
-Branching.get_parent
 Branching.generate_children!
 ```
 

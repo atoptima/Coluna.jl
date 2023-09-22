@@ -33,9 +33,6 @@ abstract type AbstractNode end
 "Creates and returns the root node of a search space."
 @mustimplement "TreeSearch" new_root(::AbstractSearchSpace, input) = nothing
 
-"Returns the root node of the tree to which the node belongs."
-@mustimplement "Node" get_root(::AbstractNode) = nothing
-
 "Returns the parent of a node; `nothing` if the node is the root."
 @mustimplement "Node" get_parent(::AbstractNode) = nothing
 
