@@ -11,20 +11,15 @@ mutable struct SbNode <: TreeSearch.AbstractNode
     # There information are printed by the StrongBranchingPrinter.
     # These information will be then transfered to the B&B algorithm when instantating the
     # node of the tree search.
-    optstate::OptimizationState
+    conquer_output::Union{Nothing, OptimizationState}
 
-    var_name::String
     branchdescription::String
+    ip_dual_bound::Bound
     records::Records
-    conquerwasrun::Bool
     function SbNode(
-        reform::Reformulation, depth, var_name::String, branch_description::String, records::Records, input
+        depth, branch_description::String, ip_dual_bound::Bound, records::Records
     )
-        node_state = OptimizationState(
-            getmaster(reform);
-            ip_dual_bound = get_ip_dual_bound(Branching.get_conquer_opt_state(input))
-        )
-        return new(depth, node_state, var_name, branch_description, records, false)
+        return new(depth, nothing, branch_description, ip_dual_bound, records)
     end
 end
 
@@ -32,6 +27,5 @@ getdepth(n::SbNode) = n.depth
 
 TreeSearch.set_records!(n::SbNode, records) = n.records = records
 TreeSearch.get_branch_description(n::SbNode) = n.branchdescription
-get_var_name(n::SbNode) = n.var_name
 TreeSearch.isroot(n::SbNode) = false
 Branching.isroot(n::SbNode) = TreeSearch.isroot(n)

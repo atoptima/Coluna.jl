@@ -274,7 +274,7 @@ end
 
 function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)    
     child_state = OptimizationState(getmaster(reform))
-    child.optstate = child_state
+    child.conquer_output = child_state
 
     # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
     # strong branching procedure but also the best primal bound found so far (in the whole optimization).
@@ -284,11 +284,9 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
         conquer_input = ConquerInputFromSb(Branching.get_global_primal_handler(input), child, units_to_restore)
-        child_state = run!(Branching.get_conquer(phase), env, reform, conquer_input)
-        child.optstate = child_state
+        child.conquer_output = run!(Branching.get_conquer(phase), env, reform, conquer_input)
         TreeSearch.set_records!(child, create_records(reform))
     end
-    child.conquerwasrun = true
 
     # Store new primal solutions found during the evaluation of the child.
     add_ip_primal_sols!(ip_primal_sols_found, get_ip_primal_sols(child_state)...)

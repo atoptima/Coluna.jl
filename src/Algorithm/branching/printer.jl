@@ -39,7 +39,7 @@ function Branching.perform_branching_phase!(candidates, cand_children, phase::Ph
         @printf " (lhs=%.4f) : [" Branching.get_lhs(candidate)
         for (node_index, node) in enumerate(children)
             node_index > 1 && print(",")            
-            @printf "%10.4f" getvalue(get_lp_primal_bound(node.optstate))
+            @printf "%10.4f" getvalue(get_lp_primal_bound(node.conquer_output))
         end
         @printf "], score = %10.4f\n" score
     end
