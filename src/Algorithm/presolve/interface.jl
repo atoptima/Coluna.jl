@@ -53,7 +53,8 @@ function create_presolve_form(
     for var in col_to_var
         push!(lbs_vals, getcurlb(form, var))
         push!(ubs_vals, getcurub(form, var))
-        push!(partial_sol, MathProg.get_value_in_partial_sol(form, var))
+        #push!(partial_sol, MathProg.get_value_in_partial_sol(form, var))
+        push!(partial_sol, 0.0)
     end
 
     rhs_vals = Float64[]
@@ -249,6 +250,7 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
 
     # Update partial solution
     for (col, val) in enumerate(presolve_form.form.partial_solution)
+        #println("added var ", presolve_form.col_to_var[col].name, " to partial solution with value ", val) 
         MathProg.add_to_partial_solution!(form, presolve_form.col_to_var[col], val)
     end
     return
@@ -309,7 +311,6 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
 
     # Should be move in the diving (when generating the formulation of the children because
     # formulation is the single source of truth).
-    #@show input
     for (varid, val) in input.partial_sol_to_fix
         if MathProg.getduty(varid) <= MasterCol
             MathProg.setcurlb!(getmaster(reform), varid, val)
@@ -318,13 +319,12 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
             MathProg.setcubub!(getmaster(reform), varid, val)
         end
     end
-
+    
     presolve_reform = create_presolve_reform(reform)
 
     tightened_bounds = bounds_tightening(presolve_reform.restricted_master.form)
 
     new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds)
-
 
     presolve_reform.restricted_master = new_restricted_master
 
@@ -337,9 +337,6 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     # end
 
     update_reform_from_presolve!(reform, presolve_reform)
-
-
-    #@show getmaster(reform)
 
     return PresolveOutput(true)
 end

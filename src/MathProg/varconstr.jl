@@ -131,7 +131,7 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurlb!(form::Formulation, var::Variable, lb)
-    if in_partial_sol(form, var)
+    if in_partial_sol(form, var) && !(getduty(getid(var)) <= MasterCol)
         @warn "Changing lower bound of fixed variable."
     end
 
