@@ -309,7 +309,7 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
 
     # Should be move in the diving (when generating the formulation of the children because
     # formulation is the single source of truth).
-    @show input
+    #@show input
     for (varid, val) in input.partial_sol_to_fix
         if MathProg.getduty(varid) <= MasterCol
             MathProg.setcurlb!(getmaster(reform), varid, val)
@@ -339,7 +339,7 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     update_reform_from_presolve!(reform, presolve_reform)
 
 
-    @show getmaster(reform)
+    #@show getmaster(reform)
 
     return PresolveOutput(true)
 end
