@@ -1,10 +1,8 @@
 struct DivideOutput{N} <: Branching.AbstractDivideOutput
     children::Vector{N}
-    optstate::Union{Nothing,OptimizationState}
 end
 
 Branching.get_children(output::DivideOutput) = output.children
-#Branching.get__opt_state(output::DivideOutput) = output.optstate
 
 function get_extended_sol(reform, opt_state)
     return get_best_lp_primal_sol(opt_state)
