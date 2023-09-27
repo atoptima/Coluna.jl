@@ -7,7 +7,6 @@ Branching.get_int_tol(ctx::BranchingPrinter) = Branching.get_int_tol(ctx.inner)
 Branching.get_selection_criterion(ctx::BranchingPrinter) = Branching.get_selection_criterion(ctx.inner)
 Branching.get_selection_nb_candidates(ctx::BranchingPrinter) = Branching.get_selection_nb_candidates(ctx.inner)
 Branching.get_phases(ctx::BranchingPrinter) = Branching.get_phases(ctx.inner)
-Branching.new_ip_primal_sols_pool(ctx::BranchingPrinter, reform, input) = Branching.new_ip_primal_sols_pool(ctx.inner, reform, input)
 
 struct PhasePrinter{PhaseContext<:Branching.AbstractStrongBrPhaseContext} <: Branching.AbstractStrongBrPhaseContext
     inner::PhaseContext

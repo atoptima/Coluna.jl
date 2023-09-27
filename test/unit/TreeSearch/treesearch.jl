@@ -133,7 +133,7 @@ function Coluna.Algorithm.run!(alg::DeterministicDivide, ::Coluna.Env, ::Coluna.
     for c in children                             ## update flag
         push!(alg.nodes_created_by_divide, c.id)
     end
-    return Coluna.Algorithm.DivideOutput(children, nothing) 
+    return Coluna.Algorithm.DivideOutput(children) 
 end
 
 # constructs a real node from a LightNode, used in new_children to built real children from the minimal information contained in LightNode
