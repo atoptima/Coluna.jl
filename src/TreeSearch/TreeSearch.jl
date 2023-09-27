@@ -39,6 +39,9 @@ abstract type AbstractNode end
 "Returns the priority of the node depending on the explore strategy."
 @mustimplement "Node" get_priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
+"Returns the conquer output if the conquer was already run for this node, otherwise returns nothing"
+get_conquer_output(::AbstractNode) = nothing
+
 ##### Additional methods for the node interface (needed by conquer)
 ## TODO: move outside TreeSearch module.
 @mustimplement "Node" set_records!(::AbstractNode, records) = nothing

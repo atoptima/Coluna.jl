@@ -26,8 +26,6 @@ mutable struct Node <: TreeSearch.AbstractNode
     # Information to restore the reformulation after the creation of the node (e.g. creation
     # of the branching constraint) or its partial evaluation (e.g. strong branching).
     records::Records
-
-    conquerwasrun::Bool # TODO: rename: full_evaluation (?)
 end
 
 getdepth(n::Node) = n.depth
@@ -35,6 +33,7 @@ getdepth(n::Node) = n.depth
 TreeSearch.isroot(n::Node) = n.depth == 0
 Branching.isroot(n::Node) = TreeSearch.isroot(n)
 TreeSearch.set_records!(n::Node, records) = n.records = records
+TreeSearch.get_conquer_output(n::Node) = n.conquer_output
 
 TreeSearch.get_branch_description(n::Node) = n.branchdescription # printer
 
@@ -45,10 +44,9 @@ TreeSearch.get_priority(::TreeSearch.BestDualBoundStrategy, n::Node) = n.ip_dual
 
 # TODO move
 function Node(node::SbNode)
-    ip_dual_bound = get_ip_dual_bound(node.optstate)
     return Node(
-        node.depth, node.branchdescription, node.optstate, ip_dual_bound,
-        node.records, node.conquerwasrun
+        node.depth, node.branchdescription, node.conquer_output, node.ip_dual_bound,
+        node.records
     )
 end
 
@@ -203,7 +201,7 @@ end
 function TreeSearch.new_root(sp::BaBSearchSpace, input)
     nodestate = OptimizationState(getmaster(sp.reformulation), input, false, false)
     return Node(
-        0, "", nothing, get_ip_dual_bound(nodestate), create_records(sp.reformulation), false
+        0, "", nothing, get_ip_dual_bound(nodestate), create_records(sp.reformulation)
     )
 end
 
@@ -215,7 +213,6 @@ function after_conquer!(space::BaBSearchSpace, current, conquer_output)
         store_ip_primal_sol!(space.inc_primal_manager, sol)
     end
     current.records = create_records(space.reformulation)
-    current.conquerwasrun = true
     space.nb_nodes_treated += 1
 
     # Branch & Bound returns the primal LP & the dual solution found at the root node.
