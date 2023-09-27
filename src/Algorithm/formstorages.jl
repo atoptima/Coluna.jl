@@ -11,9 +11,9 @@ struct VarState
 end
 
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
-    # TODO: remove
     # To avoid warnings when changing variable bounds.
-    var.curdata.is_in_partial_sol = false
+    # Commented, as this line makes var.curdata.is_in_partial_sol and form.manager.partial_solution asynchronous (source of diving with LDS bug)
+    # var.curdata.is_in_partial_sol = false
 
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)

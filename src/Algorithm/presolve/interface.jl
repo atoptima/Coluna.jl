@@ -250,8 +250,7 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
 
     # Update partial solution
     for (col, val) in enumerate(presolve_form.form.partial_solution)
-        #println("added var ", presolve_form.col_to_var[col].name, " to partial solution with value ", val) 
-        MathProg.add_to_partial_solution!(form, presolve_form.col_to_var[col], val)
+        !iszero(val) && MathProg.add_to_partial_solution!(form, presolve_form.col_to_var[col], val)
     end
     return
 end
