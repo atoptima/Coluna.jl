@@ -237,7 +237,7 @@ function test_strong_branching()
     # TODO: interface to register Records.
     records = Coluna.Algorithm.Records()
     node = Coluna.Algorithm.Node(
-        0, "", nothing, MathProg.DualBound(reform), records, false 
+        0, "", nothing, MathProg.DualBound(reform), records
     )
 
     global_primal_handler = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)

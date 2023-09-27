@@ -45,6 +45,8 @@ function Branching.generate_children!(
     units_to_restore = get_branching_candidate_units_usage(candidate, reform)
     d = Branching.get_parent_depth(input)
 
+    parent_ip_dual_bound = get_ip_dual_bound(Branching.get_conquer_opt_state(input))
+
     # adding the first branching constraints
     restore_from_records!(units_to_restore, Branching.parent_records(input))
     setconstr!(
@@ -57,7 +59,7 @@ function Branching.generate_children!(
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     child1description = candidate.varname * ">=" * string(ceil(lhs))
-    child1 = SbNode(reform, d+1, candidate.varname, child1description, create_records(reform), input)
+    child1 = SbNode(d+1, child1description, parent_ip_dual_bound, create_records(reform))
 
     # adding the second branching constraints
     restore_from_records!(units_to_restore, Branching.parent_records(input))
@@ -71,7 +73,7 @@ function Branching.generate_children!(
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     child2description = candidate.varname * "<=" * string(floor(lhs))
-    child2 = SbNode(reform, d+1, candidate.varname, child2description, create_records(reform), input)
+    child2 = SbNode(d+1, child2description, parent_ip_dual_bound, create_records(reform))
 
     return [child1, child2]
 end
