@@ -1,12 +1,11 @@
 # Introduction
 
-!!! danger
+!!! warning
+    We assume that readers are familiar with integer programming and exact optimization methods.
+    
     Coluna is under active development.
     Some features are undocumented because they are very experimental.
     Current users are expected to read the source code.
-
-!!! warning
-    We assume that readers are familiar with integer programming and exact optimization methods.
 
 
 Coluna is a framework written in Julia to implement a decomposition approach to optimize 
