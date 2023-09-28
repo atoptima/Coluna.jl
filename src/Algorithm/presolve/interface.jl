@@ -275,9 +275,8 @@ struct PresolveAlgorithm <: AlgoAPI.AbstractAlgorithm
 end
 
 # PresolveAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
-
 function get_units_usage(algo::PresolveAlgorithm, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[]
     master = getmaster(reform)
     push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))

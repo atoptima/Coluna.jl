@@ -336,6 +336,273 @@ function test_var_bound_propagation_within_restricted_master()
 end
 register!(unit_tests, "presolve_propagation", test_var_bound_propagation_within_restricted_master)
 
+function test_col_bounds_propagation_from_restricted_master()
+    # Original Master
+    # min x1 + x2 
+    # s.t. x1 + x2  >= 10
+    #      1 <= x1 <= 2 (repr)
+    #      1 <= x2 <= 3 (repr)
+    
+    # Restricted master
+    # min 2MC1 + 3MC2 + 3MC3 + 1000a1
+    # s.t.  2MC1 + 3MC2 + 3MC3 + a1 >= 10
+    #       MC1 + MC2 + MC3 >= 0 (convexity)
+    #       MC1 + MC2 + MC3 <= 2 (convexity)
+    #       MC1, MC2, MC3 >= 0
+
+    # subproblem variables:
+    #   1 <= x1 <= 2, 
+    #   1 <= x2 <= 3
+
+    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+    master_form, master_name_to_var, master_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwMaster(),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 2.0, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 3.0, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, Inf, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing),
+            ("pricing_setup", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 0.0, 1.0, nothing)
+        ],
+        [
+            # name, duty, rhs, sense, id
+            ("c1", Coluna.MathProg.MasterMixedConstr, 10.0, ClMP.Greater, nothing),
+            ("c2", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing),
+            ("c3", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing)
+        ]
+    )
+
+    spform, sp_name_to_var, sp_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwSp(
+            Coluna.MathProg.getid(master_name_to_var["pricing_setup"]),
+            Coluna.MathProg.getid(master_name_to_constr["c2"]),
+            Coluna.MathProg.getid(master_name_to_constr["c3"]),
+            Coluna.MathProg.Integ
+        ),
+        [
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 1.0, 2.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 1.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+        ],
+        []
+    )
+
+    var_ids = [Coluna.MathProg.getid(sp_name_to_var["x1"]), Coluna.MathProg.getid(sp_name_to_var["x2"])]
+    pool = Coluna.MathProg.get_primal_sol_pool(spform)
+
+    for (name, vals) in Iterators.zip(
+        ["MC1", "MC2", "MC3"],
+        [
+            #x1, x2,
+            Float64[1.0, 1.0],
+            Float64[1.0, 2.0],
+            Float64[2.0, 2.0]
+        ]
+    )
+        col_id = Coluna.MathProg.VarId(Coluna.MathProg.getid(master_name_to_var[name]); duty = Coluna.MathProg.DwSpPrimalSol)
+        Coluna.MathProg.push_in_pool!(
+            pool,
+            Coluna.MathProg.PrimalSolution(spform, var_ids, vals, 1.0, Coluna.MathProg.FEASIBLE_SOL),
+            col_id,
+            1.0
+        )
+    end
+
+    ## MC3 >= 1
+    Coluna.MathProg.setcurlb!(master_form, master_name_to_var["MC3"], 1.0)
+
+    ## We create the presolve formulations
+    master_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c1"], [1 1], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    restricted_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "MC3", "a", "pricing_setup"], ["c1", "c2", "c3"],
+        [2 3 3 1 0; 1 1 1 0 0; 1 1 1 0 1], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    sp_presolve_form = _presolve_formulation(
+        ["x1", "x2"], [], [1 1], spform, sp_name_to_var, sp_name_to_constr
+    )
+
+    ## We run the presolve on the restricted master
+    tightened_bounds = Coluna.Algorithm.bounds_tightening(restricted_presolve_form.form)
+    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(
+        restricted_presolve_form, Int[], tightened_bounds
+    )
+
+    Coluna.Algorithm.update_form_from_presolve!(master_form, new_restricted_master)
+    Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, new_restricted_master, spform, master_form)
+    Coluna.Algorithm.propagate_global_bounds!(master_presolve_form, new_restricted_master, master_form)
+    Coluna.Algorithm.update_form_from_presolve!(spform, sp_presolve_form)
+
+    # Fix MC3 [x1 = 2, x2 = 2]
+    # we should have 
+    #   0 <= x1 <= 0,
+    #   0 <= x2 <= 1
+
+    # Partial solution: MC3 = 1
+    @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC1"]) ≈ 0
+    @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC2"]) ≈ 0
+    @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC3"]) ≈ 1
+
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC1"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC1"]) ≈ Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC2"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC2"]) ≈ Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC3"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC3"]) ≈ Inf
+
+    # Partial solution: x1 = 2, x2 = 2 |||| x1 = 0, 0 <= x2 <= 1
+    #@test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x1"]) ≈ 2
+    #@test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x2"]) ≈ 2
+
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ 0
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 0
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ 0
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ 1
+end
+register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master)
+
+function test_col_bounds_propagation_from_restricted_master2()
+    # Original Master
+    # min x1 + x2 
+    # s.t. x1 + x2  >= 10
+    #      1 <= x1 <= 2 (repr)
+    #      1 <= x2 <= 3 (repr)
+    
+    # Restricted master
+    # min 2MC1 + 3MC2 + 3MC3 + 1000a1
+    # s.t.  2MC1 + 3MC2 + 3MC3 + a1 >= 10
+    #       MC1 + MC2 + MC3 >= 0 (convexity)
+    #       MC1 + MC2 + MC3 <= 2 (convexity)
+    #       MC1, MC2, MC3 >= 0
+
+    # subproblem variables:
+    #   -3 <= x1 <=  3, 
+    #  -10 <= x2 <= -1
+
+    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+    master_form, master_name_to_var, master_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwMaster(),
+        [
+            # name, duty, cost, lb, ub, id
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, -3.0, 3.0, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, -10.0, -1.0, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, Inf, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing),
+            ("pricing_setup", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 0.0, 1.0, nothing)
+        ],
+        [
+            # name, duty, rhs, sense, id
+            ("c1", Coluna.MathProg.MasterMixedConstr, 10.0, ClMP.Greater, nothing),
+            ("c2", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing),
+            ("c3", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing)
+        ]
+    )
+
+    spform, sp_name_to_var, sp_name_to_constr = _mathprog_formulation!(
+        env,
+        Coluna.MathProg.DwSp(
+            Coluna.MathProg.getid(master_name_to_var["pricing_setup"]),
+            Coluna.MathProg.getid(master_name_to_constr["c2"]),
+            Coluna.MathProg.getid(master_name_to_constr["c3"]),
+            Coluna.MathProg.Integ
+        ),
+        [
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, -3.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, -10.0, -1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+        ],
+        []
+    )
+
+    var_ids = [Coluna.MathProg.getid(sp_name_to_var["x1"]), Coluna.MathProg.getid(sp_name_to_var["x2"])]
+    pool = Coluna.MathProg.get_primal_sol_pool(spform)
+
+    for (name, vals) in Iterators.zip(
+        ["MC1", "MC2", "MC3"],
+        [
+            #x1, x2,
+            Float64[-1.0, -1.0],
+            Float64[-1.0, -2.0],
+            Float64[-2.0, -2.0]
+        ]
+    )
+        col_id = Coluna.MathProg.VarId(Coluna.MathProg.getid(master_name_to_var[name]); duty = Coluna.MathProg.DwSpPrimalSol)
+        Coluna.MathProg.push_in_pool!(
+            pool,
+            Coluna.MathProg.PrimalSolution(spform, var_ids, vals, 1.0, Coluna.MathProg.FEASIBLE_SOL),
+            col_id,
+            1.0
+        )
+    end
+
+    ## MC3 >= 1
+    Coluna.MathProg.setcurlb!(master_form, master_name_to_var["MC2"], 1.0)
+
+    ## We create the presolve formulations
+    master_presolve_form = _presolve_formulation(
+        ["x1", "x2"], ["c1"], [1 1], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    restricted_presolve_form = _presolve_formulation(
+        ["MC1", "MC2", "MC3", "a", "pricing_setup"], ["c1", "c2", "c3"],
+        [2 3 3 1 0; 1 1 1 0 0; 1 1 1 0 1], master_form, master_name_to_var, master_name_to_constr
+    )
+
+    sp_presolve_form = _presolve_formulation(
+        ["x1", "x2"], [], [1 1], spform, sp_name_to_var, sp_name_to_constr
+    )
+
+    ## We run the presolve on the restricted master
+    tightened_bounds = Coluna.Algorithm.bounds_tightening(restricted_presolve_form.form)
+    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(
+        restricted_presolve_form, Int[], tightened_bounds
+    )
+
+    Coluna.Algorithm.update_form_from_presolve!(master_form, new_restricted_master)
+    Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, new_restricted_master, spform, master_form)
+    Coluna.Algorithm.propagate_global_bounds!(master_presolve_form, new_restricted_master, master_form)
+    Coluna.Algorithm.update_form_from_presolve!(spform, sp_presolve_form)
+
+    # Fix MC2 [x1 = -1, x2 = -2]
+    # we should have 
+    #   -2 <= x1 <= 0,
+    #   -8 <= x2 <= 0
+
+
+    # Partial solution: MC3 = 1
+    @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC1"]) ≈ 0
+    @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC2"]) ≈ 1
+    @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC3"]) ≈ 0
+
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC1"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC1"]) ≈ Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC2"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC2"]) ≈ Inf
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["MC3"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["MC3"]) ≈ Inf
+
+    # Partial solution: x1 = 2, x2 = 2 |||| x1 = 0, 0 <= x2 <= 1
+    # @test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x1"]) ≈ 2
+    # @test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x2"]) ≈ 2
+
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ -2
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 0
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ -8
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ 0
+end
+register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master2)
+
 ## OriginalVar -> DwSpPricingVar (mapping exists)
 ## otherwise no propagation
 function test_var_bound_propagation_from_original_to_subproblem()
