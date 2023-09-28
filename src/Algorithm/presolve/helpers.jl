@@ -3,7 +3,7 @@ const PRECISION_DIGITS = 6 # floating point numbers have between 6 and 9 signifi
 """
 Temporary data structure where we store a representation of the formulation that we presolve.
 """
-struct PresolveFormRepr
+mutable struct PresolveFormRepr
     nb_vars::Int
     nb_constrs::Int
     col_major_coef_matrix::SparseMatrixCSC{Float64,Int64} # col major
