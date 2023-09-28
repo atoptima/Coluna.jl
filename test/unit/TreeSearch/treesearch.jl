@@ -133,12 +133,12 @@ function Coluna.Algorithm.run!(alg::DeterministicDivide, ::Coluna.Env, ::Coluna.
     for c in children                             ## update flag
         push!(alg.nodes_created_by_divide, c.id)
     end
-    return Coluna.Algorithm.DivideOutput(children, nothing) 
+    return Coluna.Algorithm.DivideOutput(children) 
 end
 
 # constructs a real node from a LightNode, used in new_children to built real children from the minimal information contained in LightNode
 function Coluna.Algorithm.Node(node::LightNode)
-    return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records(), false)
+    return Coluna.Algorithm.Node(node.depth, " ", nothing, node.parent_ip_dual_bound, Coluna.Algorithm.Records())
 end
 
 ## The candidates are passed as LightNodes and the current node is passed as a TestBaBNode. The method retrieves the inner nodes to run the native method new_children of branch_and_bound.jl, gets the result as a vector of Nodes and then re-built a solution as a vector of TestBaBNodes using the nodes ids contained in LightNode structures.

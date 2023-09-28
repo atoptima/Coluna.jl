@@ -166,10 +166,13 @@ function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSear
     # Else we run the conquer algorithm.
     # This algorithm has the responsibility to check whether the node is pruned.
     reform = get_reformulation(space)
-    conquer_alg = get_conquer(space)
-    conquer_input = get_input(conquer_alg, space, current)
-    conquer_output = run!(conquer_alg, env, reform, conquer_input)
-    after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
+    conquer_output = TreeSearch.get_conquer_output(current)
+    if conquer_output === nothing
+        conquer_alg = get_conquer(space)
+        conquer_input = get_input(conquer_alg, space, current)
+        conquer_output = run!(conquer_alg, env, reform, conquer_input)         
+        after_conquer!(space, current, conquer_output) # callback to do some operations after the conquer.
+    end
     # Build the divide input from the conquer output
     divide_alg = get_divide(space)
     divide_input = get_input(divide_alg, space, current, conquer_output)

@@ -23,7 +23,7 @@ Divide algorithm that does nothing. It does not generate any child.
 struct NoBranching <: AlgoAPI.AbstractDivideAlgorithm end
 
 function run!(::NoBranching, ::Env, reform::Reformulation, ::Branching.AbstractDivideInput)
-    return DivideOutput([], OptimizationState(getmaster(reform)))
+    return DivideOutput([])
 end
 
 ############################################################################################
@@ -76,11 +76,6 @@ Branching.get_int_tol(ctx::BranchingContext) = ctx.int_tol
 Branching.get_selection_criterion(ctx::BranchingContext) = ctx.selection_criterion
 Branching.get_rules(ctx::BranchingContext) = ctx.rules
 
-function Branching.new_ip_primal_sols_pool(ctx::BranchingContext, reform::Reformulation, input)
-    # Optimization state with no information.
-    return OptimizationState(getmaster(reform))
-end
-
 function _is_integer(sol::PrimalSolution)
     for (varid, val) in sol
         integer_val = abs(val - round(val)) < 1e-5
@@ -130,8 +125,8 @@ function Branching.why_no_candidate(reform::Reformulation, input, extended_sol, 
     return _why_no_candidate(master, reform, input, extended_sol, original_sol)
 end
 
-Branching.new_divide_output(children::Vector{SbNode}, optimization_state) = DivideOutput(children, optimization_state)
-Branching.new_divide_output(::Nothing, optimization_state) = DivideOutput(SbNode[], optimization_state)
+Branching.new_divide_output(children::Vector{SbNode}) = DivideOutput(children)
+Branching.new_divide_output(::Nothing) = DivideOutput(SbNode[])
 
 ############################################################################################
 # Branching API implementation for the strong branching
@@ -272,40 +267,24 @@ function new_context(
     )
 end
 
-function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, ip_primal_sols_found, env, reform, input)    
+function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStrongBrPhaseContext, env, reform, input)    
     child_state = OptimizationState(getmaster(reform))
-    child.optstate = child_state
+    child.conquer_output = child_state
 
-    # In the `ip_primal_sols_found`, we maintain all the primal solutions found during the 
-    # strong branching procedure but also the best primal bound found so far (in the whole optimization).
-    update_ip_primal_bound!(child_state, get_ip_primal_bound(ip_primal_sols_found))
-    
+    global_primal_handler = Branching.get_global_primal_handler(input)
+    update_ip_primal_bound!(child_state, get_global_primal_bound(global_primal_handler))
+        
     if !ip_gap_closed(child_state)
         units_to_restore = Branching.get_units_to_restore_for_conquer(phase)
         restore_from_records!(units_to_restore, child.records)
-        conquer_input = ConquerInputFromSb(Branching.get_global_primal_handler(input), child, units_to_restore)
-        child_state = run!(Branching.get_conquer(phase), env, reform, conquer_input)
-        child.optstate = child_state
+        conquer_input = ConquerInputFromSb(global_primal_handler, child, units_to_restore)
+        child.conquer_output = run!(Branching.get_conquer(phase), env, reform, conquer_input)
         TreeSearch.set_records!(child, create_records(reform))
     end
-    child.conquerwasrun = true
 
     # Store new primal solutions found during the evaluation of the child.
-    add_ip_primal_sols!(ip_primal_sols_found, get_ip_primal_sols(child_state)...)
     for sol in get_ip_primal_sols(child_state)
-        store_ip_primal_sol!(Branching.get_global_primal_handler(input), sol)
+        store_ip_primal_sol!(global_primal_handler, sol)
     end
     return
-end
-
-function Branching.new_ip_primal_sols_pool(ctx::StrongBranchingContext, reform, input)
-    # Optimization state with copy of bounds only (except lp_primal_bound).
-    # Only the ip primal bound is used to avoid inserting integer solutions that are not
-    # better than the incumbent.
-    # We also use the primal bound to init candidate nodes in the strong branching procedure.
-    input_opt_state = Branching.get_conquer_opt_state(input)
-    return OptimizationState(
-        getmaster(reform);
-        ip_primal_bound = get_ip_primal_bound(input_opt_state),
-    )
 end
