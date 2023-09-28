@@ -159,6 +159,9 @@ function ClB.restore_from_record!(
                 apply_state!(form, var, state.cols[id])
             else
                 if iscuractive(form, var) 
+                    if !iszero(MathProg.get_value_in_partial_sol(form, var))
+                        MathProg.set_value_in_partial_solution!(form, var, 0.0)
+                    end
                     deactivate!(form, var)
                 end
             end    
