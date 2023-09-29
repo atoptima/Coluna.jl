@@ -134,7 +134,7 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     conquer_units_to_restore::UnitsUsage
 
     # Global information about the branch-and-bound execution.
-    previous::Union{Nothing,Node}
+    previous::Union{Nothing,TreeSearch.AbstractNode}
     optstate::OptimizationState # from TreeSearchRuntimeData
   
     nb_nodes_treated::Int
@@ -146,13 +146,13 @@ get_reformulation(sp::BaBSearchSpace) = sp.reformulation
 get_conquer(sp::BaBSearchSpace) = sp.conquer
 get_divide(sp::BaBSearchSpace) = sp.divide
 get_previous(sp::BaBSearchSpace) = sp.previous
-set_previous!(sp::BaBSearchSpace, previous::Node) = sp.previous = previous
+set_previous!(sp::BaBSearchSpace, previous::TreeSearch.AbstractNode) = sp.previous = previous
 
 ############################################################################################
 # Tree search implementation
 ############################################################################################
 function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
-    return space.nb_nodes_treated > space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
+    return space.nb_nodes_treated >= space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
 end
 
 function TreeSearch.search_space_type(alg::TreeSearchAlgorithm)

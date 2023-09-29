@@ -261,7 +261,7 @@ function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, input, 
             records = create_records(reform)
         end
 
-        output = AlgoAPI.run!(heuristic.algorithm, env, getmaster(reform), get_best_ip_primal_sol(conquer_output))
+        output = Heuristic.run(heuristic.algorithm, env, reform, conquer_output)
         for sol in Heuristic.get_primal_sols(output)
             store_ip_primal_sol!(get_global_primal_handler(input), sol)
         end

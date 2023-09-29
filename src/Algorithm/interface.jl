@@ -78,7 +78,7 @@ ismanager(algo::AbstractConquerAlgorithm) = true
 
     This type of algorithm is used to "bound" a model, i.e. to improve primal
     and dual bounds of the model. Solving to optimality is a special case of "bounding".
-    The input of such algorithm should be of type Incumbents.    
+    The input of such algorithm should be of type OptimizationState.    
     The output of such algorithm should be of type OptimizationState.    
 """
 abstract type AbstractOptimizationAlgorithm <: AlgoAPI.AbstractAlgorithm end

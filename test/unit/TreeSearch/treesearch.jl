@@ -77,7 +77,7 @@ function Coluna.TreeSearch.new_root(space::TestBaBSearchSpace, input)
 end
 
 Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.stop(space.inner, untreated_nodes)
-Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.tree_search_output(space.inner, untreated_nodes)
+Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.tree_search_output(space.inner, map(n -> n.inner, untreated_nodes))
 
 # methods called by native method children (in branch_and_bound.jl)
 Coluna.Algorithm.get_previous(space::TestBaBSearchSpace) = Coluna.Algorithm.get_previous(space.inner)

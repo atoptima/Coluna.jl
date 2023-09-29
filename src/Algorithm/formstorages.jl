@@ -11,9 +11,9 @@ struct VarState
 end
 
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
-    # TODO: remove
     # To avoid warnings when changing variable bounds.
-    var.curdata.is_in_partial_sol = false
+    # Commented, as this line makes var.curdata.is_in_partial_sol and form.manager.partial_solution asynchronous (source of diving with LDS bug)
+    # var.curdata.is_in_partial_sol = false
 
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)
@@ -25,11 +25,6 @@ function apply_state!(form::Formulation, var::Variable, var_state::VarState)
         setcurcost!(form, var, var_state.cost)
     end
     if MathProg.get_value_in_partial_sol(form, var) != var_state.partial_sol_value
-        if var_state.partial_sol_value == 0
-            var.curdata.is_in_partial_sol = false
-        else
-            var.curdata.is_in_partial_sol = true
-        end
         MathProg.set_value_in_partial_solution!(form, var, var_state.partial_sol_value)
     end
     return
@@ -164,6 +159,9 @@ function ClB.restore_from_record!(
                 apply_state!(form, var, state.cols[id])
             else
                 if iscuractive(form, var) 
+                    if !iszero(MathProg.get_value_in_partial_sol(form, var))
+                        MathProg.set_value_in_partial_solution!(form, var, 0.0)
+                    end
                     deactivate!(form, var)
                 end
             end    

@@ -32,7 +32,7 @@ function get_branching_candidate_units_usage(::SingleVarBranchingCandidate, refo
 end
 
 function Branching.generate_children!(
-    candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, input
+    ctx, candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, input
 )
     master = getmaster(reform)
     lhs = Branching.get_lhs(candidate)

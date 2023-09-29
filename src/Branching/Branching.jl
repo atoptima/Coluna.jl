@@ -87,7 +87,7 @@ end
 abstract type AbstractBranchingContext <: AbstractDivideContext end
 
 function advanced_select!(ctx::AbstractBranchingContext, candidates, env, reform, input::AbstractDivideInput)
-    children = generate_children!(first(candidates), env, reform, input)
+    children = generate_children!(ctx, first(candidates), env, reform, input)
     return new_divide_output(children)
 end
 
@@ -136,7 +136,8 @@ end
 function perform_strong_branching_inner!(
     ctx::AbstractStrongBrContext, env, reform, input::Branching.AbstractDivideInput, candidates::Vector{C}
 ) where {C<:AbstractBranchingCandidate}
-    cand_children = [generate_children!(candidate, env, reform, input) for candidate in candidates]
+
+    cand_children = [generate_children!(ctx, candidate, env, reform, input) for candidate in candidates]
 
     phases = get_phases(ctx)
     for (phase_index, current_phase) in enumerate(phases)

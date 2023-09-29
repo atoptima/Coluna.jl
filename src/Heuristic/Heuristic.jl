@@ -20,10 +20,10 @@ abstract type AbstractHeuristicOutput end
 """
 run the heuristic using following arguments:
 - `form`: a formulation (or any representation) of the problem
-- `cur_inc_primal_sol`: current incumbent primal solution
+- `optstate`: current optimization state
 
 and returns an `AbstractHeuristicOutput` object.
 """
-@mustimplement "Heuristic" run(::AbstractHeuristic, env, form, cur_inc_primal_sol) = nothing
+@mustimplement "Heuristic" run(::AbstractHeuristic, env, form, optstate) = nothing
 
 end
