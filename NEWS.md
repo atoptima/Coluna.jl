@@ -1,3 +1,11 @@
+# Coluna 0.7.0
+
+This is minor update with two breaking changes:
+- Bounds of the representative variables in the master are now global (multiplicity of subproblem * bound)
+- DivideOutput has only one argument now
+- Generating child nodes from branching candidates is moved from select!() to advanced_select!(). This allows us to simplify the interface of branching candidates (we remove nodes from them). This simplification also serves to prepare the diving implementation. (PR 1072)
+- SbNode and Node definitions have been changed.
+
 # Coluna 0.6.6
 
 - DynamicSparseArrays 0.7 main features are tested against JET.
