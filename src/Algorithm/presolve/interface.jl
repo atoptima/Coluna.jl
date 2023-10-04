@@ -181,7 +181,7 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
         
         # Update bounds on master repr variables using multiplicity.
         for (varid, var) in getvars(sp)
-            if getduty(varid) <= DwSpPricingVar
+            if getduty(varid) <= DwSpPricingVar && haskey(original_master.var_to_col, varid)
                 lb = getcurlb(sp, var)
                 ub = getcurub(sp, var)
                 
