@@ -693,3 +693,132 @@ function build_dw_presolve_reformulation2()
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
 end
 register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation2)
+
+function presolve_reformulation_with_var_not_in_coeff_matrix()
+    form = """
+    master
+        min
+        10000.0 local_art_of_cov_5 + 10000.0 local_art_of_cov_4 + 10000.0 local_art_of_cov_6 + 10000.0 local_art_of_cov_7 + 10000.0 local_art_of_cov_2 + 10000.0 local_art_of_cov_3 + 10000.0 local_art_of_cov_1 + 10000.0 local_art_of_sp_lb_4 + 10000.0 local_art_of_sp_ub_4 + 100000.0 global_pos_art_var + 100000.0 global_neg_art_var + 51.0 MC_38 + 38.0 MC_39 + 10.0 MC_40 + 28.0 MC_41 + 19.0 MC_42 + 26.0 MC_43 + 31.0 MC_44 + 42.0 MC_45 + 8.0 x_11 + 5.0 x_12 + 11.0 x_13 + 21.0 x_14 + 6.0 x_15 + 5.0 x_16 + 19.0 x_17  + 0.0 PricingSetupVar_sp_4
+        s.t.
+        0.0 x_11 + 1.0 x_12 + 1.0 local_art_of_cov_2 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_40 + 1.0 MC_44 + 1.0 MC_45 >= 1.0
+        1.0 x_13 + 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45 >= 1.0
+        1.0 x_14 + 1.0 local_art_of_cov_4 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_44  >= 1.0
+        1.0 x_15 + 1.0 local_art_of_cov_5 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_39 + 1.0 MC_42 + 1.0 MC_43 + 1.0 MC_45  >= 1.0
+        1.0 x_16 + 1.0 local_art_of_cov_6 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_40 + 1.0 MC_42 + 1.0 MC_44  >= 1.0
+        1.0 x_17 + 1.0 local_art_of_cov_7 + 1.0 global_pos_art_var + 1.0 MC_38 + 1.0 MC_41 + 1.0 MC_45  >= 1.0
+        1.0 PricingSetupVar_sp_4 + 1.0 local_art_of_sp_lb_4 + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 - 1.0 local_art_of_sp_ub_4 + 1.0 MC_39 + 1.0 MC_41 + 1.0 MC_43 + 1.0 MC_45  <= 1.0 {MasterConvexityConstr}
+    
+    dw_sp
+        min
+        x_11 + x_12 + x_13 + x_14 + x_15 + x_16 + x_17 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_11 + 1.0 x_12 + 1.0 x_13 + 3.0 x_14 + 1.0 x_15 + 5.0 x_16 + 4.0 x_17  <= 8.0
+
+    continuous
+        columns
+            MC_38, MC_39, MC_40, MC_41, MC_42, MC_43, MC_44, MC_45
+
+        artificial
+            local_art_of_cov_5, local_art_of_cov_4, local_art_of_cov_6, local_art_of_cov_7, local_art_of_cov_2, local_art_of_cov_3, local_art_of_cov_1, local_art_of_sp_lb_4, local_art_of_sp_ub_4, global_pos_art_var, global_neg_art_var
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4
+
+    binary
+        representatives
+            x_11, x_12, x_13, x_14, x_15, x_16, x_17
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_17 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        local_art_of_cov_5 >= 0.0
+        local_art_of_cov_4 >= 0.0
+        local_art_of_cov_6 >= 0.0
+        local_art_of_cov_7 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_sp_lb_4 >= 0.0
+        local_art_of_sp_ub_4 >= 0.0
+        global_pos_art_var >= 0.0
+        global_neg_art_var >= 0.0
+        MC_38 >= 0
+        MC_39 >= 0
+        MC_40 >= 0
+        MC_41 >= 0
+        MC_42 >= 0
+        MC_43 >= 0
+        MC_44 >= 0
+        MC_45 >= 0
+"""
+    env, master, sps, _, reform = reformfromstring(form)
+
+    return reform, master, sps
+end
+
+function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
+    # We create a reformulation several subproblem variables does not appear in the master problem.
+    reform, master, sps = presolve_reformulation_with_var_not_in_coeff_matrix()
+    presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
+
+    presolve_original_master = presolve_reform.original_master
+    mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
+
+    var_ids_lbs_ubs = [
+        (mast_var_ids["x_11"], 0, 1),
+        (mast_var_ids["x_12"], 0, 1),
+        (mast_var_ids["x_13"], 0, 1),
+        (mast_var_ids["x_14"], 0, 1),
+        (mast_var_ids["x_15"], 0, 1),
+        (mast_var_ids["x_16"], 0, 1),
+        (mast_var_ids["x_17"], 0, 1)
+    ]
+
+    @test presolve_original_master.form.lower_multiplicity == 1
+    @test presolve_original_master.form.upper_multiplicity == 1
+
+    for (varuid, lb, ub) in var_ids_lbs_ubs
+        @test presolve_original_master.form.lbs[varuid] == lb
+        @test presolve_original_master.form.ubs[varuid] == ub
+    end
+
+    mast_constr_ids = Dict{String, Int}(ClMP.getname(master, constr) => k for (k, constr) in enumerate(presolve_original_master.row_to_constr))
+    constr_ids_rhs_sense = [
+        (mast_constr_ids["c1"], 1.0, ClMP.Greater),
+        (mast_constr_ids["c2"], 1.0, ClMP.Greater),
+        (mast_constr_ids["c3"], 1.0, ClMP.Greater),
+        (mast_constr_ids["c4"], 1.0, ClMP.Greater),
+        (mast_constr_ids["c5"], 1.0, ClMP.Greater),
+        (mast_constr_ids["c6"], 1.0, ClMP.Greater),
+    ]
+
+    for (construid, rhs, sense) in constr_ids_rhs_sense
+        @test presolve_original_master.form.rhs[construid] == rhs
+        @test presolve_original_master.form.sense[construid] == sense
+    end
+
+    restricted_coef_matrtix = [
+        (mast_constr_ids["c1"], mast_var_ids["x_12"], 1.0),
+        (mast_constr_ids["c2"], mast_var_ids["x_13"], 1.0),
+        (mast_constr_ids["c3"], mast_var_ids["x_14"], 1.0),
+        (mast_constr_ids["c4"], mast_var_ids["x_15"], 1.0),
+        (mast_constr_ids["c5"], mast_var_ids["x_16"], 1.0),
+        (mast_constr_ids["c6"], mast_var_ids["x_17"], 1.0),
+    ]
+
+    for (c, v, val) in restricted_coef_matrtix
+        @test presolve_original_master.form.col_major_coef_matrix[c, v] == val
+    end
+
+
+    @show master
+end
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_with_var_not_in_coeff_matrix)

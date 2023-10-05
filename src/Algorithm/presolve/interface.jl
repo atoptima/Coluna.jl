@@ -21,7 +21,21 @@ function create_presolve_form(
     lower_multiplicity = 1, 
     upper_multiplicity = 1
 )
-    constr_ids, var_ids, nz = _submatrix_nz_elems(form, keep_constr, keep_var)
+    sm_constr_ids, sm_var_ids, nz = _submatrix_nz_elems(form, keep_constr, keep_var)
+
+    constr_ids = Set{ConstrId}()
+    for (constr_id, constr) in getconstrs(form)
+        if keep_constr(form, constr_id, constr)
+            push!(constr_ids, constr_id)
+        end
+    end
+
+    var_ids = Set{VarId}()
+    for (var_id, var) in getvars(form)
+        if keep_var(form, var_id, var)
+            push!(var_ids, var_id)
+        end
+    end
 
     var_to_col = Dict{VarId,Int64}()
     col_to_var = Variable[]
@@ -42,8 +56,8 @@ function create_presolve_form(
     end
 
     coef_submatrix = sparse(
-        map(constr_id -> constr_to_row[constr_id], constr_ids),
-        map(var_id -> var_to_col[var_id], var_ids),
+        map(constr_id -> constr_to_row[constr_id], sm_constr_ids),
+        map(var_id -> var_to_col[var_id], sm_var_ids),
         nz
     )
 
@@ -181,7 +195,7 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
         
         # Update bounds on master repr variables using multiplicity.
         for (varid, var) in getvars(sp)
-            if getduty(varid) <= DwSpPricingVar && haskey(original_master.var_to_col, varid)
+            if getduty(varid) <= DwSpPricingVar
                 lb = getcurlb(sp, var)
                 ub = getcurub(sp, var)
                 
