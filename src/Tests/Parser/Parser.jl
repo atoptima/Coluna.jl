@@ -348,7 +348,12 @@ module Parser
                 end
             end
             for constr in sp.constraints
-                members = Dict(ClMP.getid(all_spvars[varid][1]) => coeff for (varid, coeff) in constr.lhs.vars)
+                members = Dict{Coluna.MathProg.VarId,Float64}()
+                for (varid, coeff) in constr.lhs.vars
+                    if !iszero(coeff)
+                        members[ClMP.getid(all_spvars[varid][1])] = coeff
+                    end
+                end
                 c = ClMP.setconstr!(spform, "sp_c$i", ClMP.DwSpPureConstr; rhs = constr.rhs, sense = constr.sense, members = members)
                 push!(constraints, c)
                 i += 1
@@ -405,7 +410,12 @@ module Parser
                     duty = constr.duty
                     @assert duty <= ClMP.BendSpTechnologicalConstr
                 end
-                members = Dict(ClMP.getid(all_spvars[varid][1]) => coeff for (varid, coeff) in constr.lhs.vars)
+                members = Dict{Coluna.MathProg.VarId,Float64}()
+                for (varid, coeff) in constr.lhs.vars
+                    if !iszero(coeff)
+                        members[ClMP.getid(all_spvars[varid][1])] = coeff
+                    end
+                end
                 c = ClMP.setconstr!(spform, "sp_c$i", duty; rhs = constr.rhs, sense = constr.sense, members = members)
                 push!(constraints, c)
                 i += 1
@@ -502,7 +512,9 @@ module Parser
                         constr_duty = ClMP.MasterMixedConstr
                     end
                     if haskey(mastervars, varid)
-                        push!(members, ClMP.getid(mastervars[varid]) => coeff)
+                        if !iszero(coeff)
+                            push!(members, ClMP.getid(mastervars[varid]) => coeff)
+                        end
                     else
                         throw(UndefVarParserError("Variable $varid not present in objective function"))
                     end
