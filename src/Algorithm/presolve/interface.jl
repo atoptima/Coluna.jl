@@ -67,6 +67,8 @@ function create_presolve_form(
     for var in col_to_var
         push!(lbs_vals, getcurlb(form, var))
         push!(ubs_vals, getcurub(form, var))
+        @assert !isnan(getcurlb(form, var))
+        @assert !isnan(getcurub(form, var))
         #push!(partial_sol, MathProg.get_value_in_partial_sol(form, var))
         push!(partial_sol, 0.0)
     end
@@ -210,6 +212,8 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
 
     for (varid, (lb, ub)) in master_repr_lb_ub
         var_col = original_master.var_to_col[varid]
+        @assert !isnan(lb)
+        @assert !isnan(ub)
         original_master.form.lbs[var_col] = lb
         original_master.form.ubs[var_col] = ub
     end
@@ -250,6 +254,8 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
         presolve_form.form.lbs,
         presolve_form.form.ubs
     ))
+        @assert !isnan(lb)
+        @assert !isnan(ub)
         var = presolve_form.col_to_var[col]
 
         if getduty(getid(var)) <= MasterCol
