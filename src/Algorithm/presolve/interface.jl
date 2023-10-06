@@ -365,6 +365,22 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     return PresolveOutput(true)
 end
 
+function _column_is_proper(col_id, sp_form)
+    # Retrieve the column in the pool.
+    pool = get_primal_sol_pool(sp_form)
+    solution = @view pool.solutions[col_id, :]
+
+    for (var_id, value) in solution
+        if value < getcurlb(sp_form, var_id) - Coluna.TOL || value > getcurub(sp_form, var_id) + Coluna.TOL
+            return false
+        end
+        if value > getcurub(sp_form, var_id) - Coluna.TOL && value < getcurlb(sp_form, var_id) + Coluna.TOL
+            return false
+        end
+    end
+    return true
+end
+
 # function treat!(algo::PresolveAlgorithm, reform::Reformulation{DwMaster})
 #     presolve_reform = create_presolve_reform(reform)
     
