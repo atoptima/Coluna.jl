@@ -32,8 +32,12 @@ function propagate_var_bounds_from!(dest::PresolveFormulation, src::PresolveForm
     for var_id in common_var_ids
         src_col = src.var_to_col[var_id]
         dest_col = dest.var_to_col[var_id]
-        dest.form.lbs[dest_col] = src.form.lbs[src_col]
-        dest.form.ubs[dest_col] = src.form.ubs[src_col]
+        dest_lb = src.form.lbs[src_col]
+        dest_ub = src.form.ubs[src_col]
+        @assert !isnan(dest_lb)
+        @assert !isnan(dest_ub)
+        dest.form.lbs[dest_col] = dest_lb
+        dest.form.ubs[dest_col] = dest_ub
     end
 
     # Look at fixed variable
@@ -42,6 +46,10 @@ function propagate_var_bounds_from!(dest::PresolveFormulation, src::PresolveForm
     for var_id in common_var_ids
         src_var_val = src.fixed_variables[var_id]
         dest_col = dest.var_to_col[var_id]
+        dest_lb = dest.form.partial_solution[dest_col]
+        dest_ub = dest.form.partial_solution[dest_col]
+        @assert !isnan(dest_lb)
+        @assert !isnan(dest_ub)
         dest.form.lbs[dest_col] = src_var_val - dest.form.partial_solution[dest_col]
         dest.form.ubs[dest_col] = src_var_val - dest.form.partial_solution[dest_col]
     end

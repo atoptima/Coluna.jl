@@ -22,6 +22,8 @@ function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, l
     length(rhs) == length(sense) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
     nb_vars = length(lbs)
     nb_constrs = length(rhs)
+    @assert reduce(&, map(lb -> !isnan(lb), lbs))
+    @assert reduce(&, map(ub -> !isnan(ub), ubs))
     return PresolveFormRepr(
         nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs, partial_solution, lm, um
     )
@@ -87,18 +89,18 @@ function _infeasible_row(sense::ConstrSense, min_slack::Real, max_slack::Real, Ï
 end
 
 function _var_lb_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real)
-    if sense == Equal || sense == Greater && var_coef_in_row > 0
+    if (sense == Equal || sense == Greater) && var_coef_in_row > 0
         return min_slack / var_coef_in_row
-    elseif sense == Less && var_coef_in_row < 0 
+    elseif (sense == Less || sense == Equal) && var_coef_in_row < 0 
         return max_slack / var_coef_in_row
     end
     return -Inf
 end
 
 function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, var_coef_in_row::Real)
-    if sense == Greater && var_coef_in_row < 0
+    if (sense == Greater || sense == Equal) && var_coef_in_row < 0
         return min_slack / var_coef_in_row
-    elseif  sense == Equal || sense == Less && var_coef_in_row > 0
+    elseif  (sense == Equal || sense == Less) && var_coef_in_row > 0
         return max_slack / var_coef_in_row
     end
     return Inf
@@ -140,12 +142,25 @@ function bounds_tightening(form::PresolveFormRepr)
             sense = form.sense[row]
 
             var_lb_from_row = _var_lb_from_row(sense, min_slack, max_slack, var_coef_in_row)
+            @assert !isnan(var_lb)
+            @assert !isnan(var_lb_from_row)
             if var_lb_from_row > var_lb
+                if isinf(var_lb_from_row) && var_lb_from_row > 0
+                    println("--------")
+                    println("> row = $(row) ")
+                    println("> col = $col")
+                    println("> coef_in_row = $var_coef_in_row")
+                    println("> sense = $sense")
+                    println("> row coeffs = $(form.row_major_coef_matrix[:, row])")
+                    println("> rhs = $(form.rhs[row])")
+                end
                 var_lb = min(var_ub, var_lb_from_row)
                 tighter_lb = true
             end
 
             var_ub_from_row = _var_ub_from_row(sense, min_slack, max_slack, var_coef_in_row)
+            @assert !isnan(var_ub)
+            @assert !isnan(var_ub_from_row)
             if var_ub_from_row < var_ub
                 var_ub = max(var_lb, var_ub_from_row)
                 tighter_ub = true
@@ -167,6 +182,8 @@ function vars_to_fix(form::PresolveFormRepr, tightened_bounds::Dict{Int, Tuple{F
     vars_to_fix = Dict{Int, Float64}()
     for (col, tb) in tightened_bounds
         var_lb, _, var_ub, _ = tb
+        @assert !isnan(var_lb)
+        @assert !isnan(var_ub)
         if _fix_var(var_lb, var_ub, 1e-6)
             vars_to_fix[col] = var_lb
         end
@@ -207,6 +224,8 @@ function PresolveFormRepr(
 
     # Tighten bounds
     for (col, (lb, tighter_lb, ub, tighter_ub)) in tightened_bounds
+        @assert !isnan(lb)
+        @assert !isnan(ub)
         if tighter_lb
             lbs[col] = lb
         end
@@ -220,12 +239,16 @@ function PresolveFormRepr(
     nb_fixed_vars = 0
     new_partial_sol = zeros(Float64, length(form.partial_solution))
     for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+        @assert !isnan(lb)
+        @assert !isnan(ub)
         if lb > ub
             error("Infeasible.")
         end
         if lb > 0.0
+            @assert !isinf(lb)
             new_partial_sol[i] += lb
-        elseif ub < 0.0
+        elseif ub < 0.0 && !isinf(ub)
+            @assert !isinf(ub)
             new_partial_sol[i] += ub
         end
         if abs(ub - lb) <= Coluna.TOL

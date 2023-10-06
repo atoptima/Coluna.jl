@@ -724,6 +724,7 @@ function test_var_bounds_from_row9()
 
     min_slack = Coluna.Algorithm.row_min_slack(form, 2, col -> col == 1)
     max_slack = Coluna.Algorithm.row_max_slack(form, 2, col -> col == 1)
+
     # x <= 1 - y
     # x <= 0
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 1)
@@ -742,3 +743,59 @@ function test_var_bounds_from_row9()
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row9)
 
+function test_var_bounds_from_row10()
+    # y2
+    #  + 1.0 x + 1.0 y1 - 1.0 y2 + 1.0 z1 - 1.0 z2  == 0.0
+    # 0.0 <= x <= Inf (Integ | MasterRepPricingVar | false)
+    # 0.0 <= y1 <= Inf (Continuous | MasterArtVar | true)
+    # 0.0 <= y2 <= Inf (Continuous | MasterArtVar | true)
+    # 0.0 <= z1 <= Inf (Continuous | MasterArtVar | true)
+    # 0.0 <= z2 <= Inf (Continuous | MasterArtVar | true)
+
+    coef_matrix = sparse([1 1 -1 1 -1])
+    lbs = [0, 0, 0, 0, 0]
+    ubs = [Inf, Inf, Inf, Inf, Inf]
+    rhs = [0]
+    sense = [Equal]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 3)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 3)
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 1)
+    @test ub == Inf
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, 1)
+    @test lb == -Inf
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row10)
+
+function test_var_bounds_from_row11()
+    # - w - x + y + z = 0
+    #
+
+    # w = y + z -x
+    # lb: -x -> 
+    # donc
+
+    coef_matrix = sparse([-1 -1 1 1])
+    lbs = [0, 0, 0, 0]
+    ubs = [Inf, Inf, Inf, Inf]
+    rhs = [0]
+    sense = [Equal]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 0, 0)
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, -1)
+    @test ub == Inf
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, -1)
+    @test lb == -Inf
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row11)
