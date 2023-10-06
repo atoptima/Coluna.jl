@@ -145,15 +145,6 @@ function bounds_tightening(form::PresolveFormRepr)
             @assert !isnan(var_lb)
             @assert !isnan(var_lb_from_row)
             if var_lb_from_row > var_lb
-                if isinf(var_lb_from_row) && var_lb_from_row > 0
-                    println("--------")
-                    println("> row = $(row) ")
-                    println("> col = $col")
-                    println("> coef_in_row = $var_coef_in_row")
-                    println("> sense = $sense")
-                    println("> row coeffs = $(form.row_major_coef_matrix[:, row])")
-                    println("> rhs = $(form.rhs[row])")
-                end
                 var_lb = min(var_ub, var_lb_from_row)
                 tighter_lb = true
             end
