@@ -270,7 +270,13 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
 
     # Update partial solution
     for (col, val) in enumerate(presolve_form.form.partial_solution)
-        !iszero(val) && MathProg.add_to_partial_solution!(form, presolve_form.col_to_var[col], val)
+        var = presolve_form.col_to_var[col]
+        if getduty(getid(var)) <= MasterArtVar && !iszero(val)
+            error(""" Infeasible because artificial variable $(getname(form, var)) is not zero.
+            Fixed to $(val) in partial solution.
+            """)
+        end
+        !iszero(val) && MathProg.add_to_partial_solution!(form, var, val)
     end
     return
 end
