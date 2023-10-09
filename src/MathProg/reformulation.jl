@@ -12,24 +12,18 @@ end
 `Reformulation` is a representation of a formulation which is solved by Coluna 
 using a decomposition approach.
 
-    Reformulation(env)
+    Reformulation(env, parent, master, dw_pricing_subprs, benders_sep_subprs)
 
-Construct an empty `Reformulation`.
+Constructs a `Reformulation` where:
+- `env` is the Coluna environment;
+- `parent` is the parent formulation (a `Formulation` or a `Reformulation`) (original 
+formulation for the classic decomposition);
+- `master` is the formulation of the master problem;
+- `dw_pricing_subprs` is a `Dict{FormId, Formulation}` containing all Dantzig-Wolfe pricing
+subproblems of the reformulation;
+- `benders_sep_subprs` is a `Dict{FormId, Formulation}` containing all Benders separation
+subproblems of the reformulation.
  """
-function Reformulation(env)
-    uid = env.form_counter += 1
-    reform = Reformulation(
-        uid,
-        nothing,
-        nothing,
-        Dict{FormId, Formulation{DwSp}}(),
-        Dict{FormId, Formulation{BendersSp}}(),
-        nothing
-    )
-    reform.storage = Storage(reform)
-    return reform
-end
-
 function Reformulation(env, parent, master, dw_pricing_subprs, benders_sep_subprs)
     uid = env.form_counter += 1
     reform = Reformulation(
