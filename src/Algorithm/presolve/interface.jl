@@ -374,9 +374,6 @@ function _column_is_proper(col_id, sp_form)
         if value < getcurlb(sp_form, var_id) - Coluna.TOL || value > getcurub(sp_form, var_id) + Coluna.TOL
             return false
         end
-        if value > getcurub(sp_form, var_id) - Coluna.TOL && value < getcurlb(sp_form, var_id) + Coluna.TOL
-            return false
-        end
     end
     return true
 end
