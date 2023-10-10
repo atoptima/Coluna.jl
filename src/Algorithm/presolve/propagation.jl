@@ -73,11 +73,13 @@ function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, mas
     lm = presolve_sp.form.lower_multiplicity
     um = presolve_sp.form.upper_multiplicity
     for (i, var) in enumerate(presolve_sp.col_to_var)
-        repr_col = presolve_repr_master.var_to_col[getid(var)]
-        lb = presolve_sp.form.lbs[i]
-        ub = presolve_sp.form.ubs[i]
-        presolve_repr_master.form.lbs[repr_col] = lb * (lb < 0 ? um : lm)
-        presolve_repr_master.form.ubs[repr_col] = ub * (ub < 0 ? lm : um)
+        repr_col = get(presolve_repr_master.var_to_col, getid(var), nothing)
+        if !isnothing(repr_col)
+            lb = presolve_sp.form.lbs[i]
+            ub = presolve_sp.form.ubs[i]
+            presolve_repr_master.form.lbs[repr_col] = lb * (lb < 0 ? um : lm)
+            presolve_repr_master.form.ubs[repr_col] = ub * (ub < 0 ? lm : um)
+        end
     end
     return
 end
