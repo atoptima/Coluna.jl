@@ -236,7 +236,7 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
     return DwPresolveReform(original_master, restricted_master, dw_sps)
 end
 
-function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFormulation)
+function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFormulation; update_rhs = true)
     # Deactivate Constraints
     for constr_id in presolve_form.deactivated_constrs
         deactivate!(form, getconstr(form, constr_id))
@@ -251,17 +251,19 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
     end
 
     # Update rhs
-    for (row, rhs) in enumerate(presolve_form.form.rhs)
-        constr = presolve_form.row_to_constr[row]
+    if update_rhs
+        for (row, rhs) in enumerate(presolve_form.form.rhs)
+            constr = presolve_form.row_to_constr[row]
 
-        if getduty(getid(constr)) <= MasterConvexityConstr
-            if getcursense(form, constr) == Less
-                setcurrhs!(form, constr, max(rhs, 0))
-            elseif getcursense(form, constr) == Greater
-                setcurrhs!(form, constr, max(rhs, 0))
+            if getduty(getid(constr)) <= MasterConvexityConstr
+                if getcursense(form, constr) == Less
+                    setcurrhs!(form, constr, max(rhs, 0))
+                elseif getcursense(form, constr) == Greater
+                    setcurrhs!(form, constr, max(rhs, 0))
+                end
+            else
+                setcurrhs!(form, constr, rhs)
             end
-        else
-            setcurrhs!(form, constr, rhs)
         end
     end
 
@@ -313,7 +315,8 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
         update_form_from_presolve!(sp, sp_presolve_form)
     end
 
-    update_form_from_presolve!(master, presolve_repr_master)
+    update_form_from_presolve!(master, presolve_repr_master; update_rhs = false)
+
     return
 end
 
@@ -369,11 +372,14 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     end
 
     presolve_reform = create_presolve_reform(reform)
-    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
-    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
 
+    println("Presolving representative master.")
     tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
     new_original_master = propagate_in_presolve_form(presolve_reform.original_master, Int[], tightened_bounds_repr; fix_vars = false)
+
+    println("Presolving restricted master.")
+    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
+    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
 
     presolve_reform.restricted_master = new_restricted_master
     presolve_reform.original_master = new_original_master
@@ -386,6 +392,7 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     #     propagate_var_bounds_from!(new_original_master, sp)
     # end
 
+    println("Updating formulations.")
     update_reform_from_presolve!(reform, presolve_reform)
 
     return PresolveOutput(true)
