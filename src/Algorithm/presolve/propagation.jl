@@ -83,6 +83,7 @@ function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_mast
             varid = getid(var)
             column = @view pool.solutions[varid,:]
             for (varid, val) in column
+                getduty(varid) <= DwSpPricingVar || continue
                 sp_var_col = presolve_sp.var_to_col[varid]
                 partial_solution[sp_var_col] += val * partial_sol_value
             end

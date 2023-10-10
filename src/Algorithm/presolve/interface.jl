@@ -349,7 +349,7 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
             MathProg.setcubub!(getmaster(reform), varid, val)
         end
     end
-    
+
     presolve_reform = create_presolve_reform(reform)
 
     tightened_bounds = bounds_tightening(presolve_reform.restricted_master.form)
