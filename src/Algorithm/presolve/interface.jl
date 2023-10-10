@@ -298,7 +298,7 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
         update_form_from_presolve!(sp, sp_presolve_form)
     end
 
-    update_reform_from_presolve!(master, presolve_repr_master)
+    update_form_from_presolve!(master, presolve_repr_master)
     return
 end
 
