@@ -128,6 +128,8 @@ end
 function bounds_tightening(form::PresolveFormRepr)
     #length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
 
+    println("Bounds tightening over $(form.nb_vars) variables and $(form.nb_constrs) constraints.")
+    
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
     for col in 1:form.nb_vars
