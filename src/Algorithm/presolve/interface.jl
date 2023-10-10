@@ -313,7 +313,9 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
         update_form_from_presolve!(sp, sp_presolve_form)
     end
 
-    update_form_from_presolve!(master, presolve_repr_master)
+    update_form_from_presolve!(master, presolve_repr_master) # TODO: erase rhs changes so we need to recall update on the restricted master.
+
+    update_form_from_presolve!(master, presolve_restr_master)
     return
 end
 
@@ -369,11 +371,12 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     end
 
     presolve_reform = create_presolve_reform(reform)
-    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
-    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
 
     tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
     new_original_master = propagate_in_presolve_form(presolve_reform.original_master, Int[], tightened_bounds_repr; fix_vars = false)
+
+    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
+    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
 
     presolve_reform.restricted_master = new_restricted_master
     presolve_reform.original_master = new_original_master
