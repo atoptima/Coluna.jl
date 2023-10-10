@@ -203,7 +203,8 @@ function PresolveFormRepr(
     rows_to_deactivate::Vector{Int},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
     lm,
-    um
+    um;
+    fix_vars = true
 )
     nb_cols = form.nb_vars
     nb_rows = form.nb_constrs
@@ -242,7 +243,7 @@ function PresolveFormRepr(
             @assert !isinf(ub)
             new_partial_sol[i] += ub
         end
-        if abs(ub - lb) <= Coluna.TOL
+        if fix_vars && abs(ub - lb) <= Coluna.TOL
             fixed_col_mask[i] = true
             nb_fixed_vars += 1
         end

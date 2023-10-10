@@ -107,12 +107,16 @@ end
 function propagate_in_presolve_form(
     form::PresolveFormulation,
     rows_to_deactivate::Vector{Int},
-    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}
+    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}};
+    fix_vars = true
 )
-    fixed_vars = vars_to_fix(form.form, tightened_bounds)
+    fixed_vars = fix_vars ? vars_to_fix(form.form, tightened_bounds) : Dict{VarId, Float64}()
 
     col_mask = ones(Bool, form.form.nb_vars)
-    col_mask[collect(keys(fixed_vars))] .= false
+    if fix_vars
+        col_mask[collect(keys(fixed_vars))] .= false
+    end
+
     row_mask = ones(Bool, form.form.nb_constrs)
     row_mask[rows_to_deactivate] .= false
 
@@ -127,7 +131,18 @@ function propagate_in_presolve_form(
         push!(deactivated_constrs, getid(constr))
     end
 
-    form_repr = PresolveFormRepr(form.form, rows_to_deactivate, tightened_bounds, form.form.lower_multiplicity, form.form.upper_multiplicity)
+    form_repr = PresolveFormRepr(
+        form.form, 
+        rows_to_deactivate, 
+        tightened_bounds, 
+        form.form.lower_multiplicity, 
+        form.form.upper_multiplicity;
+        fix_vars = fix_vars
+    )
+
+    @assert length(col_to_var) == length(form_repr.lbs)
+    @assert length(col_to_var) == length(form_repr.ubs)
+    @assert length(row_to_constr) == length(form_repr.rhs)
 
     return PresolveFormulation(
         col_to_var,
@@ -349,17 +364,19 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
             MathProg.setcurlb!(getmaster(reform), varid, val)
         else # especially for MasterPureVar
             MathProg.setcurlb!(getmaster(reform), varid, val)
-            MathProg.setcubub!(getmaster(reform), varid, val)
+            MathProg.setcurub!(getmaster(reform), varid, val)
         end
     end
 
     presolve_reform = create_presolve_reform(reform)
+    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
+    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
 
-    tightened_bounds = bounds_tightening(presolve_reform.restricted_master.form)
-
-    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds)
+    tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
+    new_original_master = propagate_in_presolve_form(presolve_reform.original_master, Int[], tightened_bounds_repr; fix_vars = false)
 
     presolve_reform.restricted_master = new_restricted_master
+    presolve_reform.original_master = new_original_master
 
     # # Compute global bounds of aggregated variables.
     # new_original_master = compute_global_bounds(presolve_reform.original_master, new_restricted_master)
