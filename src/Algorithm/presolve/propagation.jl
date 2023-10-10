@@ -58,16 +58,28 @@ end
 
 function propagate_local_and_global_bounds!(reform::Reformulation, presolve_form_repr::DwPresolveReform)
     master = getmaster(reform)
-    presolve_master = presolve_form_repr.restricted_master
+    presolve_restr_master = presolve_form_repr.restricted_master
+    presolve_repr_master = presolve_form_repr.original_master
     for (spid, spform) in get_dw_pricing_sps(reform)
         presolve_sp = presolve_form_repr.dw_sps[spid]
-        propagate_local_bounds!(presolve_sp, presolve_master, spform, master)
+        propagate_local_bounds!(presolve_sp, presolve_restr_master, spform, master)
+        propagate_global_bounds!(presolve_repr_master, master, presolve_sp, spform)
     end
     return
 end
 
-function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, presolve_restricted_master::PresolveFormulation, master::Formulation)
-    
+function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, master::Formulation, presolve_sp::PresolveFormulation, spform::Formulation)
+    # TODO: does not work with representatives of multiple subproblems.
+    lm = presolve_sp.form.lower_multiplicity
+    um = presolve_sp.form.upper_multiplicity
+    for (i, var) in enumerate(presolve_sp.col_to_var)
+        repr_col = presolve_repr_master.var_to_col[getid(var)]
+        lb = presolve_sp.form.lbs[i]
+        ub = presolve_sp.form.ubs[i]
+        presolve_repr_master.form.lbs[repr_col] = lb * (lb < 0 ? um : lm)
+        presolve_repr_master.form.ubs[repr_col] = ub * (ub < 0 ? lm : um)
+    end
+    return
 end
 
 function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_master::PresolveFormulation, spform::Formulation, master::Formulation)
@@ -77,6 +89,8 @@ function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_mast
     pool = get_primal_sol_pool(spform)
 
     # Get new columns in partial solution.
+    nb_fixed_columns = 0
+    new_column_explored = true
     for (col, partial_sol_value) in enumerate(presolve_master.form.partial_solution)
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master.col_to_var[col]
@@ -86,8 +100,13 @@ function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_mast
                 getduty(varid) <= DwSpPricingVar || continue
                 sp_var_col = presolve_sp.var_to_col[varid]
                 partial_solution[sp_var_col] += val * partial_sol_value
+                if new_column_explored
+                    nb_fixed_columns += partial_sol_value
+                    new_column_explored = false
+                end
             end
         end
+        new_column_explored = true
     end
 
     new_lbs = zeros(Float64, presolve_sp.form.nb_vars)
@@ -119,5 +138,11 @@ function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_mast
 
     presolve_sp.form.lbs = new_lbs
     presolve_sp.form.ubs = new_ubs
+
+    lm = presolve_sp.form.lower_multiplicity
+    um = presolve_sp.form.upper_multiplicity
+
+    presolve_sp.form.lower_multiplicity = max(0, lm - nb_fixed_columns)
+    presolve_sp.form.upper_multiplicity = max(0, um - nb_fixed_columns) # TODO if < 0 -> error
     return
 end

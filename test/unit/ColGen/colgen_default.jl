@@ -1388,7 +1388,7 @@ function expected_output_identical_subproblems()
     @test output.mlp ≈ 75
     @test output.db ≈ 75
 end
-register!(unit_tests, "colgen_default", expected_output_identical_subproblems; x = true)
+register!(unit_tests, "colgen_default", expected_output_identical_subproblems)
 
 function test_colgen()
     env, master, sps, reform = min_toy_gap_for_colgen()
