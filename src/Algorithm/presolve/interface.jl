@@ -193,6 +193,7 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
     for (spid, sp) in get_dw_pricing_sps(reform)
         lm = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
         um = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+
         dw_sps[spid] = create_presolve_form(sp, sp_vars, sp_constrs, lower_multiplicity = lm, upper_multiplicity = um)
         
         # Update bounds on master repr variables using multiplicity.
@@ -202,8 +203,8 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
                 ub = getcurub(sp, var)
                 
                 (global_lb, global_ub) = get(master_repr_lb_ub, varid, (0.0, 0.0))
-                global_lb += lm * lb
-                global_ub += um * ub
+                global_lb += (lb > 0 ? lm : um) * lb
+                global_ub += (ub > 0 ? um : lm) * ub
             
                 master_repr_lb_ub[varid] = (global_lb, global_ub)
             end
@@ -285,17 +286,19 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
     master = getmaster(reform)
 
     # Update master
-    presolve_restricted_master = presolve_reform.restricted_master
-    update_form_from_presolve!(master, presolve_restricted_master)
+    presolve_restr_master = presolve_reform.restricted_master
+    update_form_from_presolve!(master, presolve_restr_master)
 
     # Update subproblems
-    presolve_repr_master = presolve_reform.restricted_master
+    presolve_repr_master = presolve_reform.original_master
     for (spid, sp) in get_dw_pricing_sps(reform)
         sp_presolve_form = presolve_reform.dw_sps[spid]
-        Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, presolve_restricted_master, sp, master)
-        Coluna.Algorithm.propagate_global_bounds!(presolve_repr_master, presolve_restricted_master, master)
+        propagate_local_bounds!(sp_presolve_form, presolve_restr_master, sp, master)
+        propagate_global_bounds!(presolve_repr_master, master, sp_presolve_form, sp)
         update_form_from_presolve!(sp, sp_presolve_form)
     end
+
+    update_reform_from_presolve!(master, presolve_repr_master)
     return
 end
 
