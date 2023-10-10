@@ -283,12 +283,18 @@ end
 
 function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_reform::DwPresolveReform)
     master = getmaster(reform)
-    # Update master
 
-    update_form_from_presolve!(master, presolve_reform.restricted_master)
+    # Update master
+    presolve_restricted_master = presolve_reform.restricted_master
+    update_form_from_presolve!(master, presolve_restricted_master)
+
     # Update subproblems
+    presolve_repr_master = presolve_reform.restricted_master
     for (spid, sp) in get_dw_pricing_sps(reform)
-        update_form_from_presolve!(sp, presolve_reform.dw_sps[spid])
+        sp_presolve_form = presolve_reform.dw_sps[spid]
+        Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, presolve_restricted_master, sp, master)
+        Coluna.Algorithm.propagate_global_bounds!(presolve_repr_master, presolve_restricted_master, master)
+        update_form_from_presolve!(sp, sp_presolve_form)
     end
     return
 end
