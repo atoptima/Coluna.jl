@@ -58,7 +58,9 @@ function create_presolve_form(
     coef_submatrix = sparse(
         map(constr_id -> constr_to_row[constr_id], sm_constr_ids),
         map(var_id -> var_to_col[var_id], sm_var_ids),
-        nz
+        nz,
+        length(row_to_constr),
+        length(col_to_var),
     )
 
     lbs_vals = Float64[]
@@ -123,7 +125,7 @@ function propagate_in_presolve_form(
     col_to_var = form.col_to_var[col_mask]
     row_to_constr = form.row_to_constr[row_mask]
 
-    var_to_col = Dict(getid(var) => k for (k, var) in  enumerate(col_to_var))
+    var_to_col = Dict(getid(var) => k for (k, var) in enumerate(col_to_var))
     constr_to_row = Dict(getid(constr) => k for (k, constr) in enumerate(row_to_constr))
 
     deactivated_constrs = form.deactivated_constrs
@@ -236,19 +238,32 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
     return DwPresolveReform(original_master, restricted_master, dw_sps)
 end
 
-function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFormulation; update_rhs = true)
+function update_form_from_presolve!(
+    form::Formulation, presolve_form::PresolveFormulation; update_rhs = true
+)
+    println("Updating formulation #$(getuid(form)).")
     # Deactivate Constraints
+    constr_deactivation_counter = 0
     for constr_id in presolve_form.deactivated_constrs
-        deactivate!(form, getconstr(form, constr_id))
+        if iscuractive(form, getconstr(form, constr_id))
+            deactivate!(form, getconstr(form, constr_id))
+            constr_deactivation_counter += 1
+        end
     end
+    println("\t Deactivating $(constr_deactivation_counter) constraints.")
 
     # Fixed variables
+    var_fix_counter = 0
     for (var_id, val) in presolve_form.fixed_variables
-        setcurlb!(form, var_id, 0.0)
-        setcurub!(form, var_id, 0.0)
-        MathProg.add_to_partial_solution!(form, var_id, val)
-        deactivate!(form, var_id)
+        if iscuractive(form, var_id)
+            setcurlb!(form, var_id, 0.0)
+            setcurub!(form, var_id, 0.0)
+            MathProg.add_to_partial_solution!(form, var_id, val)
+            deactivate!(form, var_id)
+            var_fix_counter += 1
+        end
     end
+    println("\t Fixing $(var_fix_counter) variables.")
 
     # Update rhs
     if update_rhs
@@ -287,6 +302,7 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
     end
 
     # Update partial solution
+    partial_sol_counter = 0
     for (col, val) in enumerate(presolve_form.form.partial_solution)
         var = presolve_form.col_to_var[col]
         if getduty(getid(var)) <= MasterArtVar && !iszero(val)
@@ -294,8 +310,12 @@ function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFo
             Fixed to $(val) in partial solution.
             """)
         end
-        !iszero(val) && MathProg.add_to_partial_solution!(form, var, val)
+        if !iszero(val)
+            MathProg.add_to_partial_solution!(form, var, val)
+            partial_sol_counter += 1
+        end
     end
+    println("\t Adding $(partial_sol_counter) variables to partial solution.")
     return
 end
 
@@ -304,6 +324,7 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
 
     # Update master
     presolve_restr_master = presolve_reform.restricted_master
+    println("Updating restricted master.")
     update_form_from_presolve!(master, presolve_restr_master)
 
     # Update subproblems
@@ -312,9 +333,11 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
         sp_presolve_form = presolve_reform.dw_sps[spid]
         propagate_local_bounds!(sp_presolve_form, presolve_restr_master, sp, master)
         propagate_global_bounds!(presolve_repr_master, master, sp_presolve_form, sp)
+        println("Updating subpoblem.")
         update_form_from_presolve!(sp, sp_presolve_form)
     end
 
+    println("Updating representative master.")
     update_form_from_presolve!(master, presolve_repr_master; update_rhs = false)
 
     return
@@ -392,7 +415,6 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     #     propagate_var_bounds_from!(new_original_master, sp)
     # end
 
-    println("Updating formulations.")
     update_reform_from_presolve!(reform, presolve_reform)
 
     return PresolveOutput(true)
