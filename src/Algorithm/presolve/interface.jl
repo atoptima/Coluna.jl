@@ -395,13 +395,13 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
 
     print("Presolving representative master #1. ")
     tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
-    println("$(length(tightened_bounds_repr)) tightened bounds.")
+    print("$(length(tightened_bounds_repr)) tightened bounds. ")
     repr_deactivate_constr = rows_to_deactivate(presolve_reform.original_master.form)
     new_original_master = propagate_in_presolve_form(presolve_reform.original_master, repr_deactivate_constr, tightened_bounds_repr; fix_vars = false)
 
     print("Presolving restricted master #1. ")
     tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
-    println("$(length(tightened_bounds_restr)) tightened bounds.")
+    println("$(length(tightened_bounds_restr)) tightened bounds. ")
     restr_deactivate_constr = rows_to_deactivate(presolve_reform.restricted_master.form)
     new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, restr_deactivate_constr, tightened_bounds_restr)
 
@@ -434,6 +434,8 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     # end
 
     update_reform_from_presolve!(reform, presolve_reform)
+
+    @show getmaster(reform)
 
     return PresolveOutput(true)
 end
