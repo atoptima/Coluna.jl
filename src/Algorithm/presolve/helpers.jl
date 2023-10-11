@@ -209,6 +209,24 @@ function _check_if_vars_can_be_fixed(vars_to_fix::Dict{Int,Float64}, lbs::Vector
     return true
 end
 
+function find_uninvolved_vars(col_major_coef_matrix)
+    uninvolved_vars = Int[]
+    vals = nonzeros(col_major_coef_matrix)
+    for j in 1:size(col_major_coef_matrix, 2)
+        uninvolved = true
+        for i in nzrange(col_major_coef_matrix, j)
+            if abs(vals[i]) > 1e-6
+                uninvolved = false
+                break
+            end
+        end
+        if uninvolved
+            push!(uninvolved_vars, j)
+        end
+    end
+    return uninvolved_vars
+end
+
 function PresolveFormRepr(
     form::PresolveFormRepr,
     rows_to_deactivate::Vector{Int},

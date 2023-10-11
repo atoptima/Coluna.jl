@@ -766,6 +766,7 @@ end
 
 function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
     # We create a reformulation several subproblem variables does not appear in the master problem.
+    # x11 does not appear in the coefficient matrix
     reform, master, sps = presolve_reformulation_with_var_not_in_coeff_matrix()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
@@ -805,20 +806,23 @@ function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
         @test presolve_original_master.form.sense[construid] == sense
     end
 
-    restricted_coef_matrtix = [
+    restricted_coef_matrix = [
         (mast_constr_ids["c1"], mast_var_ids["x_12"], 1.0),
         (mast_constr_ids["c2"], mast_var_ids["x_13"], 1.0),
         (mast_constr_ids["c3"], mast_var_ids["x_14"], 1.0),
         (mast_constr_ids["c4"], mast_var_ids["x_15"], 1.0),
         (mast_constr_ids["c5"], mast_var_ids["x_16"], 1.0),
         (mast_constr_ids["c6"], mast_var_ids["x_17"], 1.0),
+        (mast_constr_ids["c1"], mast_var_ids["x_11"], 0.0),
+        (mast_constr_ids["c2"], mast_var_ids["x_11"], 0.0),
+        (mast_constr_ids["c3"], mast_var_ids["x_11"], 0.0),
+        (mast_constr_ids["c4"], mast_var_ids["x_11"], 0.0),
+        (mast_constr_ids["c5"], mast_var_ids["x_11"], 0.0),
+        (mast_constr_ids["c6"], mast_var_ids["x_11"], 0.0),
     ]
 
-    for (c, v, val) in restricted_coef_matrtix
+    for (c, v, val) in restricted_coef_matrix
         @test presolve_original_master.form.col_major_coef_matrix[c, v] == val
     end
-
-
-    @show master
 end
 register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_with_var_not_in_coeff_matrix)

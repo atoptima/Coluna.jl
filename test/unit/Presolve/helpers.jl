@@ -799,3 +799,91 @@ function test_var_bounds_from_row11()
     @test lb == -Inf
 end
 register!(unit_tests, "presolve_helper", test_var_bounds_from_row11)
+
+function test_var_bounds_from_row12()
+    # 0x + y + z <= 5
+    # 0 <= x <= 2
+    # 1 <= y <= 3
+    # 0 <= z <= 6
+
+    coef_matrix = sparse([0 1 1;])
+    lbs = [0, 1, 0]
+    ubs = [2, 3, 6]
+    rhs = [5]
+    sense = [Less]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, 1, 1)
+
+    min_slack = Coluna.Algorithm.row_min_slack(form, 1, col -> col == 1)
+    max_slack = Coluna.Algorithm.row_max_slack(form, 1, col -> col == 1)
+
+    ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 0)
+    @test ub == Inf
+
+    lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, 0)
+    @test lb == -Inf
+end
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row12)
+
+function test_uninvolved_vars1()
+    # 0x + y + z <= 5
+    # 0 <= x <= 2
+    # 1 <= y <= 3
+    # 0 <= z <= 6
+
+    coef_matrix = sparse([0 1 1;])
+    lbs = [0, 1, 0]
+    ubs = [2, 3, 6]
+    rhs = [5]
+    sense = [Less]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, ubs, lbs, partial_solution, 1, 1)
+
+    cols = Coluna.Algorithm.find_uninvolved_vars(form.col_major_coef_matrix)
+
+    @test cols == [1]
+end
+register!(unit_tests, "presolve_helper", test_uninvolved_vars1)
+
+function test_uninvolved_vars2()
+    # x + y + z <= 5
+    # 0 <= x <= 2
+    # 1 <= y <= 3
+    # 0 <= z <= 6
+
+    coef_matrix = sparse([1 1 1;])
+    lbs = [0, 1, 0]
+    ubs = [2, 3, 6]
+    rhs = [5]
+    sense = [Less]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, ubs, lbs, partial_solution, 1, 1)
+
+    cols = Coluna.Algorithm.find_uninvolved_vars(form.col_major_coef_matrix)
+
+    @test cols == []
+end
+register!(unit_tests, "presolve_helper", test_uninvolved_vars2)
+
+function test_uninvolved_vars3()
+    # w, x, y, z
+    
+    #    x        >= 2
+    #    x + y    >= 5
+
+    coef_matrix = sparse([0 1 0 0; 0 1 1 0])
+    lbs = [0, 0, 0, 0]
+    ubs = [Inf, Inf, Inf, Inf]
+    rhs = [2, 5]
+    sense = [Greater, Greater]
+    partial_solution = zeros(Float64, length(lbs))
+
+    form = Coluna.Algorithm.PresolveFormRepr(coef_matrix, rhs, sense, ubs, lbs, partial_solution, 1, 1)
+
+    cols = Coluna.Algorithm.find_uninvolved_vars(form.col_major_coef_matrix)
+    @test cols == [1, 4]
+end
+register!(unit_tests, "presolve_helper", test_uninvolved_vars3)
