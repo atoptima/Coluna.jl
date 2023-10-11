@@ -118,7 +118,7 @@ function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, 
     return Inf
 end
 
-function rows_to_deactivate!(form::PresolveFormRepr)
+function rows_to_deactivate(form::PresolveFormRepr)
     # Compute slacks of each constraints
     rows_to_deactivate = Int[]
     min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs]
@@ -139,9 +139,6 @@ end
 
 function bounds_tightening(form::PresolveFormRepr)
     #length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
-
-    println("Bounds tightening over $(form.nb_vars) variables and $(form.nb_constrs) constraints.")
-    
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
     for col in 1:form.nb_vars
