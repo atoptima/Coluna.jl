@@ -43,10 +43,16 @@ end
 
 function row_min_activity(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
     activity = 0.0
-    var_coefs_lbs_ubs = zip(form.row_major_coef_matrix[:, row], form.lbs, form.ubs)
-    for (i, (a, l, u)) in enumerate(var_coefs_lbs_ubs)
-        if !except_col(i)
-            activity += _act_contrib(a, l, u)
+    A = form.row_major_coef_matrix
+    cols = rowvals(A)
+    vals = nonzeros(A)
+    for i in nzrange(A, row)
+        col = cols[i]
+        val = vals[i]
+        l = form.lbs[col]
+        u = form.ubs[col]
+        if !except_col(col)
+            activity += _act_contrib(val, l, u)
         end
     end
     return activity
@@ -54,10 +60,16 @@ end
 
 function row_max_activity(form::PresolveFormRepr, row::Int, except_col::Function = _ -> false)
     activity = 0.0
-    var_coefs_lbs_ubs = zip(form.row_major_coef_matrix[:, row], form.lbs, form.ubs)
-    for (i, (a, l, u)) in enumerate(var_coefs_lbs_ubs)
-        if !except_col(i)
-            activity += _act_contrib(a, u, l)
+    A = form.row_major_coef_matrix
+    cols = rowvals(A)
+    vals = nonzeros(A)
+    for i in nzrange(A, row)
+        col = cols[i]
+        val = vals[i]
+        l = form.lbs[col]
+        u = form.ubs[col]
+        if !except_col(col)
+            activity += _act_contrib(val, u, l)
         end
     end
     return activity
@@ -232,22 +244,24 @@ function PresolveFormRepr(
     fixed_col_mask = zeros(Bool, nb_cols)
     nb_fixed_vars = 0
     new_partial_sol = zeros(Float64, length(form.partial_solution))
-    for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-        @assert !isnan(lb)
-        @assert !isnan(ub)
-        if lb > ub
-            error("Infeasible.")
-        end
-        if lb > 0.0
-            @assert !isinf(lb)
-            new_partial_sol[i] += lb
-        elseif ub < 0.0 && !isinf(ub)
-            @assert !isinf(ub)
-            new_partial_sol[i] += ub
-        end
-        if fix_vars && abs(ub - lb) <= Coluna.TOL
-            fixed_col_mask[i] = true
-            nb_fixed_vars += 1
+    if fix_vars
+        for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+            @assert !isnan(lb)
+            @assert !isnan(ub)
+            if lb > ub
+                error("Infeasible.")
+            end
+            if lb > 0.0
+                @assert !isinf(lb)
+                new_partial_sol[i] += lb
+            elseif ub < 0.0 && !isinf(ub)
+                @assert !isinf(ub)
+                new_partial_sol[i] += ub
+            end
+            if abs(ub - lb) <= Coluna.TOL
+                fixed_col_mask[i] = true
+                nb_fixed_vars += 1
+            end
         end
     end
 
