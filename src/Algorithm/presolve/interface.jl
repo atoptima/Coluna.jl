@@ -331,15 +331,12 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
     presolve_repr_master = presolve_reform.original_master
     for (spid, sp) in get_dw_pricing_sps(reform)
         sp_presolve_form = presolve_reform.dw_sps[spid]
-        propagate_local_bounds!(sp_presolve_form, presolve_restr_master, sp, master)
-        propagate_global_bounds!(presolve_repr_master, master, sp_presolve_form, sp)
-        println("Updating subpoblem.")
+        println("Updating subproblem.")
         update_form_from_presolve!(sp, sp_presolve_form)
     end
 
     println("Updating representative master.")
     update_form_from_presolve!(master, presolve_repr_master; update_rhs = false)
-
     return
 end
 
@@ -396,16 +393,37 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
 
     presolve_reform = create_presolve_reform(reform)
 
-    println("Presolving representative master.")
+    print("Presolving representative master #1. ")
     tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
+    println("$(length(tightened_bounds_repr)) tightened bounds.")
+    repr_deactivate_constr = rows_to_deactivate(presolve_reform.original_master.form)
+    new_original_master = propagate_in_presolve_form(presolve_reform.original_master, repr_deactivate_constr, tightened_bounds_repr; fix_vars = false)
+
+    print("Presolving restricted master #1. ")
+    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
+    println("$(length(tightened_bounds_restr)) tightened bounds.")
+    restr_deactivate_constr = rows_to_deactivate(presolve_reform.restricted_master.form)
+    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, restr_deactivate_constr, tightened_bounds_restr)
+
+    presolve_reform.restricted_master = new_restricted_master
+    presolve_reform.original_master = new_original_master
+
+    propagate_local_and_global_bounds!(reform, presolve_reform) # TODO: cannot perform this operation twice.
+
+    print("Presolving representative master #2. ")
+    tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
+    println("$(length(tightened_bounds_repr)) tightened bounds.")
     new_original_master = propagate_in_presolve_form(presolve_reform.original_master, Int[], tightened_bounds_repr; fix_vars = false)
 
-    println("Presolving restricted master.")
+    print("Presolving restricted master #2. ")
     tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
+    println("$(length(tightened_bounds_restr)) tightened bounds.")
     new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
 
     presolve_reform.restricted_master = new_restricted_master
     presolve_reform.original_master = new_original_master
+
+    #propagate_local_and_global_bounds!(reform, presolve_reform)
 
     # # Compute global bounds of aggregated variables.
     # new_original_master = compute_global_bounds(presolve_reform.original_master, new_restricted_master)

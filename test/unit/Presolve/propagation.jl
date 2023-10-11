@@ -167,7 +167,7 @@ function test_constr_removing_propagation_from_original_to_master()
     )
 
     # Run the presolve row deactivation on the original formulation.
-    result = Coluna.Algorithm.rows_to_deactivate!(orig_presolve_form.form)
+    result = Coluna.Algorithm.rows_to_deactivate(orig_presolve_form.form)
 
     # Test if the constraint was deactivated.
     @test result == [2] # remove row 2 of original formulation
@@ -263,7 +263,7 @@ function test_constr_removing_propagation_from_original_to_subproblem()
     )
        
     # Run the presolve row deactivation on the original formulation.
-    result = Coluna.Algorithm.rows_to_deactivate!(orig_presolve_form.form)
+    result = Coluna.Algorithm.rows_to_deactivate(orig_presolve_form.form)
 
     # Test if the constraint was deactivated.
     @test result == [2] # remove row 2 of original formulation
