@@ -176,39 +176,6 @@ function bounds_tightening(form::PresolveFormRepr)
     return tightened_bounds
 end
 
-function _fix_var(lb::Real, ub::Real, ϵ::Real)
-    return abs(lb - ub) <= ϵ
-end
-
-function vars_to_fix(form::PresolveFormRepr, tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}})
-    vars_to_fix = Dict{Int, Float64}()
-    for (col, tb) in tightened_bounds
-        var_lb, _, var_ub, _ = tb
-        @assert !isnan(var_lb)
-        @assert !isnan(var_ub)
-        if _fix_var(var_lb, var_ub, 1e-6)
-            vars_to_fix[col] = var_lb
-        end
-    end
-    for col in 1:form.nb_vars
-        if !haskey(tightened_bounds, col) && _fix_var(form.lbs[col], form.ubs[col], 1e-6)
-            vars_to_fix[col] = form.lbs[col]
-        end
-    end
-    return vars_to_fix
-end
-
-function _check_if_vars_can_be_fixed(vars_to_fix::Dict{Int,Float64}, lbs::Vector{Float64}, ubs::Vector{Float64})
-    for (col, val) in vars_to_fix
-        lb = lbs[col]
-        ub = ubs[col]
-        if !_fix_var(lb, ub, 1e-6) || !_fix_var(lb, val, 1e-6) || !_fix_var(val, ub, 1e-6)
-            throw(ArgumentError("Cannot fix variable $col (lb = $lb, ub = $ub, val = $val)."))
-        end
-    end
-    return true
-end
-
 function find_uninvolved_vars(col_major_coef_matrix)
     uninvolved_vars = Int[]
     vals = nonzeros(col_major_coef_matrix)
@@ -227,21 +194,13 @@ function find_uninvolved_vars(col_major_coef_matrix)
     return uninvolved_vars
 end
 
-function PresolveFormRepr(
-    form::PresolveFormRepr,
-    rows_to_deactivate::Vector{Int},
-    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
-    lm,
-    um;
-    fix_vars = true
-)
-    nb_cols = form.nb_vars
-    nb_rows = form.nb_constrs
+function tighten_bounds_presolve_form_repr(form::PresolveFormRepr, tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}, lm, um)
     coef_matrix = form.col_major_coef_matrix
     rhs = form.rhs
     sense = form.sense
     lbs = form.lbs
     ubs = form.ubs
+    partial_sol = form.partial_solution
 
     # Tighten bounds
     for (col, (lb, tighter_lb, ub, tighter_ub)) in tightened_bounds
@@ -255,48 +214,119 @@ function PresolveFormRepr(
         end
     end
 
-    # Update partial solution
-    fixed_col_mask = zeros(Bool, nb_cols)
-    nb_fixed_vars = 0
+    row_mask = ones(Bool, form.nb_constrs)
+    col_mask = ones(Bool, form.nb_vars)
+
+    return PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, lm, um),
+        row_mask,
+        col_mask
+end
+
+function partial_sol_update(form::PresolveFormRepr, lm, um)
+    coef_matrix = form.col_major_coef_matrix
+    rhs = form.rhs
+    sense = form.sense
+    lbs = form.lbs
+    ubs = form.ubs
+
     new_partial_sol = zeros(Float64, length(form.partial_solution))
-    if fix_vars
-        for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-            @assert !isnan(lb)
-            @assert !isnan(ub)
-            if lb > ub
-                error("Infeasible.")
-            end
-            if lb > 0.0
-                @assert !isinf(lb)
-                new_partial_sol[i] += lb
-            elseif ub < 0.0 && !isinf(ub)
-                @assert !isinf(ub)
-                new_partial_sol[i] += ub
-            end
-            if abs(ub - lb) <= Coluna.TOL
-                fixed_col_mask[i] = true
-                nb_fixed_vars += 1
-            end
+    for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+        @assert !isnan(lb)
+        @assert !isnan(ub)
+        if lb > ub
+            error("Infeasible.")
+        end
+        if lb > 0.0
+            @assert !isinf(lb)
+            new_partial_sol[i] += lb
+        elseif ub < 0.0 && !isinf(ub)
+            @assert !isinf(ub)
+            new_partial_sol[i] += ub
         end
     end
 
-    col_mask = .!fixed_col_mask
-    nb_cols -= nb_fixed_vars
+    # Update rhs
+    new_rhs = rhs - coef_matrix * new_partial_sol
+
+    # Update bounds
+    new_lbs = lbs - new_partial_sol
+    new_ubs = ubs - new_partial_sol
+
+    # Update partial_sol
+    partial_sol = form.partial_solution + new_partial_sol
+
+    row_mask = ones(Bool, form.nb_constrs)
+    col_mask = ones(Bool, form.nb_vars)
+
+    return PresolveFormRepr(coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um),
+        row_mask,
+        col_mask
+end
+
+function shrink_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::Vector{Int}, lm, um)
+    nb_cols = form.nb_vars
+    nb_rows = form.nb_constrs
+    coef_matrix = form.col_major_coef_matrix
+    rhs = form.rhs
+    sense = form.sense
+    lbs = form.lbs
+    ubs = form.ubs
+    partial_sol = form.partial_solution
+
+    # Update partial solution
+    col_mask = ones(Bool, nb_cols)
+    fixed_vars = Tuple{Int,Float64}[]
+    for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+        @assert !isnan(lb)
+        @assert !isnan(ub)
+        if abs(ub) <= Coluna.TOL && abs(lb) <= Coluna.TOL
+            col_mask[i] = false
+            push!(fixed_vars, (i, partial_sol[i]))
+        end
+    end
+
+    nb_cols -= length(fixed_vars)
     row_mask = ones(Bool, nb_rows)
     row_mask[rows_to_deactivate] .= false
 
-    new_sense = sense[row_mask]
-    new_coef_matrix = coef_matrix[row_mask, col_mask]
-
-    # Update rhs
-    new_rhs = rhs[row_mask] - coef_matrix[row_mask, :] * new_partial_sol
-
-    # Update bounds
-    new_lbs = lbs[col_mask] - new_partial_sol[col_mask]
-    new_ubs = ubs[col_mask] - new_partial_sol[col_mask]
-
-    # Update partial_sol
-    partial_sol = form.partial_solution[col_mask] + new_partial_sol[col_mask]
-
-    return PresolveFormRepr(new_coef_matrix, new_rhs, new_sense, new_lbs, new_ubs, partial_sol, lm, um)
+    return PresolveFormRepr(
+        coef_matrix[row_mask, col_mask],
+        rhs[row_mask], 
+        sense[row_mask], 
+        lbs[col_mask], 
+        ubs[col_mask], 
+        partial_sol[col_mask], 
+        lm, 
+        um
+    ), row_mask, col_mask, fixed_vars
 end
+
+function PresolveFormRepr(
+    presolve_form_repr::PresolveFormRepr,
+    rows_to_deactivate::Vector{Int},
+    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
+    lm,
+    um;
+    tighten_bounds = true,
+    partial_sol = true,
+    shrink = true,
+)
+    row_mask = ones(Bool, presolve_form_repr.nb_constrs)
+    col_mask = ones(Bool, presolve_form_repr.nb_vars)
+    fixed_vars = nothing
+    if tighten_bounds
+        presolve_form_repr, row_mask, col_mask = tighten_bounds_presolve_form_repr(
+            presolve_form_repr, tightened_bounds, lm, um
+        )
+    end
+    if partial_sol
+        presolve_form_repr, row_mask, col_mask = partial_sol_update(presolve_form_repr, lm, um)
+    end
+    if shrink
+        presolve_form_repr, row_mask, col_mask, fixed_vars = shrink_presolve_form_repr(
+            presolve_form_repr, rows_to_deactivate, lm, um
+        )
+    end
+    return presolve_form_repr, row_mask, col_mask, fixed_vars
+end
+
