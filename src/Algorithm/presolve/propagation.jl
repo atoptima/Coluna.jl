@@ -56,15 +56,24 @@ function propagate_var_bounds_from!(dest::PresolveFormulation, src::PresolveForm
     return
 end
 
-function propagate_local_and_global_bounds!(reform::Reformulation, presolve_form_repr::DwPresolveReform)
+function propagate_partial_sol_to_local_bounds!(reform::Reformulation, presolve_form_repr::DwPresolveReform)
     master = getmaster(reform)
     presolve_restr_master = presolve_form_repr.restricted_master
-    presolve_repr_master = presolve_form_repr.original_master
     for (spid, spform) in get_dw_pricing_sps(reform)
         presolve_sp = presolve_form_repr.dw_sps[spid]
-        propagate_local_bounds!(presolve_sp, presolve_restr_master, spform, master)
+        propagate_partial_sol_to_local_bounds!(presolve_sp, presolve_restr_master, spform, master)
+    end
+    presolve_restr_master.form.unpropagated_partial_solution = zeros(Float64, presolve_restr_master.form.nb_vars)
+    presolve_restr_master.form.unpropagated_partial_solution_flag = false
+    return
+end
+
+function propagate_local_to_global_bounds!(reform::Reformulation, presolve_reform_repr::DwPresolveReform)
+    master = getmaster(reform)
+    presolve_repr_master = presolve_reform_repr.original_master
+    for (spid, spform) in get_dw_pricing_sps(reform)
+        presolve_sp = presolve_reform_repr.dw_sps[spid]
         propagate_global_bounds!(presolve_repr_master, master, presolve_sp, spform)
-        propagate_local_bounds!(presolve_sp, presolve_repr_master, spform, master)
     end
     return
 end
@@ -76,16 +85,56 @@ function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, mas
     for (i, var) in enumerate(presolve_sp.col_to_var)
         repr_col = get(presolve_repr_master.var_to_col, getid(var), nothing)
         if !isnothing(repr_col)
-            lb = presolve_sp.form.lbs[i]
-            ub = presolve_sp.form.ubs[i]
-            presolve_repr_master.form.lbs[repr_col] = lb * (lb < 0 ? um : lm)
-            presolve_repr_master.form.ubs[repr_col] = ub * (ub < 0 ? lm : um)
+            local_lb = presolve_sp.form.lbs[i]
+            local_ub = presolve_sp.form.ubs[i]
+            global_lb = presolve_repr_master.form.lbs[repr_col]
+            global_ub = presolve_repr_master.form.ubs[repr_col]
+            new_global_lb = local_lb * (local_lb < 0 ? um : lm)
+            new_global_ub = local_ub * (local_ub < 0 ? lm : um)
+            presolve_repr_master.form.lbs[repr_col] = max(global_lb, new_global_lb)
+            presolve_repr_master.form.ubs[repr_col] = min(global_ub, new_global_ub)
         end
     end
     return
 end
 
-function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_master::PresolveFormulation, spform::Formulation, master::Formulation)
+function propagate_global_to_local_bounds!(reform::Reformulation, presolve_reform_repr::DwPresolveReform)
+    master = getmaster(reform)
+    presolve_repr_master = presolve_reform_repr.original_master
+    for (spid, spform) in get_dw_pricing_sps(reform)
+        presolve_sp = presolve_reform_repr.dw_sps[spid]
+        propagate_local_bounds!(presolve_repr_master, master, presolve_sp, spform)
+    end
+    return
+end
+
+function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, master::Formulation, presolve_sp::PresolveFormulation, spform::Formulation)
+    # TODO: does not work with representatives of multiple subproblems.
+    lm = presolve_sp.form.lower_multiplicity
+    um = presolve_sp.form.upper_multiplicity
+    for (i, var) in  enumerate(presolve_sp.col_to_var)
+        repr_col = get(presolve_repr_master.var_to_col, getid(var), nothing)
+        if !isnothing(repr_col)
+            global_lb = presolve_repr_master.form.lbs[repr_col]
+            global_ub = presolve_repr_master.form.ubs[repr_col]
+            local_lb = presolve_sp.form.lbs[i]
+            local_ub = presolve_sp.form.ubs[i]
+
+            if !isinf(global_lb) && !isinf(local_ub)
+                new_local_lb = global_lb - local_ub * (local_ub < 0 ? um : lm)
+                presolve_sp.form.lbs[i] = max(new_local_lb, local_lb)
+            end
+        
+            if !isinf(global_ub) && !isinf(local_lb)
+                new_local_ub = global_ub - local_lb * (local_lb < 0 ? lm : um)
+                presolve_sp.form.ubs[i] = min(new_local_ub, local_ub)
+            end
+        end
+    end
+    return
+end
+
+function propagate_partial_sol_to_local_bounds!(presolve_sp::PresolveFormulation, presolve_master::PresolveFormulation, spform::Formulation, master::Formulation)
     partial_solution = zeros(Float64, presolve_sp.form.nb_vars)
     
     # Get new columns in partial solution.
@@ -94,7 +143,7 @@ function propagate_local_bounds!(presolve_sp::PresolveFormulation, presolve_mast
     # Get new columns in partial solution.
     nb_fixed_columns = 0
     new_column_explored = true
-    for (col, partial_sol_value) in enumerate(presolve_master.form.partial_solution)
+    for (col, partial_sol_value) in enumerate(presolve_master.form.unpropagated_partial_solution)
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master.col_to_var[col]
             varid = getid(var)

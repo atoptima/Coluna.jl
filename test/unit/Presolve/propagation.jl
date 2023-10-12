@@ -317,7 +317,10 @@ function test_var_bound_propagation_within_restricted_master()
     )
 
     result = Coluna.Algorithm.bounds_tightening(master_presolve_form.form)
-    new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(master_presolve_form, Int[], result)
+    new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(master_presolve_form, Int[], result; shrink = false)
+    new_master_presolve_form.form.unpropagated_partial_solution_flag = false
+    no_tightening = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
+    new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(new_master_presolve_form, Int[], no_tightening; tighten_bounds=false, partial_sol = false)
 
     Coluna.Algorithm.update_form_from_presolve!(master_form, new_master_presolve_form)
 
@@ -432,12 +435,13 @@ function test_col_bounds_propagation_from_restricted_master()
 
     ## We run the presolve on the restricted master
     tightened_bounds = Coluna.Algorithm.bounds_tightening(restricted_presolve_form.form)
-    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(
-        restricted_presolve_form, Int[], tightened_bounds
-    )
+    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(restricted_presolve_form, Int[], tightened_bounds; shrink = false)
+    new_restricted_master.form.unpropagated_partial_solution_flag = false
+    no_tightening = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
+    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(new_restricted_master, Int[], no_tightening; tighten_bounds=false, partial_sol = false)
 
     Coluna.Algorithm.update_form_from_presolve!(master_form, new_restricted_master)
-    Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, new_restricted_master, spform, master_form)
+    Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, spform, new_restricted_master, master_form)
     Coluna.Algorithm.propagate_global_bounds!(master_presolve_form, master_form, sp_presolve_form, spform)
     Coluna.Algorithm.update_form_from_presolve!(spform, sp_presolve_form)
     Coluna.Algorithm.update_form_from_presolve!(master_form, master_presolve_form)

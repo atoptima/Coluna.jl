@@ -13,19 +13,45 @@ mutable struct PresolveFormRepr
     lbs::Vector{Float64} # on variables
     ubs::Vector{Float64} # on variables
     partial_solution::Vector{Float64} # on variables
+    unpropagated_partial_solution::Vector{Float64} # on variables, to update local bounds
+    unpropagated_partial_solution_flag::Bool
     lower_multiplicity::Float64
     upper_multiplicity::Float64
 end
 
-function PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_solution, lm, um)
+function PresolveFormRepr(
+    coef_matrix, rhs, sense, lbs, ubs, partial_solution, lm, um;
+    unpropagated_partial_solution = nothing
+)
     length(lbs) == length(ubs) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
     length(rhs) == length(sense) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
     nb_vars = length(lbs)
     nb_constrs = length(rhs)
     @assert reduce(&, map(lb -> !isnan(lb), lbs))
     @assert reduce(&, map(ub -> !isnan(ub), ubs))
+
+    if isnothing(unpropagated_partial_solution)
+        unpropagated_partial_solution_vec = zeros(Float64, nb_vars)
+        unpropagated_partial_solution_flag = false
+    else
+        unpropagated_partial_solution_vec = unpropagated_partial_solution
+        unpropagated_partial_solution_flag = true
+    end
+
     return PresolveFormRepr(
-        nb_vars, nb_constrs, coef_matrix, transpose(coef_matrix), rhs, sense, lbs, ubs, partial_solution, lm, um
+        nb_vars,
+        nb_constrs,
+        coef_matrix,
+        transpose(coef_matrix),
+        rhs,
+        sense,
+        lbs,
+        ubs,
+        partial_solution,
+        unpropagated_partial_solution_vec,
+        unpropagated_partial_solution_flag,
+        lm,
+        um
     )
 end
 
@@ -258,7 +284,10 @@ function partial_sol_update(form::PresolveFormRepr, lm, um)
     row_mask = ones(Bool, form.nb_constrs)
     col_mask = ones(Bool, form.nb_vars)
 
-    return PresolveFormRepr(coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um),
+    return PresolveFormRepr(
+            coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um;
+            unpropagated_partial_solution = new_partial_sol
+        ),
         row_mask,
         col_mask
 end
@@ -272,6 +301,10 @@ function shrink_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::V
     lbs = form.lbs
     ubs = form.ubs
     partial_sol = form.partial_solution
+
+    if form.unpropagated_partial_solution_flag
+        error("Cannot shrink a formulation that contains an unpropagated partial solution.")
+    end
 
     # Update partial solution
     col_mask = ones(Bool, nb_cols)

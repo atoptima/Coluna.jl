@@ -27,7 +27,7 @@ function test_partial_solution1()
         2 => (2, true, Inf, false)
     )
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
     @test form2.nb_vars == 2
     @test form2.nb_constrs == 1
     @test all(form2.col_major_coef_matrix .== coef_matrix)
@@ -68,7 +68,7 @@ function test_partial_solution2()
         2 => (2, true, Inf, false)
     )
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
     @test form2.nb_vars == 2
     @test form2.nb_constrs == 1
     @test all(form2.col_major_coef_matrix .== coef_matrix)
@@ -109,7 +109,7 @@ function test_partial_solution3()
         2 => (-10, false, 8, true)
     )
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
     @test form2.nb_vars == 2
     @test form2.nb_constrs == 2
     @test all(form2.col_major_coef_matrix .== coef_matrix)
@@ -149,7 +149,7 @@ function test_partial_solution4()
         2 => (-Inf, false, -1.0, true)
     )
 
-    form2 = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1, 1)
     @test form2.nb_vars == 2
     @test form2.nb_constrs == 2
     @test all(form2.col_major_coef_matrix .== coef_matrix)
