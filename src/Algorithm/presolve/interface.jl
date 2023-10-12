@@ -403,43 +403,54 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
 
     presolve_reform = create_presolve_reform(reform)
 
-    # Step 1: we first perform presolve on the restricted master to update the rhs on the constraints
-    # and determine the new partial solution.
-    new_restr_master = propagate_in_presolve_form(
-        presolve_reform.restricted_master,
-        Int[], # we don't perform constraint deactivation
-        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}(); # we don't perform bound tightening on the restricted master.
-        tighten_bounds = false,
-        shrink = false
-    )
+    for i in 1:3
+        println("**** Presolve step $i ****")
+        # Step 1: we first perform presolve on the restricted master to update the rhs on the constraints
+        # and determine the new partial solution.
+        new_restr_master = propagate_in_presolve_form(
+            presolve_reform.restricted_master,
+            Int[], # we don't perform constraint deactivation
+            Dict{Int, Tuple{Float64, Bool, Float64, Bool}}(); # we don't perform bound tightening on the restricted master.
+            tighten_bounds = false,
+            shrink = false
+        )
 
-    # Step 2: we propagate the new rhs to the respresentative master.
-    @assert length(new_restr_master.form.rhs) == length(presolve_reform.original_master.form.rhs)
-    for (row, rhs) in enumerate(new_restr_master.form.rhs)
-        presolve_reform.original_master.form.rhs[row] = rhs
+        # Step 2: we propagate the new rhs to the respresentative master.
+        @assert length(new_restr_master.form.rhs) == length(presolve_reform.original_master.form.rhs)
+        for (row, rhs) in enumerate(new_restr_master.form.rhs)
+            presolve_reform.original_master.form.rhs[row] = rhs
+        end
+
+        # Step 3: presolve the respresentative master.
+        # Bounds tightening, we do not shrink the formulation.
+        print("Presolving representative master #1. ")
+        tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
+        println("$(length(tightened_bounds_repr)) tightened bounds. ")
+        new_repr_master = propagate_in_presolve_form(
+            presolve_reform.original_master, Int[], tightened_bounds_repr; shrink = false
+        )
+
+        presolve_reform.restricted_master = new_restr_master
+        presolve_reform.original_master = new_repr_master
+
+        # Step 4: Propagate the partial solution to the local bounds.
+        propagate_partial_sol_to_local_bounds!(reform, presolve_reform)
+
+        # Step 5: Propagate and strengthen local and global bounds.
+        propagate_local_to_global_bounds!(reform, presolve_reform)
+        propagate_global_to_local_bounds!(reform, presolve_reform)
+        propagate_local_to_global_bounds!(reform, presolve_reform)
+
+        # Step 6: Shrink the formulation (remove fixed variables).
+        new_restr_master = propagate_in_presolve_form(
+            presolve_reform.restricted_master,
+            Int[],
+            Dict{Int, Tuple{Float64, Bool, Float64, Bool}}();
+            tighten_bounds = false,
+            partial_sol = false
+        )
+        presolve_reform.restricted_master = new_restr_master
     end
-
-    # Step 3: presolve the respresentative master.
-    # Bounds tightening, we do not shrink the formulation.
-    print("Presolving representative master #1. ")
-    tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
-    print("$(length(tightened_bounds_repr)) tightened bounds. ")
-    new_repr_master = propagate_in_presolve_form(
-        presolve_reform.original_master, Int[], tightened_bounds_repr; shrink = false
-    )
-
-    presolve_reform.restricted_master = new_restr_master
-    presolve_reform.original_master = new_repr_master
-
-    propagate_local_and_global_bounds!(reform, presolve_reform) # TODO: cannot perform this operation twice.
-
-    new_restr_master = propagate_in_presolve_form(
-        presolve_reform.restricted_master,
-        Int[],
-        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}();
-        tighten_bounds = false,
-    )
-    presolve_reform.restricted_master = new_restr_master
 
     update_reform_from_presolve!(reform, presolve_reform)
 
