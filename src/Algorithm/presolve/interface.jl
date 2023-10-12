@@ -114,7 +114,7 @@ function propagate_in_presolve_form(
     partial_sol = true,
     shrink = true,
 )
-    form_repr, row_mask, col_mask = PresolveFormRepr(
+    form_repr, row_mask, col_mask, fixed_vars = PresolveFormRepr(
         form.form, 
         rows_to_deactivate, 
         tightened_bounds, 
@@ -129,7 +129,7 @@ function propagate_in_presolve_form(
     row_to_constr = form.row_to_constr[row_mask]
 
     deactivated_constrs = form.deactivated_constrs
-    fixed_vars = form.fixed_variables
+    fixed_vars_dict = form.fixed_variables
 
     var_to_col = Dict(getid(var) => k for (k, var) in enumerate(col_to_var))
     constr_to_row = Dict(getid(constr) => k for (k, constr) in enumerate(row_to_constr))
@@ -139,9 +139,15 @@ function propagate_in_presolve_form(
             push!(deactivated_constrs, getid(constr))
         end
 
-        for var in form.col_to_var[.!col_mask]
-            # missing
-            #push!(fixed_vars, getid(var) => form_repr.fix]
+        if !isnothing(fixed_vars)
+            for (col, val) in fixed_vars
+                varid = getid(form.col_to_var[col])
+                if !haskey(fixed_vars_dict, varid)
+                    fixed_vars_dict[varid] = val
+                else
+                    error("Cannot fix variable twice.")
+                end
+            end
         end
     end
 
@@ -156,7 +162,7 @@ function propagate_in_presolve_form(
         constr_to_row,
         form_repr,
         deactivated_constrs,
-        fixed_vars
+        fixed_vars_dict
     )
 end
 
