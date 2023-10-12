@@ -64,6 +64,7 @@ function propagate_local_and_global_bounds!(reform::Reformulation, presolve_form
         presolve_sp = presolve_form_repr.dw_sps[spid]
         propagate_local_bounds!(presolve_sp, presolve_restr_master, spform, master)
         propagate_global_bounds!(presolve_repr_master, master, presolve_sp, spform)
+        propagate_local_bounds!(presolve_sp, presolve_repr_master, spform, master)
     end
     return
 end

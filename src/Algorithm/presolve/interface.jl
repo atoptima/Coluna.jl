@@ -110,37 +110,40 @@ function propagate_in_presolve_form(
     form::PresolveFormulation,
     rows_to_deactivate::Vector{Int},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}};
-    fix_vars = true
+    tighten_bounds = true,
+    partial_sol = true,
+    shrink = true,
 )
-    fixed_vars = fix_vars ? vars_to_fix(form.form, tightened_bounds) : Dict{VarId, Float64}()
-
-    col_mask = ones(Bool, form.form.nb_vars)
-    if fix_vars
-        col_mask[collect(keys(fixed_vars))] .= false
-    end
-
-    row_mask = ones(Bool, form.form.nb_constrs)
-    row_mask[rows_to_deactivate] .= false
-
-    col_to_var = form.col_to_var[col_mask]
-    row_to_constr = form.row_to_constr[row_mask]
-
-    var_to_col = Dict(getid(var) => k for (k, var) in enumerate(col_to_var))
-    constr_to_row = Dict(getid(constr) => k for (k, constr) in enumerate(row_to_constr))
-
-    deactivated_constrs = form.deactivated_constrs
-    for constr in form.row_to_constr[rows_to_deactivate]
-        push!(deactivated_constrs, getid(constr))
-    end
-
-    form_repr = PresolveFormRepr(
+    form_repr, row_mask, col_mask = PresolveFormRepr(
         form.form, 
         rows_to_deactivate, 
         tightened_bounds, 
         form.form.lower_multiplicity, 
         form.form.upper_multiplicity;
-        fix_vars = fix_vars
+        tighten_bounds = tighten_bounds,
+        partial_sol = partial_sol,
+        shrink = shrink,
     )
+
+    col_to_var = form.col_to_var[col_mask]
+    row_to_constr = form.row_to_constr[row_mask]
+
+    deactivated_constrs = form.deactivated_constrs
+    fixed_vars = form.fixed_variables
+
+    var_to_col = Dict(getid(var) => k for (k, var) in enumerate(col_to_var))
+    constr_to_row = Dict(getid(constr) => k for (k, constr) in enumerate(row_to_constr))
+
+    if shrink
+        for constr in form.row_to_constr[.!row_mask]
+            push!(deactivated_constrs, getid(constr))
+        end
+
+        for var in form.col_to_var[.!col_mask]
+            # missing
+            #push!(fixed_vars, getid(var) => form_repr.fix]
+        end
+    end
 
     @assert length(col_to_var) == length(form_repr.lbs)
     @assert length(col_to_var) == length(form_repr.ubs)
@@ -171,6 +174,7 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
         iscuractive(form, constr) && (
             getduty(constrid) <= MasterPureConstr ||
             getduty(constrid) <= MasterMixedConstr ||
+            getduty(constrid) <= MasterConvexityConstr ||
             getduty(constrid) <= MasterBranchOnOrigVarConstr ||
             getduty(constrid) <=  MasterUserCutConstr
         )
@@ -336,7 +340,7 @@ function update_reform_from_presolve!(reform::Reformulation{DwMaster}, presolve_
     end
 
     println("Updating representative master.")
-    update_form_from_presolve!(master, presolve_repr_master; update_rhs = false)
+    update_form_from_presolve!(master, presolve_repr_master)
     return
 end
 
@@ -393,49 +397,45 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
 
     presolve_reform = create_presolve_reform(reform)
 
+    # Step 1: we first perform presolve on the restricted master to update the rhs on the constraints
+    # and determine the new partial solution.
+    new_restr_master = propagate_in_presolve_form(
+        presolve_reform.restricted_master,
+        Int[], # we don't perform constraint deactivation
+        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}(); # we don't perform bound tightening on the restricted master.
+        tighten_bounds = false,
+        shrink = false
+    )
+
+    # Step 2: we propagate the new rhs to the respresentative master.
+    @assert length(new_restr_master.form.rhs) == length(presolve_reform.original_master.form.rhs)
+    for (row, rhs) in enumerate(new_restr_master.form.rhs)
+        presolve_reform.original_master.form.rhs[row] = rhs
+    end
+
+    # Step 3: presolve the respresentative master.
+    # Bounds tightening, we do not shrink the formulation.
     print("Presolving representative master #1. ")
     tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
     print("$(length(tightened_bounds_repr)) tightened bounds. ")
-    repr_deactivate_constr = rows_to_deactivate(presolve_reform.original_master.form)
-    new_original_master = propagate_in_presolve_form(presolve_reform.original_master, repr_deactivate_constr, tightened_bounds_repr; fix_vars = false)
+    new_repr_master = propagate_in_presolve_form(
+        presolve_reform.original_master, Int[], tightened_bounds_repr; shrink = false
+    )
 
-    print("Presolving restricted master #1. ")
-    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
-    println("$(length(tightened_bounds_restr)) tightened bounds. ")
-    restr_deactivate_constr = rows_to_deactivate(presolve_reform.restricted_master.form)
-    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, restr_deactivate_constr, tightened_bounds_restr)
-
-    presolve_reform.restricted_master = new_restricted_master
-    presolve_reform.original_master = new_original_master
+    presolve_reform.restricted_master = new_restr_master
+    presolve_reform.original_master = new_repr_master
 
     propagate_local_and_global_bounds!(reform, presolve_reform) # TODO: cannot perform this operation twice.
 
-    print("Presolving representative master #2. ")
-    tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
-    println("$(length(tightened_bounds_repr)) tightened bounds.")
-    new_original_master = propagate_in_presolve_form(presolve_reform.original_master, Int[], tightened_bounds_repr; fix_vars = false)
-
-    print("Presolving restricted master #2. ")
-    tightened_bounds_restr = bounds_tightening(presolve_reform.restricted_master.form)
-    println("$(length(tightened_bounds_restr)) tightened bounds.")
-    new_restricted_master = propagate_in_presolve_form(presolve_reform.restricted_master, Int[], tightened_bounds_restr)
-
-    presolve_reform.restricted_master = new_restricted_master
-    presolve_reform.original_master = new_original_master
-
-    #propagate_local_and_global_bounds!(reform, presolve_reform)
-
-    # # Compute global bounds of aggregated variables.
-    # new_original_master = compute_global_bounds(presolve_reform.original_master, new_restricted_master)
-
-    # # Propagate bounds from the original master to the subproblems
-    # for (spid, sp) in presolve_reform.dw_sps
-    #     propagate_var_bounds_from!(new_original_master, sp)
-    # end
+    new_restr_master = propagate_in_presolve_form(
+        presolve_reform.restricted_master,
+        Int[],
+        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}();
+        tighten_bounds = false,
+    )
+    presolve_reform.restricted_master = new_restr_master
 
     update_reform_from_presolve!(reform, presolve_reform)
-
-    @show getmaster(reform)
 
     return PresolveOutput(true)
 end
