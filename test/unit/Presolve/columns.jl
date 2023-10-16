@@ -16,11 +16,11 @@ function test_non_proper_column1()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 2.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 4.0, 0.0, 1.0, nothing),
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 2.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, 2),
+            ("MC2", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing, 2),
+            ("MC3", Coluna.MathProg.MasterCol, 4.0, 0.0, 1.0, nothing, 2),
         ],
         [
             # name, duty, rhs, sense , id
@@ -53,8 +53,8 @@ function test_non_proper_column1()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 2.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), nothing),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 2.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id

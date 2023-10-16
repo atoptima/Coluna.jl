@@ -248,7 +248,7 @@ function tighten_bounds_presolve_form_repr(form::PresolveFormRepr, tightened_bou
         col_mask
 end
 
-function partial_sol_update(form::PresolveFormRepr, lm, um)
+function partial_sol_update(form::PresolveFormRepr, lm, um, store_unpropagated_partial_sol)
     coef_matrix = form.col_major_coef_matrix
     rhs = form.rhs
     sense = form.sense
@@ -286,7 +286,7 @@ function partial_sol_update(form::PresolveFormRepr, lm, um)
 
     return PresolveFormRepr(
             coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um;
-            unpropagated_partial_solution = new_partial_sol
+            unpropagated_partial_solution = store_unpropagated_partial_sol ? new_partial_sol : nothing
         ),
         row_mask,
         col_mask
@@ -343,6 +343,7 @@ function PresolveFormRepr(
     tighten_bounds = true,
     partial_sol = true,
     shrink = true,
+    store_unpropagated_partial_sol = true
 )
     row_mask = ones(Bool, presolve_form_repr.nb_constrs)
     col_mask = ones(Bool, presolve_form_repr.nb_vars)
@@ -353,7 +354,7 @@ function PresolveFormRepr(
         )
     end
     if partial_sol
-        presolve_form_repr, row_mask, col_mask = partial_sol_update(presolve_form_repr, lm, um)
+        presolve_form_repr, row_mask, col_mask = partial_sol_update(presolve_form_repr, lm, um, store_unpropagated_partial_sol)
     end
     if shrink
         presolve_form_repr, row_mask, col_mask, fixed_vars = shrink_presolve_form_repr(

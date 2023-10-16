@@ -29,11 +29,25 @@
 
 function _presolve_propagation_vars(form, var_descriptions)
     vars = Tuple{String, Coluna.MathProg.Variable}[]
-    for (name, duty, cost, lb, ub, id) in var_descriptions
+    for (name, duty, cost, lb, ub, id, origin_form_id) in var_descriptions
         if isnothing(id)
-            var = Coluna.MathProg.setvar!(form, name, duty, cost = cost, lb = lb, ub = ub)
+            var = if isnothing(origin_form_id)
+                Coluna.MathProg.setvar!(form, name, duty, cost = cost, lb = lb, ub = ub)
+            else
+                Coluna.MathProg.setvar!(
+                    form, name, duty, cost = cost, lb = lb, ub = ub, id = Coluna.MathProg.VarId(
+                        duty,
+                        form.env.var_counter += 1,
+                        origin_form_id;
+                    )
+                )
+            end
         else
-            id_of_clone = ClMP.VarId(id; duty = duty)
+            id_of_clone = if isnothing(origin_form_id)
+                ClMP.VarId(id; duty = duty)
+            else
+                ClMP.VarId(id; duty = duty, origin_form_uid = origin_form_id)
+            end
             var = Coluna.MathProg.setvar!(form, name, duty; id = id_of_clone, cost = cost, lb = lb, ub = ub) 
         end
         push!(vars, (name, var))
@@ -131,13 +145,13 @@ function test_constr_removing_propagation_from_original_to_master()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing),
-            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing)
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing),
-            ("c2", Coluna.MathProg.OriginalConstr, 3.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing, nothing),
+            ("c2", Coluna.MathProg.OriginalConstr, 3.0, ClMP.Less, nothing, nothing)
         ]
     )
 
@@ -150,15 +164,15 @@ function test_constr_removing_propagation_from_original_to_master()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x"])),
-            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y"])),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing)
+            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x"]), nothing),
+            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y"]), nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
-            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c1"])),
-            ("c2", Coluna.MathProg.MasterPureConstr, 3.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c2"]))
+            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c1"]), nothing),
+            ("c2", Coluna.MathProg.MasterPureConstr, 3.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c2"]), nothing)
         ]
     )
 
@@ -205,21 +219,26 @@ function test_constr_removing_propagation_from_original_to_subproblem()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing),
-            ("x2", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing),
-            ("y1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 2.0, nothing),
-            ("y2", Coluna.MathProg.OriginalVar, 1.0, 0.0, 2.0, nothing)
+            ("x1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("x2", Coluna.MathProg.OriginalVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 2.0, nothing, nothing),
+            ("y2", Coluna.MathProg.OriginalVar, 1.0, 0.0, 2.0, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 3.0, ClMP.Less, nothing),
-            ("c2", Coluna.MathProg.OriginalConstr, 2.0, ClMP.Less, nothing),
-            ("c3", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 3.0, ClMP.Less, nothing, nothing),
+            ("c2", Coluna.MathProg.OriginalConstr, 2.0, ClMP.Less, nothing, nothing),
+            ("c3", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing, nothing)
         ]
     )
 
     orig_presolve_form = _presolve_formulation(
-        ["x1", "x2", "y1", "y2"], ["c1", "c2", "c3"], [1 1 1 1; 1 1 0 0; 0 0 1 1], orig_form, orig_name_to_var, orig_name_to_constr
+        ["x1", "x2", "y1", "y2"], 
+        ["c1", "c2", "c3"], 
+        [1 1 1 1; 1 1 0 0; 0 0 1 1], 
+        orig_form, 
+        orig_name_to_var, 
+        orig_name_to_constr
     )
 
     sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
@@ -229,12 +248,12 @@ function test_constr_removing_propagation_from_original_to_subproblem()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x1"]), nothing),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["x2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c2", Coluna.MathProg.DwSpPureConstr, 2.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c2"]))
+            ("c2", Coluna.MathProg.DwSpPureConstr, 2.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c2"]), nothing)
         ],
     )
 
@@ -249,12 +268,12 @@ function test_constr_removing_propagation_from_original_to_subproblem()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y1"])),
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y2"]))
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y1"]), nothing),
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(orig_name_to_var["y2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c3"]))
+            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c3"]), nothing)
         ],
     )
 
@@ -295,30 +314,34 @@ function test_var_bound_propagation_within_restricted_master()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 1.0, Inf, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 1.0, Inf, nothing, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense , id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 1.0, ClMP.Greater, nothing),
-            ("c2", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing),
-            ("c3", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.MasterMixedConstr, 1.0, ClMP.Greater, nothing, nothing),
+            ("c2", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing, nothing),
+            ("c3", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
     master_presolve_form = _presolve_formulation(
         ["MC1", "MC2", "MC3", "a"],  ["c1", "c2", "c3"], [1 1 1 1; 1 1 1 0; 1 1 1 0], master_form, master_name_to_var, master_constr_to_var
     )
-
+    
     result = Coluna.Algorithm.bounds_tightening(master_presolve_form.form)
-    new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(master_presolve_form, Int[], result; shrink = false)
-    new_master_presolve_form.form.unpropagated_partial_solution_flag = false
+    new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(
+        master_presolve_form, 
+        Int[], 
+        result; 
+        store_unpropagated_partial_sol = false
+    )
     no_tightening = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
     new_master_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(new_master_presolve_form, Int[], no_tightening; tighten_bounds=false, partial_sol = false)
 
@@ -342,14 +365,14 @@ register!(unit_tests, "presolve_propagation", test_var_bound_propagation_within_
 function test_col_bounds_propagation_from_restricted_master()
     # Original Master
     # min x1 + x2 
-    # s.t. x1 + x2  >= 10
-    #      1 <= x1 <= 2 (repr)
-    #      1 <= x2 <= 3 (repr)
+    # s.t. x1 + x2 >= 0
+    #      1 <= x1 <= 4 (repr)
+    #      1 <= x2 <= 6 (repr)
     
     # Restricted master
     # min 2MC1 + 3MC2 + 3MC3 + 1000a1
-    # s.t.  2MC1 + 3MC2 + 3MC3 + a1 >= 10
-    #       MC1 + MC2 + MC3 >= 0 (convexity)
+    # s.t.  2MC1 + 3MC2 + 3MC3 + a1 >= 0
+    #       MC1 + MC2 + MC3 >= 1 (convexity)
     #       MC1 + MC2 + MC3 <= 2 (convexity)
     #       MC1, MC2, MC3 >= 0
 
@@ -364,21 +387,23 @@ function test_col_bounds_propagation_from_restricted_master()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 2.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 3.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, Inf, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing),
-            ("pricing_setup", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 0.0, 1.0, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 4.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 6.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, Inf, nothing, 2),
+            ("MC2", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing, 2),
+            ("MC3", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing, 2),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing, nothing),
+            ("pricing_setup", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 0.0, 1.0, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 10.0, ClMP.Greater, nothing),
-            ("c2", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing),
-            ("c3", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.MasterMixedConstr, 0.0, ClMP.Greater, nothing, nothing),
+            ("c2", Coluna.MathProg.MasterConvexityConstr, 1.0, ClMP.Greater, nothing, nothing),
+            ("c3", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing, nothing)
         ]
     )
+
+    master_form_uid = Coluna.MathProg.getuid(master_form)
 
     spform, sp_name_to_var, sp_name_to_constr = _mathprog_formulation!(
         env,
@@ -389,8 +414,8 @@ function test_col_bounds_propagation_from_restricted_master()
             Coluna.MathProg.Integ
         ),
         [
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 1.0, 2.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 1.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 1.0, 2.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), master_form_uid),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 1.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), master_form_uid)
         ],
         []
     )
@@ -407,7 +432,11 @@ function test_col_bounds_propagation_from_restricted_master()
             Float64[2.0, 2.0]
         ]
     )
-        col_id = Coluna.MathProg.VarId(Coluna.MathProg.getid(master_name_to_var[name]); duty = Coluna.MathProg.DwSpPrimalSol)
+        col_id = Coluna.MathProg.VarId(
+            Coluna.MathProg.getid(master_name_to_var[name]);
+            origin_form_uid = Coluna.MathProg.getuid(spform),
+            duty = Coluna.MathProg.DwSpPrimalSol
+        )
         Coluna.MathProg.push_in_pool!(
             pool,
             Coluna.MathProg.PrimalSolution(spform, var_ids, vals, 1.0, Coluna.MathProg.FEASIBLE_SOL),
@@ -416,12 +445,14 @@ function test_col_bounds_propagation_from_restricted_master()
         )
     end
 
+    dw_pricing_sps = Dict(Coluna.MathProg.getuid(spform) => spform)
+
     ## MC3 >= 1
     Coluna.MathProg.setcurlb!(master_form, master_name_to_var["MC3"], 1.0)
 
     ## We create the presolve formulations
     master_presolve_form = _presolve_formulation(
-        ["x1", "x2"], ["c1"], [1 1], master_form, master_name_to_var, master_name_to_constr
+        ["x1", "x2"], ["c1", "c2", "c3"], [1 1; 0 0 ;0 0], master_form, master_name_to_var, master_name_to_constr
     )
 
     restricted_presolve_form = _presolve_formulation(
@@ -430,26 +461,60 @@ function test_col_bounds_propagation_from_restricted_master()
     )
 
     sp_presolve_form = _presolve_formulation(
-        ["x1", "x2"], [], [1 1], spform, sp_name_to_var, sp_name_to_constr; lm = 0 , um = 2
+        ["x1", "x2"], [], [1 1], spform, sp_name_to_var, sp_name_to_constr; lm = 1, um = 2
     )
 
-    ## We run the presolve on the restricted master
-    tightened_bounds = Coluna.Algorithm.bounds_tightening(restricted_presolve_form.form)
-    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(restricted_presolve_form, Int[], tightened_bounds; shrink = false)
-    new_restricted_master.form.unpropagated_partial_solution_flag = false
-    no_tightening = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
-    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(new_restricted_master, Int[], no_tightening; tighten_bounds=false, partial_sol = false)
+    presolve_reform = Coluna.Algorithm.DwPresolveReform(
+        master_presolve_form,
+        restricted_presolve_form,
+        Dict{Int16, Coluna.Algorithm.PresolveFormulation}(
+            Coluna.MathProg.getuid(spform) => sp_presolve_form
+        )
+    )
 
-    Coluna.Algorithm.update_form_from_presolve!(master_form, new_restricted_master)
-    Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, spform, new_restricted_master, master_form)
-    Coluna.Algorithm.propagate_global_bounds!(master_presolve_form, master_form, sp_presolve_form, spform)
-    Coluna.Algorithm.update_form_from_presolve!(spform, sp_presolve_form)
-    Coluna.Algorithm.update_form_from_presolve!(master_form, master_presolve_form)
+    @test presolve_reform.original_master.form.lbs == [1, 1]
+    @test presolve_reform.original_master.form.ubs == [4, 6]
 
-    # Fix MC3 [x1 = 2, x2 = 2]
-    # we should have 
-    #   0 <= x1 <= 0,
-    #   0 <= x2 <= 1
+    @test presolve_reform.dw_sps[2].form.lbs == [1, 1]
+    @test presolve_reform.dw_sps[2].form.ubs == [2, 3]
+
+    Coluna.Algorithm.propagate_partial_sol_into_master(
+        presolve_reform, 
+        dw_pricing_sps
+    )
+
+    # repr before fixing
+    #      1 <= x1 <= 4 (repr)
+    #      1 <= x2 <= 6 (repr)
+
+    # fixing  MC3 [x1 = 2, x2 = 2]
+    #     2 <= x1 <= 4 => 0 <= x1 <= 2
+    #     2 <= x2 <= 6 => 0 <= x2 <= 4
+
+    @test presolve_reform.original_master.form.lbs == [0, 0]
+    @test presolve_reform.original_master.form.ubs == [2, 4]
+
+    @test presolve_reform.dw_sps[2].form.lbs == [1, 1]
+    @test presolve_reform.dw_sps[2].form.ubs == [2, 3]
+
+    Coluna.Algorithm.presolve_iteration!(presolve_reform, master_form, dw_pricing_sps)
+
+
+    # Global bounds:
+    #  0 <= x1 <= 2
+    #  0 <= x2 <= 4
+
+    # new local bounds:
+    #  0 <= x1 <= 2
+    #  0 <= x2 <= 3  => strengthen global bound because um =  1
+
+    @test presolve_reform.original_master.form.lbs == [0, 0]
+    @test presolve_reform.original_master.form.ubs == [2, 3]
+
+    @test presolve_reform.dw_sps[2].form.lbs == [1, 1]
+    @test presolve_reform.dw_sps[2].form.ubs == [2, 3]
+
+    Coluna.Algorithm.update_reform_from_presolve!(master_form, dw_pricing_sps, presolve_reform)
 
     # Partial solution: MC3 = 1
     @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC1"]) ≈ 0
@@ -466,23 +531,15 @@ function test_col_bounds_propagation_from_restricted_master()
     @test sp_presolve_form.form.lower_multiplicity == 0
     @test sp_presolve_form.form.upper_multiplicity == 1
 
-    # Partial solution: x1 = 2, x2 = 2 |||| x1 = 0, 0 <= x2 <= 1
-    #@test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x1"]) ≈ 2
-    #@test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x2"]) ≈ 2
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ 1
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 2
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ 1
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ 3
 
-    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ 0
-    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 0
-    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ 0
-    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ 1
-
-    # representative after propagation to global bounds
-    #  0 <= x1 <= 0
-    #  0 <= x2 <= 1 # because new upper multiplicity = 1
-    @test Coluna.MathProg.getcurlb(master_form, sp_name_to_var["x1"]) ≈ 0
-    @test Coluna.MathProg.getcurub(master_form, sp_name_to_var["x1"]) ≈ 0
-    @test Coluna.MathProg.getcurlb(master_form, sp_name_to_var["x2"]) ≈ 0
-    @test Coluna.MathProg.getcurub(master_form, sp_name_to_var["x2"]) ≈ 1
-
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x1"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x1"]) ≈ 2
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x2"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x2"]) ≈ 3
     return
 end
 register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master)
@@ -490,9 +547,9 @@ register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_r
 function test_col_bounds_propagation_from_restricted_master2()
     # Original Master
     # min x1 + x2 
-    # s.t. x1 + x2  >= 10
+    # s.t. x1 + x2  <= 10
     #      -9 <= x1 <= 9 (repr)
-    #      -30 <= x2 <= -3 (repr)
+    #      -30 <= x2 <= 0 (repr)
     
     # Restricted master
     # min 2MC1 + 3MC2 + 3MC3 + 1000a1
@@ -512,19 +569,19 @@ function test_col_bounds_propagation_from_restricted_master2()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, -9.0, 9.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, -30.0, -3.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, Inf, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing),
-            ("pricing_setup", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 0.0, 1.0, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, -9.0, 9.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, -30.0, 0.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, Inf, nothing, 2),
+            ("MC2", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing, 2),
+            ("MC3", Coluna.MathProg.MasterCol, 3.0, 0.0, Inf, nothing, 2),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing, nothing),
+            ("pricing_setup", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 0.0, 1.0, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 10.0, ClMP.Greater, nothing),
-            ("c2", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing),
-            ("c3", Coluna.MathProg.MasterConvexityConstr, 3.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.MasterMixedConstr, 10.0, ClMP.Less, nothing, nothing),
+            ("c2", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing, nothing),
+            ("c3", Coluna.MathProg.MasterConvexityConstr, 3.0, ClMP.Less, nothing, nothing)
         ]
     )
 
@@ -537,8 +594,8 @@ function test_col_bounds_propagation_from_restricted_master2()
             Coluna.MathProg.Integ
         ),
         [
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, -3.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, -10.0, -1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, -3.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), nothing),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, -10.0, -1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), nothing)
         ],
         []
     )
@@ -555,7 +612,11 @@ function test_col_bounds_propagation_from_restricted_master2()
             Float64[-2.0, -2.0]
         ]
     )
-        col_id = Coluna.MathProg.VarId(Coluna.MathProg.getid(master_name_to_var[name]); duty = Coluna.MathProg.DwSpPrimalSol)
+        col_id = Coluna.MathProg.VarId(
+            Coluna.MathProg.getid(master_name_to_var[name]);
+            origin_form_uid = Coluna.MathProg.getuid(spform),
+            duty = Coluna.MathProg.DwSpPrimalSol
+        )
         Coluna.MathProg.push_in_pool!(
             pool,
             Coluna.MathProg.PrimalSolution(spform, var_ids, vals, 1.0, Coluna.MathProg.FEASIBLE_SOL),
@@ -564,12 +625,14 @@ function test_col_bounds_propagation_from_restricted_master2()
         )
     end
 
+    dw_pricing_sps = Dict(Coluna.MathProg.getuid(spform) => spform)
+
     ## MC3 >= 1
     Coluna.MathProg.setcurlb!(master_form, master_name_to_var["MC2"], 1.0)
 
     ## We create the presolve formulations
     master_presolve_form = _presolve_formulation(
-        ["x1", "x2"], ["c1"], [1 1], master_form, master_name_to_var, master_name_to_constr
+        ["x1", "x2"], ["c1", "c2", "c3"], [1 1; 0 0; 0 0], master_form, master_name_to_var, master_name_to_constr
     )
 
     restricted_presolve_form = _presolve_formulation(
@@ -581,22 +644,48 @@ function test_col_bounds_propagation_from_restricted_master2()
         ["x1", "x2"], [], [1 1], spform, sp_name_to_var, sp_name_to_constr; lm = 0, um = 3
     )
 
-    ## We run the presolve on the restricted master
-    tightened_bounds = Coluna.Algorithm.bounds_tightening(restricted_presolve_form.form)
-    new_restricted_master = Coluna.Algorithm.propagate_in_presolve_form(
-        restricted_presolve_form, Int[], tightened_bounds
+    presolve_reform = Coluna.Algorithm.DwPresolveReform(
+        master_presolve_form,
+        restricted_presolve_form,
+        Dict{Int16, Coluna.Algorithm.PresolveFormulation}(
+            Coluna.MathProg.getuid(spform) => sp_presolve_form
+        )
     )
 
-    Coluna.Algorithm.update_form_from_presolve!(master_form, new_restricted_master)
-    Coluna.Algorithm.propagate_local_bounds!(sp_presolve_form, new_restricted_master, spform, master_form)
-    Coluna.Algorithm.propagate_global_bounds!(master_presolve_form, master_form, sp_presolve_form, spform)
-    Coluna.Algorithm.update_form_from_presolve!(spform, sp_presolve_form)
-    Coluna.Algorithm.update_form_from_presolve!(master_form, master_presolve_form)
+    Coluna.Algorithm.propagate_partial_sol_into_master(
+        presolve_reform, 
+        dw_pricing_sps
+    )
 
+    @test presolve_reform.original_master.form.lbs == [-8.0, -28.0]
+    @test presolve_reform.original_master.form.ubs == [0.0, 0.0]
+
+    @test presolve_reform.dw_sps[2].form.lbs == [-3.0, -10.0]
+    @test presolve_reform.dw_sps[2].form.ubs == [3.0, -1.0]
+
+    Coluna.Algorithm.presolve_iteration!(presolve_reform, master_form, dw_pricing_sps)
+    Coluna.Algorithm.update_reform_from_presolve!(master_form, dw_pricing_sps, presolve_reform)
+
+    @test presolve_reform.original_master.form.lbs == [-6.0, -20.0]
+    @test presolve_reform.original_master.form.ubs == [0.0, 0.0]
+
+    @test presolve_reform.dw_sps[2].form.lbs == [-3.0, -10.0]
+    @test presolve_reform.dw_sps[2].form.ubs == [0.0, -1.0]
+
+    # Original Master
+    # min x1 + x2 
+    # s.t. x1 + x2  >= 10
+    #      -9 <= x1 <= 9 (repr)
+    #      -30 <= x2 <= 0 (repr)
+    
     # Fix MC2 [x1 = -1, x2 = -2]
-    # we should have 
-    #   -2 <= x1 <= 0,
-    #   -8 <= x2 <= 0
+    # we should following global bounds 
+    #   -9 <= x1 <= 0, => -8 <= x1 <= 0
+    #   -30 <= x2 <= 0 => -28 <= x2 <= 0
+
+    # and the following local bounds
+    # -3 <= x1 <= 0  => global lb bound = -9
+    # -10 <= x2 <= -1  => global lb bound = -20
 
     # Partial solution: MC3 = 1
     @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC1"]) ≈ 0
@@ -617,15 +706,15 @@ function test_col_bounds_propagation_from_restricted_master2()
     # @test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x1"]) ≈ 2
     # @test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x2"]) ≈ 2
 
-    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ -2
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ -3
     @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 0
-    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ -8
-    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ 0
+    @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ -10
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ -1
 
     # Check global bounds (repr bounds)
-    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x1"]) ≈ -4
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x1"]) ≈ -6
     @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x1"]) ≈ 0
-    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x2"]) ≈ -16
+    @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x2"]) ≈ -20
     @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x2"]) ≈ 0
     return
 end
@@ -671,16 +760,16 @@ function test_var_bound_propagation_from_original_to_subproblem()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing),
-            ("x2", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing),
-            ("y1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.7, nothing),
-            ("y2", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing, nothing),
+            ("x2", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing),
+            ("y1", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.7, nothing, nothing),
+            ("y2", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 2.0, ClMP.Greater, nothing),
-            ("c2", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Greater, nothing),
-            ("c3", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 2.0, ClMP.Greater, nothing, nothing),
+            ("c2", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Greater, nothing, nothing),
+            ("c3", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -695,12 +784,12 @@ function test_var_bound_propagation_from_original_to_subproblem()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x1"]))
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x1"]), nothing)
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["x2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c2", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(orig_name_to_constr["c2"]))
+            ("c2", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(orig_name_to_constr["c2"]), nothing)
         ]
     )
 
@@ -715,12 +804,12 @@ function test_var_bound_propagation_from_original_to_subproblem()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(orig_name_to_var["y1"]))
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y2"]))
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(orig_name_to_var["y1"]), nothing)
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(orig_name_to_constr["c3"]))
+            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(orig_name_to_constr["c3"]), nothing)
         ]
     )
 
@@ -760,12 +849,12 @@ function test_var_bound_propagation_from_original_to_master()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing),
-            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing)
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing, nothing)
         ]
     )
 
@@ -778,14 +867,14 @@ function test_var_bound_propagation_from_original_to_master()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x"])),
-            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y"])),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing)
+            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x"]), nothing),
+            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y"]), nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1000.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
-            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c1"]))
+            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, Coluna.Algorithm.getid(orig_name_to_constr["c1"]), nothing)
         ],
     )
 
@@ -828,17 +917,17 @@ function test_var_bound_propagation_from_master_to_subproblem()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, nothing),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, nothing),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, nothing, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, nothing, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 2.0, 0.0, 1.0, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
-            ("c1", Coluna.MathProg.MasterPureConstr, 2.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.MasterPureConstr, 2.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -857,12 +946,12 @@ function test_var_bound_propagation_from_master_to_subproblem()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(master_name_to_var["x1"]))
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(master_name_to_var["x1"]), nothing)
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(master_name_to_var["x2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(master_constr_to_var["c1"]))
+            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(master_constr_to_var["c1"]), nothing)
         ],
     )
 
@@ -877,12 +966,12 @@ function test_var_bound_propagation_from_master_to_subproblem()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(master_name_to_var["y1"]))
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(master_name_to_var["y2"]))
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(master_name_to_var["y1"]), nothing)
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(master_name_to_var["y2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(master_constr_to_var["c1"]))
+            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, Coluna.Algorithm.getid(master_constr_to_var["c1"]), nothing)
         ],
     )
 
@@ -930,12 +1019,12 @@ function test_var_bound_propagation_from_subproblem_to_master()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.5, nothing)
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.5, nothing, nothing)
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -950,12 +1039,12 @@ function test_var_bound_propagation_from_subproblem_to_master()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.7, nothing)
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, nothing)
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 0.7, nothing, nothing)
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -968,17 +1057,17 @@ function test_var_bound_propagation_from_subproblem_to_master()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(sp1_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(sp1_name_to_var["x2"])),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(sp2_name_to_var["y1"])),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(sp2_name_to_var["y2"])),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(sp1_name_to_var["x1"]), nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(sp1_name_to_var["x2"]), nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.7, Coluna.Algorithm.getid(sp2_name_to_var["y1"]), nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(sp2_name_to_var["y2"]), nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, lb, ub, id
-            ("c1", Coluna.MathProg.MasterPureConstr, 2.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.MasterPureConstr, 2.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -1010,7 +1099,6 @@ function test_var_fixing_propagation_within_formulation1()
     #      x == 2
     #      y >= 0
     #      z >= 0
-
     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
 
     orig_form, orig_name_to_var, orig_name_to_constr = _mathprog_formulation!(
@@ -1018,13 +1106,13 @@ function test_var_fixing_propagation_within_formulation1()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x", Coluna.MathProg.OriginalVar, 1.0, 2.0, 2.0, nothing),
-            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing),
-            ("z", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing)
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 2.0, 2.0, nothing, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing),
+            ("z", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 15.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 15.0, ClMP.Less, nothing, nothing)
         ],
     )
 
@@ -1039,7 +1127,8 @@ function test_var_fixing_propagation_within_formulation1()
     new_form = Coluna.Algorithm.propagate_in_presolve_form(
         orig_presolve_form,
         Int[],
-        bounds_result
+        bounds_result;
+        store_unpropagated_partial_sol = false
     )
 
     @test new_form.form.col_major_coef_matrix == [1 1;]
@@ -1080,13 +1169,13 @@ function test_var_fixing_propagation_within_formulation2()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x", Coluna.MathProg.OriginalVar, 1.0, 4.0, 4.0, nothing),
-            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing),
-            ("z", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing)
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 4.0, 4.0, nothing, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing),
+            ("z", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 15.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 15.0, ClMP.Greater, nothing, nothing)
         ],
     )
 
@@ -1100,8 +1189,8 @@ function test_var_fixing_propagation_within_formulation2()
     new_form = Coluna.Algorithm.propagate_in_presolve_form(
         orig_presolve_form,
         Int[],
-        #result,
-        bounds_result
+        bounds_result;
+        store_unpropagated_partial_sol = false
     )
 
     @test new_form.form.col_major_coef_matrix == [1 1;]
@@ -1143,14 +1232,14 @@ function test_var_fixing_propagation_within_formulation3()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x", Coluna.MathProg.OriginalVar, 1.0, 10.0, 10.0, nothing),
-            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing),
-            ("z", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing)
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 10.0, 10.0, nothing, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing),
+            ("z", Coluna.MathProg.OriginalVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 150.0, ClMP.Greater, nothing),
-            ("c2", Coluna.MathProg.OriginalConstr, 600.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 150.0, ClMP.Greater, nothing, nothing),
+            ("c2", Coluna.MathProg.OriginalConstr, 600.0, ClMP.Less, nothing, nothing)
         ],
     )
 
@@ -1166,7 +1255,8 @@ function test_var_fixing_propagation_within_formulation3()
     new_form = Coluna.Algorithm.propagate_in_presolve_form(
         orig_presolve_form,
         Int[],
-        bounds_result
+        bounds_result;
+        store_unpropagated_partial_sol = false
     )
 
     @test new_form.form.col_major_coef_matrix == [1 1; 1 1;]
@@ -1235,12 +1325,12 @@ function test_var_fixing_propagation_from_original_to_master()
         Coluna.MathProg.Original(),
         [
             # name, duty, cost, lb, ub, id
-            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing),
-            ("y", Coluna.MathProg.OriginalVar, 1.0, 1.0, 1.0, nothing)
+            ("x", Coluna.MathProg.OriginalVar, 1.0, 0.0, 0.5, nothing, nothing),
+            ("y", Coluna.MathProg.OriginalVar, 1.0, 1.0, 1.0, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.OriginalConstr, 1.0, ClMP.Less, nothing, nothing)
         ],
     )
 
@@ -1252,16 +1342,16 @@ function test_var_fixing_propagation_from_original_to_master()
         env,
         Coluna.MathProg.DwMaster(),
         [
-            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x"])),
-            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y"])),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 10000.0, 0.0, Inf, nothing)
+            ("_x", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.5, Coluna.Algorithm.getid(orig_name_to_var["x"]), nothing),
+            ("_y", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, Inf, Coluna.Algorithm.getid(orig_name_to_var["y"]), nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 10000.0, 0.0, Inf, nothing, nothing)
         ],
         [
-            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, nothing)
+            ("c1", Coluna.MathProg.MasterPureConstr, 1.0, ClMP.Less, nothing, nothing)
         ]
     )
 
@@ -1324,19 +1414,19 @@ function test_var_fixing_propagation_from_master_to_subproblem1()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 1.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 1.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense , id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -1355,12 +1445,12 @@ function test_var_fixing_propagation_from_master_to_subproblem1()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), nothing),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
      
@@ -1375,12 +1465,12 @@ function test_var_fixing_propagation_from_master_to_subproblem1()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y1"])),
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y2"]))
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y1"]), nothing),
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+            ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -1437,19 +1527,19 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 1.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 1.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense , id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -1468,12 +1558,12 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"])),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]))
+            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), nothing),
+            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
     
@@ -1488,12 +1578,12 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
         ),
         [
             # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y1"])),
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y2"]))
+            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y1"]), nothing),
+            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y2"]), nothing)
         ],
         [
             # name, duty, rhs, sense, id
-            ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+            ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -1508,7 +1598,8 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
     new_master_repr_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(
         master_repr_presolve_form, 
         Int[], 
-        bounds_result
+        bounds_result;
+        store_unpropagated_partial_sol = false
     )
     
     # Propagate bounds in subproblems
@@ -1576,21 +1667,21 @@ function update_master_repr_formulation()
         Coluna.MathProg.DwMaster(),
         [
             # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing),
-            ("a1", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing),
-            ("a2", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing)
+            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
+            ("a1", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing),
+            ("a2", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
         ],
         [
             # name, duty, rhs, sense , id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing),
-            ("c2", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing)
+            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing, nothing),
+            ("c2", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing, nothing)
         ]
     )
 
@@ -1633,7 +1724,8 @@ function update_master_repr_formulation()
     updated_master_repr_presolve_form = Coluna.Algorithm.propagate_in_presolve_form(
         master_repr_presolve_form,
         Int[2],
-        Dict(1 => (1.0, true, 1.0, false), 2 => (0.1, true, 0.5, true))
+        Dict(1 => (1.0, true, 1.0, false), 2 => (0.1, true, 0.5, true));
+        store_unpropagated_partial_sol = false
     )
 
     @test updated_master_repr_presolve_form.form.col_major_coef_matrix == [1 1 1;]
