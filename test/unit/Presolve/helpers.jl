@@ -87,7 +87,10 @@ function test_presolve_builder2()
     rows_to_deactivate = [1, 3, 6]
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
+        store_unpropagated_partial_sol = false
+    )
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 3
     @test all(form2.col_major_coef_matrix .== coef_matrix[[2, 4, 5], :])
@@ -139,7 +142,10 @@ function test_presolve_builder3()
     #  <= -1 - 2 + 4    -> 1
     #  == -6 +2*2 - 5.5 -> -7.5
 
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
+        store_unpropagated_partial_sol = false
+    )
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix[:, [2, 4, 5]])
@@ -177,7 +183,10 @@ function test_presolve_builder4()
         3 => (-1, false, 3, false),
         6 => (0.5, true, 0.5, true) # the flag forces the update!
     )
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
+        store_unpropagated_partial_sol = false
+    )
     @test form2.nb_vars == 6
     @test form2.nb_constrs == 6
     @test all(form2.col_major_coef_matrix .== coef_matrix[:, [1, 2, 3, 4, 5, 7]])
@@ -211,7 +220,10 @@ function test_presolve_builder5()
         3 => (1, true, 2, true)
     )
 
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(form, rows_to_deactivate, tightened_bounds, 1.0, 1.0)
+    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
+        store_unpropagated_partial_sol = false
+    )
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 2
     @test all(form2.col_major_coef_matrix .== coef_matrix)

@@ -694,6 +694,14 @@ function _show_variables(io::IO, form::Formulation)
     end
 end
 
+function _show_partial_sol(io::IO, form::Formulation)
+    println(io, "Partial solution:")
+    for (varid, val) in form.manager.partial_solution
+        println(io, getname(form, varid), " = ", val)
+    end
+    return
+end
+
 function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormDuty}
     compact = get(io, :compact, false)
     if compact
@@ -703,7 +711,8 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         println(io, "Formulation id = ", getuid(form))
         _show_obj_fun(io, form)
         _show_constraints(io, form)
-        _show_variables(io, form)
+        #_show_variables(io, form)
+        _show_partial_sol(io, form)
     end
     return
 end

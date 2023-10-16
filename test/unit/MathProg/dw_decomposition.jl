@@ -279,7 +279,6 @@ function dw_decomposition_repr()
     master_vars = Dict(getname(master, varid) => var for (varid, var) in Coluna.MathProg.getvars(master))
     master_constrs = Dict(getname(master, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(master))
 
-    @show length(master_vars)
     @test Coluna.MathProg.getcurlb(master, master_vars["e1"]) == 1.0 * (0 + 1)
     @test Coluna.MathProg.getcurub(master, master_vars["e1"]) == 2.0 * (2 + 3)
     @test Coluna.MathProg.getcurrhs(master, master_constrs["c1"]) == 4.0
