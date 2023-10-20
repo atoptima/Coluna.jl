@@ -478,24 +478,36 @@ function test_col_bounds_propagation_from_restricted_master()
     @test presolve_reform.dw_sps[2].form.lbs == [1, 1]
     @test presolve_reform.dw_sps[2].form.ubs == [2, 3]
 
-    Coluna.Algorithm.propagate_partial_sol_into_master(
-        presolve_reform, 
+    local_restr_partial_sol = Coluna.Algorithm.propagate_partial_sol_into_master(
+        presolve_reform,
+        master_form,
         dw_pricing_sps
     )
+    Coluna.Algorithm.update_partial_sol!(
+        master_form,
+        presolve_reform.restricted_master,
+        local_restr_partial_sol
+    )
+    Coluna.Algorithm.update_reform_from_presolve!(master_form, dw_pricing_sps, presolve_reform)
 
     # repr before fixing
     #      1 <= x1 <= 4 (repr)
     #      1 <= x2 <= 6 (repr)
+    #      L=1 U=2
+    #      1 <= x1 <= 2 (sp),
+    #      1 <= x2 <= 3 (sp)
 
     # fixing  MC3 [x1 = 2, x2 = 2]
-    #     2 <= x1 <= 4 => 0 <= x1 <= 2
-    #     2 <= x2 <= 6 => 0 <= x2 <= 4
+    #     max(1-2, 0*1) <= x1 <= min(4-2, 1*2) => 0 <= x1 <= 2
+    #     max(1-2, 0*1) <= x2 <= min(6-2, 1*3) => 0 <= x2 <= 3
 
     @test presolve_reform.original_master.form.lbs == [0, 0]
-    @test presolve_reform.original_master.form.ubs == [2, 4]
+    @test presolve_reform.original_master.form.ubs == [2, 3]
 
     @test presolve_reform.dw_sps[2].form.lbs == [1, 1]
     @test presolve_reform.dw_sps[2].form.ubs == [2, 3]
+
+    # @test local_restr_partial_sol[]
 
     Coluna.Algorithm.presolve_iteration!(presolve_reform, master_form, dw_pricing_sps)
 
@@ -652,40 +664,56 @@ function test_col_bounds_propagation_from_restricted_master2()
         )
     )
 
-    Coluna.Algorithm.propagate_partial_sol_into_master(
-        presolve_reform, 
+    local_restr_partial_sol = Coluna.Algorithm.propagate_partial_sol_into_master(
+        presolve_reform,
+        master_form,
         dw_pricing_sps
     )
-
-    @test presolve_reform.original_master.form.lbs == [-8.0, -28.0]
-    @test presolve_reform.original_master.form.ubs == [0.0, 0.0]
-
-    @test presolve_reform.dw_sps[2].form.lbs == [-3.0, -10.0]
-    @test presolve_reform.dw_sps[2].form.ubs == [3.0, -1.0]
-
-    Coluna.Algorithm.presolve_iteration!(presolve_reform, master_form, dw_pricing_sps)
-    Coluna.Algorithm.update_reform_from_presolve!(master_form, dw_pricing_sps, presolve_reform)
-
-    @test presolve_reform.original_master.form.lbs == [-6.0, -20.0]
-    @test presolve_reform.original_master.form.ubs == [0.0, 0.0]
-
-    @test presolve_reform.dw_sps[2].form.lbs == [-3.0, -10.0]
-    @test presolve_reform.dw_sps[2].form.ubs == [0.0, -1.0]
 
     # Original Master
     # min x1 + x2 
     # s.t. x1 + x2  >= 10
     #      -9 <= x1 <= 9 (repr)
     #      -30 <= x2 <= 0 (repr)
+    #
+    # lm = 0, um = 3
+    #
+    # subproblem variables:
+    #   -3 <= x1 <=  3,
+    #  -10 <= x2 <= -1
     
     # Fix MC2 [x1 = -1, x2 = -2]
     # we should following global bounds 
-    #   -9 <= x1 <= 0, => -8 <= x1 <= 0
-    #   -30 <= x2 <= 0 => -28 <= x2 <= 0
+    #   max(-8, 2*-3) <= x1 <= min(11, 3*2) => -6 <= x1 <= 6
+    #   max(-28, 2*-10) <= x2 <= min(2, 3*0) => -20 <= x2 <= 0
 
-    # and the following local bounds
-    # -3 <= x1 <= 0  => global lb bound = -9
-    # -10 <= x2 <= -1  => global lb bound = -20
+    @test presolve_reform.original_master.form.lbs == [-6.0, -20.0]
+    @test presolve_reform.original_master.form.ubs == [6.0, 0.0]
+
+    @test presolve_reform.dw_sps[2].form.lbs == [-3.0, -10.0]
+    @test presolve_reform.dw_sps[2].form.ubs == [3.0, -1.0]
+
+    Coluna.Algorithm.presolve_iteration!(presolve_reform, master_form, dw_pricing_sps)
+    Coluna.Algorithm.update_partial_sol!(
+        master_form,
+        presolve_reform.restricted_master,
+        local_restr_partial_sol
+    )
+    Coluna.Algorithm.update_reform_from_presolve!(master_form, dw_pricing_sps, presolve_reform)
+
+    # Global bounds:
+    #  -6 <= x1 <= 6
+    #  -20 <= x2 <= 0 (new local bounds => -20 <= x2 <= -2 because um = 2 and global ub = -1)
+
+    # new local bounds: (lm = 0, um = 2)
+    #  -3 <= x1 <=  3
+    # -10 <= x2 <= -1
+
+    @test presolve_reform.original_master.form.lbs == [-6.0, -20.0]
+    @test presolve_reform.original_master.form.ubs == [6.0, -0.0]
+
+    @test presolve_reform.dw_sps[2].form.lbs == [-3.0, -10.0]
+    @test presolve_reform.dw_sps[2].form.ubs == [3.0, -1.0]
 
     # Partial solution: MC3 = 1
     @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC1"]) ≈ 0
@@ -707,13 +735,13 @@ function test_col_bounds_propagation_from_restricted_master2()
     # @test Coluna.MathProg.get_value_in_partial_sol(spform, sp_name_to_var["x2"]) ≈ 2
 
     @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x1"]) ≈ -3
-    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 0
+    @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x1"]) ≈ 3
     @test Coluna.MathProg.getcurlb(spform, sp_name_to_var["x2"]) ≈ -10
     @test Coluna.MathProg.getcurub(spform, sp_name_to_var["x2"]) ≈ -1
 
     # Check global bounds (repr bounds)
     @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x1"]) ≈ -6
-    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x1"]) ≈ 0
+    @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x1"]) ≈ 6
     @test Coluna.MathProg.getcurlb(master_form, master_name_to_var["x2"]) ≈ -20
     @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x2"]) ≈ 0
     return
