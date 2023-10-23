@@ -103,7 +103,7 @@ function build_dw_presolve_reformulation()
     reform, master, sps = presolve_toy_gap_with_penalties()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
-    presolve_original_master = presolve_reform.original_master
+    presolve_original_master = presolve_reform.representative_master
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
     
     var_ids_lbs_ubs = [
@@ -344,7 +344,7 @@ function build_dw_presolve_reformulation()
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_16"]] == 1.0
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation; f = true)
 
 function presolve_toy_gap_with_penalties2()
     form = """
@@ -451,7 +451,7 @@ function build_dw_presolve_reformulation2()
     reform, master, sps = presolve_toy_gap_with_penalties2()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
-    presolve_original_master = presolve_reform.original_master
+    presolve_original_master = presolve_reform.representative_master
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
     
     var_ids_lbs_ubs = [
@@ -692,7 +692,7 @@ function build_dw_presolve_reformulation2()
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_16"]] == 1.0
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation2)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation2; f = true)
 
 function presolve_reformulation_with_var_not_in_coeff_matrix()
     form = """
@@ -770,7 +770,7 @@ function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
     reform, master, sps = presolve_reformulation_with_var_not_in_coeff_matrix()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
-    presolve_original_master = presolve_reform.original_master
+    presolve_original_master = presolve_reform.representative_master
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
 
     var_ids_lbs_ubs = [
@@ -825,4 +825,4 @@ function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
         @test presolve_original_master.form.col_major_coef_matrix[c, v] == val
     end
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_with_var_not_in_coeff_matrix)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_with_var_not_in_coeff_matrix; f = true)

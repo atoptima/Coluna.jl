@@ -89,4 +89,4 @@ function test_non_proper_column1()
 
     return
 end
-register!(unit_tests, "columns", test_non_proper_column1)
+register!(unit_tests, "columns", test_non_proper_column1; f = true)

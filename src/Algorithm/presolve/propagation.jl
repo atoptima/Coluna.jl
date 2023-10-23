@@ -61,7 +61,7 @@ function propagate_local_to_global_bounds!(
     dw_pricing_sps::Dict,
     presolve_reform_repr::DwPresolveReform
 )
-    presolve_repr_master = presolve_reform_repr.original_master
+    presolve_repr_master = presolve_reform_repr.representative_master
     for (spid, spform) in dw_pricing_sps
         presolve_sp = presolve_reform_repr.dw_sps[spid]
         propagate_global_bounds!(presolve_repr_master, master, presolve_sp, spform)
@@ -94,7 +94,7 @@ function propagate_global_to_local_bounds!(
     dw_pricing_sps::Dict,
     presolve_reform_repr::DwPresolveReform
 )
-    presolve_repr_master = presolve_reform_repr.original_master
+    presolve_repr_master = presolve_reform_repr.representative_master
     for (spid, spform) in dw_pricing_sps
         presolve_sp = presolve_reform_repr.dw_sps[spid]
         propagate_local_bounds!(presolve_repr_master, master, presolve_sp, spform)
@@ -162,7 +162,7 @@ function partial_sol_on_repr(
     presolve_reform_repr::DwPresolveReform,
     restr_partial_sol
 )
-    presolve_master_repr = presolve_reform_repr.original_master
+    presolve_master_repr = presolve_reform_repr.representative_master
     partial_solution = zeros(Float64, presolve_master_repr.form.nb_vars)
 
     # partial solution
