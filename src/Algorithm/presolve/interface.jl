@@ -484,31 +484,31 @@ end
 
 Returns the local restricted partial solution.
 """
-function propagate_partial_sol_into_master(presolve_reform, master, dw_pricing_sps)
+function propagate_partial_sol_into_master!(presolve_reform, master, dw_pricing_sps)
     presolve_restricted_master = presolve_reform.restricted_master
 
-    # Step 1: create the local partial solution from the restricted master presolve representation.
+    # Create the local partial solution from the restricted master presolve representation.
     # This local partial solution must then be "fixed" & propagated.
     local_restr_partial_sol = get_restr_partial_sol(presolve_restricted_master)
 
-    # Step 2: compute the rhs of all constraints.
+    # Compute the rhs of all constraints.
     # Non-robust and convexity constraints rhs can only be computed using this representation.
     new_rhs = compute_rhs(presolve_restricted_master, local_restr_partial_sol)
 
-    # Step 3: project local partial solution on the representative master.
+    # Project local partial solution on the representative master.
     local_repr_partial_sol, nb_fixed_columns_per_sp = partial_sol_on_repr(
         dw_pricing_sps, presolve_reform, local_restr_partial_sol
     )
 
-    # Step 4: update the multiplicity of each subproblem.
+    # Update the multiplicity of each subproblem.
     update_subproblem_multiplicities!(presolve_reform.dw_sps, nb_fixed_columns_per_sp)
 
-    # Step 5: compute new default global bounds
+    # Compute new default global bounds
     master_repr_default_global_bounds = compute_default_global_bounds(
         presolve_reform.representative_master, presolve_reform.dw_sps, master, dw_pricing_sps
     )
 
-    # Step 6: propagate local partial solution from the representative master representation
+    # Propagate local partial solution from the representative master representation
     # into the global bounds.
     propagate_partial_sol_to_global_bounds!(
         presolve_reform.representative_master, 
@@ -516,7 +516,7 @@ function propagate_partial_sol_into_master(presolve_reform, master, dw_pricing_s
         master_repr_default_global_bounds
     )
 
-    # Step 7: Update the rhs of the representative master.
+    # Update the rhs of the representative master.
     @assert length(new_rhs) == length(presolve_reform.restricted_master.form.rhs) == length(presolve_reform.representative_master.form.rhs)
     for (row, rhs) in enumerate(new_rhs)
         presolve_reform.representative_master.form.rhs[row] = rhs
@@ -545,16 +545,29 @@ function presolve_iteration!(presolve_reform, master, dw_pricing_sps)
     return
 end
 
+function deactivate_non_proper_columns!(master::Formulation{DwMaster}, dw_sps)
+    for (varid, var) in getvars(master)
+        if getduty(varid) <= MasterCol
+            spid = getoriginformuid(varid)
+            if !_column_is_proper(varid, dw_sps[spid])
+                deactivate!(master, varid)
+            end
+        end
+    end
+    return
+end
+
 function _presolve_run!(presolve_reform, master, dw_pricing_sps)
-    # Step 1: identify the partial solution in the restricted master, compute the new rhs
+    # Identify the partial solution in the restricted master, compute the new rhs
     # of all master constraints and new global and local bounds of the representative and 
     # subproblem variables.
-    local_restr_partial_sol = propagate_partial_sol_into_master(
+    local_restr_partial_sol = propagate_partial_sol_into_master!(
         presolve_reform,
         master,
         dw_pricing_sps
     )
 
+    # Perform several rounds of presolve.
     for i in 1:3
         println("**** Presolve step $i ****")
         presolve_iteration!(presolve_reform, master, dw_pricing_sps)
@@ -571,6 +584,8 @@ function _presolve_run!(presolve_reform, master, dw_pricing_sps)
         dw_pricing_sps, 
         presolve_reform
     )
+
+    deactivate_non_proper_columns!(master, dw_pricing_sps)
     return 
 end
 

@@ -279,50 +279,59 @@ end
 #         col_mask
 # end
 
-# function shrink_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::Vector{Int}, lm, um)
-#     nb_cols = form.nb_vars
-#     nb_rows = form.nb_constrs
-#     coef_matrix = form.col_major_coef_matrix
-#     rhs = form.rhs
-#     sense = form.sense
-#     lbs = form.lbs
-#     ubs = form.ubs
+function shrink_col_presolve_form_repr(form::PresolveFormRepr)
+    # nb_cols = form.nb_vars
+    # nb_rows = form.nb_constrs
+    # coef_matrix = form.col_major_coef_matrix
+    # rhs = form.rhs
+    # sense = form.sense
 
+    # # Update partial solution
+    # col_mask = ones(Bool, nb_cols)
+    # fixed_vars = Tuple{Int,Float64}[]
+    # # for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+    # #     @assert !isnan(lb)
+    # #     @assert !isnan(ub)
+    # #     if abs(ub) <= Coluna.TOL && abs(lb) <= Coluna.TOL
+    # #         col_mask[i] = false
+    # #         push!(fixed_vars, (i, partial_sol[i]))
+    # #     end
+    # # end
 
-#     # Update partial solution
-#     col_mask = ones(Bool, nb_cols)
-#     fixed_vars = Tuple{Int,Float64}[]
-#     for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-#         @assert !isnan(lb)
-#         @assert !isnan(ub)
-#         if abs(ub) <= Coluna.TOL && abs(lb) <= Coluna.TOL
-#             col_mask[i] = false
-#             push!(fixed_vars, (i, partial_sol[i]))
-#         end
-#     end
+    # nb_cols -= length(fixed_vars)
+    return
+end
 
-#     nb_cols -= length(fixed_vars)
-#     row_mask = ones(Bool, nb_rows)
-#     row_mask[rows_to_deactivate] .= false
+function shrink_row_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::Vector{Int}, lm, um)
+    nb_rows = form.nb_constrs
+    coef_matrix = form.col_major_coef_matrix
+    rhs = form.rhs
+    sense = form.sense
+    lbs = form.lbs
+    ubs = form.ubs
+    partial_sol = form.partial_solution
 
-#     return PresolveFormRepr(
-#         coef_matrix[row_mask, col_mask],
-#         rhs[row_mask], 
-#         sense[row_mask], 
-#         lbs[col_mask], 
-#         ubs[col_mask], 
-#         partial_sol[col_mask], 
-#         lm, 
-#         um
-#     ), row_mask, col_mask, fixed_vars
-# end
+    row_mask = ones(Bool, nb_rows)
+    row_mask[rows_to_deactivate] .= false
+
+    return PresolveFormRepr(
+        coef_matrix[row_mask, :],
+        rhs[row_mask], 
+        sense[row_mask], 
+        lbs, 
+        ubs, 
+        partial_sol, 
+        lm, 
+        um
+    ), row_mask
+end
 
 function PresolveFormRepr(
     presolve_form_repr::PresolveFormRepr,
     rows_to_deactivate::Vector{Int},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
     lm,
-    um;
+    um
 )
     row_mask = ones(Bool, presolve_form_repr.nb_constrs)
     col_mask = ones(Bool, presolve_form_repr.nb_vars)
@@ -331,11 +340,9 @@ function PresolveFormRepr(
         presolve_form_repr, tightened_bounds, lm, um
     )
 
-    # if shrink
-    #     presolve_form_repr, row_mask, col_mask, fixed_vars = shrink_presolve_form_repr(
-    #         presolve_form_repr, rows_to_deactivate, lm, um
-    #     )
-    # end
+    presolve_form_repr, row_mask = shrink_row_presolve_form_repr(
+        presolve_form_repr, rows_to_deactivate, lm, um
+    )
     return presolve_form_repr, row_mask, col_mask
 end
 
