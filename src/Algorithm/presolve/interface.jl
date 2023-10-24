@@ -549,7 +549,7 @@ function deactivate_non_proper_columns!(master::Formulation{DwMaster}, dw_sps)
     for (varid, var) in getvars(master)
         if getduty(varid) <= MasterCol
             spid = getoriginformuid(varid)
-            if !_column_is_proper(varid, dw_sps[spid])
+            if !_column_is_proper(varid, dw_sps[spid]) && !Coluna.MathProg.in_partial_sol(master, varid)
                 deactivate!(master, varid)
             end
         end
