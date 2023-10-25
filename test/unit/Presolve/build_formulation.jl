@@ -344,7 +344,7 @@ function build_dw_presolve_reformulation()
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_16"]] == 1.0
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation; f = true)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation)
 
 function presolve_toy_gap_with_penalties2()
     form = """
@@ -692,7 +692,7 @@ function build_dw_presolve_reformulation2()
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_16"]] == 1.0
     @test presolve_dw_sp.form.col_major_coef_matrix[sp_constr_ids["sp_c2"], sp_var_ids["x_17"]] == 1.0
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation2; f = true)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation2)
 
 function presolve_reformulation_with_var_not_in_coeff_matrix()
     form = """
@@ -825,4 +825,4 @@ function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
         @test presolve_original_master.form.col_major_coef_matrix[c, v] == val
     end
 end
-register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_with_var_not_in_coeff_matrix; f = true)
+register!(unit_tests, "presolve_reformulation", build_dw_presolve_reformulation_with_var_not_in_coeff_matrix)

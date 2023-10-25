@@ -98,4 +98,4 @@ function unit_static_var_constr_record()
     test_constr(form, constrs["c1"], 1)
     @test !ClMP.iscuractive(form, constrs["c2"])
 end
-register!(unit_tests, "storage_record", unit_static_var_constr_record, f = true)
+register!(unit_tests, "storage_record", unit_static_var_constr_record)

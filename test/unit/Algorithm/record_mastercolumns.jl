@@ -51,4 +51,4 @@ function unit_master_columns_record()
     active_varids = filter(var_id -> iscuractive(form, var_id), keys(ClMP.getvars(form)))
     @test isempty(setdiff(active_varids, v1v3))
 end
-register!(unit_tests, "storage_record", unit_master_columns_record, f = true)
+register!(unit_tests, "storage_record", unit_master_columns_record)

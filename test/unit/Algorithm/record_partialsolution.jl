@@ -75,4 +75,4 @@ function unit_partial_solution_record()
     @test ClMP.get_value_in_partial_sol(form, vars["v2"]) == -1.0
     @test ClMP.get_value_in_partial_sol(form, vars["v3"]) == -2.0
 end
-register!(unit_tests, "storage_record", unit_partial_solution_record, f = true)
+register!(unit_tests, "storage_record", unit_partial_solution_record)

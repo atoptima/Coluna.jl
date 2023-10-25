@@ -15,7 +15,7 @@ function test_lb_precision()
     @test Coluna.Algorithm._lb_prec(e) == 0.3
     @test Coluna.Algorithm._lb_prec(f) == 0.3
 end
-register!(unit_tests, "presolve_helper", test_lb_precision; f = true)
+register!(unit_tests, "presolve_helper", test_lb_precision)
 
 function test_ub_precision()
     z = 1.20000000000000001
@@ -34,7 +34,7 @@ function test_ub_precision()
     @test Coluna.Algorithm._ub_prec(e) == 0.3
     @test Coluna.Algorithm._ub_prec(f) == 0.3
 end
-register!(unit_tests, "presolve_helper", test_ub_precision; f = true)
+register!(unit_tests, "presolve_helper", test_ub_precision)
 
 function test_presolve_builder1()
     coef_matrix = sparse([
@@ -262,7 +262,7 @@ function row_activity()
     @test Coluna.Algorithm.row_min_activity(form, 6) == transpose(coef_matrix[6,:]) * [lbs[1], ubs[2], lbs[3], lbs[4], 0, lbs[6], lbs[7]] # ok
     @test Coluna.Algorithm.row_max_activity(form, 6) == transpose(coef_matrix[6,:]) * [ubs[1], lbs[2], ubs[3], ubs[4], 0, ubs[6], ubs[7]] # ok
 end
-register!(unit_tests, "presolve_helper", row_activity; f = true)
+register!(unit_tests, "presolve_helper", row_activity)
 
 function row_slack()
     coef_matrix = sparse([
@@ -295,7 +295,7 @@ function row_slack()
     @test Coluna.Algorithm.row_min_slack(form, 6) == rhs[6] - Coluna.Algorithm.row_max_activity(form, 6) # ok
     @test Coluna.Algorithm.row_max_slack(form, 6) == rhs[6] - Coluna.Algorithm.row_min_activity(form, 6) # ok
 end
-register!(unit_tests, "presolve_helper", row_slack; f = true)
+register!(unit_tests, "presolve_helper", row_slack)
 
 function test_inner_unbounded_row()
     @test Coluna.Algorithm._unbounded_row(Less, Inf)
@@ -307,7 +307,7 @@ function test_inner_unbounded_row()
     @test !Coluna.Algorithm._unbounded_row(Less, 15)
     @test !Coluna.Algorithm._unbounded_row(Greater, 15)
 end
-register!(unit_tests, "presolve_helper", test_inner_unbounded_row; f = true)
+register!(unit_tests, "presolve_helper", test_inner_unbounded_row)
 
 function test_inner_row_bounded_by_var_bounds_1()
     # x + y + z >= 1
@@ -339,7 +339,7 @@ function test_inner_row_bounded_by_var_bounds_1()
     @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
     @test Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
 end
-register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_1; f = true)
+register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_1)
 
 function test_inner_row_bounded_by_var_bounds_2()
     # x + y + z <= 9
@@ -371,7 +371,7 @@ function test_inner_row_bounded_by_var_bounds_2()
     @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
     @test Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
 end
-register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_2; f = true)
+register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_2)
 
 function test_inner_row_bounded_by_var_bounds_3()
     # x + y + z == 3
@@ -406,7 +406,7 @@ function test_inner_row_bounded_by_var_bounds_3()
     @test !Coluna.Algorithm._row_bounded_by_var_bounds(sense, min_slack, max_slack, 1e-6)
     @test !Coluna.Algorithm._infeasible_row(sense, min_slack, max_slack, 1e-6)
 end
-register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_3; f = true)
+register!(unit_tests, "presolve_helper", test_inner_row_bounded_by_var_bounds_3)
 
 function test_var_bounds_from_row1()
     # x + 2y + 3z >= 10
@@ -444,7 +444,7 @@ function test_var_bounds_from_row1()
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, -1.0)
     @test isinf(ub) && ub > 0
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row1; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row1)
 
 function test_var_bounds_from_row2()
     # -3x + y + 2z <= 2
@@ -483,7 +483,7 @@ function test_var_bounds_from_row2()
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 3)
     @test isinf(ub) && ub > 0
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row2; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row2)
 
 function test_var_bounds_from_row3()
     # 2x + 3y - 4z <= 9
@@ -522,7 +522,7 @@ function test_var_bounds_from_row3()
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, -2)
     @test ub == 1/2
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row3; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row3)
 
 function test_var_bounds_from_row4()
     # -2x + 2y + 3z >= 10
@@ -561,7 +561,7 @@ function test_var_bounds_from_row4()
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, 2)
     @test ub == 0
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row4; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row4)
 
 function test_var_bounds_from_row5()
     # 2x + 3y + 4z = 5
@@ -597,7 +597,7 @@ function test_var_bounds_from_row5()
     ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 2)
     @test ub == 5/2
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row5; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row5)
 
 function test_var_bounds_from_row6()
     # x1 + x2 >= 1 (row 1)
@@ -637,7 +637,7 @@ function test_var_bounds_from_row6()
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack2, max_slack2, 1)
     @test ub == Inf
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row6; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row6)
 
 function test_var_bounds_from_row7()
     # -2x + y + z >= 150
@@ -683,7 +683,7 @@ function test_var_bounds_from_row7()
     ub = Coluna.Algorithm._var_ub_from_row(sense[2], min_slack, max_slack, -1)
     @test isinf(ub) && ub > 0
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row7; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row7)
 
 function test_var_bounds_from_row8() # this was producing a bug
     # 2x + y + z <= 1
@@ -711,7 +711,7 @@ function test_var_bounds_from_row8() # this was producing a bug
     ub = Coluna.Algorithm._var_ub_from_row(sense[1], min_slack, max_slack, 2)
     @test ub == 1/2
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row8; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row8)
 
 function test_var_bounds_from_row9()
     # x + y + a >= 1
@@ -749,7 +749,7 @@ function test_var_bounds_from_row9()
     @test result[1] === (0.0, false, 0.0, true) 
     @test result[2] === (1.0, false, 1.0, true)
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row9; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row9)
 
 function test_var_bounds_from_row10()
     # y2
@@ -778,7 +778,7 @@ function test_var_bounds_from_row10()
     lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, 1)
     @test lb == -Inf
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row10; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row10)
 
 function test_var_bounds_from_row11()
     # - w - x + y + z = 0
@@ -806,7 +806,7 @@ function test_var_bounds_from_row11()
     lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, -1)
     @test lb == -Inf
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row11; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row11)
 
 function test_var_bounds_from_row12()
     # 0x + y + z <= 5
@@ -832,7 +832,7 @@ function test_var_bounds_from_row12()
     lb = Coluna.Algorithm._var_lb_from_row(sense[1], min_slack, max_slack, 0)
     @test lb == -Inf
 end
-register!(unit_tests, "presolve_helper", test_var_bounds_from_row12; f = true)
+register!(unit_tests, "presolve_helper", test_var_bounds_from_row12)
 
 function test_uninvolved_vars1()
     # 0x + y + z <= 5
@@ -853,7 +853,7 @@ function test_uninvolved_vars1()
 
     @test cols == [1]
 end
-register!(unit_tests, "presolve_helper", test_uninvolved_vars1; f = true)
+register!(unit_tests, "presolve_helper", test_uninvolved_vars1)
 
 function test_uninvolved_vars2()
     # x + y + z <= 5
@@ -874,7 +874,7 @@ function test_uninvolved_vars2()
 
     @test cols == []
 end
-register!(unit_tests, "presolve_helper", test_uninvolved_vars2; f = true)
+register!(unit_tests, "presolve_helper", test_uninvolved_vars2)
 
 function test_uninvolved_vars3()
     # w, x, y, z
@@ -894,4 +894,4 @@ function test_uninvolved_vars3()
     cols = Coluna.Algorithm.find_uninvolved_vars(form.col_major_coef_matrix)
     @test cols == [1, 4]
 end
-register!(unit_tests, "presolve_helper", test_uninvolved_vars3; f = true)
+register!(unit_tests, "presolve_helper", test_uninvolved_vars3)

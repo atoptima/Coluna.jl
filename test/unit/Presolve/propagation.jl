@@ -196,7 +196,7 @@ function test_var_bound_propagation_within_restricted_master()
     # @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC2"]) == 1.0
     # @test Coluna.MathProg.get_value_in_partial_sol(master_form, master_name_to_var["MC3"]) == 0.0
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_within_restricted_master; f = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_within_restricted_master; x = true)
 
 function test_col_bounds_propagation_from_restricted_master()
     # Original Master
@@ -390,7 +390,7 @@ function test_col_bounds_propagation_from_restricted_master()
     @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x2"]) ≈ 3
     return
 end
-register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master; f = true)
+register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master)
 
 function test_col_bounds_propagation_from_restricted_master2()
     # Original Master
@@ -582,7 +582,7 @@ function test_col_bounds_propagation_from_restricted_master2()
     @test Coluna.MathProg.getcurub(master_form, master_name_to_var["x2"]) ≈ 0
     return
 end
-register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master2; f = true)
+register!(unit_tests, "presolve_propagation", test_col_bounds_propagation_from_restricted_master2)
 
 ## OriginalVar -> DwSpPricingVar (mapping exists)
 ## otherwise no propagation
@@ -686,7 +686,7 @@ function test_var_bound_propagation_from_original_to_subproblem()
     @test result[2] == (0.5, true, Inf, false)
     @test result[4] == (0.3, true, Inf, false)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_subproblem; f = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_subproblem)
 
 ## OriginalVar -> MasterRepPricingVar (mapping exists)
 ## OriginalVar -> MasterPureVar (mapping exists)
@@ -750,7 +750,7 @@ function test_var_bound_propagation_from_original_to_master()
     result = Coluna.Algorithm.bounds_tightening(orig_presolve_form.form)
     @test result[2] == (0.0, false, 1.0, true)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_master; f = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_original_to_master)
 
 ## MasterRepPricingVar -> DwSpPricingVar (mapping exists)
 ## otherwise no propagation
@@ -847,7 +847,7 @@ function test_var_bound_propagation_from_master_to_subproblem()
     result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
     @test result[4] == (0.3, true, Inf, false)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_master_to_subproblem; f = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_master_to_subproblem)
 
 ## DwSpPricingVar -> MasterRepPricingVar (mapping exists)
 ## otherwise no propagation
@@ -950,7 +950,7 @@ function test_var_bound_propagation_from_subproblem_to_master()
     result = Coluna.Algorithm.bounds_tightening(sp2_presolve_form.form)
     @test result[2] == (0.3, true, Inf, false)
 end
-register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_subproblem_to_master; f = true)
+register!(unit_tests, "presolve_propagation", test_var_bound_propagation_from_subproblem_to_master)
 
 ############################################################################################
 # Var fixing propagation.
@@ -1144,14 +1144,6 @@ function test_var_fixing_propagation_within_formulation3() # TODO: fix this test
 end
 register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_within_formulation3; x = true)
 
-
-## OriginalVar -> DwSpPricingVar (mapping exists)
-## otherwise no propagation
-function test_var_fixing_propagation_from_original_to_subproblem()
-
-end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_subproblem; f = true)
-
 ## OriginalVar -> MasterRepPricingVar (mapping exists)
 ## OriginalVar -> MasterPureVar (mapping exists)
 ## otherwise no propagation
@@ -1229,122 +1221,7 @@ function test_var_fixing_propagation_from_original_to_master()
     @test bounds_result[1] == (0, false, 0, true)
     @test length(bounds_result) == 1
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master; f = true)
-
-## MasterColumns -> MasterRepPricingVar -> DwSpPricingVar
-## otherwise no propagation
-function test_var_fixing_propagation_from_master_to_subproblem1()
-    # Master
-    # min x1 + x2 + y1 + y2 + MC1 + MC2 + MC3 + MC4 + a 
-    # s.t. 2x1 + 2x2 + 2y1 + 2y2 + 2MC1 + 2MC2 + 2MC3 + 2MC4 + a >= 4
-    #    0 <= x1 <= 0 (repr) --> (fixing x1 == 0)
-    #    0 <= x2 <= 1 (repr)
-    #    0 <= y1 <= 1 (repr)
-    #    1 <= y2 <= 1 (repr) --> (fixing y2 == 1)
-    #    0 <= MC1 <= 1
-    #    0 <= MC2 <= 1
-    #    0 <= MC3 <= 1
-    #    0 <= MC4 <= 1
-    #    a >= 0
-
-    # with:
-    # - MC1 = [x1 = 0, x2 = 0]
-    # - MC2 = [x1 = 1, x2 = 0] (--> fixing MC2 == 0 because x1 == 0 -- propagation)
-    # - MC3 = [x1 = 0, x2 = 1]
-    # - MC4 = [x1 = 1, x2 = 1] (--> fixing MC4 == 0 because x1 == 0 -- propagation)
-    # - MC5 = [y1 = 0, y2 = 0] 
-    # - MC6 = [y1 = 1, y2 = 0]
-    # - MC7 = [y1 = 0, y2 = 1]
-    # - MC8 = [y1 = 1, y2 = 1]
-
-    # Subproblems
-    # min x1 + x2
-    # s.t. x1 + x2 >= 1
-    #     0 <= x1 <= 1 --> (fixing x1 == 0 by propagation)
-    #     0 <= x2 <= 1
-
-    # min y1 + y2
-    # s.t. y1 + y2 >= 1
-    #    0 <= y1 <= 1
-    #    0 <= y2 <= 1 (--> fixing y2 == 1 by propagation)
-
-    env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
-
-    master_form, master_name_to_var, master_constr_to_var = _mathprog_formulation!(
-        env,
-        Coluna.MathProg.DwMaster(),
-        [
-            # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 0.0, nothing, nothing),
-            ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
-            ("y1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 1.0, nothing, nothing),
-            ("y2", Coluna.MathProg.MasterRepPricingVar, 1.0, 1.0, 1.0, nothing, nothing),
-            ("MC1", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
-            ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
-            ("MC3", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
-            ("MC4", Coluna.MathProg.MasterCol, 1.0, 0.0, 1.0, nothing, nothing),
-            ("a", Coluna.MathProg.MasterArtVar, 1.0, 0.0, Inf, nothing, nothing)
-        ],
-        [
-            # name, duty, rhs, sense , id
-            ("c1", Coluna.MathProg.MasterMixedConstr, 4.0, ClMP.Greater, nothing, nothing)
-        ]
-    )
-
-    master_repr_presolve_form = _presolve_formulation(
-        ["x1", "x2", "y1", "y2"],  ["c1"], [2 2 2 2;], master_form, master_name_to_var, master_constr_to_var
-    )
-
-    master_presolve_form = _presolve_formulation(
-        ["MC1", "MC2", "MC3", "MC4", "a"], ["c1"], [2 2 2 2 1;], master_form, master_name_to_var, master_constr_to_var
-    )
-
-    sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
-        env,
-        Coluna.MathProg.DwSp(
-            nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
-        ),
-        [
-            # name, duty, cost, lb, ub, id
-            ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), nothing),
-            ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), nothing)
-        ],
-        [
-            # name, duty, rhs, sense, id
-            ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
-        ]
-    )
-     
-    sp1_presolve_form = _presolve_formulation(
-        ["x1", "x2"], ["c3"], [1 1;], sp1_form, sp1_name_to_var, sp1_name_to_constr
-    )
-
-    sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
-        env,
-        Coluna.MathProg.DwSp(
-            nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
-        ),
-        [
-            # name, duty, cost, lb, ub, id
-            ("y1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y1"]), nothing),
-            ("y2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["y2"]), nothing)
-        ],
-        [
-            # name, duty, rhs, sense, id
-            ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing, nothing)
-        ]
-    )
-
-    sp2_presolve_form = _presolve_formulation(
-        ["y1", "y2"], ["c4"], [1 1;], sp2_form, sp2_name_to_var, sp2_name_to_constr
-    )
-
-    # Run the presolve variable fixing on the original formulation.
-    bounds_result = Coluna.Algorithm.bounds_tightening(master_repr_presolve_form.form)
-    @test isempty(bounds_result)
-    return
-end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem1; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_original_to_master)
 
 function test_var_fixing_propagation_from_master_to_subproblem2()
     # Master
@@ -1487,14 +1364,7 @@ function test_var_fixing_propagation_from_master_to_subproblem2()
     @test isempty(sp2_bounds_result)
     return
 end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem2; f = true)
-
-## DwSpPricingVar -> MasterRepPricingVar 
-## otherwise no propagation
-function test_var_fixing_propagation_from_subproblem_to_master()
- # TODO
-end
-register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_subproblem_to_master; f = true)
+register!(unit_tests, "presolve_propagation", test_var_fixing_propagation_from_master_to_subproblem2)
 
 ################################################################################
 # Update DW reformulation
@@ -1630,12 +1500,5 @@ function update_master_repr_formulation()
     #     @test ClMP.getcurrhs(master_form, constr) == rhs
     # end
 end
-register!(unit_tests, "presolve_formulation", update_master_repr_formulation; f = true)
+register!(unit_tests, "presolve_formulation", update_master_repr_formulation; x = true)
 
-function update_master_formulation()
-end
-register!(unit_tests, "presolve_formulation", update_master_formulation; f = true)
-
-function update_sp_formulation()
-end
-register!(unit_tests, "presolve_formulation", update_sp_formulation; f = true)
