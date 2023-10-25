@@ -1,20 +1,15 @@
 """
-    VarState
+    StaticVarState
 
 Used in formulation records
 """
-struct VarState
+struct StaticVarState
     cost::Float64
     lb::Float64
     ub::Float64
-    partial_sol_value::Float64
 end
 
-function apply_state!(form::Formulation, var::Variable, var_state::VarState)
-    # To avoid warnings when changing variable bounds.
-    # Commented, as this line makes var.curdata.is_in_partial_sol and form.manager.partial_solution asynchronous (source of diving with LDS bug)
-    # var.curdata.is_in_partial_sol = false
-
+function apply_state!(form::Formulation, var::Variable, var_state::StaticVarState)
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)
     end
@@ -23,9 +18,6 @@ function apply_state!(form::Formulation, var::Variable, var_state::VarState)
     end
     if getcurcost(form, var) != var_state.cost
         setcurcost!(form, var, var_state.cost)
-    end
-    if MathProg.get_value_in_partial_sol(form, var) != var_state.partial_sol_value
-        MathProg.set_value_in_partial_solution!(form, var, var_state.partial_sol_value)
     end
     return
 end
@@ -118,8 +110,11 @@ Can be restored using a MasterColumnsRecord.
 struct MasterColumnsUnit <: AbstractRecordUnit end
 
 mutable struct MasterColumnsRecord <: AbstractRecord
-    cols::Dict{VarId,VarState}
+    active_cols::Set{VarId}
+
+    MasterColumnsRecord() = new(Set{VarId}())
 end
+push!(record::MasterColumnsRecord, id::VarId) = push!(record.active_cols, id)
 
 struct MasterColumnsKey <: AbstractStorageUnitKey end
 
@@ -129,16 +124,10 @@ record_type_from_key(::MasterColumnsKey) = MasterColumnsRecord
 ClB.storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
 
 function ClB.record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
-    record = MasterColumnsRecord(Dict{VarId,ConstrState}())
+    record = MasterColumnsRecord()
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && isexplicit(form, var) && iscuractive(form, var)
-            varstate = VarState(
-                getcurcost(form, var),
-                getcurlb(form, var),
-                getcurub(form, var),
-                MathProg.get_value_in_partial_sol(form, var)
-            )
-            record.cols[id] = varstate
+            push!(record, id)
         end
     end
     return record
@@ -152,16 +141,12 @@ function ClB.restore_from_record!(
 )
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && isexplicit(form, var)
-            if haskey(state.cols, id) 
+            if id in state.active_cols
                 if !iscuractive(form, var)
                     activate!(form, var)
                 end
-                apply_state!(form, var, state.cols[id])
             else
                 if iscuractive(form, var) 
-                    if !iszero(MathProg.get_value_in_partial_sol(form, var))
-                        MathProg.set_value_in_partial_solution!(form, var, 0.0)
-                    end
                     deactivate!(form, var)
                 end
             end    
@@ -245,7 +230,7 @@ StaticVarConstrUnit(::Formulation) = StaticVarConstrUnit()
 
 mutable struct StaticVarConstrRecord <: AbstractRecord
     constrs::Dict{ConstrId,ConstrState}
-    vars::Dict{VarId,VarState}
+    vars::Dict{VarId,StaticVarState}
 end
 
 # TO DO: we need to keep here only the difference with the initial data
@@ -271,7 +256,7 @@ ClB.storage_unit(::Type{StaticVarConstrUnit}, _) = StaticVarConstrUnit()
 
 function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, unit::StaticVarConstrUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
-    record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
+    record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,StaticVarState}())
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr) 
             constrstate = ConstrState(getcurrhs(form, constr))
@@ -280,11 +265,10 @@ function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, u
     end
     for (id, var) in getvars(form)
         if isaStaticDuty(getduty(id)) && isexplicit(form, var) && iscuractive(form, var)          
-            varstate = VarState(
+            varstate = StaticVarState(
                 getcurcost(form, var), 
                 getcurlb(form, var), 
-                getcurub(form, var),
-                MathProg.get_value_in_partial_sol(form, var)
+                getcurub(form, var)
             )
             record.vars[id] = varstate
         end
@@ -321,7 +305,7 @@ function ClB.restore_from_record!(
         if isaStaticDuty(getduty(id)) && isexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
             if haskey(record.vars, id) 
-                if !iscuractive(form, var) #&& !isfixed(form, var)
+                if !iscuractive(form, var) 
                     @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
                     activate!(form, var)
                 end
@@ -334,5 +318,61 @@ function ClB.restore_from_record!(
                 end
             end    
         end
+    end
+end
+
+"""
+    PartialSolutionUnit
+
+Unit for current the partial solution  of a formulation.
+Can be restored using a PartialSolutionRecord.    
+"""
+
+struct PartialSolutionUnit <: AbstractRecordUnit end
+
+PartialSolutionUnit(::Formulation) = PartialSolutionUnit()
+
+mutable struct PartialSolutionRecord <: AbstractRecord
+    partial_solution::Dict{VarId, Float64}
+    
+    PartialSolutionRecord(form::Formulation) = new(copy(MathProg.getpartialsol(form)))
+end
+
+struct PartialSolutionKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{PartialSolutionUnit}) = PartialSolutionKey()
+record_type_from_key(::PartialSolutionKey) = PartialSolutionRecord
+
+ClB.storage_unit(::Type{PartialSolutionUnit}, _) = PartialSolutionUnit()
+
+function ClB.record(::Type{PartialSolutionRecord}, id::Int, form::Formulation, unit::PartialSolutionUnit)
+    return PartialSolutionRecord(form)
+end
+
+ClB.record_type(::Type{PartialSolutionUnit}) = PartialSolutionRecord
+ClB.storage_unit_type(::Type{PartialSolutionRecord}) = PartialSolutionUnit
+
+function ClB.restore_from_record!(
+    form::Formulation, ::PartialSolutionUnit, record::PartialSolutionRecord
+)
+    @logmsg LogLevel(-2) "Restoring partial solution"
+    form_part_sol = MathProg.getpartialsol(form)
+    change_dict = Dict{VarId, Float64}()
+    for (var_id, cur_value) in form_part_sol
+        record_value = get(record.partial_solution, var_id, 0.0)
+        if cur_value != record_value
+            change_dict[var_id] = record_value            
+        end
+    end
+
+    for (var_id, record_value) in record.partial_solution
+        if !haskey(form_part_sol, var_id)
+            change_dict[var_id] = record_value
+        end
+    end
+
+    for (var_id, value) in change_dict
+        @logmsg LogLevel(-4) string("Changing value of ", getname(form, var_id), " in partial solution to ", value)
+        MathProg.set_value_in_partial_solution!(form, var_id, value)
     end
 end

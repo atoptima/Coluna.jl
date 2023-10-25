@@ -267,7 +267,6 @@ function update_partial_sol!(form::Formulation{DwMaster}, presolve_form::Presolv
             """)
         end
         if !iszero(val) && (duty <= MasterCol || duty <= MasterPureVar)
-            println("update partial sol for variable $(getname(form, var)).")
             MathProg.add_to_partial_solution!(form, var, val)
             partial_sol_counter += 1
             setcurlb!(form, var, 0.0)
@@ -370,6 +369,7 @@ function get_units_usage(algo::PresolveAlgorithm, reform::Reformulation)
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[]
     master = getmaster(reform)
     push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
+    push!(units_usage, (master, PartialSolutionUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
@@ -550,9 +550,7 @@ function deactivate_non_proper_columns!(master::Formulation{DwMaster}, dw_sps)
         if getduty(varid) <= MasterCol
             spid = getoriginformuid(varid)
             if !_column_is_proper(varid, dw_sps[spid])
-                if !in_partial_solution(master, varid)
-                    deactivate!(master, varid)
-                end
+                deactivate!(master, varid)
             end
         end
     end
@@ -626,4 +624,10 @@ function _column_is_proper(col_id, sp_form)
         end
     end
     return true
+end
+
+function column_is_proper(col_id, reform)
+    sp_id = getoriginformuid(col_id)
+    sp_form = get_dw_pricing_sps(reform)[sp_id]
+    return _column_is_proper(col_id, sp_form)
 end
