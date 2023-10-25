@@ -62,7 +62,7 @@ function test_presolve_builder1()
     @test all(form.ubs .== ubs)
     return
 end
-register!(unit_tests, "presolve_helper", test_presolve_builder1)
+register!(unit_tests, "presolve_helper", test_presolve_builder1; x = true)
 
 # Test rows deactivation.
 function test_presolve_builder2()
@@ -87,9 +87,8 @@ function test_presolve_builder2()
     rows_to_deactivate = [1, 3, 6]
     tightened_bounds = Dict{Int, Tuple{Float64, Bool, Float64, Bool}}()
 
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
-        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
-        store_unpropagated_partial_sol = false
+    form2, _, _ = Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0
     )
     @test form2.nb_vars == 7
     @test form2.nb_constrs == 3
@@ -100,7 +99,7 @@ function test_presolve_builder2()
     @test all(form2.ubs .== [9, Inf, 1, 1, 1, 0, 1])
     @test all(form2.partial_solution .== [1, 0, 2, 1, 0, 0, 0])
 end
-register!(unit_tests, "presolve_helper", test_presolve_builder2)
+register!(unit_tests, "presolve_helper", test_presolve_builder2; x = true)
 
 # Test vars fixing.
 function test_presolve_builder3()
@@ -142,9 +141,8 @@ function test_presolve_builder3()
     #  <= -1 - 2 + 4    -> 1
     #  == -6 +2*2 - 5.5 -> -7.5
 
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
-        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
-        store_unpropagated_partial_sol = false
+    form2, _, _ = Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0
     )
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 6
@@ -155,7 +153,7 @@ function test_presolve_builder3()
     @test all(form2.ubs .== [1, 1, 1]) # Vars 2, 4, & 5
     @test all(form2.partial_solution .== [2, 1, 0])
 end
-register!(unit_tests, "presolve_helper", test_presolve_builder3)
+register!(unit_tests, "presolve_helper", test_presolve_builder3; x = true)
 
 # Test bound tightening.
 function test_presolve_builder4()
@@ -183,9 +181,8 @@ function test_presolve_builder4()
         3 => (-1, false, 3, false),
         6 => (0.5, true, 0.5, true) # the flag forces the update!
     )
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
-        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
-        store_unpropagated_partial_sol = false
+    form2, _, _= Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0
     )
     @test form2.nb_vars == 6
     @test form2.nb_constrs == 6
@@ -196,7 +193,7 @@ function test_presolve_builder4()
     @test all(form2.ubs .== [1, 1, 1, 1, 1, 1])
     @test all(form2.partial_solution .== [1, 0, 2, 1, 0, 0])
 end
-register!(unit_tests, "presolve_helper", test_presolve_builder4)
+register!(unit_tests, "presolve_helper", test_presolve_builder4; x = true)
 
 function test_presolve_builder5()
     # 2x1 + 3x2 - 2x3 >= 2
@@ -220,9 +217,8 @@ function test_presolve_builder5()
         3 => (1, true, 2, true)
     )
 
-    form2, _, _, _ = Coluna.Algorithm.PresolveFormRepr(
-        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0;
-        store_unpropagated_partial_sol = false
+    form2, _, _= Coluna.Algorithm.PresolveFormRepr(
+        form, rows_to_deactivate, tightened_bounds, 1.0, 1.0
     )
     @test form2.nb_vars == 3
     @test form2.nb_constrs == 2
@@ -233,7 +229,7 @@ function test_presolve_builder5()
     @test all(form2.ubs .== [Inf, Inf, 1])
     @test all(form2.partial_solution .== [2, 2, 1])
 end
-register!(unit_tests, "presolve_helper", test_presolve_builder5)
+register!(unit_tests, "presolve_helper", test_presolve_builder5; x = true)
 
 function row_activity()
     coef_matrix = sparse([

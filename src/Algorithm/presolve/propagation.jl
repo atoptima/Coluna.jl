@@ -61,7 +61,7 @@ function propagate_local_to_global_bounds!(
     dw_pricing_sps::Dict,
     presolve_reform_repr::DwPresolveReform
 )
-    presolve_repr_master = presolve_reform_repr.original_master
+    presolve_repr_master = presolve_reform_repr.representative_master
     for (spid, spform) in dw_pricing_sps
         presolve_sp = presolve_reform_repr.dw_sps[spid]
         propagate_global_bounds!(presolve_repr_master, master, presolve_sp, spform)
@@ -94,36 +94,12 @@ function propagate_global_to_local_bounds!(
     dw_pricing_sps::Dict,
     presolve_reform_repr::DwPresolveReform
 )
-    presolve_repr_master = presolve_reform_repr.original_master
+    presolve_repr_master = presolve_reform_repr.representative_master
     for (spid, spform) in dw_pricing_sps
         presolve_sp = presolve_reform_repr.dw_sps[spid]
         propagate_local_bounds!(presolve_repr_master, master, presolve_sp, spform)
     end
     return
-end
-
-function _get_local_lb(global_lb, prec_local_lb, lm, um)
-    if global_lb < 0
-        return max(global_lb, prec_local_lb)
-    elseif global_lb > 0
-        return min(global_lb, prec_local_lb)
-    end
-    if prec_local_lb < 0 && iszero(um) || prec_local_lb > 0 && iszero(lm)
-        return prec_local_lb
-    end
-    return 0.0
-end
-
-function _get_local_ub(global_ub, prec_local_ub, lm, um)
-    if global_ub < 0
-        return max(global_ub, prec_local_ub)
-    elseif global_ub > 0
-        return min(global_ub, prec_local_ub)
-    end
-    if prec_local_ub < 0 && iszero(lm) || prec_local_ub > 0 && iszero(um)
-        return prec_local_ub
-    end
-    return 0.0
 end
 
 function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, master::Formulation, presolve_sp::PresolveFormulation, spform::Formulation)
@@ -135,10 +111,8 @@ function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, mast
         if !isnothing(repr_col)
             global_lb = presolve_repr_master.form.lbs[repr_col]
             global_ub = presolve_repr_master.form.ubs[repr_col]
-            prec_local_lb = presolve_sp.form.lbs[i]
-            prec_local_ub = presolve_sp.form.ubs[i]
-            local_lb = _get_local_lb(global_lb, prec_local_lb, lm, um)
-            local_ub = _get_local_ub(global_ub, prec_local_ub, lm, um)
+            local_lb = presolve_sp.form.lbs[i]
+            local_ub = presolve_sp.form.ubs[i]
 
             if !isinf(global_lb) && !isinf(local_ub)
                 new_local_lb = global_lb - local_ub * (local_ub > 0 ? um : lm)
@@ -185,9 +159,10 @@ end
 
 function partial_sol_on_repr(
     dw_pricing_sps::Dict, 
-    presolve_reform_repr::DwPresolveReform
+    presolve_reform_repr::DwPresolveReform,
+    restr_partial_sol
 )
-    presolve_master_repr = presolve_reform_repr.original_master
+    presolve_master_repr = presolve_reform_repr.representative_master
     partial_solution = zeros(Float64, presolve_master_repr.form.nb_vars)
 
     # partial solution
@@ -196,7 +171,7 @@ function partial_sol_on_repr(
     dw_pricing_sps = dw_pricing_sps
     nb_fixed_columns = Dict(spid => 0 for (spid, _) in dw_pricing_sps)
     new_column_explored = false
-    for (col, partial_sol_value) in enumerate(presolve_master_restr.form.unpropagated_partial_solution)
+    for (col, partial_sol_value) in enumerate(restr_partial_sol)
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master_restr.col_to_var[col]
             varid = getid(var)
@@ -221,14 +196,7 @@ function partial_sol_on_repr(
     return partial_solution, nb_fixed_columns
 end
 
-function propagate_partial_sol_to_repr_master!(
-    dw_pricing_sps::Dict, 
-    presolve_reform::DwPresolveReform
-)
-    partial_solution, nb_fixed_columns_per_sp = partial_sol_on_repr(dw_pricing_sps, presolve_reform)
-
-    presolve_repr_master = presolve_reform.original_master
-
+function propagate_partial_sol_to_global_bounds!(presolve_repr_master, local_repr_partial_sol)
     new_lbs = zeros(Float64, presolve_repr_master.form.nb_vars)
     new_ubs = zeros(Float64, presolve_repr_master.form.nb_vars)
 
@@ -241,7 +209,7 @@ function propagate_partial_sol_to_repr_master!(
     # -5 <= x <= 0  &  x = -2   ->   -5 <= x <= -2
     for (col, (val, lb, ub)) in enumerate(
         Iterators.zip(
-            partial_solution, 
+            local_repr_partial_sol, 
             presolve_repr_master.form.lbs, 
             presolve_repr_master.form.ubs
         )
@@ -265,16 +233,4 @@ function propagate_partial_sol_to_repr_master!(
     presolve_repr_master.form.lbs = new_lbs
     presolve_repr_master.form.ubs = new_ubs
 
-    for (spid, presolve_sp) in presolve_reform.dw_sps
-        lm = presolve_sp.form.lower_multiplicity
-        um = presolve_sp.form.upper_multiplicity
-
-        presolve_sp.form.lower_multiplicity = max(0, lm - nb_fixed_columns_per_sp[spid])
-        presolve_sp.form.upper_multiplicity = max(0, um - nb_fixed_columns_per_sp[spid]) # TODO if < 0 -> error
-    end
-
-    presolve_restr_master = presolve_reform.restricted_master
-    presolve_restr_master.form.unpropagated_partial_solution = zeros(Float64, presolve_restr_master.form.nb_vars)
-    presolve_restr_master.form.unpropagated_partial_solution_flag = false
-    return
 end

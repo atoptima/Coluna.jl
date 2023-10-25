@@ -102,6 +102,7 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
 
     # TO DO : everything else should be communicated by the child algorithms 
     push!(units_usage, (master, StaticVarConstrUnit, READ_ONLY))
+    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
     push!(units_usage, (master, MasterBranchConstrsUnit, READ_ONLY))
     push!(units_usage, (master, MasterColumnsUnit, READ_ONLY))
     for (_, spform) in get_benders_sep_sps(reform)

@@ -93,6 +93,7 @@ function get_units_usage(
         push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
         push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
         push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
     end
     return units_usage
 end

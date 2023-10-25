@@ -182,12 +182,12 @@ function add_in_partial_sol_variable_2()
     varid = ClMP.getid(var)
     ClMP.deactivate!(form, varid)
     @test !ClMP.iscuractive(form, varid)
-    ClMP.add_to_partial_solution!(form, var, -1.0, true) # try an unactive variable -> should not work.
-    @test ClMP.getcurub(form, var) == 3
-    @test ClMP.getcurlb(form, var) == -3
+    ClMP.add_to_partial_solution!(form, var, -1.0, true) # try an unactive variable -> should work.
+    @test ClMP.getcurub(form, var) == 0
+    @test ClMP.getcurlb(form, var) == -2
     @test ClMP.getperenub(form, var) == 3
     @test ClMP.getperenlb(form, var) == -3
-    @test ClMP.get_value_in_partial_sol(form, var) == 0
+    @test ClMP.get_value_in_partial_sol(form, var) == -1
 end
 register!(unit_tests, "variables", add_in_partial_sol_variable_2)
 

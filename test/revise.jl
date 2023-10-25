@@ -19,6 +19,7 @@ typical_test_dirs = [
     joinpath("integration", "custom_data"),
     joinpath("integration", "parser"),
     joinpath("integration", "pricing_callback"),
+    joinpath("integration", "MOI"),
     joinpath("e2e", "gap"),
     joinpath("e2e_extra", "advanced_colgen"),
     joinpath("e2e_extra", "gap")

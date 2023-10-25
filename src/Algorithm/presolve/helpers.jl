@@ -13,15 +13,12 @@ mutable struct PresolveFormRepr
     lbs::Vector{Float64} # on variables
     ubs::Vector{Float64} # on variables
     partial_solution::Vector{Float64} # on variables
-    unpropagated_partial_solution::Vector{Float64} # on variables, to update local bounds
-    unpropagated_partial_solution_flag::Bool
     lower_multiplicity::Float64
     upper_multiplicity::Float64
 end
 
 function PresolveFormRepr(
-    coef_matrix, rhs, sense, lbs, ubs, partial_solution, lm, um;
-    unpropagated_partial_solution = nothing
+    coef_matrix, rhs, sense, lbs, ubs, partial_solution, lm, um
 )
     length(lbs) == length(ubs) || throw(ArgumentError("Inconsistent sizes of bounds and coef_matrix."))
     length(rhs) == length(sense) || throw(ArgumentError("Inconsistent sizes of rhs and coef_matrix."))
@@ -29,14 +26,6 @@ function PresolveFormRepr(
     nb_constrs = length(rhs)
     @assert reduce(&, map(lb -> !isnan(lb), lbs))
     @assert reduce(&, map(ub -> !isnan(ub), ubs))
-
-    if isnothing(unpropagated_partial_solution)
-        unpropagated_partial_solution_vec = zeros(Float64, nb_vars)
-        unpropagated_partial_solution_flag = false
-    else
-        unpropagated_partial_solution_vec = unpropagated_partial_solution
-        unpropagated_partial_solution_flag = true
-    end
 
     return PresolveFormRepr(
         nb_vars,
@@ -48,8 +37,6 @@ function PresolveFormRepr(
         lbs,
         ubs,
         partial_solution,
-        unpropagated_partial_solution_vec,
-        unpropagated_partial_solution_flag,
         lm,
         um
     )
@@ -248,52 +235,74 @@ function tighten_bounds_presolve_form_repr(form::PresolveFormRepr, tightened_bou
         col_mask
 end
 
-function partial_sol_update(form::PresolveFormRepr, lm, um, store_unpropagated_partial_sol)
-    coef_matrix = form.col_major_coef_matrix
-    rhs = form.rhs
-    sense = form.sense
-    lbs = form.lbs
-    ubs = form.ubs
+# function partial_sol_update(form::PresolveFormRepr, lm, um, store_unpropagated_partial_sol)
+#     coef_matrix = form.col_major_coef_matrix
+#     rhs = form.rhs
+#     sense = form.sense
+#     lbs = form.lbs
+#     ubs = form.ubs
 
-    new_partial_sol = zeros(Float64, length(form.partial_solution))
-    for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-        @assert !isnan(lb)
-        @assert !isnan(ub)
-        if lb > ub
-            error("Infeasible.")
-        end
-        if lb > 0.0
-            @assert !isinf(lb)
-            new_partial_sol[i] += lb
-        elseif ub < 0.0 && !isinf(ub)
-            @assert !isinf(ub)
-            new_partial_sol[i] += ub
-        end
-    end
+#     new_partial_sol = zeros(Float64, length(form.partial_solution))
+#     for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+#         @assert !isnan(lb)
+#         @assert !isnan(ub)
+#         if lb > ub
+#             error("Infeasible.")
+#         end
+#         if lb > 0.0
+#             @assert !isinf(lb)
+#             new_partial_sol[i] += lb
+#         elseif ub < 0.0 && !isinf(ub)
+#             @assert !isinf(ub)
+#             new_partial_sol[i] += ub
+#         end
+#     end
 
-    # Update rhs
-    new_rhs = rhs - coef_matrix * new_partial_sol
+#     # Update rhs
+#     new_rhs = rhs - coef_matrix * new_partial_sol
 
-    # Update bounds
-    new_lbs = lbs - new_partial_sol
-    new_ubs = ubs - new_partial_sol
+#     # Update bounds
+#     new_lbs = lbs - new_partial_sol
+#     new_ubs = ubs - new_partial_sol
 
-    # Update partial_sol
-    partial_sol = form.partial_solution + new_partial_sol
+#     # Update partial_sol
+#     partial_sol = form.partial_solution + new_partial_sol
 
-    row_mask = ones(Bool, form.nb_constrs)
-    col_mask = ones(Bool, form.nb_vars)
+#     row_mask = ones(Bool, form.nb_constrs)
+#     col_mask = ones(Bool, form.nb_vars)
 
-    return PresolveFormRepr(
-            coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um;
-            unpropagated_partial_solution = store_unpropagated_partial_sol ? new_partial_sol : nothing
-        ),
-        row_mask,
-        col_mask
+#     return PresolveFormRepr(
+#             coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um;
+#             unpropagated_partial_solution = store_unpropagated_partial_sol ? new_partial_sol : nothing
+#         ),
+#         row_mask,
+#         col_mask
+# end
+
+function shrink_col_presolve_form_repr(form::PresolveFormRepr)
+    # nb_cols = form.nb_vars
+    # nb_rows = form.nb_constrs
+    # coef_matrix = form.col_major_coef_matrix
+    # rhs = form.rhs
+    # sense = form.sense
+
+    # # Update partial solution
+    # col_mask = ones(Bool, nb_cols)
+    # fixed_vars = Tuple{Int,Float64}[]
+    # # for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
+    # #     @assert !isnan(lb)
+    # #     @assert !isnan(ub)
+    # #     if abs(ub) <= Coluna.TOL && abs(lb) <= Coluna.TOL
+    # #         col_mask[i] = false
+    # #         push!(fixed_vars, (i, partial_sol[i]))
+    # #     end
+    # # end
+
+    # nb_cols -= length(fixed_vars)
+    return
 end
 
-function shrink_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::Vector{Int}, lm, um)
-    nb_cols = form.nb_vars
+function shrink_row_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::Vector{Int}, lm, um)
     nb_rows = form.nb_constrs
     coef_matrix = form.col_major_coef_matrix
     rhs = form.rhs
@@ -302,36 +311,19 @@ function shrink_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::V
     ubs = form.ubs
     partial_sol = form.partial_solution
 
-    if form.unpropagated_partial_solution_flag
-        error("Cannot shrink a formulation that contains an unpropagated partial solution.")
-    end
-
-    # Update partial solution
-    col_mask = ones(Bool, nb_cols)
-    fixed_vars = Tuple{Int,Float64}[]
-    for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-        @assert !isnan(lb)
-        @assert !isnan(ub)
-        if abs(ub) <= Coluna.TOL && abs(lb) <= Coluna.TOL
-            col_mask[i] = false
-            push!(fixed_vars, (i, partial_sol[i]))
-        end
-    end
-
-    nb_cols -= length(fixed_vars)
     row_mask = ones(Bool, nb_rows)
     row_mask[rows_to_deactivate] .= false
 
     return PresolveFormRepr(
-        coef_matrix[row_mask, col_mask],
+        coef_matrix[row_mask, :],
         rhs[row_mask], 
         sense[row_mask], 
-        lbs[col_mask], 
-        ubs[col_mask], 
-        partial_sol[col_mask], 
+        lbs, 
+        ubs, 
+        partial_sol, 
         lm, 
         um
-    ), row_mask, col_mask, fixed_vars
+    ), row_mask
 end
 
 function PresolveFormRepr(
@@ -339,28 +331,18 @@ function PresolveFormRepr(
     rows_to_deactivate::Vector{Int},
     tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}},
     lm,
-    um;
-    tighten_bounds = true,
-    partial_sol = true,
-    shrink = true,
-    store_unpropagated_partial_sol = true
+    um
 )
     row_mask = ones(Bool, presolve_form_repr.nb_constrs)
     col_mask = ones(Bool, presolve_form_repr.nb_vars)
-    fixed_vars = nothing
-    if tighten_bounds
-        presolve_form_repr, row_mask, col_mask = tighten_bounds_presolve_form_repr(
-            presolve_form_repr, tightened_bounds, lm, um
-        )
-    end
-    if partial_sol
-        presolve_form_repr, row_mask, col_mask = partial_sol_update(presolve_form_repr, lm, um, store_unpropagated_partial_sol)
-    end
-    if shrink
-        presolve_form_repr, row_mask, col_mask, fixed_vars = shrink_presolve_form_repr(
-            presolve_form_repr, rows_to_deactivate, lm, um
-        )
-    end
-    return presolve_form_repr, row_mask, col_mask, fixed_vars
+
+    presolve_form_repr, row_mask, col_mask = tighten_bounds_presolve_form_repr(
+        presolve_form_repr, tightened_bounds, lm, um
+    )
+
+    presolve_form_repr, row_mask = shrink_row_presolve_form_repr(
+        presolve_form_repr, rows_to_deactivate, lm, um
+    )
+    return presolve_form_repr, row_mask, col_mask
 end
 

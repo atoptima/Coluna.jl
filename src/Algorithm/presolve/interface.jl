@@ -1,3 +1,8 @@
+"""
+Stores a matrix-representation of the formulation and the mapping between the variables & 
+constraints of the formulation to the row and column of the matrix and components of the 
+vector that represents the formulation.
+"""
 struct PresolveFormulation
     col_to_var::Vector{Variable}
     row_to_constr::Vector{Constraint}
@@ -8,8 +13,18 @@ struct PresolveFormulation
     fixed_variables::Dict{VarId, Float64}
 end
 
+"""
+Stores the presolve-representation of the formulations of the Dantzig-Wolfe reformulation.
+This datastructure contains:
+
+- `representative_master` that contains the master formulation expressed with representative
+  variables and pure master variables
+- `restricted_master` that contains the master formulation expressed with pure master variables,
+   master columns, and artificial variables
+- `dw_sps` a dictionary that contains the subproblem formulations.
+"""
 mutable struct DwPresolveReform
-    original_master::PresolveFormulation
+    representative_master::PresolveFormulation
     restricted_master::PresolveFormulation
     dw_sps::Dict{FormId, PresolveFormulation}
 end
@@ -109,22 +124,14 @@ end
 function propagate_in_presolve_form(
     form::PresolveFormulation,
     rows_to_deactivate::Vector{Int},
-    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}};
-    tighten_bounds = true,
-    partial_sol = true,
-    shrink = true,
-    store_unpropagated_partial_sol = true
+    tightened_bounds::Dict{Int, Tuple{Float64, Bool, Float64, Bool}}
 )
-    form_repr, row_mask, col_mask, fixed_vars = PresolveFormRepr(
+    form_repr, row_mask, col_mask = PresolveFormRepr(
         form.form, 
         rows_to_deactivate, 
         tightened_bounds, 
         form.form.lower_multiplicity, 
-        form.form.upper_multiplicity;
-        tighten_bounds = tighten_bounds,
-        partial_sol = partial_sol,
-        shrink = shrink,
-        store_unpropagated_partial_sol = store_unpropagated_partial_sol
+        form.form.upper_multiplicity
     )
 
     col_to_var = form.col_to_var[col_mask]
@@ -136,23 +143,21 @@ function propagate_in_presolve_form(
     var_to_col = Dict(getid(var) => k for (k, var) in enumerate(col_to_var))
     constr_to_row = Dict(getid(constr) => k for (k, constr) in enumerate(row_to_constr))
 
-    if shrink
-        for constr in form.row_to_constr[.!row_mask]
-            push!(deactivated_constrs, getid(constr))
-        end
-
-        if !isnothing(fixed_vars)
-            for (col, val) in fixed_vars
-                varid = getid(form.col_to_var[col])
-                if !haskey(fixed_vars_dict, varid)
-                    fixed_vars_dict[varid] = val
-                else
-                    error("Cannot fix variable twice.")
-                end
-            end
-        end
+    for constr in form.row_to_constr[.!row_mask]
+        push!(deactivated_constrs, getid(constr))
     end
 
+    # if !isnothing(fixed_vars)
+    #     for (col, val) in fixed_vars
+    #         varid = getid(form.col_to_var[col])
+    #         if !haskey(fixed_vars_dict, varid)
+    #             fixed_vars_dict[varid] = val
+    #         else
+    #             error("Cannot fix variable twice.")
+    #         end
+    #     end
+    # end
+    
     @assert length(col_to_var) == length(form_repr.lbs)
     @assert length(col_to_var) == length(form_repr.ubs)
     @assert length(row_to_constr) == length(form_repr.rhs)
@@ -250,25 +255,25 @@ function create_presolve_reform(reform::Reformulation{DwMaster})
     return DwPresolveReform(original_master, restricted_master, dw_sps)
 end
 
-function _update_partial_sol!(form::Formulation{DwMaster}, presolve_form::PresolveFormulation)
+function update_partial_sol!(form::Formulation{DwMaster}, presolve_form::PresolveFormulation, partial_solution)
     # Update partial solution
     partial_sol_counter = 0
-    for (col, val) in enumerate(presolve_form.form.partial_solution)
+    for (col, val) in enumerate(partial_solution)
         var = presolve_form.col_to_var[col]
-        if getduty(getid(var)) <= MasterArtVar && !iszero(val)
+        duty = getduty(getid(var))
+        if duty <= MasterArtVar && !iszero(val)
             error(""" Infeasible because artificial variable $(getname(form, var)) is not zero.
             Fixed to $(val) in partial solution.
             """)
         end
-        if !iszero(val)
+        if !iszero(val) && (duty <= MasterCol || duty <= MasterPureVar)
             MathProg.add_to_partial_solution!(form, var, val)
             partial_sol_counter += 1
+            setcurlb!(form, var, 0.0)
         end
     end
     return
 end
-
-_update_partial_sol!(form, presolve_form) = nothing
 
 function _update_bounds!(form::Formulation, presolve_form::PresolveFormulation)
      # Update bounds
@@ -292,20 +297,6 @@ function _update_bounds!(form::Formulation, presolve_form::PresolveFormulation)
     return
 end
 
-# function _update_convexity_constr!(master::Formulation{DwMaster}, sp_presolve_form, sp::Formulation{DwSp})
-#     lm_constr = getconstr(master, sp.duty_data.lower_multiplicity_constr_id)
-#     um_constr = getconstr(master, sp.duty_data.upper_multiplicity_constr_id)
-
-#     @assert !isnothing(lm_constr) && !isnothing(um_constr)
-
-#     lm = sp_presolve_form.form.lower_multiplicity
-#     um = sp_presolve_form.form.upper_multiplicity
-
-#     setcurrhs!(master, lm_constr, max(lm, 0))
-#     setcurrhs!(master, um_constr, max(um, 0))
-#     return
-# end
-
 function _update_rhs!(form::Formulation, presolve_form::PresolveFormulation)
     for (row, rhs) in enumerate(presolve_form.form.rhs)
         constr = presolve_form.row_to_constr[row]
@@ -322,11 +313,7 @@ function _update_rhs!(form::Formulation, presolve_form::PresolveFormulation)
     return
 end
 
-function update_form_from_presolve!(
-    form::Formulation, presolve_form::PresolveFormulation;
-    update_rhs = true,
-    update_partial_sol = true,
-)
+function update_form_from_presolve!(form::Formulation, presolve_form::PresolveFormulation)
     # Deactivate Constraints
     constr_deactivation_counter = 0
     for constr_id in presolve_form.deactivated_constrs
@@ -336,27 +323,20 @@ function update_form_from_presolve!(
         end
     end
 
-    # Fixed variables
-    var_fix_counter = 0
-    for (var_id, val) in presolve_form.fixed_variables
-        if iscuractive(form, var_id)
-            setcurlb!(form, var_id, 0.0)
-            setcurub!(form, var_id, 0.0)
-            MathProg.add_to_partial_solution!(form, var_id, val)
-            deactivate!(form, var_id)
-            var_fix_counter += 1
-        end
-    end
+    # # Fixed variables
+    # var_fix_counter = 0
+    # for (var_id, val) in presolve_form.fixed_variables
+    #     if iscuractive(form, var_id)
+    #         setcurlb!(form, var_id, 0.0)
+    #         setcurub!(form, var_id, 0.0)
+    #         MathProg.add_to_partial_solution!(form, var_id, val)
+    #         deactivate!(form, var_id)
+    #         var_fix_counter += 1
+    #     end
+    # end
 
-    if update_rhs
-        _update_rhs!(form, presolve_form)
-    end
-
+    _update_rhs!(form, presolve_form)
     _update_bounds!(form, presolve_form)
-
-    if update_partial_sol
-        _update_partial_sol!(form, presolve_form)
-    end
     return
 end
 
@@ -365,22 +345,14 @@ function update_reform_from_presolve!(
     dw_pricing_sps::Dict,
     presolve_reform::DwPresolveReform
 )
-    # Update master
-    presolve_restr_master = presolve_reform.restricted_master
-    update_form_from_presolve!(master, presolve_restr_master)
-
     # Update subproblems
     for (spid, sp) in dw_pricing_sps
         sp_presolve_form = presolve_reform.dw_sps[spid]
         update_form_from_presolve!(sp, sp_presolve_form)
     end
 
-    presolve_repr_master = presolve_reform.original_master
-    update_form_from_presolve!(
-        master, presolve_repr_master;
-        update_partial_sol = false,
-        update_rhs = false
-    )
+    presolve_repr_master = presolve_reform.representative_master
+    update_form_from_presolve!(master, presolve_repr_master)
     return
 end
 
@@ -397,6 +369,7 @@ function get_units_usage(algo::PresolveAlgorithm, reform::Reformulation)
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[]
     master = getmaster(reform)
     push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
+    push!(units_usage, (master, PartialSolutionUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
@@ -416,76 +389,207 @@ struct PresolveOutput
     feasible::Bool
 end
 
-function propagate_partial_sol_into_master(presolve_reform, dw_pricing_sps)
-    # Step 1 (before main loop):
-    # Create the partial solution
-    new_restr_master = propagate_in_presolve_form(
-        presolve_reform.restricted_master,
-        Int[], # we don't perform constraint deactivation
-        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}(); # we don't perform bound tightening on the restricted master.
-        tighten_bounds = false,
-        shrink = false
-    )
-    presolve_reform.restricted_master = new_restr_master
-
-    # Step 2: Propagate the partial solution to the local bounds.
-    propagate_partial_sol_to_repr_master!(
-        dw_pricing_sps,
-        presolve_reform
-    )
-
-    new_repr_master = propagate_in_presolve_form(
-        presolve_reform.original_master, 
-        Int[], 
-        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}(); 
-        tighten_bounds = false,
-        shrink = false,
-        store_unpropagated_partial_sol = false
-    )
-    presolve_reform.original_master = new_repr_master
-
-    # The right rhs is the one from the restricted master because the master may
-    # contain non-robust cuts.
-    @assert length(presolve_reform.restricted_master.form.rhs) == length(presolve_reform.original_master.form.rhs)
-    for (row, rhs) in enumerate(presolve_reform.restricted_master.form.rhs)
-        presolve_reform.original_master.form.rhs[row] = rhs
+function _get_partial_sol(presolve_form_repr::PresolveFormRepr)
+    new_partial_sol = zeros(Float64, length(presolve_form_repr.partial_solution))
+    for (i, (lb, ub)) in  enumerate(Iterators.zip(presolve_form_repr.lbs, presolve_form_repr.ubs))
+        @assert !isnan(lb)
+        @assert !isnan(ub)
+        if lb > ub
+            error("Infeasible.")
+        end
+        if lb > 0.0
+            @assert !isinf(lb)
+            new_partial_sol[i] += lb
+        elseif ub < 0.0 && !isinf(ub)
+            @assert !isinf(ub)
+            new_partial_sol[i] += ub
+        end
     end
+    return new_partial_sol
 end
 
-function presolve_iteration!(presolve_reform, master, dw_pricing_sps)
-    # Step 5: Propagate and strengthen local and global bounds.
-    propagate_global_to_local_bounds!(master, dw_pricing_sps, presolve_reform)
-    propagate_local_to_global_bounds!(master, dw_pricing_sps, presolve_reform)
-    propagate_global_to_local_bounds!(master, dw_pricing_sps, presolve_reform)
-    propagate_local_to_global_bounds!(master, dw_pricing_sps, presolve_reform)
+get_restr_partial_sol(presolve_form) = _get_partial_sol(presolve_form.form)
 
-    # Step 3: presolve the respresentative master.
-    # Bounds tightening, we do not shrink the formulation.
-    tightened_bounds_repr = bounds_tightening(presolve_reform.original_master.form)
-    new_repr_master = propagate_in_presolve_form(
-        presolve_reform.original_master, 
-        Int[], 
-        
-        tightened_bounds_repr; shrink = false
-    )
+function compute_rhs(presolve_form, restr_partial_sol)
+    rhs = presolve_form.form.rhs
+    coef_matrix = presolve_form.form.col_major_coef_matrix
+    return rhs - coef_matrix * restr_partial_sol
+end
 
-    presolve_reform.original_master = new_repr_master
+function update_subproblem_multiplicities!(dw_sps, nb_fixed_columns_per_sp)
+    for (spid, presolve_sp) in dw_sps
+        lm = presolve_sp.form.lower_multiplicity
+        um = presolve_sp.form.upper_multiplicity
 
-    # Step 6: Shrink the formulation (remove fixed variables).
-    new_restr_master = propagate_in_presolve_form(
-        presolve_reform.restricted_master,
-        Int[],
-        Dict{Int, Tuple{Float64, Bool, Float64, Bool}}();
-        tighten_bounds = false,
-        partial_sol = false
-    )
-    
-    presolve_reform.restricted_master = new_restr_master
+        presolve_sp.form.lower_multiplicity = max(0, lm - nb_fixed_columns_per_sp[spid])
+        presolve_sp.form.upper_multiplicity = max(0, um - nb_fixed_columns_per_sp[spid]) # TODO if < 0 -> error
+    end
     return
 end
 
-function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::PresolveInput)::PresolveOutput
+function propagate_partial_sol_to_global_bounds!(presolve_repr_master, local_repr_partial_sol, default_global_bounds)
+    new_lbs = zeros(Float64, presolve_repr_master.form.nb_vars)
+    new_ubs = zeros(Float64, presolve_repr_master.form.nb_vars)
 
+    for (col, (val, lb, ub, (def_glob_lb, def_glob_ub))) in enumerate(
+        Iterators.zip(
+            local_repr_partial_sol,
+            presolve_repr_master.form.lbs,
+            presolve_repr_master.form.ubs,
+            default_global_bounds
+        )
+    )
+        new_lbs[col] = max(lb - val, def_glob_lb)
+        new_ubs[col] = min(ub - val, def_glob_ub)
+    end
+
+    presolve_repr_master.form.lbs = new_lbs
+    presolve_repr_master.form.ubs = new_ubs
+    return
+end
+
+function compute_default_global_bounds(presolve_repr_master, presolve_dw_pricing_sps, master, dw_pricing_sps)
+    global_bounds = Dict{VarId, Tuple{Float64,Float64}}()
+
+    for (spid, sp) in dw_pricing_sps
+        lm = presolve_dw_pricing_sps[spid].form.lower_multiplicity
+        um = presolve_dw_pricing_sps[spid].form.upper_multiplicity
+    
+        # Update bounds on master repr variables using multiplicity.
+        for (varid, var) in getvars(sp)
+            if getduty(varid) <= DwSpPricingVar
+                lb = getcurlb(sp, var)
+                ub = getcurub(sp, var)
+                
+                (global_lb, global_ub) = get(global_bounds, varid, (0.0, 0.0))
+                global_lb += (lb > 0 ? lm : um) * lb
+                global_ub += (ub > 0 ? um : lm) * ub
+            
+                global_bounds[varid] = (global_lb, global_ub)
+            end
+        end
+    end
+
+    master_repr_var_bounds = [(-Inf, Inf) for _ in 1:presolve_repr_master.form.nb_vars]
+    for (varid, bounds) in global_bounds 
+        col = get(presolve_repr_master.var_to_col, varid, nothing)
+        @assert !isnothing(col)
+        master_repr_var_bounds[col] = bounds
+    end
+    return master_repr_var_bounds
+end
+
+"""
+
+
+Returns the local restricted partial solution.
+"""
+function propagate_partial_sol_into_master!(presolve_reform, master, dw_pricing_sps)
+    presolve_restricted_master = presolve_reform.restricted_master
+
+    # Create the local partial solution from the restricted master presolve representation.
+    # This local partial solution must then be "fixed" & propagated.
+    local_restr_partial_sol = get_restr_partial_sol(presolve_restricted_master)
+
+    # Compute the rhs of all constraints.
+    # Non-robust and convexity constraints rhs can only be computed using this representation.
+    new_rhs = compute_rhs(presolve_restricted_master, local_restr_partial_sol)
+
+    # Project local partial solution on the representative master.
+    local_repr_partial_sol, nb_fixed_columns_per_sp = partial_sol_on_repr(
+        dw_pricing_sps, presolve_reform, local_restr_partial_sol
+    )
+
+    # Update the multiplicity of each subproblem.
+    update_subproblem_multiplicities!(presolve_reform.dw_sps, nb_fixed_columns_per_sp)
+
+    # Compute new default global bounds
+    master_repr_default_global_bounds = compute_default_global_bounds(
+        presolve_reform.representative_master, presolve_reform.dw_sps, master, dw_pricing_sps
+    )
+
+    # Propagate local partial solution from the representative master representation
+    # into the global bounds.
+    propagate_partial_sol_to_global_bounds!(
+        presolve_reform.representative_master, 
+        local_repr_partial_sol,
+        master_repr_default_global_bounds
+    )
+
+    # Update the rhs of the representative master.
+    @assert length(new_rhs) == length(presolve_reform.restricted_master.form.rhs) == length(presolve_reform.representative_master.form.rhs)
+    for (row, rhs) in enumerate(new_rhs)
+        presolve_reform.representative_master.form.rhs[row] = rhs
+    end
+    return local_restr_partial_sol
+end
+
+function presolve_iteration!(presolve_reform, master, dw_pricing_sps)
+    # Propagate and strengthen local and global bounds.
+    # At the moment, we perform two rounds of local/global bounds strenthening and propagation.
+    propagate_global_to_local_bounds!(master, dw_pricing_sps, presolve_reform)
+    propagate_local_to_global_bounds!(master, dw_pricing_sps, presolve_reform)
+    propagate_global_to_local_bounds!(master, dw_pricing_sps, presolve_reform)
+    propagate_local_to_global_bounds!(master, dw_pricing_sps, presolve_reform)
+
+    # Presolve the respresentative master.
+    # Bounds tightening, we do not change 
+    tightened_bounds_repr = bounds_tightening(presolve_reform.representative_master.form)
+    new_repr_master = propagate_in_presolve_form(
+        presolve_reform.representative_master, 
+        Int[],
+        tightened_bounds_repr
+    )
+
+    presolve_reform.representative_master = new_repr_master
+    return
+end
+
+function deactivate_non_proper_columns!(master::Formulation{DwMaster}, dw_sps)
+    for (varid, var) in getvars(master)
+        if getduty(varid) <= MasterCol
+            spid = getoriginformuid(varid)
+            if !_column_is_proper(varid, dw_sps[spid])
+                deactivate!(master, varid)
+            end
+        end
+    end
+    return
+end
+
+function _presolve_run!(presolve_reform, master, dw_pricing_sps)
+    # Identify the partial solution in the restricted master, compute the new rhs
+    # of all master constraints and new global and local bounds of the representative and 
+    # subproblem variables.
+    local_restr_partial_sol = propagate_partial_sol_into_master!(
+        presolve_reform,
+        master,
+        dw_pricing_sps
+    )
+
+    # Perform several rounds of presolve.
+    for i in 1:3
+        println("**** Presolve step $i ****")
+        presolve_iteration!(presolve_reform, master, dw_pricing_sps)
+    end
+
+    update_partial_sol!(
+        master,
+        presolve_reform.restricted_master,
+        local_restr_partial_sol
+    )
+
+    update_reform_from_presolve!(
+        master, 
+        dw_pricing_sps, 
+        presolve_reform
+    )
+
+    deactivate_non_proper_columns!(master, dw_pricing_sps)
+    return 
+end
+
+function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::PresolveInput)::PresolveOutput
     # Should be move in the diving (when generating the formulation of the children because
     # formulation is the single source of truth).
     for (varid, val) in input.partial_sol_to_fix
@@ -498,18 +602,13 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, input::Pres
     end
 
     presolve_reform = create_presolve_reform(reform)
+    master = getmaster(reform)
+    dw_pricing_sps = get_dw_pricing_sps(reform)
 
-    propagate_partial_sol_into_master(presolve_reform, get_dw_pricing_sps(reform))
-
-    for i in 1:3
-        println("**** Presolve step $i ****")
-        presolve_iteration!(presolve_reform, getmaster(reform), get_dw_pricing_sps(reform))
-    end
-
-    update_reform_from_presolve!(
-        getmaster(reform), 
-        get_dw_pricing_sps(reform), 
-        presolve_reform
+    _presolve_run!(
+        presolve_reform,
+        master,
+        dw_pricing_sps
     )
     return PresolveOutput(true)
 end
@@ -527,3 +626,8 @@ function _column_is_proper(col_id, sp_form)
     return true
 end
 
+function column_is_proper(col_id, reform)
+    sp_id = getoriginformuid(col_id)
+    sp_form = get_dw_pricing_sps(reform)[sp_id]
+    return _column_is_proper(col_id, sp_form)
+end
