@@ -949,23 +949,23 @@ end
 
 ColGen.get_master_ip_primal_sol(output::ColGenPhaseOutput) = output.master_ip_primal_sol
 
-ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol) = nothing
-function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
+ColGen.update_stabilization_after_pricing_optim!(::NoColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, smooth_dual_sol) = nothing
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStab, ctx::ColGenContext, generated_columns, master, valid_db, pseudo_db, smooth_dual_sol)
     # At each iteration, we always update α after the first pricing optimization.
     # We don't update α if we are in a misprice sequence.
     if stab.automatic && stab.nb_misprices == 0
         is_min = ColGen.is_minimization(ctx)
         primal_sol = _primal_solution(master, generated_columns, is_min)
-        α = _dynamic_alpha_schedule(stab.base_α, mast_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
+        α = _dynamic_alpha_schedule(stab.base_α, smooth_dual_sol, stab.cur_stab_center, subgradient_helper(ctx), primal_sol, is_min)
         stab.base_α = α
     end
     
     if isbetter(DualBound(master, valid_db), stab.valid_dual_bound)
-        stab.cur_stab_center = mast_dual_sol
+        stab.cur_stab_center = smooth_dual_sol
         stab.valid_dual_bound = DualBound(master, valid_db)
     end
     if isbetter(DualBound(master, pseudo_db), stab.pseudo_dual_bound)
-        stab.stab_center_for_next_iteration = mast_dual_sol
+        stab.stab_center_for_next_iteration = smooth_dual_sol
         stab.pseudo_dual_bound = DualBound(master, pseudo_db)
     end
     return
