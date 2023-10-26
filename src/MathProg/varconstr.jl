@@ -300,6 +300,20 @@ Returns the partial solution to the formulation.
 """
 getpartialsol(form::Formulation) = _partial_sol(form.manager)
 
+
+"""
+    getpartialsolvalue(formulation) -> Float64
+
+Returns the partial solution value.
+"""
+function getpartialsolvalue(form::Formulation)
+    partial_sol_val = 0.0
+    for (varid, val) in getpartialsol(form)
+        partial_sol_val += getcurcost(form, varid) * val
+    end
+    return partial_sol_val
+end
+
 # Constraint
 ## rhs
 """
