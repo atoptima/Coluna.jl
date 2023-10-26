@@ -791,7 +791,8 @@ end
 function ColGen.compute_dual_bound(ctx::ColGenContext, phase, sp_dbs, generated_columns, master_dual_sol)
     sc = ColGen.is_minimization(ctx) ? 1 : -1
     master_lp_obj_val = if ctx.stabilization
-        (transpose(master_dual_sol) * ctx.subgradient_helper.a_for_dual)
+        partial_sol_val = MathProg.getpartialsolvalue(ColGen.get_master(ctx))
+        partial_sol_val + (transpose(master_dual_sol) * ctx.subgradient_helper.a_for_dual)
     else
         getvalue(master_dual_sol) - _convexity_contrib(ctx, master_dual_sol)
     end
