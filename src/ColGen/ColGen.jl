@@ -254,7 +254,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
         # pseudo dual bound is used for stabilization only.
         pseudo_db = compute_dual_bound(context, phase, sps_pb, generated_columns, sep_mast_dual_sol)
 
-        update_stabilization_after_pricing_optim!(stab, context, generated_columns, master, valid_db, pseudo_db, sep_mast_dual_sol)
+        update_stabilization_after_pricing_optim!(stab, context, generated_columns, master, pseudo_db, sep_mast_dual_sol)
 
         # We have finished to solve all pricing subproblems.
         # If we have stabilization, we need to check if we have misprice, i.e. if smoothing is active 
