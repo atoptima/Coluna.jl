@@ -379,8 +379,8 @@ ColGen.get_pricing_strategy(::ColGenStabFlowCtx, phase) = ColGenStabFlowPricingS
 ColGen.pricing_strategy_iterate(::ColGenStabFlowPricingStrategy) = nothing
 ColGen.compute_dual_bound(ctx::ColGenStabFlowCtx, phase, bounds, generated_columns, mast_dual_sol) = ctx.nb_compute_dual_bound += 1
 
-function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, ctx, generated_columns, master, valid_db, pseudo_db, mast_dual_sol)
-    @test mast_dual_sol == [1.0, 1.0, 1.0] # we need the out point in this method.
+function ColGen.update_stabilization_after_pricing_optim!(stab::ColGenStabFlowStab, ctx, generated_columns, master, pseudo_db, smooth_dual_sol)
+    @test smooth_dual_sol == [0.5, 0.5, 0.5] # we need the out point in this method.
     stab.nb_update_stab_after_pricing_done += 1
     return true
 end
