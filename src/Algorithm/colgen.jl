@@ -182,6 +182,7 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
     push!(units_usage, (master, StaticVarConstrUnit, READ_ONLY))
+    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
 
     # as column generation may call essential cut callbacks
     # TO DO: it would be good to verify first whether any callback is really defined 

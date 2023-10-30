@@ -131,9 +131,9 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurlb!(form::Formulation, var::Variable, lb)
-    if in_partial_sol(form, var) && !(getduty(getid(var)) <= MasterCol)
-        @warn "Changing lower bound of fixed variable."
-    end
+    # if in_partial_sol(form, var) && !(getduty(getid(var)) <= MasterCol)
+    #     @warn "Changing lower bound of fixed variable."
+    # end
 
     var.curdata.lb = lb
     if isexplicit(form, var) && iscuractive(form, var)
@@ -194,9 +194,9 @@ subsolver.
 If the variable had fixed value, it unfixes the variable.
 """
 function setcurub!(form::Formulation, var::Variable, ub)
-    if in_partial_sol(form, var)
-        @warn "Changing upper bound of fixed variable."
-    end
+    # if in_partial_sol(form, var)
+    #     @warn "Changing upper bound of fixed variable."
+    # end
 
     var.curdata.ub = ub
     if isexplicit(form, var) && iscuractive(form, var)
@@ -244,7 +244,7 @@ function add_to_partial_solution!(form::Formulation, varid::VarId, value, propag
 end
 
 function add_to_partial_solution!(form::Formulation, var::Variable, value, propagation = false)
-    if isexplicit(form, var) && iscuractive(form, var)
+    if isexplicit(form, var) 
         cumulative_val = _add_partial_value!(form.manager, var, value)
         if propagation
             _propagate_partial_value_bounds!(form, var, cumulative_val)
@@ -252,7 +252,7 @@ function add_to_partial_solution!(form::Formulation, var::Variable, value, propa
         return true
     end
     name = getname(form, var)
-    @warn "Cannot add variable $name to partial solution because it is unactive or non-explicit."
+    @warn "Cannot add variable $name to partial solution because it is non-explicit."
     return false
 end
 
@@ -263,12 +263,12 @@ function set_value_in_partial_solution!(form::Formulation, varid::VarId, value)
 end
 
 function set_value_in_partial_solution!(form::Formulation, var::Variable, value)
-    if isexplicit(form, var) && iscuractive(form, var)
+    if isexplicit(form, var) 
         _set_partial_value!(form.manager, var, value)
         return true
     end
     name = getname(form, var)
-    @warn "Cannot set variable $name to partial solution because it is unactive or non-explicit."
+    @warn "Cannot set variable $name to partial solution because it is non-explicit."
     return false
 end
 
@@ -299,6 +299,20 @@ end
 Returns the partial solution to the formulation.
 """
 getpartialsol(form::Formulation) = _partial_sol(form.manager)
+
+
+"""
+    getpartialsolvalue(formulation) -> Float64
+
+Returns the partial solution value.
+"""
+function getpartialsolvalue(form::Formulation)
+    partial_sol_val = 0.0
+    for (varid, val) in getpartialsol(form)
+        partial_sol_val += getcurcost(form, varid) * val
+    end
+    return partial_sol_val
+end
 
 # Constraint
 ## rhs

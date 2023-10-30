@@ -40,7 +40,7 @@ function test_partial_solution1()
     @test form2.ubs == [4.0, 4.0]
     @test form2.partial_solution == [2.0, 4.0]
 end
-register!(unit_tests, "presolve_partial_sol", test_partial_solution1)
+register!(unit_tests, "presolve_partial_sol", test_partial_solution1; x = true)
 
 function test_partial_solution2()
     # 2x + 3y <= 5
@@ -84,7 +84,7 @@ function test_partial_solution2()
     @test all(form2.ubs .== [Inf, Inf])
     @test all(form2.partial_solution .== [3.0, 3.0])
 end
-register!(unit_tests, "presolve_partial_sol", test_partial_solution2)
+register!(unit_tests, "presolve_partial_sol", test_partial_solution2; x = true)
 
 function test_partial_solution3()
     # 2x + 3y <= 5
@@ -127,7 +127,7 @@ function test_partial_solution3()
     @test all(form2.ubs .== [-0.0, 8.0])
     @test all(form2.partial_solution .== [-3.0, 0.0])
 end
-register!(unit_tests, "presolve_partial_sol", test_partial_solution3)
+register!(unit_tests, "presolve_partial_sol", test_partial_solution3; x = true)
 
 function test_partial_solution4()
     # 2x + 3y <= 5
@@ -170,4 +170,4 @@ function test_partial_solution4()
     @test all(form2.ubs .== [0.0, 0.0])
     @test all(form2.partial_solution .== [-1.0, -1.0])
 end
-register!(unit_tests, "presolve_partial_sol", test_partial_solution4)
+register!(unit_tests, "presolve_partial_sol", test_partial_solution4; x = true)

@@ -103,7 +103,7 @@ function build_dw_presolve_reformulation()
     reform, master, sps = presolve_toy_gap_with_penalties()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
-    presolve_original_master = presolve_reform.original_master
+    presolve_original_master = presolve_reform.representative_master
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
     
     var_ids_lbs_ubs = [
@@ -451,7 +451,7 @@ function build_dw_presolve_reformulation2()
     reform, master, sps = presolve_toy_gap_with_penalties2()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
-    presolve_original_master = presolve_reform.original_master
+    presolve_original_master = presolve_reform.representative_master
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
     
     var_ids_lbs_ubs = [
@@ -770,7 +770,7 @@ function build_dw_presolve_reformulation_with_var_not_in_coeff_matrix()
     reform, master, sps = presolve_reformulation_with_var_not_in_coeff_matrix()
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
-    presolve_original_master = presolve_reform.original_master
+    presolve_original_master = presolve_reform.representative_master
     mast_var_ids = Dict{String, Int}(ClMP.getname(master, var) => k for (k, var) in enumerate(presolve_original_master.col_to_var))
 
     var_ids_lbs_ubs = [
