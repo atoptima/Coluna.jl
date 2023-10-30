@@ -70,6 +70,7 @@ makedocs(
             "Benders" => joinpath("api", "benders.md"),
             "Branching" => joinpath("api", "branching.md"),
             "ColGen" => joinpath("api", "colgen.md"),
+            "Presolve" => joinpath("api", "presolve.md"),
             "TreeSearch" => joinpath("api", "treesearch.md"),
             "Storage" => joinpath("api", "storage.md"),
         ],
