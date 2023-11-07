@@ -448,6 +448,7 @@ function propagate_partial_sol_to_global_bounds!(presolve_repr_master, local_rep
     return
 end
 
+# You need to update subproblem multiplicity before using this function.
 function compute_default_global_bounds(presolve_repr_master, presolve_dw_pricing_sps, master, dw_pricing_sps)
     global_bounds = Dict{VarId, Tuple{Float64,Float64}}()
 
@@ -485,6 +486,7 @@ end
 Returns the local restricted partial solution.
 """
 function propagate_partial_sol_into_master!(presolve_reform, master, dw_pricing_sps)
+    presolve_representative_master = presolve_reform.representative_master
     presolve_restricted_master = presolve_reform.restricted_master
 
     # Create the local partial solution from the restricted master presolve representation.
@@ -497,7 +499,8 @@ function propagate_partial_sol_into_master!(presolve_reform, master, dw_pricing_
 
     # Project local partial solution on the representative master.
     local_repr_partial_sol, nb_fixed_columns_per_sp = partial_sol_on_repr(
-        dw_pricing_sps, presolve_reform, local_restr_partial_sol
+        dw_pricing_sps, presolve_representative_master, presolve_restricted_master,
+        local_restr_partial_sol
     )
 
     # Update the multiplicity of each subproblem.

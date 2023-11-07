@@ -159,14 +159,11 @@ end
 
 function partial_sol_on_repr(
     dw_pricing_sps::Dict, 
-    presolve_reform_repr::DwPresolveReform,
+    presolve_master_repr::PresolveFormulation,
+    presolve_master_restr::PresolveFormulation,
     restr_partial_sol
 )
-    presolve_master_repr = presolve_reform_repr.representative_master
     partial_solution = zeros(Float64, presolve_master_repr.form.nb_vars)
-
-    # partial solution
-    presolve_master_restr = presolve_reform_repr.restricted_master
 
     dw_pricing_sps = dw_pricing_sps
     nb_fixed_columns = Dict(spid => 0 for (spid, _) in dw_pricing_sps)
@@ -175,6 +172,9 @@ function partial_sol_on_repr(
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master_restr.col_to_var[col]
             varid = getid(var)
+            if !(getduty(varid) <= MasterCol)
+                continue
+            end
             spid = getoriginformuid(varid)
             spform = get(dw_pricing_sps, spid, nothing)
             @assert !isnothing(spform)
@@ -232,5 +232,4 @@ function propagate_partial_sol_to_global_bounds!(presolve_repr_master, local_rep
 
     presolve_repr_master.form.lbs = new_lbs
     presolve_repr_master.form.ubs = new_ubs
-
 end
