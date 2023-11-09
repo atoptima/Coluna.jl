@@ -114,13 +114,17 @@ function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, mast
             local_lb = presolve_sp.form.lbs[i]
             local_ub = presolve_sp.form.ubs[i]
 
+            println("------ $i ------")
+
             if !isinf(global_lb) && !isinf(local_ub)
                 new_local_lb = global_lb - local_ub * (local_ub > 0 ? um : lm)
+                @show new_local_lb
                 presolve_sp.form.lbs[i] = max(new_local_lb, local_lb)
             end
 
             if !isinf(global_ub) && !isinf(local_lb)
                 new_local_ub = global_ub - local_lb * (local_lb > 0 ? lm : um)
+                @show new_local_ub
                 presolve_sp.form.ubs[i] = min(new_local_ub, local_ub)
             end
         end
@@ -172,25 +176,29 @@ function partial_sol_on_repr(
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master_restr.col_to_var[col]
             varid = getid(var)
-            if !(getduty(varid) <= MasterCol)
-                continue
-            end
-            spid = getoriginformuid(varid)
-            spform = get(dw_pricing_sps, spid, nothing)
-            @assert !isnothing(spform)
-            column = @view get_primal_sol_pool(spform).solutions[varid,:]
-            for (varid, val) in column
-                getduty(varid) <= DwSpPricingVar || continue
+            if getduty(varid) <= MasterCol
+                spid = getoriginformuid(varid)
+                spform = get(dw_pricing_sps, spid, nothing)
+                @assert !isnothing(spform)
+                column = @view get_primal_sol_pool(spform).solutions[varid,:]
+                for (varid, val) in column
+                    getduty(varid) <= DwSpPricingVar || continue
+                    master_repr_var_col = get(presolve_master_repr.var_to_col, varid, nothing)
+                    if !isnothing(master_repr_var_col)
+                        partial_solution[master_repr_var_col] += val * partial_sol_value
+                    end
+                    if !new_column_explored
+                        nb_fixed_columns[spid] += partial_sol_value
+                        new_column_explored = true
+                    end
+                end
+                new_column_explored = false
+            elseif getduty(varid) <= MasterPureVar
                 master_repr_var_col = get(presolve_master_repr.var_to_col, varid, nothing)
                 if !isnothing(master_repr_var_col)
-                    partial_solution[master_repr_var_col] += val * partial_sol_value
-                end
-                if !new_column_explored
-                    nb_fixed_columns[spid] += partial_sol_value
-                    new_column_explored = true
+                    partial_solution[master_repr_var_col] += partial_sol_value
                 end
             end
-            new_column_explored = false
         end
     end
     return partial_solution, nb_fixed_columns

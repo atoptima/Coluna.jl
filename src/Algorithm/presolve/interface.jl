@@ -443,6 +443,9 @@ function propagate_partial_sol_to_global_bounds!(presolve_repr_master, local_rep
         new_ubs[col] = min(ub - val, def_glob_ub)
     end
 
+    @show new_lbs
+    @show new_ubs
+
     presolve_repr_master.form.lbs = new_lbs
     presolve_repr_master.form.ubs = new_ubs
     return
@@ -481,8 +484,6 @@ function compute_default_global_bounds(presolve_repr_master, presolve_dw_pricing
 end
 
 """
-
-
 Returns the local restricted partial solution.
 """
 function propagate_partial_sol_into_master!(presolve_reform, master, dw_pricing_sps)
