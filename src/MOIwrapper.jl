@@ -1108,6 +1108,11 @@ end
 
 BD.value(info::ColumnInfo) = info.column_val
 
+function BD.customdata(info::ColumnInfo) 
+    masterform = getmaster(info.optimizer.inner.re_formulation)
+    return getcustomdata(masterform, info.column_var_id)
+end
+
 function BD.value(info::ColumnInfo, index::MOI.VariableIndex)
     varid = info.optimizer.env.varids[index]
     origin_form_uid = getoriginformuid(info.column_var_id)

@@ -15,3 +15,4 @@ test/Manifest.toml
 *.mps
 *DS_Store
 test/.222-revise-exit-code
+test/playgap.json
