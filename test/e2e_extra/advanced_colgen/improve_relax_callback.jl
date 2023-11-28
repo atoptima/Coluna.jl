@@ -216,6 +216,7 @@ function test_improve_relaxation(; do_improve::Bool)
         sets = BD.getsolutions(model, b)
         for s in sets
             @test BD.value(s) == 1.0 # value of the master column variable
+            @test BD.customdata(s).items == [1] || BD.customdata(s).items == [2, 3] # either [1] or [2, 3] 
             @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 2]) # only x[1,1] in its set
             @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 3]) # only x[1,1] in its set
             @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set

@@ -62,6 +62,7 @@ else
     end
 
     run_e2e_tests()
+    run_e2e_extra_tests()
 end
 
 @testset "Version" begin
