@@ -3,8 +3,8 @@ mutable struct Reformulation{MasterDuty} <: AbstractFormulation
     uid::Int
     parent::Formulation{Original} # reference to (pointer to) ancestor:  Formulation or Reformulation (TODO rm Nothing)
     master::Formulation{MasterDuty}
-    dw_pricing_subprs::Dict{FormId, Formulation{DwSp}} 
-    benders_sep_subprs::Dict{FormId, Formulation{BendersSp}}
+    dw_pricing_subprs::Dict{FormId,Formulation{DwSp}}
+    benders_sep_subprs::Dict{FormId,Formulation{BendersSp}}
     storage::Union{Nothing,Storage}
 end
 
@@ -144,12 +144,20 @@ function find_owner_formulation(reform::Reformulation, vc::AbstractVarConstr)
     for (formid, spform) in get_dw_pricing_sps(reform)
         vc_belongs_to_formulation(spform, vc) && return spform
     end
-   @error(string("VC ", vc.name, " does not belong to any problem in reformulation"))
+    @error(string("VC ", vc.name, " does not belong to any problem in reformulation"))
 end
 
 function Base.show(io::IO, reform::Reformulation)
     compact = get(io, :compact, false)
+    user_only = get(io, :user_only, false)
     if compact
         print(io, "Reformulation")
+    elseif user_only
+        println(io, "--- Reformulation ---")
+        print(io, getmaster(reform))
+        for (_, sp) in get_dw_pricing_sps(reform)
+            print(io, sp)
+        end
+        println(io, "---------------------")
     end
 end

@@ -17,7 +17,7 @@ struct DwMaster <: AbstractMasterDuty end
 "Master of a formulation decomposed using Benders."
 struct BendersMaster <: AbstractMasterDuty end
 
-mutable struct DwSp <: AbstractSpDuty 
+mutable struct DwSp <: AbstractSpDuty
     setup_var::Union{VarId,Nothing}
     lower_multiplicity_constr_id::Union{ConstrId,Nothing}
     upper_multiplicity_constr_id::Union{ConstrId,Nothing}
@@ -30,55 +30,53 @@ end
 "A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
 function DwSp(setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr_id, column_var_kind)
     return DwSp(
-        setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr_id, 
+        setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr_id,
         column_var_kind,
         Pool()
     )
 end
-mutable struct BendersSp <: AbstractSpDuty 
-    slack_to_first_stage::Dict{VarId, VarId}
+mutable struct BendersSp <: AbstractSpDuty
+    slack_to_first_stage::Dict{VarId,VarId}
     second_stage_cost_var::Union{VarId,Nothing}
     pool::DualSolutionPool
 end
 
 "A Benders subproblem of a formulation decomposed using Benders."
-BendersSp() = BendersSp(Dict{VarId, VarId}(), nothing, DualSolutionPool())
+BendersSp() = BendersSp(Dict{VarId,VarId}(), nothing, DualSolutionPool())
 
 ############################################################################################
 # Duties tree for a Variable
 ############################################################################################
 @exported_nestedenum begin
     Duty{Variable}
-        AbstractOriginalVar <= Duty{Variable}
-            OriginalVar <= AbstractOriginalVar
-            #OriginalExpression <= AbstractOriginalVar
-        AbstractMasterVar <= Duty{Variable}
-            AbstractOriginMasterVar <= AbstractMasterVar
-                MasterPureVar <= AbstractOriginMasterVar
-                MasterBendFirstStageVar <= AbstractOriginMasterVar
-            AbstractAddedMasterVar <= AbstractMasterVar
-                MasterCol <= AbstractAddedMasterVar
-                MasterArtVar <= AbstractAddedMasterVar
-                MasterBendSecondStageCostVar <= AbstractAddedMasterVar
-            AbstractImplicitMasterVar <= AbstractMasterVar
-                AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
-                    MasterRepPricingVar <= AbstractMasterRepDwSpVar
-                    MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
-        AbstractDwSpVar <= Duty{Variable}
-            DwSpPricingVar <= AbstractDwSpVar
-            DwSpSetupVar <= AbstractDwSpVar
-            #DwSpPureVar <= AbstractDwSpVar
-            DwSpPrimalSol <= AbstractDwSpVar
-        AbstractBendSpVar <= Duty{Variable}
-            AbstractBendSpSlackMastVar <= AbstractBendSpVar
-                BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
-                    BendSpPosSlackFirstStageVar <= BendSpSlackFirstStageVar
-                    BendSpNegSlackFirstStageVar <= BendSpSlackFirstStageVar
-                BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
-                BendSpSecondStageArtVar <= AbstractBendSpSlackMastVar
-            BendSpSepVar <= AbstractBendSpVar
-            BendSpFirstStageRepVar <= AbstractBendSpVar
-            BendSpCostRepVar <= AbstractBendSpVar
+    AbstractOriginalVar <= Duty{Variable}
+    OriginalVar <= AbstractOriginalVar
+    AbstractMasterVar <= Duty{Variable}
+    AbstractOriginMasterVar <= AbstractMasterVar
+    MasterPureVar <= AbstractOriginMasterVar
+    MasterBendFirstStageVar <= AbstractOriginMasterVar
+    AbstractAddedMasterVar <= AbstractMasterVar
+    MasterCol <= AbstractAddedMasterVar
+    MasterArtVar <= AbstractAddedMasterVar
+    MasterBendSecondStageCostVar <= AbstractAddedMasterVar
+    AbstractImplicitMasterVar <= AbstractMasterVar
+    AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
+    MasterRepPricingVar <= AbstractMasterRepDwSpVar
+    MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
+    AbstractDwSpVar <= Duty{Variable}
+    DwSpPricingVar <= AbstractDwSpVar
+    DwSpSetupVar <= AbstractDwSpVar
+    DwSpPrimalSol <= AbstractDwSpVar
+    AbstractBendSpVar <= Duty{Variable}
+    AbstractBendSpSlackMastVar <= AbstractBendSpVar
+    BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
+    BendSpPosSlackFirstStageVar <= BendSpSlackFirstStageVar
+    BendSpNegSlackFirstStageVar <= BendSpSlackFirstStageVar
+    BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
+    BendSpSecondStageArtVar <= AbstractBendSpSlackMastVar
+    BendSpSepVar <= AbstractBendSpVar
+    BendSpFirstStageRepVar <= AbstractBendSpVar
+    BendSpCostRepVar <= AbstractBendSpVar
 end
 
 ############################################################################################
@@ -86,35 +84,27 @@ end
 ############################################################################################
 @exported_nestedenum begin
     Duty{Constraint}
-        AbstractOriginalConstr <= Duty{Constraint}
-            OriginalConstr <= AbstractOriginalConstr
-        AbstractMasterConstr <= Duty{Constraint}
-            AbstractMasterOriginConstr <= AbstractMasterConstr
-                MasterPureConstr <= AbstractMasterOriginConstr
-                MasterMixedConstr <= AbstractMasterOriginConstr
-            AbstractMasterAddedConstr <= AbstractMasterConstr
-                MasterConvexityConstr <= AbstractMasterAddedConstr
-                #MasterSecondStageCostConstr <= AbstractMasterAddedConstr
-            #AbstractMasterImplicitConstr <= AbstractMasterConstr
-                #AbstractMasterRepBendSpConstr <= AbstractMasterImplicitConstr
-                    #MasterRepBendSpSecondStageCostConstr <= AbstractMasterRepBendSpConstr
-                    #MasterRepBendSpTechnologicalConstr <= AbstractMasterRepBendSpConstr
-            AbstractMasterCutConstr <= AbstractMasterConstr
-                MasterBendCutConstr <= AbstractMasterCutConstr
-                MasterUserCutConstr <= AbstractMasterCutConstr
-            AbstractMasterBranchingConstr <= AbstractMasterConstr
-                MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
-        AbstractDwSpConstr <= Duty{Constraint}
-            DwSpPureConstr <= AbstractDwSpConstr
-            # <= AbstractDwSpConstr
-            #DwSpRepMastBranchConstr <= AbstractDwSpConstr
-        #AbstractBendSpPureConstr <= Duty{Constraint}
-        AbstractBendSpConstr <= Duty{Constraint}
-            AbstractBendSpMasterConstr <= AbstractBendSpConstr
-                BendSpSecondStageCostConstr <= AbstractBendSpMasterConstr
-                BendSpTechnologicalConstr <= AbstractBendSpMasterConstr
-            BendSpPureConstr <= AbstractBendSpConstr
-            BendSpDualSol <= AbstractBendSpConstr
+    AbstractOriginalConstr <= Duty{Constraint}
+    OriginalConstr <= AbstractOriginalConstr
+    AbstractMasterConstr <= Duty{Constraint}
+    AbstractMasterOriginConstr <= AbstractMasterConstr
+    MasterPureConstr <= AbstractMasterOriginConstr
+    MasterMixedConstr <= AbstractMasterOriginConstr
+    AbstractMasterAddedConstr <= AbstractMasterConstr
+    MasterConvexityConstr <= AbstractMasterAddedConstr
+    AbstractMasterCutConstr <= AbstractMasterConstr
+    MasterBendCutConstr <= AbstractMasterCutConstr
+    MasterUserCutConstr <= AbstractMasterCutConstr
+    AbstractMasterBranchingConstr <= AbstractMasterConstr
+    MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
+    AbstractDwSpConstr <= Duty{Constraint}
+    DwSpPureConstr <= AbstractDwSpConstr
+    AbstractBendSpConstr <= Duty{Constraint}
+    AbstractBendSpMasterConstr <= AbstractBendSpConstr
+    BendSpSecondStageCostConstr <= AbstractBendSpMasterConstr
+    BendSpTechnologicalConstr <= AbstractBendSpMasterConstr
+    BendSpPureConstr <= AbstractBendSpConstr
+    BendSpDualSol <= AbstractBendSpConstr
 end
 
 ############################################################################################
@@ -122,48 +112,49 @@ end
 ############################################################################################
 function isaStaticDuty(duty::NestedEnum)
     return duty <= OriginalVar ||
-    #duty <= OriginalExpression ||
-    duty <= MasterPureVar ||
-    duty <= MasterArtVar ||
-    duty <= MasterBendSecondStageCostVar ||
-    duty <= MasterBendFirstStageVar ||
-    duty <= MasterRepPricingVar ||
-    duty <= MasterRepPricingSetupVar ||
-    duty <= DwSpPricingVar ||
-    duty <= DwSpSetupVar ||
-    #duty <= DwSpPureVar ||
-    duty <= DwSpPrimalSol ||
-    #duty <= DwSpDualSol ||
-    duty <= BendSpSepVar ||
-    #duty <= BendSpPureVar ||
-    duty <= BendSpSlackFirstStageVar  ||
-    duty <= BendSpSlackSecondStageCostVar ||
-    duty <= OriginalConstr ||
-    duty <= MasterPureConstr ||
-    duty <= MasterMixedConstr ||
-    duty <= MasterConvexityConstr ||
-    #duty <= MasterSecondStageCostConstr ||
-    duty <= DwSpPureConstr ||
-    duty <= BendSpPureConstr ||
-    duty <= BendSpDualSol ||
-    duty <= BendSpSecondStageCostConstr ||
-    duty <= BendSpTechnologicalConstr
+           duty <= MasterPureVar ||
+           duty <= MasterArtVar ||
+           duty <= MasterBendSecondStageCostVar ||
+           duty <= MasterBendFirstStageVar ||
+           duty <= MasterRepPricingVar ||
+           duty <= MasterRepPricingSetupVar ||
+           duty <= DwSpPricingVar ||
+           duty <= DwSpSetupVar ||
+           duty <= DwSpPrimalSol ||
+           duty <= BendSpSepVar ||
+           duty <= BendSpSlackFirstStageVar ||
+           duty <= BendSpSlackSecondStageCostVar ||
+           duty <= OriginalConstr ||
+           duty <= MasterPureConstr ||
+           duty <= MasterMixedConstr ||
+           duty <= MasterConvexityConstr ||
+           duty <= DwSpPureConstr ||
+           duty <= BendSpPureConstr ||
+           duty <= BendSpDualSol ||
+           duty <= BendSpSecondStageCostConstr ||
+           duty <= BendSpTechnologicalConstr
 end
 
 function isaDynamicDuty(duty::NestedEnum)
-    duty <= MasterCol ||
-    duty <= MasterBranchOnOrigVarConstr ||
-    duty <= MasterBendCutConstr ||
-    duty <= MasterBranchOnOrigVarConstr
-    #duty <= DwSpRepMastBranchConstr ||
-    #duty <= DwSpRepMastBranchConstr
+    return duty <= MasterCol ||
+           duty <= MasterBranchOnOrigVarConstr ||
+           duty <= MasterBendCutConstr ||
+           duty <= MasterBranchOnOrigVarConstr
 end
 
 function isanOriginalRepresentatives(duty::NestedEnum)
-    duty <= MasterPureVar ||
-    duty <= MasterRepPricingVar
+    return duty <= MasterPureVar ||
+           duty <= MasterRepPricingVar
 end
 
 function isanArtificialDuty(duty::NestedEnum)
     return duty <= MasterArtVar || duty <= BendSpSecondStageArtVar
+end
+
+function isaNonUserDefinedDuty(duty::NestedEnum)
+    return duty <= MasterArtVar ||
+           duty <= MasterRepPricingSetupVar ||
+           duty <= MasterCol ||
+           duty <= DwSpSetupVar ||
+           duty <= MasterConvexityConstr
 end
