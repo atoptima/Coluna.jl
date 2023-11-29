@@ -12,17 +12,17 @@ function dw_decomposition()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(
         Coluna.Params(
-            global_art_var_cost = 1000.0,
-            local_art_var_cost = 100.0
+            global_art_var_cost=1000.0,
+            local_art_var_cost=100.0
         )
     )
 
     origform = Coluna.MathProg.create_formulation!(
-        env, Coluna.MathProg.Original() 
+        env, Coluna.MathProg.Original()
     )
 
     # Variables
-    vars = Dict{String, Coluna.MathProg.VarId}()
+    vars = Dict{String,Coluna.MathProg.VarId}()
     variables_infos = [
         ("x1", 1.0, Integ, 1.0, 2.0),
         ("x2", 1.0, Integ, 2.0, 3.0),
@@ -35,13 +35,13 @@ function dw_decomposition()
                 origform,
                 name,
                 Coluna.MathProg.OriginalVar;
-                cost = cost, lb = lb, ub = ub, kind = kind
+                cost=cost, lb=lb, ub=ub, kind=kind
             )
         )
     end
 
     # Constraints
-    constrs = Dict{String, Coluna.MathProg.ConstrId}()
+    constrs = Dict{String,Coluna.MathProg.ConstrId}()
     constraints_infos = [
         ("c1", 1.0, Coluna.MathProg.Greater, Dict(vars["x1"] => 1.0, vars["x2"] => 1.0, vars["y1"] => 1.0, vars["y2"] => 1.0)),
         ("c2", 5.0, Coluna.MathProg.Less, Dict(vars["x1"] => 2.0, vars["x2"] => 3.0)),
@@ -50,7 +50,7 @@ function dw_decomposition()
     for (name, rhs, sense, members) in constraints_infos
         constrs[name] = Coluna.MathProg.getid(
             Coluna.MathProg.setconstr!(
-                origform, name, Coluna.MathProg.OriginalConstr; rhs = rhs, sense = sense, members = members
+                origform, name, Coluna.MathProg.OriginalConstr; rhs=rhs, sense=sense, members=members
             )
         )
     end
@@ -122,17 +122,17 @@ function dw_decomposition_with_identical_subproblems()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(
         Coluna.Params(
-            global_art_var_cost = 1000.0,
-            local_art_var_cost = 100.0
+            global_art_var_cost=1000.0,
+            local_art_var_cost=100.0
         )
     )
 
     origform = Coluna.MathProg.create_formulation!(
-        env, Coluna.MathProg.Original() 
+        env, Coluna.MathProg.Original()
     )
 
     # Variables
-    vars = Dict{String, Coluna.MathProg.VarId}()
+    vars = Dict{String,Coluna.MathProg.VarId}()
     variables_infos = [
         ("x1", 1.0, Integ, 1.0, 2.0),
         ("x2", 1.0, Integ, 2.0, 3.0),
@@ -140,13 +140,13 @@ function dw_decomposition_with_identical_subproblems()
     for (name, cost, kind, lb, ub) in variables_infos
         vars[name] = Coluna.MathProg.getid(
             Coluna.MathProg.setvar!(
-                origform, name, Coluna.MathProg.OriginalVar; cost = cost, lb = lb, ub = ub, kind = kind
+                origform, name, Coluna.MathProg.OriginalVar; cost=cost, lb=lb, ub=ub, kind=kind
             )
         )
     end
 
     # Constraints
-    constrs = Dict{String, Coluna.MathProg.ConstrId}()
+    constrs = Dict{String,Coluna.MathProg.ConstrId}()
     constraints_infos = [
         ("c1", 1.0, Coluna.MathProg.Greater, Dict(vars["x1"] => 1.0, vars["x2"] => 1.0)),
         ("c2", 5.0, Coluna.MathProg.Less, Dict(vars["x1"] => 2.0, vars["x2"] => 3.0)),
@@ -154,7 +154,7 @@ function dw_decomposition_with_identical_subproblems()
     for (name, rhs, sense, members) in constraints_infos
         constrs[name] = Coluna.MathProg.getid(
             Coluna.MathProg.setconstr!(
-                origform, name, Coluna.MathProg.OriginalConstr; rhs = rhs, sense = sense, members = members
+                origform, name, Coluna.MathProg.OriginalConstr; rhs=rhs, sense=sense, members=members
             )
         )
     end
@@ -222,29 +222,29 @@ function dw_decomposition_repr()
 
     env = Coluna.Env{Coluna.MathProg.VarId}(
         Coluna.Params(
-            global_art_var_cost = 1000.0,
-            local_art_var_cost = 100.0
+            global_art_var_cost=1000.0,
+            local_art_var_cost=100.0
         )
     )
 
     origform = Coluna.MathProg.create_formulation!(
-        env, Coluna.MathProg.Original() 
+        env, Coluna.MathProg.Original()
     )
 
     # Variables
-    vars = Dict{String, Coluna.MathProg.VarId}()
+    vars = Dict{String,Coluna.MathProg.VarId}()
     e1 = Coluna.MathProg.getid(
         Coluna.MathProg.setvar!(
             origform, "e1", Coluna.MathProg.OriginalVar;
-            cost = 1.0, lb = 1.0, ub = 2.0, kind = Integ
+            cost=1.0, lb=1.0, ub=2.0, kind=Integ
         )
     )
 
     # Constraints
-    constrs = Dict{String, Coluna.MathProg.ConstrId}()
+    constrs = Dict{String,Coluna.MathProg.ConstrId}()
     c1 = Coluna.MathProg.getid(
         Coluna.MathProg.setconstr!(
-            origform, "c1", Coluna.MathProg.OriginalConstr; rhs = 4.0, sense = Coluna.MathProg.Greater, members = Dict(e1 => 1.0)
+            origform, "c1", Coluna.MathProg.OriginalConstr; rhs=4.0, sense=Coluna.MathProg.Greater, members=Dict(e1 => 1.0)
         )
     )
 
@@ -273,6 +273,26 @@ function dw_decomposition_repr()
 
     Coluna.reformulate!(problem, ann, env)
     reform = Coluna.MathProg.get_reformulation(problem)
+
+    _io = IOBuffer()
+    print(IOContext(_io, :user_only => true), reform)
+    @test String(take!(_io)) ==
+          """
+          --- Reformulation ---
+          Formulation DwMaster id = 3
+          MinSense  
+          c1 : + 1.0 e1  >= 4.0 (MasterMixedConstr | true)
+          1.0 <= e1 <= 10.0 (Integ | MasterRepPricingVar | false)
+          Formulation DwSp id = 5
+          Multiplicities: lower = 0, upper = 2
+          MinSense + 1.0 e1  
+          1.0 <= e1 <= 2.0 (Integ | DwSpPricingVar | true)
+          Formulation DwSp id = 4
+          Multiplicities: lower = 1, upper = 3
+          MinSense + 1.0 e1  
+          1.0 <= e1 <= 2.0 (Integ | DwSpPricingVar | true)
+          ---------------------
+          """
 
     # Test master
     master = Coluna.MathProg.getmaster(reform)
