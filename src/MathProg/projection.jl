@@ -7,9 +7,9 @@ projection_is_possible(form) = false
 
 projection_is_possible(master::Formulation{DwMaster}) = true
 
-Base.isless(A::DynamicMatrixColView{VarId, VarId, Float64}, B::DynamicMatrixColView{VarId, VarId, Float64}) = cmp(A, B) < 0
+Base.isless(A::DynamicMatrixColView{VarId,VarId,Float64}, B::DynamicMatrixColView{VarId,VarId,Float64}) = cmp(A, B) < 0
 
-function Base.cmp(A::DynamicMatrixColView{VarId, VarId, Float64}, B::DynamicMatrixColView{VarId, VarId, Float64})
+function Base.cmp(A::DynamicMatrixColView{VarId,VarId,Float64}, B::DynamicMatrixColView{VarId,VarId,Float64})
     for (a, b) in zip(A, B)
         if !isequal(a, b)
             return isless(a, b) ? -1 : 1
@@ -39,17 +39,17 @@ _new_set_of_rolls(::Type{Vector{E}}) where {E} = Vector{Float64}[]
 _new_roll(::Type{Vector{E}}, col_len) where {E} = zeros(Float64, col_len)
 _roll_is_integer(roll::Vector{Float64}) = all(map(r -> abs(r - round(r)) <= Coluna.DEF_OPTIMALITY_ATOL, roll))
 
-_new_set_of_rolls(::Type{DynamicMatrixColView{VarId, VarId, Float64}}) = Dict{VarId, Float64}[]
-_new_roll(::Type{DynamicMatrixColView{VarId, VarId, Float64}}, _) = Dict{VarId, Float64}()
-_roll_is_integer(roll::Dict{VarId, Float64}) = all(map(r -> abs(r - round(r)) <= Coluna.DEF_OPTIMALITY_ATOL, values(roll)))
+_new_set_of_rolls(::Type{DynamicMatrixColView{VarId,VarId,Float64}}) = Dict{VarId,Float64}[]
+_new_roll(::Type{DynamicMatrixColView{VarId,VarId,Float64}}, _) = Dict{VarId,Float64}()
+_roll_is_integer(roll::Dict{VarId,Float64}) = all(map(r -> abs(r - round(r)) <= Coluna.DEF_OPTIMALITY_ATOL, values(roll)))
 
-function _mapping(columns::Vector{A}, values::Vector{B}; col_len::Int = 10) where {A,B}
+function _mapping(columns::Vector{A}, values::Vector{B}; col_len::Int=10) where {A,B}
     p = sortperm(columns, rev=true)
     columns = columns[p]
     values = values[p]
 
     rolls = _new_set_of_rolls(eltype(columns))
-    total_width_assigned = 0 
+    total_width_assigned = 0
     nb_roll_opened = 1 # roll is width 1
     cur_roll = _new_roll(eltype(columns), col_len)
 
@@ -70,18 +70,28 @@ function _mapping(columns::Vector{A}, values::Vector{B}; col_len::Int = 10) wher
     return rolls
 end
 
-function _mapping_by_subproblem(columns::Dict{Int, Vector{A}}, values::Dict{Int, Vector{B}}) where {A,B}
+function _mapping_by_subproblem(columns::Dict{Int,Vector{A}}, values::Dict{Int,Vector{B}}) where {A,B}
     return Dict(
-        uid =>  _mapping(cols, values[uid]) for (uid, cols) in columns
+        uid => _mapping(cols, values[uid]) for (uid, cols) in columns
     )
 end
 
 _rolls_are_integer(rolls) = all(_roll_is_integer.(rolls))
 _subproblem_rolls_are_integer(rolls_by_sp::Dict) = all(_rolls_are_integer.(values(rolls_by_sp)))
 
+# removes information about continuous variables from rolls, as this information should be ignored when checking integrality
+function _remove_continuous_vars_from_rolls!(rolls_by_sp::Dict, reform::Reformulation)
+    for (uid, rolls) in rolls_by_sp
+        spform = get_dw_pricing_sps(reform)[uid]
+        for roll in rolls
+            filter!(pair -> getcurkind(spform, pair.first) != Continuous, roll)
+        end
+    end
+end
+
 function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
-    columns = Dict{Int, Vector{DynamicMatrixColView{VarId, VarId, Float64}}}()
-    values = Dict{Int, Vector{Float64}}()
+    columns = Dict{Int,Vector{DynamicMatrixColView{VarId,VarId,Float64}}}()
+    values = Dict{Int,Vector{Float64}}()
     master = getmodel(sol)
     reform = getparent(master)
     if isnothing(reform)
@@ -97,9 +107,9 @@ function _extract_data_for_mapping(sol::PrimalSolution{Formulation{DwMaster}})
             if isnothing(spform)
                 error("Projection: cannot retrieve Dantzig-Wolfe pricing subproblem with uid $origin_form_uid")
             end
-            column = @view get_primal_sol_pool(spform).solutions[varid,:]
+            column = @view get_primal_sol_pool(spform).solutions[varid, :]
             if !haskey(columns, origin_form_uid)
-                columns[origin_form_uid] = DynamicMatrixColView{VarId, VarId, Float64}[]
+                columns[origin_form_uid] = DynamicMatrixColView{VarId,VarId,Float64}[]
                 values[origin_form_uid] = Float64[]
             end
             push!(columns[origin_form_uid], column)
@@ -125,8 +135,8 @@ function _proj_cols_on_rep(sol::PrimalSolution{Formulation{DwMaster}}, extracted
     for spid in keys(extracted_cols)
         for (column, val) in Iterators.zip(extracted_cols[spid], extracted_vals[spid])
             for (repid, repval) in column
-                if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar || 
-                    getduty(repid) <= MasterRepPricingVar || getduty(repid) <= MasterRepPricingSetupVar
+                if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar ||
+                   getduty(repid) <= MasterRepPricingVar || getduty(repid) <= MasterRepPricingSetupVar
                     mastrepvar = getvar(master, repid)
                     @assert !isnothing(mastrepvar)
                     mastrepid = getid(mastrepvar)
@@ -149,12 +159,14 @@ function proj_cols_is_integer(sol::PrimalSolution{Formulation{DwMaster}})
     columns, values = _extract_data_for_mapping(sol)
     projected_sol = _proj_cols_on_rep(sol, columns, values)
     rolls = _mapping_by_subproblem(columns, values)
+    reform = getparent(getmodel(sol))
+    _remove_continuous_vars_from_rolls!(rolls, reform)
     integer_rolls = _subproblem_rolls_are_integer(rolls)
     return isinteger(projected_sol) && integer_rolls
 end
 
 ############################################################################################
-# Porjection of Benders master on original formulation.
+# Projection of Benders master on original formulation.
 ############################################################################################
 
 projection_is_possible(master::Formulation{BendersMaster}) = false
