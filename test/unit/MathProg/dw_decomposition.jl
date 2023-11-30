@@ -1,13 +1,15 @@
 function dw_decomposition()
     """
-        min x1 + x2 + y1 + y2
+        min x1 + x2 + y1 + y2 + s1 + s2
         st. x1 + x2 + y1 + y2 >= 1
-            2x1 + 3x2         <= 5
-            3y1 + 2y2         <= 6
-            x1 >= 1
-            x2 >= 2
-            y1 >= 1
-            y2 >= 2
+            2x1 + 3x2         <= s1
+            3y1 + 2y2         <= s2
+            2 >= x1 >= 1
+            3 >= x2 >= 2
+            -Inf >= s1 >= -Inf
+            2 >= y1 >= 1
+            3 >= y2 >= 2
+            -Inf >= -Inf
     """
 
     env = Coluna.Env{Coluna.MathProg.VarId}(
@@ -26,8 +28,10 @@ function dw_decomposition()
     variables_infos = [
         ("x1", 1.0, Integ, 1.0, 2.0),
         ("x2", 1.0, Integ, 2.0, 3.0),
+        ("s1", 1.0, Continuous, -Inf, Inf),
         ("y1", 1.0, Integ, 1.0, 2.0),
-        ("y2", 1.0, Integ, 2.0, 3.0)
+        ("y2", 1.0, Integ, 2.0, 3.0),
+        ("s2", 1.0, Continuous, -1.0, Inf)
     ]
     for (name, cost, kind, lb, ub) in variables_infos
         vars[name] = Coluna.MathProg.getid(
@@ -43,9 +47,9 @@ function dw_decomposition()
     # Constraints
     constrs = Dict{String,Coluna.MathProg.ConstrId}()
     constraints_infos = [
-        ("c1", 1.0, Coluna.MathProg.Greater, Dict(vars["x1"] => 1.0, vars["x2"] => 1.0, vars["y1"] => 1.0, vars["y2"] => 1.0)),
-        ("c2", 5.0, Coluna.MathProg.Less, Dict(vars["x1"] => 2.0, vars["x2"] => 3.0)),
-        ("c3", 6.0, Coluna.MathProg.Less, Dict(vars["y1"] => 3.0, vars["y2"] => 2.0))
+        ("c1", 1.0, Coluna.MathProg.Greater, Dict(vars["x1"] => 1.0, vars["x2"] => 1.0, vars["y1"] => 1.0, vars["y2"] => 1.0, vars["s1"] => 1.0, vars["s2"] => 1.0)),
+        ("c2", 0.0, Coluna.MathProg.Less, Dict(vars["x1"] => 2.0, vars["x2"] => 3.0, vars["s1"] => -1.0)),
+        ("c3", 0.0, Coluna.MathProg.Less, Dict(vars["y1"] => 3.0, vars["y2"] => 2.0, vars["s2"] => -1.0))
     ]
     for (name, rhs, sense, members) in constraints_infos
         constrs[name] = Coluna.MathProg.getid(
@@ -73,8 +77,10 @@ function dw_decomposition()
     Coluna.store!(ann, sp_ann2, Coluna.MathProg.getconstr(origform, constrs["c3"]))
     Coluna.store!(ann, sp_ann1, Coluna.MathProg.getvar(origform, vars["x1"]))
     Coluna.store!(ann, sp_ann1, Coluna.MathProg.getvar(origform, vars["x2"]))
+    Coluna.store!(ann, sp_ann1, Coluna.MathProg.getvar(origform, vars["s1"]))
     Coluna.store!(ann, sp_ann2, Coluna.MathProg.getvar(origform, vars["y1"]))
     Coluna.store!(ann, sp_ann2, Coluna.MathProg.getvar(origform, vars["y2"]))
+    Coluna.store!(ann, sp_ann2, Coluna.MathProg.getvar(origform, vars["s2"]))
 
     problem = Coluna.MathProg.Problem(env)
     Coluna.MathProg.set_original_formulation!(problem, origform)
@@ -87,16 +93,20 @@ function dw_decomposition()
     master_vars = Dict(getname(master, varid) => var for (varid, var) in Coluna.MathProg.getvars(master))
     master_constrs = Dict(getname(master, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(master))
 
-    @test length(master_vars) == 13
+    @test length(master_vars) == 15
     @test getcurub(master, master_vars["x1"]) == 2.0
     @test getcurub(master, master_vars["x2"]) == 3.0
     @test getcurub(master, master_vars["y1"]) == 2.0
     @test getcurub(master, master_vars["y2"]) == 3.0
+    @test getcurub(master, master_vars["s1"]) == Inf
+    @test getcurub(master, master_vars["s2"]) == Inf
 
     @test getcurlb(master, master_vars["x1"]) == 1.0
     @test getcurlb(master, master_vars["x2"]) == 2.0
     @test getcurlb(master, master_vars["y1"]) == 1.0
     @test getcurlb(master, master_vars["y2"]) == 2.0
+    @test getcurlb(master, master_vars["s1"]) == -Inf
+    @test getcurlb(master, master_vars["s2"]) == -1.0
 
 
     sp1 = first(values(Coluna.MathProg.get_dw_pricing_sps(reform)))
@@ -112,12 +122,13 @@ register!(unit_tests, "dw_decomposition", dw_decomposition)
 
 function dw_decomposition_with_identical_subproblems()
     """
-        min x1 + x2 + y1 + y2
+        min x1 + x2 + y1 + y2 + x3 + y3
         st. x1 + x2 + y1 + y2 >= 1
-            2x1 + 3x2         <= 5
-            2y1 + 3y2         <= 5 // same subproblem
+            2x1 + 3x2         <= x3
+            2y1 + 3y2         <= y3 // same subproblem
             1 <= x1 <= 2
             2 <= x2 <= 3
+
     """
 
     env = Coluna.Env{Coluna.MathProg.VarId}(
@@ -136,6 +147,7 @@ function dw_decomposition_with_identical_subproblems()
     variables_infos = [
         ("x1", 1.0, Integ, 1.0, 2.0),
         ("x2", 1.0, Integ, 2.0, 3.0),
+        ("x3", 1.0, Continuous, -Inf, Inf),
     ]
     for (name, cost, kind, lb, ub) in variables_infos
         vars[name] = Coluna.MathProg.getid(
@@ -149,7 +161,7 @@ function dw_decomposition_with_identical_subproblems()
     constrs = Dict{String,Coluna.MathProg.ConstrId}()
     constraints_infos = [
         ("c1", 1.0, Coluna.MathProg.Greater, Dict(vars["x1"] => 1.0, vars["x2"] => 1.0)),
-        ("c2", 5.0, Coluna.MathProg.Less, Dict(vars["x1"] => 2.0, vars["x2"] => 3.0)),
+        ("c2", 5.0, Coluna.MathProg.Less, Dict(vars["x1"] => 2.0, vars["x2"] => 3.0, vars["x3"] => -1.0)),
     ]
     for (name, rhs, sense, members) in constraints_infos
         constrs[name] = Coluna.MathProg.getid(
@@ -176,6 +188,7 @@ function dw_decomposition_with_identical_subproblems()
     Coluna.store!(ann, sp_ann1, Coluna.MathProg.getconstr(origform, constrs["c2"]))
     Coluna.store!(ann, sp_ann1, Coluna.MathProg.getvar(origform, vars["x1"]))
     Coluna.store!(ann, sp_ann1, Coluna.MathProg.getvar(origform, vars["x2"]))
+    Coluna.store!(ann, sp_ann1, Coluna.MathProg.getvar(origform, vars["x3"]))
 
     problem = Coluna.MathProg.Problem(env)
     Coluna.MathProg.set_original_formulation!(problem, origform)
@@ -188,11 +201,13 @@ function dw_decomposition_with_identical_subproblems()
     master_vars = Dict(getname(master, varid) => var for (varid, var) in Coluna.MathProg.getvars(master))
     master_constrs = Dict(getname(master, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(master))
 
-    @test length(master_vars) == 8
+    @test length(master_vars) == 9
     @test Coluna.MathProg.getcurub(master, master_vars["x1"]) == 2.0 * 2
     @test Coluna.MathProg.getcurub(master, master_vars["x2"]) == 3.0 * 2
+    @test Coluna.MathProg.getcurub(master, master_vars["x3"]) == Inf
     @test Coluna.MathProg.getcurlb(master, master_vars["x1"]) == 1.0 * 0
     @test Coluna.MathProg.getcurlb(master, master_vars["x2"]) == 2.0 * 0
+    @test Coluna.MathProg.getcurlb(master, master_vars["x3"]) == -Inf
     @test Coluna.MathProg.getcurrhs(master, master_constrs["c1"]) == 1.0
     @test Coluna.MathProg.getcurrhs(master, master_constrs["sp_ub_4"]) == 2.0
     @test Coluna.MathProg.getcurrhs(master, master_constrs["sp_lb_4"]) == 0.0
@@ -203,7 +218,7 @@ function dw_decomposition_with_identical_subproblems()
     sp1_vars = Dict(getname(sp1, varid) => var for (varid, var) in Coluna.MathProg.getvars(sp1))
     sp1_constrs = Dict(getname(sp1, constrid) => constr for (constrid, constr) in Coluna.MathProg.getconstrs(sp1))
 
-    @test length(sp1_vars) == 3
+    @test length(sp1_vars) == 4
     @test Coluna.MathProg.getcurlb(sp1, sp1_vars["x1"]) == 1.0
     @test Coluna.MathProg.getcurub(sp1, sp1_vars["x1"]) == 2.0
     @test Coluna.MathProg.getcurlb(sp1, sp1_vars["x2"]) == 2.0
@@ -217,7 +232,7 @@ function dw_decomposition_repr()
         s.t. e1 >= 4
              
         sp1 : 1 <= e1 <= 2 with lm = 0, lm= 2
-        sp2 : 1 <= e2 <= 3 with lm = 1, lm= 3
+        sp2 : 1 <= e1 <= 2 with lm = 1, lm= 3
     """
 
     env = Coluna.Env{Coluna.MathProg.VarId}(
