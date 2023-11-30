@@ -9,6 +9,8 @@
 # TODO: description of the tests.
 ############################################################################################
 
+using Test
+
 # Minimization and test all constraint senses
 form1() = """
     master
