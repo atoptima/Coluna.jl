@@ -8,7 +8,7 @@ function test_mapping_operator_1()
 
     v = Float64[3, 2, 0, 0]
 
-    result = Coluna.MathProg._mapping(G, v; col_len = 7)#, 6)
+    result = Coluna.MathProg._mapping(G, v; col_len=7)#, 6)
     @test result == [
         [1, 0, 0, 1, 1, 0, 1],
         [1, 0, 0, 1, 1, 0, 1],
@@ -52,7 +52,7 @@ function test_mapping_operator_2()
 
     v = Float64[0, 1/2, 1, 1/2, 0, 0, 1, 1, 0, 0, 1/2, 0, 1/2, 0, 0]
 
-    result = Coluna.MathProg._mapping(G, v; col_len = 4)
+    result = Coluna.MathProg._mapping(G, v; col_len=4)
     @test result == [
         [1.0, 1.0, 0.0, 0.5],
         [1.0, 0.5, 0.5, 0.5],
@@ -96,7 +96,7 @@ function identical_subproblems_vrp()
     form = """
     master
         min
-        x_12 + x_13 + x_14 + x_23 + x_24 + x_34 + MC1 + MC2 + MC3 + MC4 + 0.0 PricingSetupVar_sp_5 
+        x_12 + x_13 + x_14 + x_23 + x_24 + x_34 + s_1 + 1.4 MC1 + 1.4 MC2 + 1.4 MC3 + 1.4 MC4 + 0.0 PricingSetupVar_sp_5 
         s.t.
         x_12 + x_13 + x_14 + MC1       + MC3 + MC4 >= 1.0
         x_12 + x_23 + x_24 + MC1 + MC2       + MC4 >= 1.0
@@ -107,13 +107,15 @@ function identical_subproblems_vrp()
 
     dw_sp
         min
-        x_12 + x_13 + x_14 + x_23 + x_24 + x_34 + 0.0 PricingSetupVar_sp_5  
+        x_12 + x_13 + x_14 + x_23 + x_24 + x_34 + s_1 + 0.0 PricingSetupVar_sp_5  
         s.t.
         x_12 + x_13 + x_14 + x_23 + x_24 + x_34 >= 0
 
     continuous
         columns
             MC1, MC2, MC3, MC4
+        representatives
+            s_1
 
     integer
         pricing_setup
@@ -122,7 +124,7 @@ function identical_subproblems_vrp()
     binary
         representatives
             x_12, x_13, x_14, x_23, x_24, x_34
- 
+
     bounds
         0.0 <= x_12 <= 1.0
         0.0 <= x_13 <= 1.0
@@ -130,6 +132,8 @@ function identical_subproblems_vrp()
         0.0 <= x_23 <= 1.0
         0.0 <= x_24 <= 1.0
         0.0 <= x_34 <= 1.0
+        -Inf <= s_1 <= Inf
+
         MC1 >= 0
         MC2 >= 0
         MC3 >= 0
@@ -148,19 +152,19 @@ function projection_from_dw_reform_to_master_1()
     spform = first(sps)
     pool = ClMP.get_primal_sol_pool(spform)
 
-    var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
- 
+    var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34", "s_1"])
+
     # VarId[Variableu2, Variableu1, Variableu3, Variableu4, Variableu5, Variableu6]
     for (name, vals) in Iterators.zip(
-            ["MC1", "MC2", "MC3", "MC4"],
-            [
-                [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 1.0, 0.0, 1.0],
-                [0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
-                [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
-            ]
+        ["MC1", "MC2", "MC3", "MC4"],
+        [
+            [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.4],
+            [0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.4],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.4],
+            [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.4]
+        ]
     )
-        col_id = ClMP.VarId(mastervarids[name]; duty = DwSpPrimalSol)
+        col_id = ClMP.VarId(mastervarids[name]; duty=DwSpPrimalSol)
         ClMP.push_in_pool!(pool, ClMP.PrimalSolution(spform, var_ids, vals, 1.0, ClMP.FEASIBLE_SOL), col_id, 1.0)
     end
 
@@ -168,8 +172,8 @@ function projection_from_dw_reform_to_master_1()
     # This solution is integer feasible.
     solution = Coluna.MathProg.PrimalSolution(
         master,
-        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid = 4), ["MC1", "MC2", "MC3", "MC4"]),
-        [1/2, 1/2, 1/2, 1/2],
+        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid=4), ["MC1", "MC2", "MC3", "MC4"]),
+        [1 / 2, 1 / 2, 1 / 2, 1 / 2],
         2.0,
         ClB.FEASIBLE_SOL
     )
@@ -177,6 +181,7 @@ function projection_from_dw_reform_to_master_1()
     # Test integration
     columns, values = Coluna.MathProg._extract_data_for_mapping(solution)
     rolls = Coluna.MathProg._mapping_by_subproblem(columns, values)
+    Coluna.MathProg._remove_continuous_vars_from_rolls!(rolls, reform)
 
     # Expected:
     # | 1/2 of [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
@@ -186,7 +191,7 @@ function projection_from_dw_reform_to_master_1()
     # | 1/2 of [0.0, 0.0, 0.0, 1.0, 0.0, 1.0]
     # ----->   [0.0, 0.0, 0.5, 0.5, 0.0, 1.0]
 
-    @test rolls == Dict( 4 => [
+    @test rolls == Dict(4 => [
         Dict(mastervarids["x_14"] => 0.5, mastervarids["x_23"] => 0.5, mastervarids["x_34"] => 1.0)
         Dict(mastervarids["x_12"] => 1.0, mastervarids["x_14"] => 0.5, mastervarids["x_23"] => 0.5)
     ])
@@ -210,17 +215,17 @@ function projection_from_dw_reform_to_master_2()
     spform = first(sps)
     pool = ClMP.get_primal_sol_pool(spform)
 
-    var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34"])
- 
+    var_ids = map(n -> ClMP.getid(ClMP.getvar(spform, mastervarids[n])), ["x_12", "x_13", "x_14", "x_23", "x_24", "x_34", "s_1"])
+
     # VarId[Variableu2, Variableu1, Variableu3, Variableu4, Variableu5, Variableu6]
     for (name, vals) in Iterators.zip(
-            ["MC1", "MC2"],
-            [
-                [0.9999999, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 0.0, 0.9999999],
-            ]
+        ["MC1", "MC2"],
+        [
+            [0.9999999, 0.0, 0.0, 0.0, 0.0, 0.0, 0.7],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.9999999, 0.7],
+        ]
     )
-        col_id = ClMP.VarId(mastervarids[name]; duty = DwSpPrimalSol)
+        col_id = ClMP.VarId(mastervarids[name]; duty=DwSpPrimalSol)
         ClMP.push_in_pool!(pool, ClMP.PrimalSolution(spform, var_ids, vals, 1.0, ClMP.FEASIBLE_SOL), col_id, 1.0)
     end
 
@@ -228,7 +233,7 @@ function projection_from_dw_reform_to_master_2()
     # This solution is integer feasible.
     solution = Coluna.MathProg.PrimalSolution(
         master,
-        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid = 4), ["MC1", "MC2"]),
+        map(n -> ClMP.VarId(mastervarids[n]; origin_form_uid=4), ["MC1", "MC2"]),
         [1.0, 1.0],
         2.0,
         ClB.FEASIBLE_SOL
@@ -237,12 +242,13 @@ function projection_from_dw_reform_to_master_2()
     # Test integration
     columns, values = Coluna.MathProg._extract_data_for_mapping(solution)
     rolls = Coluna.MathProg._mapping_by_subproblem(columns, values)
+    Coluna.MathProg._remove_continuous_vars_from_rolls!(rolls, reform)
 
     # Expected:
     # | 1 of  [0.9999999, 0.0, 0.0, 0.0, 0.0, 0.0]
     # | 1 of  [0.0, 0.0, 0.0, 0.0, 0.0, 0.9999999]
 
-    @test rolls == Dict( 4 => [
+    @test rolls == Dict(4 => [
         Dict(mastervarids["x_34"] => 0.9999999),
         Dict(mastervarids["x_12"] => 0.9999999)
     ])
@@ -251,6 +257,6 @@ function projection_from_dw_reform_to_master_2()
     @test proj[mastervarids["x_12"]] == 0.9999999
     @test proj[mastervarids["x_34"]] == 0.9999999
 
-    @test Coluna.MathProg.proj_cols_is_integer(solution) == true 
+    @test Coluna.MathProg.proj_cols_is_integer(solution) == true
 end
 register!(unit_tests, "projection", projection_from_dw_reform_to_master_2)
