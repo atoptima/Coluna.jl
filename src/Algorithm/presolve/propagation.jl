@@ -56,20 +56,14 @@ function propagate_var_bounds_from!(dest::PresolveFormulation, src::PresolveForm
     return
 end
 
-function propagate_local_to_global_bounds!(
-    master::Formulation{DwMaster}, 
-    dw_pricing_sps::Dict,
-    presolve_reform_repr::DwPresolveReform
-)
-    presolve_repr_master = presolve_reform_repr.representative_master
-    for (spid, spform) in dw_pricing_sps
-        presolve_sp = presolve_reform_repr.dw_sps[spid]
-        propagate_global_bounds!(presolve_repr_master, master, presolve_sp, spform)
+function propagate_local_to_global_bounds!(presolve_reform::DwPresolveReform)
+    for (_, presolve_sp) in presolve_reform.dw_sps
+        propagate_global_bounds!(presolve_reform.representative_master, presolve_sp)
     end
     return
 end
 
-function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, master::Formulation, presolve_sp::PresolveFormulation, spform::Formulation)
+function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, presolve_sp::PresolveFormulation)
     # TODO: does not work with representatives of multiple subproblems.
     lm = presolve_sp.form.lower_multiplicity
     um = presolve_sp.form.upper_multiplicity
@@ -82,6 +76,8 @@ function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, mas
             global_ub = presolve_repr_master.form.ubs[repr_col]
             new_global_lb = local_lb * (local_lb < 0 ? um : lm)
             new_global_ub = local_ub * (local_ub < 0 ? lm : um)
+            isnan(new_global_lb) && (new_global_lb = 0)
+            isnan(new_global_ub) && (new_global_ub = 0)
             presolve_repr_master.form.lbs[repr_col] = max(global_lb, new_global_lb)
             presolve_repr_master.form.ubs[repr_col] = min(global_ub, new_global_ub)
         end
@@ -89,20 +85,14 @@ function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, mas
     return
 end
 
-function propagate_global_to_local_bounds!(
-    master::Formulation{DwMaster}, 
-    dw_pricing_sps::Dict,
-    presolve_reform_repr::DwPresolveReform
-)
-    presolve_repr_master = presolve_reform_repr.representative_master
-    for (spid, spform) in dw_pricing_sps
-        presolve_sp = presolve_reform_repr.dw_sps[spid]
-        propagate_local_bounds!(presolve_repr_master, master, presolve_sp, spform)
+function propagate_global_to_local_bounds!(presolve_reform::DwPresolveReform)
+    for (_, presolve_sp) in presolve_reform.dw_sps
+        propagate_local_bounds!(presolve_reform.representative_master, presolve_sp)
     end
     return
 end
 
-function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, master::Formulation, presolve_sp::PresolveFormulation, spform::Formulation)
+function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, presolve_sp::PresolveFormulation)
     # TODO: does not work with representatives of multiple subproblems.
     lm = presolve_sp.form.lower_multiplicity
     um = presolve_sp.form.upper_multiplicity
@@ -158,25 +148,30 @@ function propagate_partial_sol_to_global_bounds!(presolve_sp::PresolveFormulatio
 end
 
 function partial_sol_on_repr(
-    dw_pricing_sps::Dict, 
-    presolve_master_repr::PresolveFormulation,
-    presolve_master_restr::PresolveFormulation,
+    reform::Reformulation, 
+    presolve_reform::DwPresolveReform, 
     restr_partial_sol
 )
+    dw_sps = get_dw_pricing_sps(reform)
+    presolve_master_restr = presolve_reform.restricted_master
+    presolve_master_repr = presolve_reform.representative_master
     partial_solution = zeros(Float64, presolve_master_repr.form.nb_vars)
 
-    dw_pricing_sps = dw_pricing_sps
-    nb_fixed_columns = Dict(spid => 0 for (spid, _) in dw_pricing_sps)
+    nb_fixed_columns = Dict(spid => 0 for (spid, _) in presolve_reform.dw_sps)
     new_column_explored = false
     for (col, partial_sol_value) in enumerate(restr_partial_sol)
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master_restr.col_to_var[col]
             varid = getid(var)
             if !(getduty(varid) <= MasterCol)
+                master_repr_var_col = get(presolve_master_repr.var_to_col, varid, nothing)
+                if !isnothing(master_repr_var_col)
+                    partial_solution[master_repr_var_col] += partial_sol_value
+                end
                 continue
             end
             spid = getoriginformuid(varid)
-            spform = get(dw_pricing_sps, spid, nothing)
+            spform = get(dw_sps, spid, nothing)
             @assert !isnothing(spform)
             column = @view get_primal_sol_pool(spform).solutions[varid,:]
             for (varid, val) in column
