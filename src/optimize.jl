@@ -87,7 +87,7 @@ function optimize!(
     # initialize all the units used by the algorithm and its child algorithms
     Algorithm.initialize_storage_units!(reform, algorithm)    
 
-    print(IOContext(stdout, :user_only => true), reform)
+    # print(IOContext(stdout, :user_only => true), reform)
 
     algstate = Algorithm.run!(algorithm, env, reform, initstate)
 
