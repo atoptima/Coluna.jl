@@ -869,6 +869,15 @@ function MOI.set(
 end
 
 function MOI.set(
+    model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
+)
+    var = _info(model, varid).var
+    var.branching_priority = Float64(branching_priority)
+    return
+end
+
+
+function MOI.set(
     model::Optimizer, ::BD.CustomVarValue, varid::MOI.VariableIndex, custom_data
 )
     MOI.throw_if_not_valid(model, varid)
