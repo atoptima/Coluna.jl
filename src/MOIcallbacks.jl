@@ -62,7 +62,7 @@ function MOI.submit(
     cost::Float64,
     variables::Vector{MOI.VariableIndex},
     values::Vector{Float64},
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
+    custom_data::Union{Nothing, BD.AbstractCustomVarData} = nothing
 )
     return _submit_pricing_solution(model.env, cb.callback_data, cost, variables, values, custom_data)
 end
@@ -160,7 +160,7 @@ function MOI.submit(
     cb::Union{MOI.UserCut{Algorithm.RobustCutCallbackContext}, MOI.LazyConstraint{Algorithm.RobustCutCallbackContext}},
     func::MOI.ScalarAffineFunction{Float64},
     set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}},
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
+    custom_data::Union{Nothing, BD.AbstractCustomConstrData} = nothing
 )
     form = cb.callback_data.form
     rhs = MathProg.convert_moi_rhs_to_coluna(set)
@@ -222,7 +222,7 @@ function MOI.submit(
     cb::BD.InitialColumn{MathProg.InitialColumnsCallbackData},
     variables::Vector{MOI.VariableIndex},
     values::Vector{Float64},
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
+    custom_data::Union{Nothing, BD.AbstractCustomVarData} = nothing
 )
     return _submit_initial_solution(model.env, cb.callback_data, variables, values, custom_data)
 end

@@ -202,7 +202,7 @@ end
 Dispatches on the type of custom data attached to the variable and the constraint to compute
 the coefficient of the variable in the constraint.
 """
-function computecoeff(var_custom_data, constr_custom_data)
+function computecoeff(var_custom_data::BD.AbstractCustomVarData, constr_custom_data::BD.AbstractCustomConstrData)
     error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
 end
 
@@ -283,7 +283,7 @@ function setvar!(
     # Coefficient of the variable in the constraints of the `form` formulation.
     members::Union{ConstrMembership,Nothing}=nothing,
     # Custom representation of the variable (advanced use).
-    custom_data::Union{Nothing,BD.AbstractCustomData}=nothing,
+    custom_data::Union{Nothing,BD.AbstractCustomVarData}=nothing,
     # Default id of the variable.
     id=VarId(duty, form.env.var_counter += 1, getuid(form)),
     # The formulation from which the variable is generated.
@@ -418,7 +418,7 @@ function setconstr!(
     moi_index::MoiConstrIndex=MoiConstrIndex(),
     members=nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Real=0.0,
-    custom_data::Union{Nothing,BD.AbstractCustomData}=nothing,
+    custom_data::Union{Nothing,BD.AbstractCustomConstrData}=nothing,
     id=ConstrId(duty, form.env.constr_counter += 1, getuid(form))
 )
     if getduty(id) != duty
@@ -567,6 +567,12 @@ function insert_column!(
     # Compute coefficient members of the column in the matrix.
     members = _col_members(primal_sol, getcoefmatrix(master_form))
 
+    branching_priority::Float64 = if BD.branchingpriority(primal_sol.custom_data) !== nothing
+        BD.branchingpriority(primal_sol.custom_data)
+    else
+        spform.duty_data.branching_priority
+    end
+
     # Insert the column in the master.
     col = setvar!(
         master_form, name, MasterCol,
@@ -577,6 +583,7 @@ function insert_column!(
         inc_val=inc_val,
         is_active=is_active,
         is_explicit=is_explicit,
+        branching_priority=branching_priority,
         moi_index=MoiVarIndex(),
         members=members,
         custom_data=primal_sol.custom_data,
@@ -653,6 +660,7 @@ function _show_constraint(io::IO, form::Formulation, constrid::ConstrId, user_on
     print(io, getname(form, constr), " : ")
     for (varid, coeff) in getcoefmatrix(form)[constrid, :]
         user_only && isaNonUserDefinedDuty(getduty(varid)) && continue
+        !iscuractive(form, varid) && continue
         name = getname(form, varid)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")

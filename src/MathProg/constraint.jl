@@ -47,7 +47,7 @@ mutable struct Constraint <: AbstractVarConstr
     curdata::ConstrData
     moirecord::MoiConstrRecord
     art_var_ids::Vector{VarId}
-    custom_data::Union{Nothing, BD.AbstractCustomData}
+    custom_data::Union{Nothing, BD.AbstractCustomConstrData}
 end
 
 const ConstrId = Id{Constraint}
@@ -56,7 +56,7 @@ const ConstrId = Id{Constraint}
 function Constraint(
     id::ConstrId, name::String;
     constr_data = ConstrData(), moi_index::MoiConstrIndex = MoiConstrIndex(),
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
+    custom_data::Union{Nothing, BD.AbstractCustomConstrData} = nothing
 )
     return Constraint(
         id, name, constr_data, ConstrData(constr_data), MoiConstrRecord(index = moi_index), 

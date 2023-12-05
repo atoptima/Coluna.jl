@@ -448,7 +448,7 @@ JuMP.optimize!(model)
 
 # First, we create special custom data with the only information we need to characterize 
 # our cover constraints: the customer id that corresponds to this constraint.
-struct CoverConstrData <: BlockDecomposition.AbstractCustomData
+struct CoverConstrData <: BlockDecomposition.AbstractCustomConstrData
     customer::Int
 end
 
@@ -488,13 +488,13 @@ end
 # They record the set of customers that are visited by the given route `k`.
 
 # Thus, to each `λ_k`, we associate a `R1cVarData` structure that carries the customers it visits.  
-struct R1cVarData <: BlockDecomposition.AbstractCustomData
+struct R1cVarData <: BlockDecomposition.AbstractCustomVarData
     visited_locations::Vector{Int}
 end
 
 # Then, we attach a `R1cCutData` custom data structure to the subset-row cuts.
 # It contains the set $C$ of customers characterizing the cut. 
-struct R1cCutData <: BlockDecomposition.AbstractCustomData
+struct R1cCutData <: BlockDecomposition.AbstractCustomVarData
     cov_constrs::Vector{Int}
 end
 

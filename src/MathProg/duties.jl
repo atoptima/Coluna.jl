@@ -22,6 +22,7 @@ mutable struct DwSp <: AbstractSpDuty
     lower_multiplicity_constr_id::Union{ConstrId,Nothing}
     upper_multiplicity_constr_id::Union{ConstrId,Nothing}
     column_var_kind::VarKind
+    branching_priority::Float64
 
     # Pool of solutions to the Dantzig-Wolfe subproblem.
     pool::Pool
@@ -30,11 +31,15 @@ end
 "A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
 function DwSp(setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr_id, column_var_kind)
     return DwSp(
-        setup_var, lower_multiplicity_constr_id, upper_multiplicity_constr_id,
-        column_var_kind,
+        setup_var, 
+        lower_multiplicity_constr_id, 
+        upper_multiplicity_constr_id,
+        column_var_kind, 
+        1.0,
         Pool()
     )
 end
+
 mutable struct BendersSp <: AbstractSpDuty
     slack_to_first_stage::Dict{VarId,VarId}
     second_stage_cost_var::Union{VarId,Nothing}

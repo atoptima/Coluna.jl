@@ -8,7 +8,7 @@ struct Pool <: AbstractPool
     solutions::DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64}
     solutions_hash::ColunaBase.HashTable{VarId,VarId}
     costs::Dict{VarId,Float64}
-    custom_data::Dict{VarId,BD.AbstractCustomData}
+    custom_data::Dict{VarId,BD.AbstractCustomVarData}
 end
 
 function Pool()
@@ -16,7 +16,7 @@ function Pool()
         DynamicSparseArrays.dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         ColunaBase.HashTable{VarId, VarId}(),
         Dict{VarId, Float64}(),
-        Dict{VarId, BD.AbstractCustomData}()
+        Dict{VarId, BD.AbstractCustomVarData}()
     )
 end
 
@@ -100,7 +100,7 @@ struct DualSolutionPool <: AbstractPool
     solutions_hash::ColunaBase.HashTable{ConstrId,ConstrId}
     solutions_active_bounds::Dict{ConstrId,Dict{VarId,Tuple{Float64,ActiveBound}}}
     costs::Dict{ConstrId,Float64}
-    custom_data::Dict{ConstrId,BD.AbstractCustomData}
+    custom_data::Dict{ConstrId,BD.AbstractCustomConstrData}
 end
 
 function DualSolutionPool()
@@ -109,7 +109,7 @@ function DualSolutionPool()
         ColunaBase.HashTable{ConstrId, ConstrId}(),
         Dict{ConstrId, Tuple{ActiveBound,Float64}}(),
         Dict{ConstrId, Float64}(),
-        Dict{ConstrId, BD.AbstractCustomData}()
+        Dict{ConstrId, BD.AbstractCustomConstrData}()
     )
 end
 

@@ -1,10 +1,10 @@
 struct TestAttachCustomDataAlgorithm end
 
-struct CustomVarData <: BD.AbstractCustomData
+struct CustomVarData <: BD.AbstractCustomVarData
     var_value::Int
 end
 
-struct CustomConstrData <: BD.AbstractCustomData
+struct CustomConstrData <: BD.AbstractCustomConstrData
     constr_value::Int
 end
 
