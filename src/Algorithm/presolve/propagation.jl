@@ -148,16 +148,14 @@ function propagate_partial_sol_to_global_bounds!(presolve_sp::PresolveFormulatio
 end
 
 function partial_sol_on_repr(
-    reform::Reformulation, 
-    presolve_reform::DwPresolveReform, 
+    dw_sps,
+    presolve_master_repr::PresolveFormulation, 
+    presolve_master_restr::PresolveFormulation,
     restr_partial_sol
 )
-    dw_sps = get_dw_pricing_sps(reform)
-    presolve_master_restr = presolve_reform.restricted_master
-    presolve_master_repr = presolve_reform.representative_master
     partial_solution = zeros(Float64, presolve_master_repr.form.nb_vars)
 
-    nb_fixed_columns = Dict(spid => 0 for (spid, _) in presolve_reform.dw_sps)
+    nb_fixed_columns = Dict(spid => 0 for (spid, _) in dw_sps)
     new_column_explored = false
     for (col, partial_sol_value) in enumerate(restr_partial_sol)
         if abs(partial_sol_value) > Coluna.TOL

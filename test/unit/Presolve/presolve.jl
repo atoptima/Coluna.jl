@@ -493,11 +493,14 @@ function test_compute_default_global_bounds_and_propagate_partial_sol_into_maste
     )
 
     Coluna.Algorithm.update_subproblem_multiplicities!(presolve_pricing_sps, nb_fixed_columns_per_sp)
+    presolve_reform = Coluna.Algorithm.DwPresolveReform(
+        presolve_master_repr, 
+        presolve_master_restr, 
+        presolve_pricing_sps
+    )
     global_bounds = Coluna.Algorithm.compute_default_global_bounds(
-        presolve_master_repr,
-        presolve_dw_sps,
-        master,
-        dw_pricing_sps
+        dw_pricing_sps,
+        presolve_reform
     )
     # new global bounds are computed only using new multiplicity of the subproblems.
     @test global_bounds[1] == (0, 1)
