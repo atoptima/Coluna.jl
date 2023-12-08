@@ -3,10 +3,10 @@ function gap_toy_instance()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            branchingtreefile = "playgap.dot",
-        ),local_art_var_cost = 10000.0,
-        global_art_var_cost = 100000.0),
+        "params" => CL.Params(solver=ClA.BranchCutAndPriceAlgorithm(
+                branchingtreefile="playgap.dot",
+            ), local_art_var_cost=10000.0,
+            global_art_var_cost=100000.0),
         "default_optimizer" => GLPK.Optimizer
     )
 
@@ -31,10 +31,10 @@ function gap_toy_instance_2()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-            jsonfile = "playgap.json",
-        ),local_art_var_cost = 10000.0,
-        global_art_var_cost = 100000.0),
+        "params" => CL.Params(solver=ClA.BranchCutAndPriceAlgorithm(
+                jsonfile="playgap.json",
+            ), local_art_var_cost=10000.0,
+            global_art_var_cost=100000.0),
         "default_optimizer" => GLPK.Optimizer
     )
 
@@ -60,12 +60,12 @@ function gap_strong_branching()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "params" => CL.Params(
-            solver = ClA.BranchCutAndPriceAlgorithm(
-                maxnumnodes = 300,
-                colgen_stabilization = 1.0,
-                colgen_cleanup_threshold = 150,
-                stbranch_phases_num_candidates = [10, 3, 1],
-                stbranch_intrmphase_stages = [(userstage=1, solverid=1, maxiters=2)]
+            solver=ClA.BranchCutAndPriceAlgorithm(
+                maxnumnodes=300,
+                colgen_stabilization=1.0,
+                colgen_cleanup_threshold=150,
+                stbranch_phases_num_candidates=[10, 3, 1],
+                stbranch_intrmphase_stages=[(userstage=1, solverid=1, maxiters=2)]
             )
         ),
         "default_optimizer" => GLPK.Optimizer
@@ -74,11 +74,12 @@ function gap_strong_branching()
     model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
     # we increase the branching priority of variables which assign jobs to the first two machines
-    for machine in 1:2
-        for job in data.jobs
-            BD.branchingpriority!(x[machine,job], 2)
-        end
-    end  
+    for job in data.jobs
+        BD.branchingpriority!(x[1, job], 2)
+    end
+    for job in data.jobs
+        BD.branchingpriority!(x[2, job], 2.0)
+    end
 
     BD.objectiveprimalbound!(model, 2000.0)
     BD.objectivedualbound!(model, 0.0)
@@ -111,7 +112,7 @@ register!(e2e_tests, "gap", gap_strong_branching)
 #         @test JuMP.termination_status(model) == MOI.OPTIMAL
 #         @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 #     end
-    
+
 
 #     @testset "node limit" begin # TODO -> replace by unit test for tree search algorithm
 #         data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")

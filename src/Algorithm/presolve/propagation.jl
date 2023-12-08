@@ -161,29 +161,29 @@ function partial_sol_on_repr(
         if abs(partial_sol_value) > Coluna.TOL
             var = presolve_master_restr.col_to_var[col]
             varid = getid(var)
-            if !(getduty(varid) <= MasterCol)
+            if getduty(varid) <= MasterCol
+                spid = getoriginformuid(varid)
+                spform = get(dw_sps, spid, nothing)
+                @assert !isnothing(spform)
+                column = @view get_primal_sol_pool(spform).solutions[varid,:]
+                for (varid, val) in column
+                    getduty(varid) <= DwSpPricingVar || continue
+                    master_repr_var_col = get(presolve_master_repr.var_to_col, varid, nothing)
+                    if !isnothing(master_repr_var_col)
+                        partial_solution[master_repr_var_col] += val * partial_sol_value
+                    end
+                    if !new_column_explored
+                        nb_fixed_columns[spid] += partial_sol_value
+                        new_column_explored = true
+                    end
+                end
+                new_column_explored = false
+            elseif getduty(varid) <= MasterPureVar
                 master_repr_var_col = get(presolve_master_repr.var_to_col, varid, nothing)
                 if !isnothing(master_repr_var_col)
                     partial_solution[master_repr_var_col] += partial_sol_value
                 end
-                continue
             end
-            spid = getoriginformuid(varid)
-            spform = get(dw_sps, spid, nothing)
-            @assert !isnothing(spform)
-            column = @view get_primal_sol_pool(spform).solutions[varid,:]
-            for (varid, val) in column
-                getduty(varid) <= DwSpPricingVar || continue
-                master_repr_var_col = get(presolve_master_repr.var_to_col, varid, nothing)
-                if !isnothing(master_repr_var_col)
-                    partial_solution[master_repr_var_col] += val * partial_sol_value
-                end
-                if !new_column_explored
-                    nb_fixed_columns[spid] += partial_sol_value
-                    new_column_explored = true
-                end
-            end
-            new_column_explored = false
         end
     end
     return partial_solution, nb_fixed_columns

@@ -16,6 +16,8 @@ struct MyCustomVarData <: BD.AbstractCustomVarData
     nb_items::Int
 end
 
+BD.branchingpriority(::MyCustomVarData) = 0.5
+
 struct MyCustomCutData <: BD.AbstractCustomConstrData
     min_items::Int
 end
