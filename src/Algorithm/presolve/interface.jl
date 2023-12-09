@@ -519,8 +519,8 @@ function propagate_partial_sol_into_master!(reform::Reformulation, presolve_refo
 end
 
 function presolve_formulation!(presolve_form::PresolveFormulation)
-    tightened_bounds_repr = bounds_tightening(presolve_form.form)
-    presolve_form = propagate_in_presolve_form(presolve_form, Int[], tightened_bounds_repr)
+    tightened_bounds = bounds_tightening(presolve_form.form)
+    presolve_form = propagate_in_presolve_form(presolve_form, Int[], tightened_bounds)
 end
 
 function check_feasibility!(form::Formulation, presolve_form::PresolveFormulation, update_multiplicities::Bool=false)

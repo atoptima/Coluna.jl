@@ -553,7 +553,8 @@ function insert_column!(
     inc_val::Float64=0.0,
     is_active::Bool=true,
     is_explicit::Bool=true,
-    store_in_sp_pool=true
+    store_in_sp_pool=true,
+    id_as_name_suffix=true
 )
     spform = primal_sol.solution.model
 
@@ -587,7 +588,7 @@ function insert_column!(
         moi_index=MoiVarIndex(),
         members=members,
         custom_data=primal_sol.custom_data,
-        id_as_name_suffix=true,
+        id_as_name_suffix=id_as_name_suffix,
         origin=spform
     )
     setcurkind!(master_form, col, Continuous)
