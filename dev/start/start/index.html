@@ -24,10 +24,10 @@ objective_value(model)</code></pre><pre class="documenter-example-output"><code 
 typeof(M_axis[1])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BlockDecomposition.AxisId{:M_axis, Int64}</code></pre><p>Jobs are not involved in the decomposition, set <code>J</code> of jobs thus stays as a classic range.</p><p>The model takes the form:</p><pre><code class="language-julia hljs">model = BlockModel(coluna);</code></pre><p>You can write <code>BlockModel(coluna; direct_model = true)</code> to pass names of variables and constraints to Coluna.</p><pre><code class="language-julia hljs">@variable(model, x[m in M_axis, j in J], Bin);
 @constraint(model, cov[j in J], sum(x[m, j] for m in M_axis) &gt;= 1);
 @constraint(model, knp[m in M_axis], sum(w[m, j] * x[m, j] for j in J) &lt;= Q[m]);
-@objective(model, Min, sum(c[m, j] * x[m, j] for m in M_axis, j in J));</code></pre><p>This is the same model as above except that we use a <code>BlockModel</code> instead of a <code>Model</code> and <code>M_axis</code> as the set of machines instead of <code>M</code>. Therefore, BlockDecomposition will know which variables and constraints are involved in subproblems because one of their indices is a <code>BlockDecomposition.AxisId</code>.</p><p>You then apply a Dantzig-Wolfe decomposition along <code>M_axis</code>:</p><pre><code class="language-julia hljs">@dantzig_wolfe_decomposition(model, decomposition, M_axis)</code></pre><p>where <code>decomposition</code> is a variable that contains information about the decomposition.</p><pre><code class="language-julia hljs">decomposition</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Root - Annotation(BlockDecomposition.Master, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, id = 2) with 3 subproblems :
-	 2 =&gt; Annotation(BlockDecomposition.DwPricingSp, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, id = 4) 
-	 3 =&gt; Annotation(BlockDecomposition.DwPricingSp, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, id = 5) 
-	 1 =&gt; Annotation(BlockDecomposition.DwPricingSp, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, id = 3) 
+@objective(model, Min, sum(c[m, j] * x[m, j] for m in M_axis, j in J));</code></pre><p>This is the same model as above except that we use a <code>BlockModel</code> instead of a <code>Model</code> and <code>M_axis</code> as the set of machines instead of <code>M</code>. Therefore, BlockDecomposition will know which variables and constraints are involved in subproblems because one of their indices is a <code>BlockDecomposition.AxisId</code>.</p><p>You then apply a Dantzig-Wolfe decomposition along <code>M_axis</code>:</p><pre><code class="language-julia hljs">@dantzig_wolfe_decomposition(model, decomposition, M_axis)</code></pre><p>where <code>decomposition</code> is a variable that contains information about the decomposition.</p><pre><code class="language-julia hljs">decomposition</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Root - Annotation(BlockDecomposition.Master, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, bp = 1.0, id = 2) with 3 subproblems :
+	 2 =&gt; Annotation(BlockDecomposition.DwPricingSp, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, bp = 1.0, id = 4) 
+	 3 =&gt; Annotation(BlockDecomposition.DwPricingSp, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, bp = 1.0, id = 5) 
+	 1 =&gt; Annotation(BlockDecomposition.DwPricingSp, BlockDecomposition.DantzigWolfe, lm = 1.0, um = 1.0, bp = 1.0, id = 3) 
 </code></pre><p>Once the decomposition is defined, you can retrieve the master and the subproblems to give additional information to the solver.</p><pre><code class="language-julia hljs">master = getmaster(decomposition)
 subproblems = getsubproblems(decomposition)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3-element Vector{BlockDecomposition.SubproblemForm}:
  Subproblem formulation for M_axis = 1 contains :	 1.0 &lt;= multiplicity &lt;= 1.0
@@ -57,7 +57,7 @@ Version 0.7.0 | https://github.com/atoptima/Coluna.jl
   &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -299.3000&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
   &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -285.0000&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
   &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -155.5667&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
-  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -139.9400&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB= -139.9400&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
   &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  -63.5455&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
   &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  -51.8000&gt; &lt;mlp=  220.2000&gt; &lt;PB=220.2000&gt;
   &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   61.1900&gt; &lt;mlp=  208.7500&gt; &lt;PB=220.2000&gt;
@@ -78,7 +78,7 @@ Version 0.7.0 | https://github.com/atoptima/Coluna.jl
   &lt;st= 1&gt; &lt;it= 28&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  140.6211&gt; &lt;mlp=  174.9184&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 29&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  131.2406&gt; &lt;mlp=  173.4125&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 30&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  146.2667&gt; &lt;mlp=  173.0521&gt; &lt;PB=180.6000&gt;
-  &lt;st= 1&gt; &lt;it= 31&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  152.7125&gt; &lt;mlp=  173.0521&gt; &lt;PB=180.6000&gt;
+  &lt;st= 1&gt; &lt;it= 31&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  152.7125&gt; &lt;mlp=  173.0521&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 32&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  155.1333&gt; &lt;mlp=  172.6444&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 33&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  156.4722&gt; &lt;mlp=  172.6444&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 34&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  159.0324&gt; &lt;mlp=  171.1000&gt; &lt;PB=171.1000&gt;
@@ -94,12 +94,12 @@ Version 0.7.0 | https://github.com/atoptima/Coluna.jl
  ──────────────────────────────────────────────────────────────────────────
                                   Time                    Allocations
                          ───────────────────────   ────────────────────────
-    Tot / % measured:         3.17s /  20.5%            272MiB /  33.2%
+    Tot / % measured:         2.14s /  30.9%            219MiB /  41.4%
 
  Section         ncalls     time    %tot     avg     alloc    %tot      avg
  ──────────────────────────────────────────────────────────────────────────
- Coluna               2    651ms  100.0%   326ms   90.4MiB  100.0%  45.2MiB
-   SolveLpForm       91   57.5ms    8.8%   632μs   10.7MiB   11.8%   120KiB
+ Coluna               2    660ms  100.0%   330ms   90.7MiB  100.0%  45.3MiB
+   SolveLpForm       91   20.7ms    3.1%   227μs   10.7MiB   11.8%   120KiB
  ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 166.5
@@ -108,4 +108,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../cuts/">Cut Generation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.1 on <span class="colophon-date" title="Thursday 30 November 2023 16:48">Thursday 30 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../cuts/">Cut Generation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Thursday 14 December 2023 17:13">Thursday 14 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
