@@ -188,9 +188,9 @@ function test_partial_sol_on_repr()
     )
 
     presolve_master_repr = _presolve_formulation(
-        ["x1", "x2"],
+        ["x1", "x2", "y1", "y2"],
         ["c1"],
-        [1 1],
+        [1 1 2 1],
         master,
         master_name_to_var,
         master_name_to_constr,
@@ -216,7 +216,9 @@ function test_partial_sol_on_repr()
 
     @test partial_sol_on_repr == [
         1.0, # 1.0 MC2 with x1 = 1.0 & 2.0 MC3 with x1 = 0.0
-        3.0  # 1.0 MC2 with x2 = 1.0 & 2.0 MC3 with x2 = 1.0
+        3.0, # 1.0 MC2 with x2 = 1.0 & 2.0 MC3 with x2 = 1.0
+        1.0, # y1
+        0.0  # y2
     ]
 end
 register!(unit_tests, "presolve_algorithm", test_partial_sol_on_repr)
@@ -493,11 +495,14 @@ function test_compute_default_global_bounds_and_propagate_partial_sol_into_maste
     )
 
     Coluna.Algorithm.update_subproblem_multiplicities!(presolve_pricing_sps, nb_fixed_columns_per_sp)
+    presolve_reform = Coluna.Algorithm.DwPresolveReform(
+        presolve_master_repr, 
+        presolve_master_restr, 
+        presolve_pricing_sps
+    )
     global_bounds = Coluna.Algorithm.compute_default_global_bounds(
-        presolve_master_repr,
-        presolve_dw_sps,
-        master,
-        dw_pricing_sps
+        dw_pricing_sps,
+        presolve_reform
     )
     # new global bounds are computed only using new multiplicity of the subproblems.
     @test global_bounds[1] == (0, 1)
@@ -522,3 +527,343 @@ function test_compute_default_global_bounds_and_propagate_partial_sol_into_maste
     @test presolve_master_repr.form.ubs[2] == 2
 end
 register!(unit_tests, "presolve_algorithm", test_compute_default_global_bounds_and_propagate_partial_sol_into_master)
+
+
+# function test_presolve_full1()
+#     env = Coluna.Env{Coluna.MathProg.VarId}(Coluna.Params())
+
+#     # Master
+#     # - pure master variables:
+#     #       1 <= x_5 <= 1
+#     # - representatives:
+#     #       0 <= x_1 <= 2
+#     #       0 <= x_2 <= 2
+#     #       0 <= x_3 <= 6
+#     #       0 <= x_4 <= 6
+#     # - constraints:
+#     #       2x_1 + 3x_2 + x_3 + x_5 == 5
+#     #       x_4 >= 2 
+#     #       convexity constraints
+#     # two columns
+#     #      MC1 >= 1 with x_1 = 1 from first subproblem
+#     #      MC2 >= 0 with x_4 = 1 from second subproblem
+
+#     master, master_name_to_var, master_name_to_constr = _mathprog_formulation!(
+#         env,
+#         Coluna.MathProg.DwMaster(),
+#         [
+#             # name, duty, rhs, sense, id
+#             ("x1", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 2.0, nothing, nothing),
+#             ("x2", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 2.0, nothing, nothing),
+#             ("x3", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 6.0, nothing, nothing),
+#             ("x4", Coluna.MathProg.MasterRepPricingVar, 1.0, 0.0, 6.0, nothing, nothing),
+#             ("x5", Coluna.MathProg.MasterPureVar, 1.0, 1.0, 1.0, nothing, nothing),
+#             ("MC1", Coluna.MathProg.MasterCol, 1.0, 1.0, Inf, nothing, 2),
+#             ("MC2", Coluna.MathProg.MasterCol, 1.0, 0.0, Inf, nothing, 3),
+#             ("pricing_setup1", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 1.0, 1.0, nothing, nothing),
+#             ("pricing_setup2", Coluna.MathProg.MasterRepPricingSetupVar, 0.0, 1.0, 1.0, nothing, nothing)
+#         ],
+#         [
+#             # name, duty, rhs, sense, id
+#             ("c1", Coluna.MathProg.MasterMixedConstr, 5.0, ClMP.Equal, nothing),
+#             ("c2", Coluna.MathProg.MasterMixedConstr, 2.0, ClMP.Greater, nothing),
+#             ("conv_sp1_lb", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Greater, nothing),
+#             ("conv_sp1_ub", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Greater, nothing),
+#             ("conv_sp2_lb", Coluna.MathProg.MasterConvexityConstr, 0.0, ClMP.Less, nothing),
+#             ("conv_sp2_ub", Coluna.MathProg.MasterConvexityConstr, 2.0, ClMP.Less, nothing)
+#         ]
+#     )
+
+#     # Subproblem 1
+#     # - lower multiplicity = 0
+#     # - upper multiplicity = 2
+#     # - variables: 
+#     #       0 <= x_1 <= 1
+#     #       0 <= x_2 <= 1
+#     # - constraints:
+#     #       x_1 + x_2 >= 1
+#     sp1_form, sp1_name_to_var, sp1_name_to_constr = _mathprog_formulation!(
+#         env,
+#         Coluna.MathProg.DwSp(
+#             Coluna.MathProg.getid(master_name_to_var["pricing_setup1"]),
+#             Coluna.MathProg.getid(master_name_to_constr["conv_sp1_lb"]),
+#             Coluna.MathProg.getid(master_name_to_constr["conv_sp1_ub"]),
+#             Coluna.MathProg.Integ,
+#         ),
+#         [
+#             ("x1", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x1"]), Coluna.MathProg.getuid(master)),
+#             ("x2", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 1.0, Coluna.Algorithm.getid(master_name_to_var["x2"]), Coluna.MathProg.getuid(master)),
+#         ],
+#         [
+#             # name, duty, rhs, sense, id
+#             ("c3", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+#         ]
+#     )
+    
+#     # Subproblem 2
+#     # - lower multiplicity = 0
+#     # - upper multiplicity = 2
+#     # - variables:
+#     #       0 <= x_3 <= 3
+#     #       0 <= x_4 <= 3
+#     # - constraints:
+#     #       x_3 + x_4 >= 4
+#     sp2_form, sp2_name_to_var, sp2_name_to_constr = _mathprog_formulation!(
+#         env,
+#         Coluna.MathProg.DwSp(
+#             Coluna.MathProg.getid(master_name_to_var["pricing_setup2"]),
+#             Coluna.MathProg.getid(master_name_to_constr["conv_sp2_lb"]),
+#             Coluna.MathProg.getid(master_name_to_constr["conv_sp2_ub"]),
+#             Coluna.MathProg.Integ,
+#         ),
+#         [
+#             ("x3", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x3"]), Coluna.MathProg.getuid(master)),
+#             ("x4", Coluna.MathProg.DwSpPricingVar, 1.0, 0.0, 3.0, Coluna.Algorithm.getid(master_name_to_var["x4"]), Coluna.MathProg.getuid(master)),
+#         ],
+#         [
+#             ("c4", Coluna.MathProg.DwSpPureConstr, 1.0, ClMP.Greater, nothing)
+#         ]
+#     )
+
+#     var_ids = [Coluna.MathProg.getid(sp1_name_to_var["x1"]), Coluna.MathProg.getid(sp2_name_to_var["x4"])]
+#     pool1 = Coluna.MathProg.get_primal_sol_pool(sp1_form)
+#     pool2 = Coluna.MathProg.get_primal_sol_pool(sp2_form)
+
+#     for (sp, pool, name, vals) in Iterators.zip(
+#         [sp1_form, sp2_form],
+#         [pool1, pool2],
+#         ["MC1", "MC2"],
+#         [
+#             # x1, x4
+#             [1.0, 0.0],
+#             [0.0, 1.0]
+#         ]
+#     )
+#         col_id = Coluna.MathProg.VarId(
+#             Coluna.MathProg.getid(master_name_to_var[name]),
+#             origin_form_uid = Coluna.MathProg.getuid(sp),
+#             duty = Coluna.MathProg.DwSpPrimalSol
+#         )
+#         Coluna.MathProg.push_in_pool!(
+#             pool,
+#             Coluna.MathProg.PrimalSolution(sp, var_ids, vals, 1.0, Coluna.MathProg.FEASIBLE_SOL),
+#             col_id,
+#             1.0
+#         )
+#     end
+
+#     dw_pricing_sps = Dict(
+#         FormId(Coluna.MathProg.getuid(sp1_form)) => sp1_form,
+#         FormId(Coluna.MathProg.getuid(sp2_form)) => sp2_form
+#     )
+
+#     # Master
+#     # - pure master variables:
+#     #       1 <= x_5 <= 1
+#     # - representatives:
+#     #       0 <= x_1 <= 2
+#     #       0 <= x_2 <= 2
+#     #       0 <= x_3 <= 6
+#     #       0 <= x_4 <= 6
+#     # - constraints:
+#     #       2x_1 + 3x_2 + x_3 + x_5 == 5
+#     #       x_4 >= 2 
+#     #       convexity constraints
+#     # two columns
+#     #      MC1 >= 1 with x_1 = 1 from first subproblem
+#     #      MC2 >= 0 with x_4 = 1 from second subproblem
+
+#     presolve_master_repr = _presolve_formulation(
+#         ["x1", "x2", "x3", "x4", "x5"],
+#         ["c1", "c2", "conv_sp1_lb", "conv_sp1_ub", "conv_sp2_lb", "conv_sp2_ub"],
+#         [2 3 1 0 1; 0 0 0 1 0; 0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0],
+#         master,
+#         master_name_to_var,
+#         master_name_to_constr,
+#     )
+
+#     presolve_master_restr = _presolve_formulation(
+#         ["MC1", "MC2", "x5"],
+#         ["c1", "c2", "conv_sp1_lb", "conv_sp1_ub", "conv_sp2_lb", "conv_sp2_ub"],
+#         [2 0 1; 0 1 0; 1 0 0; 1 0 0; 0 1 0; 0 1 0],
+#         master,
+#         master_name_to_var,
+#         master_name_to_constr
+#     )
+
+#     presolve_sp1 = _presolve_formulation(
+#         ["x1", "x2"],
+#         ["c3"],
+#         [1 1],
+#         sp1_form,
+#         sp1_name_to_var,
+#         sp1_name_to_constr;
+#         lm = 0, um = 2
+#     )
+
+#     presolve_sp2 = _presolve_formulation(
+#         ["x3", "x4"],
+#         ["c4"],
+#         [1 1],
+#         sp2_form,
+#         sp2_name_to_var,
+#         sp2_name_to_constr;
+#         lm = 0, um = 2
+#     )
+
+#     presolve_dw_sps = Dict(
+#         Coluna.MathProg.getuid(sp1_form) => presolve_sp1,
+#         Coluna.MathProg.getuid(sp2_form) => presolve_sp2
+#     )
+
+#     presolve_reform = Coluna.Algorithm.DwPresolveReform(
+#         presolve_master_repr,
+#         presolve_master_restr,
+#         presolve_dw_sps
+#     )
+    
+#     reform = Coluna.MathProg.Reformulation(
+#         env, 
+#         Coluna.MathProg.create_formulation!(
+#             env,
+#             Coluna.MathProg.Original()
+#         ), 
+#         master, 
+#         dw_pricing_sps,
+#         Dict{FormId,Formulation{BendersSp}}()
+#     )
+#     Coluna.Algorithm._run_presolve!(reform, presolve_reform)
+
+#     # Expected result:
+#     @test presolve_sp1.form.lower_multiplicity == 0
+#     @test presolve_sp1.form.upper_multiplicity == 1
+#     @test presolve_sp2.form.lower_multiplicity == 0
+#     @test presolve_sp2.form.upper_multiplicity == 2
+
+#     # x1
+#     @test presolve_master_repr.form.lbs[1] == 0
+#     @test presolve_master_repr.form.ubs[1] == 2
+
+#     # x2
+#     @test presolve_master_repr.form.lbs[2] == 0
+#     @test presolve_master_repr.form.ubs[2] == 2
+
+#     # x3
+#     @test presolve_master_repr.form.lbs[3] == 2
+#     @test presolve_master_repr.form.ubs[3] == 2
+
+#     # x4
+#     @test presolve_master_repr.form.lbs[4] == 2
+#     @test presolve_master_repr.form.ubs[4] == 2
+
+#     # x5
+#     @test presolve_master_repr.form.lbs[5] == 0
+#     @test presolve_master_repr.form.ubs[5] == 0
+
+#     # rhs
+#     @test presolve_master_repr.form.rhs[1] == 2
+#     @test presolve_master_repr.form.rhs[2] == 2
+#     @test presolve_master_repr.form.rhs[3] == -1
+#     @test presolve_master_repr.form.rhs[4] == 1
+#     @test presolve_master_repr.form.rhs[5] == 0
+#     @test presolve_master_repr.form.rhs[6] == 2
+# end
+
+function test_presolve_full2()
+    formstring = """
+    master
+        min
+        1.0 x_1 + 1.0 x_2 + 1.0 x_3 + 1.0 x_4 + 1.0 x_5 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 
+        s.t.
+        2.0 x_1 + 3.0 x_2 + 1.0 x_3 + 0.0 x_4 + 1.0 x_5 == 5.0
+        0.0 x_1 + 0.0 x_2 + 0.0 x_3 + 1.0 x_4 + 0.0 x_5 >= 2.0
+        1.0 PricingSetupVar_sp_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 <= 2.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 <= 2.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        x_3 + x_4 + 0.0 PricingSetupVar_sp_5
+        s.t.
+        1.0 x_3 + 1.0 x_4 >= 4.0
+
+    dw_sp
+        min
+        x_1 + x_2 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_1 + 1.0 x_2 >= 1.0
+        solutions
+        1.0 x_1 {MC_1}
+
+    continuous
+        pure
+            x_5
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+        representatives
+            x_1, x_2, x_3, x_4
+
+    bounds
+        0.0 <= x_1 <= 1.0
+        0.0 <= x_2 <= 1.0
+        0.0 <= x_3 <= 3.0
+        0.0 <= x_4 <= 3.0
+        0.0 <= x_5 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+    """
+    env, master, sps, _, reform = reformfromstring(formstring)
+
+    # sp4_form = get_dw_pricing_sps(reform)[4]
+
+    print(IOContext(stdout, :user_only => true), reform)
+
+    # print(master)
+    
+    # @show master_vars
+
+    # master_vars["MC_1"].origin_form_uid = 4
+
+    # mc1_col_id = Coluna.MathProg.VarId(
+    #     master_vars["MC_1"],
+    #     origin_form_uid = 4,
+    #     duty = Coluna.MathProg.DwSpPrimalSol
+    # )
+
+    # sp4_vars = Dict{String, Coluna.MathProg.VarId}(
+    #     Coluna.MathProg.getname(sp4_form, var) => varid 
+    #     for (varid, var) in Coluna.MathProg.getvars(sp4_form)
+    # )
+    
+    # pool_sp4 = Coluna.MathProg.get_primal_sol_pool(sp4_form)
+
+    # Coluna.MathProg.push_in_pool!(
+    #     pool_sp4,
+    #     Coluna.MathProg.PrimalSolution(sp4_form, [sp4_vars["x_1"]], [1.0], 1.0, Coluna.MathProg.FEASIBLE_SOL),
+    #     mc1_col_id,
+    #     1.0
+    # )
+
+    master_vars = Dict{String, Coluna.MathProg.VarId}(
+        Coluna.MathProg.getname(master, var) => varid 
+        for (varid, var) in Coluna.MathProg.getvars(master)
+    )
+
+    presolve_algorithm = Coluna.Algorithm.PresolveAlgorithm()
+    input = Coluna.Algorithm.PresolveInput(
+        Dict(master_vars["MC_1"] => 1.0, master_vars["x_5"] => 1.0)
+    )
+    
+    output = Coluna.Algorithm.run!(presolve_algorithm, env, reform, input)
+
+    print(IOContext(stdout, :user_only => true), reform)
+
+    @test true
+
+    return nothing
+end
+
+register!(unit_tests, "presolve_reformulation", test_presolve_full2)

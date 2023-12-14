@@ -49,7 +49,7 @@ function test_non_proper_column1()
     sp_form, sp_name_to_var, sp_name_to_constr = _mathprog_formulation!(
         env, 
         Coluna.MathProg.DwSp(
-            nothing, nothing, nothing, ClMP.Continuous, Coluna.MathProg.Pool()
+            nothing, nothing, nothing, ClMP.Continuous, 1.0, Coluna.MathProg.Pool()
         ),
         [
             # name, duty, cost, lb, ub, id

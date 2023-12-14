@@ -51,7 +51,7 @@ Base.length(gen::Base.Generator{<:AbstractSolution}) = nnz(gen.iter.solution)
 ############################################################################################
 struct PrimalSolution{M} <: AbstractSolution
     solution::Solution{M,VarId,Float64}
-    custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData}
+    custom_data::Union{Nothing, BlockDecomposition.AbstractCustomVarData}
 end
 
 """
@@ -61,7 +61,7 @@ end
         varvals::Vector{Float64},
         cost::Float64,
         status::SolutionStatus;
-        custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData} = nothing
+        custom_data::Union{Nothing, BlockDecomposition.AbstractCustomVarData} = nothing
     )
 
 Create a primal solution to the formulation `form` of cost `cost` and status `status`.
@@ -131,7 +131,7 @@ end
 struct DualSolution{M} <: AbstractSolution
     solution::Solution{M,ConstrId,Float64}
     var_redcosts::Dict{VarId, Tuple{Float64,ActiveBound}}
-    custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData}
+    custom_data::Union{Nothing, BlockDecomposition.AbstractCustomConstrData}
 end
 
 """

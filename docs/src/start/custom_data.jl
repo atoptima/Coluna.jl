@@ -106,7 +106,7 @@ B = [1, 2, 3];
 #
 # For every subproblem solution $s$, we define custom data with the number of items in the bin.
 
-struct MyCustomVarData <: BlockDecomposition.AbstractCustomData
+struct MyCustomVarData <: BlockDecomposition.AbstractCustomVarData
     nb_items::Int
 end
 BlockDecomposition.customvars!(model, MyCustomVarData);
@@ -114,7 +114,7 @@ BlockDecomposition.customvars!(model, MyCustomVarData);
 
 # We define custom data for the cut that will contain the minimum number of items
 # in a bin that can be used. The value will be `2` in this example.
-struct MyCustomCutData <: BlockDecomposition.AbstractCustomData
+struct MyCustomCutData <: BlockDecomposition.AbstractCustomConstrData
     min_items::Int
 end
 BlockDecomposition.customconstrs!(model, MyCustomCutData);

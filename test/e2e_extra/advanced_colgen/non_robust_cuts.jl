@@ -12,11 +12,13 @@ given by length(s). The custom cut used to cut the fractional solution is
                 sum(λ_s for s in sols if length(s) >= 2) <= 1.0
 where sols is the set of possible combinations of items in a bin.
 =#
-struct MyCustomVarData <: BD.AbstractCustomData
+struct MyCustomVarData <: BD.AbstractCustomVarData
     nb_items::Int
 end
 
-struct MyCustomCutData <: BD.AbstractCustomData
+BD.branchingpriority(::MyCustomVarData) = 0.5
+
+struct MyCustomCutData <: BD.AbstractCustomConstrData
     min_items::Int
 end
 
@@ -39,8 +41,7 @@ function build_toy_model(optimizer)
     return toy, x, y, dec
 end
 
-@testset "Old - Adding a custom cut over custom variables" begin
-
+function test_non_robust_cuts()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "default_optimizer" => GLPK.Optimizer,
@@ -148,3 +149,5 @@ end
     JuMP.optimize!(model)
     @test JuMP.termination_status(model) == MOI.OPTIMAL
 end
+
+register!(e2e_extra_tests, "non_robust_cuts", test_non_robust_cuts)

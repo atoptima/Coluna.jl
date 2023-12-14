@@ -14,7 +14,7 @@ mutable struct _VarInfo
     index::MOI.VariableIndex
     name::String
     var::Variable
-    data::Union{Nothing, BlockDecomposition.AbstractCustomData}
+    data::Union{Nothing, BlockDecomposition.AbstractCustomVarData}
 end
 _VarInfo(var::Variable) = _VarInfo(_NONE, _NONE, _CONT, MOI.VariableIndex(0), "", var, nothing)
 
@@ -22,7 +22,7 @@ mutable struct _ConstrInfo
     name::String
     index::Union{Nothing, MOI.ConstraintIndex}
     constr::Constraint
-    data::Union{Nothing, BlockDecomposition.AbstractCustomData}
+    data::Union{Nothing, BlockDecomposition.AbstractCustomConstrData}
 end
 _ConstrInfo(constr::Constraint) = _ConstrInfo("", nothing, constr, nothing)
 
@@ -861,12 +861,21 @@ function MOI.set(
 end
 
 function MOI.set(
+    model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Float64
+)
+    var = _info(model, varid).var
+    var.branching_priority = branching_priority
+    return
+end
+
+function MOI.set(
     model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
 )
     var = _info(model, varid).var
     var.branching_priority = Float64(branching_priority)
     return
 end
+
 
 function MOI.set(
     model::Optimizer, ::BD.CustomVarValue, varid::MOI.VariableIndex, custom_data

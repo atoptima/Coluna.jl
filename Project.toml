@@ -23,7 +23,7 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
-BlockDecomposition = "1.14.1"
+BlockDecomposition = "1.15"
 Crayons = "4.1"
 DataStructures = "0.17, 0.18"
 DynamicSparseArrays = "0.7"

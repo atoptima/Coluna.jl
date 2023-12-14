@@ -62,7 +62,7 @@ mutable struct FormulationManager
     custom_families_id::Dict{DataType,Int}
 end
 
-function FormulationManager(buffer; custom_families_id = Dict{BD.AbstractCustomData,Int}())
+function FormulationManager(buffer; custom_families_id = Dict{DataType,Int}())
     vars = Dict{VarId, Variable}()
     constrs = Dict{ConstrId, Constraint}()
     return FormulationManager(

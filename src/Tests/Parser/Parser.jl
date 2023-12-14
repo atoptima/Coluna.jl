@@ -12,6 +12,7 @@ module Parser
     const _KW_BOUNDS = Val{:bounds}()
     const _KW_CONSTRAINTS = Val{:constraints}()
     const _KW_ORIGIN = Val{:origin}()
+    const _KW_SP_SOLUTIONS = Val{:sp_solutions}()
 
     const _KW_SECTION = Dict(
         # _KW_MASTER
@@ -53,6 +54,7 @@ module Parser
         "such that" => _KW_CONSTRAINTS,
         "st" => _KW_CONSTRAINTS,
         "s.t." => _KW_CONSTRAINTS,
+        "solutions" => _KW_SP_SOLUTIONS,
         # Origin of variables
         "origin" => _KW_ORIGIN,
         # MasterPureVar
@@ -112,11 +114,17 @@ module Parser
         duty::Union{Nothing,ClMP.Duty}
     end
 
+    mutable struct SolutionCache
+        lhs::ExprCache
+        col_name::String
+    end
+
     mutable struct ProblemCache
         sense::Type{<:ClB.AbstractSense}
         objective::ExprCache
         constraints::Vector{ConstrCache}
         origin::Set{String} # names of variables.
+        solutions::Vector{SolutionCache}
         generated_formulation::Union{Coluna.MathProg.Formulation,Nothing}
     end
 
@@ -148,6 +156,7 @@ module Parser
                 ),
                 ConstrCache[],
                 Set{String}(),
+                SolutionCache[],
                 nothing
             ),
             Dict{Int64,ProblemCache}(),
@@ -223,6 +232,18 @@ module Parser
         return nothing
     end
 
+    function _read_solution(l::AbstractString)
+        line = _strip_line(l)     
+        m = match(Regex("(.+)\\{([a-zA-Z_][a-zA-Z_0-9]*)\\}?"), line)
+        if !isnothing(m)
+            lhs = _read_expression(m[1])
+            col_name = m[2]
+            return SolutionCache(lhs, col_name)
+        end
+        return nothing
+    end
+
+
     function _read_bounds(l::AbstractString, r::Regex)
         line = _strip_line(l)
         vars = String[]
@@ -261,7 +282,7 @@ module Parser
             cache.subproblems[nb_sp].sense = sense
             cache.subproblems[nb_sp].obj = obj
         else
-            cache.subproblems[nb_sp] = ProblemCache(sense, obj, [], Set{String}(), nothing)
+            cache.subproblems[nb_sp] = ProblemCache(sense, obj, [], Set{String}(), [], nothing)
         end
     end
 
@@ -278,6 +299,14 @@ module Parser
         vars = _get_vars_list(line)
         for var in vars
             push!(cache.subproblems[nb_sp].origin, var)
+        end
+        return
+    end
+
+    function read_subproblem!(::Val{:sp_solutions}, cache::ReadCache, line::AbstractString, nb_sp::Int64)
+        solution = _read_solution(line)
+        if !isnothing(solution)
+            push!(cache.subproblems[nb_sp].solutions, solution)
         end
         return
     end
@@ -481,6 +510,26 @@ module Parser
         return mastervars
     end
 
+    function add_master_columns!(master::ClMP.Formulation, all_spvars::Dict, cache::ReadCache)
+        for (_, sp) in cache.subproblems             
+            #pool = ClMP.get_primal_sol_pool(spform)        
+            for cache_solution in sp.solutions
+                isempty(cache_solution.lhs.vars) && continue
+                vars = ClMP.VarId[]
+                vals = Float64[]
+                for (varid, coeff) in cache_solution.lhs.vars
+                    if !iszero(coeff)
+                        push!(vars, ClMP.getid(all_spvars[varid][1]))
+                        push!(vals, coeff)
+                    end
+                end
+                spform = sp.generated_formulation
+                sp_sol = ClMP.PrimalSolution(spform, vars, vals, 0.0, ClMP.FEASIBLE_SOL)
+                ClMP.insert_column!(master, sp_sol, cache_solution.col_name; id_as_name_suffix=false)
+            end
+        end
+    end
+
     function add_bend_master_vars!(master::ClMP.Formulation, master_duty, cache::ReadCache)
         mastervars = Dict{String, ClMP.Variable}()
         for (varid, cost) in cache.master.objective.vars
@@ -596,6 +645,11 @@ module Parser
             closefillmode!(ClMP.getcoefmatrix(sp))
         end
         closefillmode!(ClMP.getcoefmatrix(master))
+
+        if !cache.benders_sp_type
+            add_master_columns!(master, all_spvars, cache)
+        end
+
         return env, master, subproblems, constraints, reform
     end
 

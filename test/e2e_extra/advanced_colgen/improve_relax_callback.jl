@@ -8,7 +8,7 @@ CL.@with_kw struct ImproveRelaxationAlgo <: ClA.AbstractOptimizationAlgorithm
     userfunc::Function
 end
 
-struct VarData <: BD.AbstractCustomData
+struct VarData <: BD.AbstractCustomVarData
     items::Vector{Int}
 end
 

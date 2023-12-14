@@ -85,7 +85,9 @@ function optimize!(
     MathProg.initialize_solution_pools!(reform, initial_columns)
 
     # initialize all the units used by the algorithm and its child algorithms
-    Algorithm.initialize_storage_units!(reform, algorithm)
+    Algorithm.initialize_storage_units!(reform, algorithm)    
+
+    # print(IOContext(stdout, :user_only => true), reform)
 
     algstate = Algorithm.run!(algorithm, env, reform, initstate)
 
