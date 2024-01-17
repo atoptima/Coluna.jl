@@ -131,24 +131,25 @@ function _var_ub_from_row(sense::ConstrSense, min_slack::Real, max_slack::Real, 
     return Inf
 end
 
-function rows_to_deactivate(form::PresolveFormRepr)
-    # Compute slacks of each constraints
-    rows_to_deactivate = Int[]
-    min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs]
-    max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs]
+# Is not used for the moment, but we keep it as it might be needed
+# function rows_to_deactivate(form::PresolveFormRepr)
+#     # Compute slacks of each constraints
+#     rows_to_deactivate = Int[]
+#     min_slacks = Float64[row_min_slack(form, row) for row in 1:form.nb_constrs]
+#     max_slacks = Float64[row_max_slack(form, row) for row in 1:form.nb_constrs]
 
-    for row in 1:form.nb_constrs
-        sense = form.sense[row]
-        rhs = form.rhs[row]
-        if _infeasible_row(sense, min_slacks[row], max_slacks[row], 1e-6)
-            error("Infeasible row $row.")
-        end
-        if _unbounded_row(sense, rhs) || _row_bounded_by_var_bounds(sense, min_slacks[row], max_slacks[row], 1e-6)
-            push!(rows_to_deactivate, row)
-        end
-    end
-    return rows_to_deactivate
-end
+#     for row in 1:form.nb_constrs
+#         sense = form.sense[row]
+#         rhs = form.rhs[row]
+#         if _infeasible_row(sense, min_slacks[row], max_slacks[row], 1e-6)
+#             error("Infeasible row $row.")
+#         end
+#         if _unbounded_row(sense, rhs) || _row_bounded_by_var_bounds(sense, min_slacks[row], max_slacks[row], 1e-6)
+#             push!(rows_to_deactivate, row)
+#         end
+#     end
+#     return rows_to_deactivate
+# end
 
 function bounds_tightening(form::PresolveFormRepr)
     #length(ignore_rows) == form.nb_constrs || throw(ArgumentError("Inconsistent sizes of ignore_rows and nb of constraints."))
@@ -233,73 +234,6 @@ function tighten_bounds_presolve_form_repr(form::PresolveFormRepr, tightened_bou
     return PresolveFormRepr(coef_matrix, rhs, sense, lbs, ubs, partial_sol, lm, um),
         row_mask,
         col_mask
-end
-
-# function partial_sol_update(form::PresolveFormRepr, lm, um, store_unpropagated_partial_sol)
-#     coef_matrix = form.col_major_coef_matrix
-#     rhs = form.rhs
-#     sense = form.sense
-#     lbs = form.lbs
-#     ubs = form.ubs
-
-#     new_partial_sol = zeros(Float64, length(form.partial_solution))
-#     for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-#         @assert !isnan(lb)
-#         @assert !isnan(ub)
-#         if lb > ub
-#             error("Infeasible.")
-#         end
-#         if lb > 0.0
-#             @assert !isinf(lb)
-#             new_partial_sol[i] += lb
-#         elseif ub < 0.0 && !isinf(ub)
-#             @assert !isinf(ub)
-#             new_partial_sol[i] += ub
-#         end
-#     end
-
-#     # Update rhs
-#     new_rhs = rhs - coef_matrix * new_partial_sol
-
-#     # Update bounds
-#     new_lbs = lbs - new_partial_sol
-#     new_ubs = ubs - new_partial_sol
-
-#     # Update partial_sol
-#     partial_sol = form.partial_solution + new_partial_sol
-
-#     row_mask = ones(Bool, form.nb_constrs)
-#     col_mask = ones(Bool, form.nb_vars)
-
-#     return PresolveFormRepr(
-#             coef_matrix, new_rhs, sense, new_lbs, new_ubs, partial_sol, lm, um;
-#             unpropagated_partial_solution = store_unpropagated_partial_sol ? new_partial_sol : nothing
-#         ),
-#         row_mask,
-#         col_mask
-# end
-
-function shrink_col_presolve_form_repr(form::PresolveFormRepr)
-    # nb_cols = form.nb_vars
-    # nb_rows = form.nb_constrs
-    # coef_matrix = form.col_major_coef_matrix
-    # rhs = form.rhs
-    # sense = form.sense
-
-    # # Update partial solution
-    # col_mask = ones(Bool, nb_cols)
-    # fixed_vars = Tuple{Int,Float64}[]
-    # # for (i, (lb, ub)) in  enumerate(Iterators.zip(form.lbs, form.ubs))
-    # #     @assert !isnan(lb)
-    # #     @assert !isnan(ub)
-    # #     if abs(ub) <= Coluna.TOL && abs(lb) <= Coluna.TOL
-    # #         col_mask[i] = false
-    # #         push!(fixed_vars, (i, partial_sol[i]))
-    # #     end
-    # # end
-
-    # nb_cols -= length(fixed_vars)
-    return
 end
 
 function shrink_row_presolve_form_repr(form::PresolveFormRepr, rows_to_deactivate::Vector{Int}, lm, um)
