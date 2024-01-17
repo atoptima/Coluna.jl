@@ -1,0 +1,4 @@
+## dot -Tpdf thisfile > thisfile.pdf 
+
+digraph Branching_Tree {
+	edge[fontname = "Courier", fontsize = 10];}
