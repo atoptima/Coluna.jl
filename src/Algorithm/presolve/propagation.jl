@@ -56,13 +56,6 @@ function propagate_var_bounds_from!(dest::PresolveFormulation, src::PresolveForm
     return
 end
 
-function propagate_local_to_global_bounds!(presolve_reform::DwPresolveReform)
-    for (_, presolve_sp) in presolve_reform.dw_sps
-        propagate_global_bounds!(presolve_reform.representative_master, presolve_sp)
-    end
-    return
-end
-
 function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, presolve_sp::PresolveFormulation)
     # TODO: does not work with representatives of multiple subproblems.
     lm = presolve_sp.form.lower_multiplicity
@@ -85,13 +78,6 @@ function propagate_global_bounds!(presolve_repr_master::PresolveFormulation, pre
     return
 end
 
-function propagate_global_to_local_bounds!(presolve_reform::DwPresolveReform)
-    for (_, presolve_sp) in presolve_reform.dw_sps
-        propagate_local_bounds!(presolve_reform.representative_master, presolve_sp)
-    end
-    return
-end
-
 function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, presolve_sp::PresolveFormulation)
     # TODO: does not work with representatives of multiple subproblems.
     lm = presolve_sp.form.lower_multiplicity
@@ -105,12 +91,12 @@ function propagate_local_bounds!(presolve_repr_master::PresolveFormulation, pres
             local_ub = presolve_sp.form.ubs[i]
 
             if !isinf(global_lb) && !isinf(local_ub)
-                new_local_lb = global_lb - local_ub * (local_ub > 0 ? um : lm)
+                new_local_lb = global_lb - (um - 1) * local_ub
                 presolve_sp.form.lbs[i] = max(new_local_lb, local_lb)
             end
 
             if !isinf(global_ub) && !isinf(local_lb)
-                new_local_ub = global_ub - local_lb * (local_lb > 0 ? lm : um)
+                new_local_ub = global_ub - max(0, lm - 1) * local_lb 
                 presolve_sp.form.ubs[i] = min(new_local_ub, local_ub)
             end
         end

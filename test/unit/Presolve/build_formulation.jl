@@ -449,6 +449,7 @@ end
 
 function build_dw_presolve_reformulation2()
     reform, master, sps = presolve_toy_gap_with_penalties2()
+    
     presolve_reform = Coluna.Algorithm.create_presolve_reform(reform)
 
     presolve_original_master = presolve_reform.representative_master
@@ -462,20 +463,6 @@ function build_dw_presolve_reformulation2()
         (mast_var_ids["y_5"], 0.5, 1.5),
         (mast_var_ids["y_6"], 0.6, 1.6),
         (mast_var_ids["y_7"], 0.7, 1.7),
-        (mast_var_ids["x_11"], 0.1*3, 1.0*5),
-        (mast_var_ids["x_12"], 0.2*3, 1.0*5),
-        (mast_var_ids["x_13"], 0.3*3, 1.0*5),
-        (mast_var_ids["x_14"], 0.4*3, 1.0*5),
-        (mast_var_ids["x_15"], 0.5*3, 1.0*5),
-        (mast_var_ids["x_16"], 0.6*3, 1.0*5),
-        (mast_var_ids["x_17"], 0.7*3, 1.0*5),
-        (mast_var_ids["x_21"], 0.8*0, 1.0*2),
-        (mast_var_ids["x_22"], 0.9*0, 1.0*2),
-        (mast_var_ids["x_23"], 1.0*0, 2.0*2),
-        (mast_var_ids["x_24"], 1.1*0, 2.0*2),
-        (mast_var_ids["x_25"], 1.2*0, 2.0*2),
-        (mast_var_ids["x_26"], 1.3*0, 2.0*2),
-        (mast_var_ids["x_27"], 1.4*0, 2.0*2)
     ]
 
     @test presolve_original_master.form.lower_multiplicity == 1

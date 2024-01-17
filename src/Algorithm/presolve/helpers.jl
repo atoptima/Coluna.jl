@@ -169,7 +169,7 @@ function bounds_tightening(form::PresolveFormRepr)
             @assert !isnan(var_lb)
             @assert !isnan(var_lb_from_row)
             if var_lb_from_row > var_lb
-                var_lb = min(var_ub, var_lb_from_row)
+                var_lb = var_lb_from_row
                 tighter_lb = true
             end
 
@@ -177,7 +177,7 @@ function bounds_tightening(form::PresolveFormRepr)
             @assert !isnan(var_ub)
             @assert !isnan(var_ub_from_row)
             if var_ub_from_row < var_ub
-                var_ub = max(var_lb, var_ub_from_row)
+                var_ub = var_ub_from_row
                 tighter_ub = true
             end
         end

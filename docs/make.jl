@@ -64,6 +64,7 @@ makedocs(
             "Configuration" => joinpath("man", "config.md"),
             "Built-in algorithms" => joinpath("man", "algorithm.md"),
             "User-defined Callbacks"   => joinpath("man", "callbacks.md"),
+            "Presolve algorithm"   => joinpath("man", "presolve.md"),
         ],
         "API" => Any[
             "Algorithms" => joinpath("api", "algos.md"),
