@@ -86,6 +86,8 @@ function test_runtests()
             "test_basic_ScalarAffineFunction_Semiinteger",
             "test_basic_VariableIndex_Semicontinuous",
             "test_basic_VariableIndex_Semiinteger",
+            "test_linear_Semicontinuous_integration",
+            "test_linear_Semiinteger_integration"
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far
