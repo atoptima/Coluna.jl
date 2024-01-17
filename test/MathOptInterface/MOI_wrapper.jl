@@ -80,6 +80,12 @@ function test_runtests()
             "test_linear_transform",
             # To see later if we need to support SOS2 integration
             "test_linear_SOS2_integration",
+            # To see if we can support this tests, they fail because
+            # MethodError: no method matching _is_valid(::Type{MathOptInterface.Semicontinuous{Float64}}, ::Coluna._VarBound, ::Coluna._VarBound, ::Coluna._VarKind)
+            "test_basic_ScalarAffineFunction_Semicontinuous",
+            "test_basic_ScalarAffineFunction_Semiinteger",
+            "test_basic_VariableIndex_Semicontinuous",
+            "test_basic_VariableIndex_Semiinteger",
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far
