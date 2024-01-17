@@ -14,8 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # minimum Julia version that your package supports. (new LTS)
-          - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
+          - '1.6.7' # minimum Julia version that your package supports. (new LTS)
+          - '1.8.5' # "work" version for Atoptima deployements 
+          #- '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
+                 # for the moment, latest stable version 1.10 errors, we need to repair it
         os:
           - ubuntu-latest
         arch:
