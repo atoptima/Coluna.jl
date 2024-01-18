@@ -196,9 +196,25 @@ function Base.show(io::IO, solution::DualSolution{M}) where {M}
 end
 
 function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
+    model = getmodel(solution)
+    user_only = get(io, :user_only, false) && model isa Formulation
     println(io, "Primal solution")
-    for (varid, value) in solution
-        println(io, "| ", getname(getmodel(solution), varid), " = ", value)
+    for (varid, value) in solution        
+        if user_only && isaNonUserDefinedDuty(getduty(varid))
+            if getduty(varid) <= MasterCol
+                print(io, "| ", getname(model, varid), " = [")
+                origin_form_uid = getoriginformuid(varid)
+                spform = get_dw_pricing_sps(getparent(model))[origin_form_uid]
+                spsol = @view get_primal_sol_pool(spform).solutions[varid, :]
+                for (sp_var_id, sp_value) in spsol
+                    isaNonUserDefinedDuty(getduty(sp_var_id)) && continue
+                    print(io, getname(spform, sp_var_id), " = ", sp_value, " ")
+                end
+                println(io, "] = ", value)
+            end
+        else
+            println(io, "| ", getname(model, varid), " = ", value)
+        end
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
