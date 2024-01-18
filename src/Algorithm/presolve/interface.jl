@@ -360,7 +360,7 @@ function update_multiplicities!(presolve_repr_master, presolve_sp, feasible::Boo
             varid = getid(var)
             master_col = presolve_repr_master.var_to_col[varid] 
             global_lb = presolve_repr_master.form.lbs[master_col]
-            global_ub = presolve_repr_master.form.lbs[master_col]
+            global_ub = presolve_repr_master.form.ubs[master_col]
 
             # update of lower multiplicity
             if global_lb > 0 && local_ub > 0 

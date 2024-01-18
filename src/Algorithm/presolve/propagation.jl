@@ -36,7 +36,7 @@ function propagate_local_bounds!(
             local_lb = presolve_sp.form.lbs[i]
             local_ub = presolve_sp.form.ubs[i]
 
-            if !isinf(global_lb) && !isinf(local_ub)
+            if !isinf(global_lb) && !isinf(local_ub) && !isinf(um)
                 new_local_lb = global_lb - (um - 1) * local_ub
                 presolve_sp.form.lbs[i] = max(new_local_lb, local_lb)
             end
@@ -129,8 +129,8 @@ function compute_repr_master_var_domains(
                 ub = getcurub(sp_form, var)
 
                 (global_lb, global_ub) = get(sp_domains, varid, (0.0, 0.0))
-                global_lb += (lb > 0 ? lm : um) * lb
-                global_ub += (ub > 0 ? um : lm) * ub
+                global_lb += isinf(lb) ? lb : (lb > 0 ? lm : um) * lb
+                global_ub += isinf(ub) ? ub : (ub > 0 ? um : lm) * ub
 
                 sp_domains[varid] = (global_lb, global_ub)
             end

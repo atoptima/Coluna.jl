@@ -461,20 +461,22 @@ function test_presolve_full()
     formstring = """
     master
         min
-        1.0 x_1 + 1.0 x_2 + 1.0 x_3 + 1.0 x_4 + 1.0 x_5 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 
+        1.0 x_1 + 1.0 x_2 + 1.0 x_3 + 1.0 x_4 + 1.0 x_5 + 0.0 x_6 + 0.0 PricingSetupVar_sp_6 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4 
         s.t.
-        2.0 x_1 + 3.0 x_2 + 1.0 x_3 + 0.0 x_4 + 1.0 x_5 == 5.0
-        0.0 x_1 + 0.0 x_2 + 0.0 x_3 + 1.0 x_4 + 0.0 x_5 >= 2.0
+        2.0 x_1 + 3.0 x_2 + 1.0 x_3 + 0.0 x_4 + 1.0 x_5 + 0.0 x_6 == 5.0
+        0.0 x_1 + 0.0 x_2 + 0.0 x_3 + 1.0 x_4 + 0.0 x_5 + 0.0 x_6 >= 2.0
         1.0 PricingSetupVar_sp_4 >= 0.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_4 <= 2.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_5 >= 0.0 {MasterConvexityConstr}
         1.0 PricingSetupVar_sp_5 <= 2.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_6 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_6 <= 0.0 {MasterConvexityConstr}
 
     dw_sp
         min
-        x_3 + x_4 + 0.0 PricingSetupVar_sp_5
+        x_6 + 0.0 PricingSetupVar_sp_6
         s.t.
-        1.0 x_3 + 1.0 x_4 >= 4.0
+        1.0 x_6 <= 1.0
 
     dw_sp
         min
@@ -484,15 +486,21 @@ function test_presolve_full()
         solutions
         1.0 x_1 {MC_1}
 
+    dw_sp
+        min
+        x_3 + x_4 + 0.0 PricingSetupVar_sp_5
+        s.t.
+        1.0 x_3 + 1.0 x_4 >= 4.0
+
     continuous
         pure
             x_5
 
     integer
         pricing_setup
-            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5, PricingSetupVar_sp_6
         representatives
-            x_1, x_2, x_3, x_4
+            x_1, x_2, x_3, x_4, x_6
 
     bounds
         0.0 <= x_1 <= 1.0
@@ -500,8 +508,10 @@ function test_presolve_full()
         0.0 <= x_3 <= 3.0
         0.0 <= x_4 <= 3.0
         0.0 <= x_5 <= 1.0
+        -Inf <= x_6 <= Inf
         1.0 <= PricingSetupVar_sp_4 <= 1.0
         1.0 <= PricingSetupVar_sp_5 <= 1.0
+        1.0 <= PricingSetupVar_sp_6 <= 1.0
     """
     env, master, sps, _, reform = reformfromstring(formstring)
 
@@ -545,35 +555,44 @@ function test_presolve_full()
     @test Coluna.MathProg.getcurrhs(master, master_constrs["c5"]) == 1.0 # l_mult of sp5
     @test Coluna.MathProg.getcurrhs(master, master_constrs["c6"]) == 1.0 # u_mult of sp5
     
+    for sp in sps
+        sp_vars = Dict{String, Coluna.MathProg.VarId}(
+            Coluna.MathProg.getname(sp, var) => varid 
+            for (varid, var) in Coluna.MathProg.getvars(sp)
+        )
+        if findfirst(name->name == "x_3",collect(keys(sp_vars))) !== nothing
+            @test Coluna.MathProg.getcurlb(sp, sp_vars["x_3"]) == 2.0
+            @test Coluna.MathProg.getcurub(sp, sp_vars["x_3"]) == 2.0
+            @test Coluna.MathProg.getcurlb(sp, sp_vars["x_4"]) == 2.0
+            @test Coluna.MathProg.getcurub(sp, sp_vars["x_4"]) == 3.0
+        elseif findfirst(name->name == "x_1",collect(keys(sp_vars))) !== nothing
+            @test Coluna.MathProg.getcurub(sp, sp_vars["x_1"]) == 0.0
+            @test Coluna.MathProg.getcurlb(sp, sp_vars["x_2"]) == 1.0
+        end
+    
+    end
+
     master_partal_sol = Coluna.MathProg.getpartialsol(master)
     @test master_partal_sol[master_vars["x_5"]] == 1.0
     @test master_partal_sol[master_vars["MC_1"]] == 1.0
 
-    sp5_index = findfirst(sp->Coluna.MathProg.getuid(sp) == 5, sps)
-    @test sp5_index !== nothing
-    sp5 = sps[sp5_index]
-    sp5_vars = Dict{String, Coluna.MathProg.VarId}(
-        Coluna.MathProg.getname(sp5, var) => varid 
-        for (varid, var) in Coluna.MathProg.getvars(sp5)
+    # testing "expanded" printing of a primal solution with columns
+    primal_solution = Coluna.MathProg.PrimalSolution(
+        master, 
+        [master_vars["MC_1"], master_vars["x_5"]],
+        [1.0, 1.0],
+        1.0,
+        Coluna.ColunaBase.FEASIBLE_SOL
     )
-
-    @test Coluna.MathProg.getcurlb(sp5, sp5_vars["x_3"]) == 2.0
-    @test Coluna.MathProg.getcurub(sp5, sp5_vars["x_3"]) == 2.0
-    @test Coluna.MathProg.getcurlb(sp5, sp5_vars["x_4"]) == 2.0
-    @test Coluna.MathProg.getcurub(sp5, sp5_vars["x_4"]) == 3.0
-    
-    sp4_index = findfirst(sp->Coluna.MathProg.getuid(sp) == 4, sps)
-    @test sp4_index !== nothing
-    sp4 = sps[sp4_index]
-    sp4_vars = Dict{String, Coluna.MathProg.VarId}(
-        Coluna.MathProg.getname(sp4, var) => varid 
-        for (varid, var) in Coluna.MathProg.getvars(sp4)
-    )
-
-    @test Coluna.MathProg.getcurub(sp4, sp4_vars["x_1"]) == 0.0
-    @test Coluna.MathProg.getcurlb(sp4, sp4_vars["x_2"]) == 1.0
-
-
+    _io = IOBuffer()
+    print(IOContext(_io, :user_only => true), primal_solution)
+    @test String(take!(_io)) ==
+          """
+          Primal solution
+          | x_5 = 1.0
+          | MC_1 = [x_1 = 1.0 ] = 1.0
+          └ value = 1.00 
+          """    
     return nothing
 end
 
