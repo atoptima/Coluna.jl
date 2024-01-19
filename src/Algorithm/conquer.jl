@@ -2,7 +2,7 @@
 #                      ParameterizedHeuristic
 ####################################################################
 
-struct ParameterizedHeuristic{A <: AlgoAPI.AbstractAlgorithm}
+struct ParameterizedHeuristic{A <: AbstractOptimizationAlgorithm}
     algorithm::A
     root_priority::Float64
     nonroot_priority::Float64
@@ -261,13 +261,19 @@ function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, input, 
             records = create_records(reform)
         end
 
-        output = Heuristic.run(heuristic.algorithm, env, reform, conquer_output)
-        for sol in Heuristic.get_primal_sols(output)
-            store_ip_primal_sol!(get_global_primal_handler(input), sol)
-        end
-
+        heuristic_output = run!(heuristic.algorithm, env, reform, conquer_output)
+        update!(conquer_output, heuristic_output)
+        # for sol in Heuristic.get_primal_sols(output)
+        #     store_ip_primal_sol!(get_global_primal_handler(input), sol)
+        # end
+     
         if ismanager(heuristic.algorithm) 
             restore_from_records!(input.units_to_restore, records)
+        end
+
+        if getterminationstatus(conquer_output) == TIME_LIMIT ||
+            ip_gap_closed(conquer_output, atol = ctx.params.opt_atol, rtol = ctx.params.opt_rtol)
+             return false
         end
     end
     return true
