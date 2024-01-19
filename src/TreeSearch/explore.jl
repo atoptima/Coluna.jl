@@ -19,24 +19,26 @@ function tree_search(::DepthFirstStrategy, space, env, input)
     root_node = new_root(space, input)
     stack = Stack{typeof(root_node)}()
     push!(stack, root_node)
-    while !isempty(stack) && !stop(space, stack)
+    # it is important to call `stop()` function first, as it may update `space`
+    while !stop(space, stack) && !isempty(stack)
         current = pop!(stack)
-        for child in children(space, current, env, stack)
+        for child in children(space, current, env)
             push!(stack, child)
         end
     end
-    return TreeSearch.tree_search_output(space, stack)
+    return TreeSearch.tree_search_output(space)
 end
 
 function tree_search(strategy::AbstractBestFirstSearch, space, env, input)
     root_node = new_root(space, input)
     pq = PriorityQueue{typeof(root_node), Float64}()
     enqueue!(pq, root_node, get_priority(strategy, root_node))
-    while !isempty(pq) && !stop(space, pq)
+    # it is important to call `stop()` function first, as it may update `space`
+    while !stop(space, pq) && !isempty(pq)
         current = dequeue!(pq)
-        for child in children(space, current, env, pq)
+        for child in children(space, current, env)
             enqueue!(pq, child, get_priority(strategy, child))
         end
     end
-    return TreeSearch.tree_search_output(space, pq)
+    return TreeSearch.tree_search_output(space)
 end

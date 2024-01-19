@@ -53,9 +53,9 @@ end
 
 TreeSearch.get_priority(explore::TreeSearch.AbstractExploreStrategy, n::PrintedNode) = TreeSearch.get_priority(explore, n.inner)
 
-function TreeSearch.tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
+function TreeSearch.tree_search_output(sp::PrinterSearchSpace)
     close_tree_search_file!(sp.file_printer)
-    return TreeSearch.tree_search_output(sp.inner, Iterators.map(n -> n.inner, untreated_nodes))
+    return TreeSearch.tree_search_output(sp.inner)
 end
 
 function TreeSearch.new_space(
@@ -83,9 +83,9 @@ end
 _inner_node(n::PrintedNode) = n.inner # `untreated_node` is a stack.
 _inner_node(n::Pair{<:PrintedNode, Float64}) = first(n).inner # `untreated_node` is a priority queue.
 
-function TreeSearch.children(sp::PrinterSearchSpace, current, env, untreated_nodes)
-    print_log(sp.log_printer, sp, current, env, length(untreated_nodes))
-    children =  TreeSearch.children(sp.inner, current.inner, env, Iterators.map(_inner_node, untreated_nodes))
+function TreeSearch.children(sp::PrinterSearchSpace, current, env)
+    print_log(sp.log_printer, sp, current, env, sp.inner.nb_untreated_nodes)
+    children =  TreeSearch.children(sp.inner, current.inner, env)
     # We print node information in the file after the node has been evaluated.
     print_node_in_tree_search_file!(sp.file_printer, current, sp, env)
     return map(children) do child
@@ -93,7 +93,9 @@ function TreeSearch.children(sp::PrinterSearchSpace, current, env, untreated_nod
     end
 end
 
-TreeSearch.stop(sp::PrinterSearchSpace, untreated_nodes) = TreeSearch.stop(sp.inner, untreated_nodes)
+function TreeSearch.stop(sp::PrinterSearchSpace, untreated_nodes) 
+    return TreeSearch.stop(sp.inner, Iterators.map(_inner_node, untreated_nodes))
+end
 
 ############################################################################################
 # Default file printers.

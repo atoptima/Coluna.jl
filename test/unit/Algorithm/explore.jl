@@ -32,7 +32,7 @@ struct CustomBestFirstSearch <: Coluna.TreeSearch.AbstractBestFirstSearch end
 
 Coluna.TreeSearch.get_priority(::CustomBestFirstSearch, node::NodeAe1) = -node.id
 
-function Coluna.TreeSearch.children(space::CustomSearchSpaceAe1, current, _, _)
+function Coluna.TreeSearch.children(space::CustomSearchSpaceAe1, current, _)
     children = NodeAe1[]
     push!(space.visit_order, current.id)
     if current.depth != space.max_depth &&
@@ -47,7 +47,7 @@ function Coluna.TreeSearch.children(space::CustomSearchSpaceAe1, current, _, _)
     return children
 end
 
-Coluna.TreeSearch.tree_search_output(space::CustomSearchSpaceAe1, _) = space.visit_order
+Coluna.TreeSearch.tree_search_output(space::CustomSearchSpaceAe1) = space.visit_order
 
 function test_dfs()
     search_space = CustomSearchSpaceAe1(2, 3, 11)
