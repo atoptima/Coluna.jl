@@ -137,8 +137,7 @@ function run_colgen_iteration!(context, phase, stage, env, ip_primal_sol, stab)
 
     mast_dual_sol = get_dual_sol(mast_result)
     if isnothing(mast_dual_sol)
-        error("Cannot continue")
-        # TODO: user friendly error message.
+        error("Column generation interrupted: LP solver did not return an optimal dual solution")
     end
 
     # Stores dual solution in the constraint. This is used when the pricing solver supports
