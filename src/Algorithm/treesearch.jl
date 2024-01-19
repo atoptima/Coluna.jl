@@ -122,7 +122,7 @@ The input can be built from information contained in a search space and a node.
 Methods to perform operations before the tree search algorithm evaluates a node (`current`).
 This is useful to restore the state of the formulation for instance.
 """
-@mustimplement "ColunaSearchSpace" node_change!(previous::TreeSearch.AbstractNode, current::TreeSearch.AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes) = nothing
+@mustimplement "ColunaSearchSpace" node_change!(previous::TreeSearch.AbstractNode, current::TreeSearch.AbstractNode, space::AbstractColunaSearchSpace) = nothing
 
 """
 Methods to perform operations after the conquer algorithms.
@@ -151,11 +151,11 @@ Performs operations after the divide algorithm when the current node is finally 
 @mustimplement "ColunaSearchSpace" node_is_pruned(sp::AbstractColunaSearchSpace, current) = nothing
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
-function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSearch.AbstractNode, env, untreated_nodes)
+function TreeSearch.children(space::AbstractColunaSearchSpace, current::TreeSearch.AbstractNode, env)
     # restore state of the formulation for the current node.
     previous = get_previous(space)
     if !isnothing(previous)
-        node_change!(previous, current, space, untreated_nodes)
+        node_change!(previous, current, space)
     end
     set_previous!(space, current)
     # We should avoid the whole exploration of a node if its local dual bound inherited from its parent is worst than a primal bound found elsewhere on the tree. 

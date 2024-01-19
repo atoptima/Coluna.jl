@@ -138,6 +138,7 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     optstate::OptimizationState # from TreeSearchRuntimeData
   
     nb_nodes_treated::Int
+    nb_untreated_nodes::Int
     leaves_status::LeavesStatus
     inc_primal_manager::GlobalPrimalBoundHandler # stores the global primal bound (shared with all child algorithms).
 end
@@ -152,7 +153,9 @@ set_previous!(sp::BaBSearchSpace, previous::TreeSearch.AbstractNode) = sp.previo
 # Tree search implementation
 ############################################################################################
 function TreeSearch.stop(space::BaBSearchSpace, untreated_nodes)
-    return space.nb_nodes_treated >= space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
+    _update_global_dual_bound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
+    space.nb_untreated_nodes = length(untreated_nodes)
+    return space.nb_nodes_treated >= space.max_num_nodes || space.nb_untreated_nodes > space.open_nodes_limit
 end
 
 function TreeSearch.search_space_type(alg::TreeSearchAlgorithm)
@@ -192,6 +195,7 @@ function TreeSearch.new_space(
         conquer_units_to_restore,
         nothing,
         optstate,
+        0,
         0,
         LeavesStatus(reform),
         GlobalPrimalBoundHandler(reform; ip_primal_bound = get_ip_primal_bound(input))
@@ -337,7 +341,7 @@ function _update_global_dual_bound!(space, reform::Reformulation, untreated_node
             DualBound(getmaster(reform))
         end
     else
-        # Otherwise, we use the wost dual bound at the leaves.
+        # Otherwise, we use the worst dual bound at the leaves.
         leaves_worst_dual_bound
     end
 
@@ -353,24 +357,21 @@ function _update_global_dual_bound!(space, reform::Reformulation, untreated_node
     return
 end
 
-function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untreated_nodes)
-    _update_global_dual_bound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
-
+function node_change!(previous::Node, current::Node, space::BaBSearchSpace)
     # We restore the reformulation in the state it was after the creation of the current node (e.g. creation
     # of the branching constraint) or its partial evaluation (e.g. strong branching).
     # TODO: We don't need to restore if the formulation has been fully evaluated.
     restore_from_records!(space.conquer_units_to_restore, current.records)
 end
 
-function TreeSearch.tree_search_output(space::BaBSearchSpace, untreated_nodes)
-    _update_global_dual_bound!(space, space.reformulation, untreated_nodes)
+function TreeSearch.tree_search_output(space::BaBSearchSpace)
     all_leaves_infeasible = space.leaves_status.infeasible
 
     if !isnothing(get_global_primal_sol(space.inc_primal_manager))
         add_ip_primal_sol!(space.optstate, get_global_primal_sol(space.inc_primal_manager))
     end
 
-    if all_leaves_infeasible && length(untreated_nodes) == 0
+    if all_leaves_infeasible && space.nb_untreated_nodes == 0
         setterminationstatus!(space.optstate, INFEASIBLE)
     elseif ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
         setterminationstatus!(space.optstate, OPTIMAL)

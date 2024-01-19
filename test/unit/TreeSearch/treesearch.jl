@@ -76,8 +76,11 @@ function Coluna.TreeSearch.new_root(space::TestBaBSearchSpace, input)
     return TestBaBNode(inner, 1) ## root id is set to 1 by default
 end
 
-Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.stop(space.inner, untreated_nodes)
-Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace, untreated_nodes) = Coluna.TreeSearch.tree_search_output(space.inner, map(n -> n.inner, untreated_nodes))
+function Coluna.TreeSearch.stop(space::TestBaBSearchSpace, untreated_nodes) 
+    inner_untreated_nodes = map(node->node.inner, untreated_nodes)
+    return Coluna.TreeSearch.stop(space.inner, inner_untreated_nodes)
+end
+Coluna.TreeSearch.tree_search_output(space::TestBaBSearchSpace) = Coluna.TreeSearch.tree_search_output(space.inner)
 
 # methods called by native method children (in branch_and_bound.jl)
 Coluna.Algorithm.get_previous(space::TestBaBSearchSpace) = Coluna.Algorithm.get_previous(space.inner)
@@ -150,7 +153,7 @@ function Coluna.Algorithm.new_children(space::TestBaBSearchSpace, branches::Colu
     return children 
 end
 
-Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBNode, space::TestBaBSearchSpace, untreated_nodes) = Coluna.Algorithm.node_change!(previous, current.inner, space.inner, map(n -> n.inner, untreated_nodes))
+Coluna.Algorithm.node_change!(previous::Coluna.Algorithm.Node, current::TestBaBNode, space::TestBaBSearchSpace) = Coluna.Algorithm.node_change!(previous, current.inner, space.inner)
 
 # end of the interface's redefinition 
 
