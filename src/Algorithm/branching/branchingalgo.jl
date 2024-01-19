@@ -279,6 +279,10 @@ function Branching.eval_child_of_candidate!(child, phase::Branching.AbstractStro
         restore_from_records!(units_to_restore, child.records)
         conquer_input = ConquerInputFromSb(global_primal_handler, child, units_to_restore)
         child.conquer_output = run!(Branching.get_conquer(phase), env, reform, conquer_input)
+        child.ip_dual_bound = get_lp_dual_bound(child.conquer_output)
+        for sol in get_ip_primal_sols(child.conquer_output)
+            store_ip_primal_sol!(global_primal_handler, sol)
+        end
         TreeSearch.set_records!(child, create_records(reform))
     end
 

@@ -92,6 +92,7 @@ struct ColCutGenConquer <: AbstractConquerAlgorithm
     max_nb_cut_rounds::Int # TODO : tailing-off ?
     opt_atol::Float64# TODO : force this value in an init() method
     opt_rtol::Float64 # TODO : force this value in an init() method
+    verbose::Bool 
 end
 
 ColCutGenConquer(;
@@ -103,7 +104,8 @@ ColCutGenConquer(;
         cutgen = CutCallbacks(),
         max_nb_cut_rounds = 3,
         opt_atol = AlgoAPI.default_opt_atol(),
-        opt_rtol = AlgoAPI.default_opt_rtol()
+        opt_rtol = AlgoAPI.default_opt_rtol(), 
+        verbose = true
 ) = ColCutGenConquer(
     colgen, 
     primal_heuristics, 
@@ -113,7 +115,8 @@ ColCutGenConquer(;
     cutgen, 
     max_nb_cut_rounds, 
     opt_atol, 
-    opt_rtol
+    opt_rtol,
+    verbose
 )
 
 # ColCutGenConquer does not use any storage unit for the moment, therefore 
@@ -261,11 +264,18 @@ function run_heuristics!(ctx::ColCutGenContext, heuristics, env, reform, input, 
             records = create_records(reform)
         end
 
+        prev_primal_bound = get_ip_primal_bound(conquer_output)
+        
         heuristic_output = run!(heuristic.algorithm, env, reform, conquer_output)
-        update!(conquer_output, heuristic_output)
-        # for sol in Heuristic.get_primal_sols(output)
-        #     store_ip_primal_sol!(get_global_primal_handler(input), sol)
-        # end
+        add_ip_primal_sols!(conquer_output, get_ip_primal_sols(heuristic_output)...)
+        update_ip_dual_bound!(conquer_output, get_ip_dual_bound(heuristic_output))
+
+        if ctx.params.verbose 
+            curr_primal_bound = get_ip_primal_bound(conquer_output)
+            if curr_primal_bound != prev_primal_bound
+                @info "Heuristic $(heuristic.name) found improving primal solution with value $(curr_primal_bound.value)"
+            end
+        end
      
         if ismanager(heuristic.algorithm) 
             restore_from_records!(input.units_to_restore, records)

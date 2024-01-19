@@ -21,12 +21,6 @@ function get_child_algorithms(algo::RestrictedMasterHeuristic, reform::Reformula
     return child_algs
 end
 
-# struct RestrictedMasterHeuristicOutput <: Heuristic.AbstractHeuristicOutput
-#     ip_primal_sols::Vector{PrimalSolution}
-# end
-
-# Heuristic.get_primal_sols(o::RestrictedMasterHeuristicOutput) = o.ip_primal_sols
-
 function run!(algo::RestrictedMasterHeuristic, env, reform, input::OptimizationState)
     master = getmaster(reform)
     ip_form_output = run!(algo.solve_ip_form_alg, env, master, input)
