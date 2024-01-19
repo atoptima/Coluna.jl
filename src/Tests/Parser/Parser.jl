@@ -10,6 +10,7 @@ module Parser
     const _KW_SUBPROBLEM = Val{:subproblem}()
     const _KW_SEPARATION = Val{:separation}()
     const _KW_BOUNDS = Val{:bounds}()
+    const _KW_GLOBAL_BOUNDS = Val{:global_bounds}()
     const _KW_CONSTRAINTS = Val{:constraints}()
     const _KW_ORIGIN = Val{:origin}()
     const _KW_SP_SOLUTIONS = Val{:sp_solutions}()
@@ -36,6 +37,9 @@ module Parser
         # _KW_BOUNDS
         "bound" => _KW_BOUNDS,
         "bounds" => _KW_BOUNDS,
+        # _KW_GLOBAL_BOUNDS
+        "global_bound" => _KW_GLOBAL_BOUNDS,
+        "global_bounds" => _KW_GLOBAL_BOUNDS,
     )
 
     const _KW_SUBSECTION = Dict(
@@ -105,6 +109,8 @@ module Parser
         duty::ClMP.Duty
         lb::Float64
         ub::Float64
+        global_lb::Float64
+        global_ub::Float64
     end
 
     mutable struct ConstrCache
@@ -333,10 +339,32 @@ module Parser
         end
     end
 
+    function read_global_bounds!(cache::ReadCache, line::AbstractString)
+        vars = String[]
+        if occursin("<=", line)
+            less_r = Regex("(($coeff_re)<=)?([\\w,]+)(<=($coeff_re))?")
+            vars, lb, ub = _read_bounds(line, less_r)
+        end
+        if occursin(">=", line)
+            greater_r = Regex("(($coeff_re)>=)?([\\w,]+)(>=($coeff_re))?")
+            vars, ub, lb = _read_bounds(line, greater_r)
+        end
+        for v in vars
+            if haskey(cache.variables, v)
+                if lb != ""
+                    cache.variables[v].global_lb = parse(Float64, lb)
+                end
+                if ub != ""
+                    cache.variables[v].global_ub = parse(Float64, ub)
+                end
+            end
+        end
+    end
+
     function read_variables!(kind::ClMP.VarKind, duty::ClMP.Duty, cache::ReadCache, line::AbstractString)
         vars = _get_vars_list(line)
         for v in vars
-            cache.variables[v] = VarCache(kind, duty, -Inf, Inf)
+            cache.variables[v] = VarCache(kind, duty, -Inf, Inf, -Inf, Inf)
         end
     end
 
@@ -476,14 +504,32 @@ module Parser
         mastervars = Dict{String, ClMP.Variable}()
         for (varid, cost) in cache.master.objective.vars
             if haskey(cache.variables, varid)
-                var = cache.variables[varid]
-                if var.duty <= ClMP.AbstractOriginMasterVar || var.duty <= ClMP.AbstractAddedMasterVar
-                    if var.duty <= ClMP.MasterCol
+                var_cache = cache.variables[varid]
+                if var_cache.duty <= ClMP.AbstractOriginMasterVar || 
+                    var_cache.duty <= ClMP.AbstractAddedMasterVar
+                    if var_cache.duty <= ClMP.MasterCol
                         origin_sp = _get_orig_sp_of_col(cache, varid, master)
-                        v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = ClMP.Integ, is_explicit = true, origin = origin_sp)
+                        v = ClMP.setvar!(
+                            master, 
+                            varid, 
+                            var_cache.duty; 
+                            lb = var_cache.lb, 
+                            ub = var_cache.ub, 
+                            kind = ClMP.Integ, 
+                            is_explicit = true, 
+                            origin = origin_sp
+                        )
                     else
-                        is_explicit = !(var.duty <= ClMP.AbstractImplicitMasterVar)
-                        v = ClMP.setvar!(master, varid, var.duty; lb = var.lb, ub = var.ub, kind = var.kind, is_explicit = is_explicit)
+                        is_explicit = !(var_cache.duty <= ClMP.AbstractImplicitMasterVar)
+                        v = ClMP.setvar!(
+                            master, 
+                            varid, 
+                            var_cache.duty; 
+                            lb = var_cache.lb, 
+                            ub = var_cache.ub, 
+                            kind = var_cache.kind, 
+                            is_explicit = is_explicit
+                        )
                     end
                 else
                     if haskey(all_spvars, varid)
@@ -496,7 +542,29 @@ module Parser
                             duty = ClMP.MasterPureVar
                             explicit = true
                         end
-                        v = ClMP.clonevar!(sp, master, sp, var, duty; cost = ClMP.getcurcost(sp, var), is_explicit = explicit)
+                        lb, ub, kind = if duty == ClMP.MasterRepPricingVar
+                            # the representative of a binary variable in the master is integer in general 
+                            mast_kind = ClMP.getperenkind(sp, var) == 
+                                ClMP.Continuous ? ClMP.Continuous : ClMP.Integ
+                            var_cache.global_lb, var_cache.global_ub, mast_kind
+                        else
+                            ClMP.getperenlb(sp, var), 
+                            ClMP.getperenub(sp, var), 
+                            ClMP.getperenkind(sp, var)
+                        end
+        
+                        v = ClMP.clonevar!(
+                            sp, 
+                            master, 
+                            sp, 
+                            var, 
+                            duty; 
+                            cost = ClMP.getcurcost(sp, var), 
+                            is_explicit = explicit, 
+                            lb = lb, 
+                            ub = ub, 
+                            kind = kind
+                        )
                     else
                         throw(UndefVarParserError("Variable $varid not present in any subproblem"))
                     end
@@ -693,6 +761,10 @@ module Parser
             end
             if section == _KW_BOUNDS
                 read_bounds!(cache, line)
+                continue
+            end
+            if section == _KW_GLOBAL_BOUNDS
+                read_global_bounds!(cache, line)
                 continue
             end
             read_variables!(section, sub_section, cache, line)

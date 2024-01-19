@@ -348,6 +348,9 @@ function minimize_test1()
             pricing
                 z_1, z_2, z_3
 
+        global_bounds
+            0 <= y1 <= 1
+
         bounds
             20 >= x >= 0
             0 <= y1 <= 1
@@ -359,10 +362,10 @@ function minimize_test1()
 
     names, kinds, duties, costs, bounds = get_vars_info(master)
     @test names == ["w", "x", "y2", "y1"]
-    @test kinds == [ClMP.Integ, ClMP.Integ, ClMP.Binary, ClMP.Binary]
+    @test kinds == [ClMP.Integ, ClMP.Integ, ClMP.Integ, ClMP.Integ]
     @test duties == [ClMP.MasterPureVar, ClMP.MasterPureVar, ClMP.MasterRepPricingVar, ClMP.MasterRepPricingVar]
     @test costs == [-5.0, 2.0, 1.0, 1.0]
-    @test bounds == [(-Inf, Inf), (0.0, 20.0), (0.0, 1.0), (0.0, 1.0)]
+    @test bounds == [(-Inf, Inf), (0.0, 20.0), (-Inf, Inf), (0.0, 1.0)]
 
     constrs = get_constrs_info(master)
     c1 = constrs[1] # x + w <= 9
