@@ -4,7 +4,7 @@ using DataStructures
 import MathOptInterface
 import TimerOutputs
 
-using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen, ..Benders, ..AlgoAPI, ..TreeSearch, ..Branching, ..Heuristic
+using ..Coluna, ..ColunaBase, ..MathProg, ..MustImplement, ..ColGen, ..Benders, ..AlgoAPI, ..TreeSearch, ..Branching
 
 using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics, SparseArrays, LinearAlgebra
 
