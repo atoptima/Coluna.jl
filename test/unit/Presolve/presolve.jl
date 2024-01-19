@@ -502,6 +502,14 @@ function test_presolve_full()
         representatives
             x_1, x_2, x_3, x_4, x_6
 
+    global_bounds
+        0.0 <= x_1 <= 1.0
+        0.0 <= x_2 <= 1.0
+        0.0 <= x_3 <= 3.0
+        0.0 <= x_4 <= 3.0
+        0.0 <= x_5 <= 1.0
+        -Inf <= x_6 <= Inf
+
     bounds
         0.0 <= x_1 <= 1.0
         0.0 <= x_2 <= 1.0
