@@ -73,7 +73,7 @@ Base.promote_rule(::Type{<:Id}, ::Type{<:Id}) = Int
 # existing ids.
 # As we want that all operations on ids results on operations on the uid,
 # we redefine the promotion mechanism for Ids so that operations on Ids return integer:
-Base.promote_type(::Type{I}, ::Type{I}) where {I<:Id} = Int32
+Base.promote_type(::Type{I}, ::Type{I}) where {I<:Id} = Int
 
 Base.convert(::Type{Int}, id::I) where {I<:Id} = Int(id.uid)
 Base.convert(::Type{Int32}, id::I) where {I<:Id} = id.uid
