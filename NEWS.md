@@ -1,3 +1,22 @@
+# Coluna 0.8.0
+
+This is a major update which implements the presolve algorithm. 
+
+Other features:
+- Possibility for the user to get the custom data of a column (i.e., SP solution) in the global solution. 
+- Print the master and DW subproblem with only user-defined variables and constraints.
+- One can now specify the branching priority of columns, either through branching priority of DW sub-problems, 
+  or directly in the CustomData of the SP solution 
+
+It also resolves some bugs:
+- Correction in dual price smoothing stabilization
+- Correction in integrality check inside column generation. 
+- Correction in calculating initial (global) bounds of the master representative (implicit) variables.
+- Corrected the "Sleeping bug" related to the Id type promotion, which appeared in Julia 1.10
+- Removed superfluous Heuristics module.
+- Global dual bound printer is corrected
+- Strong branching printer is corrected. 
+
 # Coluna 0.7.0
 
 This is minor update with two breaking changes:
