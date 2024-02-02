@@ -491,6 +491,8 @@ function test_presolve_full()
         x_3 + x_4 + 0.0 PricingSetupVar_sp_5
         s.t.
         1.0 x_3 + 1.0 x_4 >= 4.0
+        solutions
+        2.0 x_3 {MC_2}
 
     continuous
         pure
@@ -601,6 +603,16 @@ function test_presolve_full()
           | MC_1 = [x_1 = 1.0 ] = 1.0
           └ value = 1.00 
           """    
+
+
+    input = Coluna.Algorithm.PresolveInput(Dict(master_vars["MC_1"] => 0.0))        
+    output = Coluna.Algorithm.run!(presolve_algorithm, env, reform, input)
+    @test output.feasible == true    
+
+    input = Coluna.Algorithm.PresolveInput(Dict(master_vars["MC_1"] => 1.0))        
+    output = Coluna.Algorithm.run!(presolve_algorithm, env, reform, input)
+    @test output.feasible == false    
+
     return nothing
 end
 

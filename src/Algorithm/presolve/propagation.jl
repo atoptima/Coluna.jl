@@ -55,6 +55,13 @@ function get_partial_sol(
 )
     new_partial_sol = zeros(Float64, length(presolve_form.col_to_var))
     for (var_id, value) in partial_sol_to_fix
+        if !haskey(presolve_form.var_to_col, var_id) 
+            if iszero(value)
+                continue
+            else 
+                return nothing
+            end
+        end
         new_partial_sol[presolve_form.var_to_col[var_id]] += value
     end
     return new_partial_sol
@@ -251,6 +258,7 @@ function propagate_partial_sol_into_master!(
     # Create the local partial solution from the restricted master presolve representation.
     # This local partial solution must then be "fixed" & propagated.
     local_restr_partial_sol = get_partial_sol(presolve_restricted_master, partial_sol_to_fix)
+    isnothing(local_restr_partial_sol) && return nothing
 
     # Compute the rhs of all constraints.
     # Non-robust and convexity constraints rhs can only be computed using this representation.
