@@ -76,16 +76,6 @@ Branching.get_int_tol(ctx::BranchingContext) = ctx.int_tol
 Branching.get_selection_criterion(ctx::BranchingContext) = ctx.selection_criterion
 Branching.get_rules(ctx::BranchingContext) = ctx.rules
 
-function _is_integer(sol::PrimalSolution)
-    for (varid, val) in sol
-        integer_val = abs(val - round(val)) < 1e-5
-        if !integer_val
-            return false
-        end
-    end
-    return true
-end
-
 function _has_identical_sps(master::Formulation{DwMaster}, reform::Reformulation)
     for (sp_id, sp) in get_dw_pricing_sps(reform)
         lm_constr_id = sp.duty_data.lower_multiplicity_constr_id 
@@ -100,8 +90,8 @@ function _has_identical_sps(master::Formulation{DwMaster}, reform::Reformulation
 end
 
 function _why_no_candidate(master::Formulation{DwMaster}, reform, input, extended_sol, original_sol)
-    integer_orig_sol = _is_integer(original_sol)
-    integer_ext_sol = _is_integer(extended_sol)
+    integer_orig_sol = isinteger(original_sol)
+    integer_ext_sol = isinteger(extended_sol)
     identical_sp = _has_identical_sps(master, reform)
     if integer_orig_sol && !integer_ext_sol && identical_sp
         message =  """

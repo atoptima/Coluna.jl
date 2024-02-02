@@ -13,6 +13,8 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
 
     stages_pricing_solver_ids::Vector{Int}
 
+    strict_integrality_check::Bool
+
     reduced_cost_helper::ReducedCostsCalculationHelper
     subgradient_helper::SubgradientCalculationHelper
     sp_var_redcosts::Union{Nothing,Any} # TODO: type
@@ -42,6 +44,7 @@ mutable struct ColGenContext <: ColGen.AbstractColGenContext
             alg.restr_master_solve_alg, 
             alg.restr_master_optimizer_id,
             alg.stages_pricing_solver_ids,
+            alg.strict_integrality_check,
             rch,
             sh,
             nothing,
@@ -453,7 +456,8 @@ function ColGen.check_primal_ip_feasibility!(master_lp_primal_sol, ctx::ColGenCo
         return nothing, false
     end
     # Check if integral.
-    primal_sol_is_integer = MathProg.proj_cols_is_integer(master_lp_primal_sol)
+    primal_sol_is_integer = ctx.strict_integrality_check ? isinteger(master_lp_primal_sol) : 
+                            MathProg.proj_cols_is_integer(master_lp_primal_sol)
     if !primal_sol_is_integer
         return nothing, false
     end

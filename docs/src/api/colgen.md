@@ -331,14 +331,20 @@ Go back to the [column generation iteration overview](#Column-generation-iterati
 The algorithm checks the integrality of
 the primal solution to the master LP to improve the global primal bound of the branch-cut-price algorithm.
 
-In the default implementation, the integrality check is done using the `MathProg.proj_cols_is_integer` method.
-It implements the procedure described in the paper (TODO).
-Basically, it sorts the column used in the master LP primal solution
-in lexicographic order. 
+By default, the integrality check is done using the `MathProg.proj_cols_is_integer` method.
+It implements the mapping procedure from the paper "F. Vanderbeck, Branching in branch-and-price: a generic scheme, Math.Prog. (2011)".
+Basically, it sorts the column used in the master LP primal solution in lexicographic order. 
 It assigns a weight to each column equal to the value of the column in the master LP solution. 
 It then forms columns of weight one by accumulating the columns of the fractional solution. 
 If columns are integral, the solution is integral.
 This is a heuristic procedure so it can miss some integer solutions.
+
+In the case the pricing subproblems are solved by a callback, and some subproblem integer variables are "hidden" from _Coluna_
+(values of these variables are usually stored in `CustomData` associated with the pricing problem solution),
+the mapping procedure may not be valid. In this case, the integrality should be checked in the "strict" way, i.e.,
+by explicitly verifying that all columns are integer.
+
+Integrality check procedure is set using parameter  `strict_integrality_check` (`false` by default) of the `ColumnGenerationAlgorithm`.
 
 If the solution is integral, the essential cut callback is called to make sure it is feasible.
 

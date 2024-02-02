@@ -3,9 +3,12 @@ function gap_toy_instance()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver=ClA.BranchCutAndPriceAlgorithm(
-                branchingtreefile="playgap.dot",
-            ), local_art_var_cost=10000.0,
+        "params" => CL.Params(
+            solver = ClA.BranchCutAndPriceAlgorithm(
+                branchingtreefile = "playgap.dot",
+                colgen_strict_integrality_check = true, # only for testing purposes, not really needed here
+            ), 
+            local_art_var_cost=10000.0,
             global_art_var_cost=100000.0),
         "default_optimizer" => GLPK.Optimizer
     )
