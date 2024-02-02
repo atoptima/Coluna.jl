@@ -356,8 +356,8 @@ function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float
     constrname = getname(form, constr)
     constrsense = getperensense(form, constr)
     if constrsense == Equal
-        name1 = string("local_art_of_", constrname, "1")
-        name2 = string("local_art_of_", constrname, "2")
+        name1 = string("local_pos_art_of_", constrname)
+        name2 = string("local_neg_art_of_", constrname)
         var1 = setvar!(
             form, name1, art_var_duty; cost=cost, lb=0.0, ub=Inf, kind=Continuous
         )
