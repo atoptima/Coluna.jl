@@ -517,6 +517,7 @@ function run!(
     local_restr_partial_sol = propagate_partial_sol_into_master!(
         reform, presolve_reform, input.partial_sol_to_fix, algo.verbose
     )
+    isnothing(local_restr_partial_sol) && return PresolveOutput(false)
 
     # Perform several rounds of presolve.
     for i in 1:3
@@ -548,10 +549,4 @@ function _column_is_proper(col_id, sp_form)
         end
     end
     return true
-end
-
-function column_is_proper(col_id, reform)
-    sp_id = getoriginformuid(col_id)
-    sp_form = get_dw_pricing_sps(reform)[sp_id]
-    return _column_is_proper(col_id, sp_form)
 end
