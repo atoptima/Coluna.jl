@@ -11,6 +11,7 @@
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int} = [1],
+        colgen_strict_integrality_check::Bool, 
         stbranch_phases_num_candidates::Vector{Int} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}}
     )
@@ -35,6 +36,7 @@ Parameters :
                                     the number of column generation stages is equal to the length of this vector,
                                     column generation stages are executed in the reverse order,
                                     the first stage should be exact to ensure the optimality of the BCP algorithm
+- `colgen_strict_integrality_check` : see description in `Coluna.Algorithm.ColumnGeneration`
 - `stbranch_phases_num_candidates` : maximum number of candidates for each strong branching phase, 
                                      strong branching is activated if this vector is not empty,
                                      the number of phases in strong branching is equal to min{3, length(stbranch_phases_num_candidates)},
@@ -65,6 +67,7 @@ function BranchCutAndPriceAlgorithm(;
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int64} = [1],
+        colgen_strict_integrality_check::Bool = false, 
         stbranch_phases_num_candidates::Vector{Int64} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}} = [(userstage=1, solverid=1, maxiters=100)]
 )
@@ -86,6 +89,7 @@ function BranchCutAndPriceAlgorithm(;
                 enforce_integrality = false
             )
         ),
+        strict_integrality_check = colgen_strict_integrality_check,
         stages_pricing_solver_ids = colgen_stages_pricing_solvers,
         smoothing_stabilization = colgen_stabilization,
         cleanup_threshold = colgen_cleanup_threshold,
@@ -119,6 +123,7 @@ function BranchCutAndPriceAlgorithm(;
                             enforce_integrality = false
                         )
                     ),
+                    strict_integrality_check = colgen_strict_integrality_check,
                     stages_pricing_solver_ids = map(t -> t.solverid, stbranch_intrmphase_stages),
                     smoothing_stabilization = colgen_stabilization,
                     cleanup_threshold = colgen_cleanup_threshold,

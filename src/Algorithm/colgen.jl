@@ -8,6 +8,7 @@
             )
         ),
         essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false),
+        strict_integrality_check = false, 
         max_nb_iterations = 1000,
         log_print_frequency = 1,
         redcost_tol = 1e-4,
@@ -38,6 +39,11 @@ reaches the maximum number of iterations.
 **Options:**
 - `max_nb_iterations`: maximum number of iterations
 - `log_print_frequency`: display frequency of iterations statistics
+- `strict_integrality_check`: by default (value `false`) the integrality check in column generation is performed by the mapping procedure 
+                              from "F. Vanderbeck, Branching in branch-and-price: a generic scheme, Math.Prog. (2011)";
+                              in the case the pricing subproblems are solved by a callback, and some subproblem integer variables 
+                              are "hidden" from _Coluna_, the mapping procedure may not be valid, and the integrality should be checked 
+                              in the "strict" way (explicitly verifying that all columns are integer)
 
 Undocumented parameters are in alpha version.
 
@@ -65,6 +71,7 @@ struct ColumnGeneration <: AbstractOptimizationAlgorithm
     pricing_prob_solve_alg::SolveIpForm
     stages_pricing_solver_ids::Vector{Int}
     essential_cut_gen_alg::CutCallbacks
+    strict_integrality_check::Bool
     max_nb_iterations::Int64
     log_print_frequency::Int64
     store_all_ip_primal_sols::Bool
@@ -89,6 +96,7 @@ struct ColumnGeneration <: AbstractOptimizationAlgorithm
         ),
         stages_pricing_solver_ids = [1],
         essential_cut_gen_alg = CutCallbacks(call_robust_facultative=false),
+        strict_integrality_check = false,
         max_nb_iterations = 1000,
         log_print_frequency = 1,
         store_all_ip_primal_sols = false,
@@ -108,6 +116,7 @@ struct ColumnGeneration <: AbstractOptimizationAlgorithm
         pricing_prob_solve_alg,
         stages_pricing_solver_ids,
         essential_cut_gen_alg,
+        strict_integrality_check,
         max_nb_iterations,
         log_print_frequency,
         store_all_ip_primal_sols,
