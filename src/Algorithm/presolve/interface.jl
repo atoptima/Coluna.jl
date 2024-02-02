@@ -550,9 +550,3 @@ function _column_is_proper(col_id, sp_form)
     end
     return true
 end
-
-function column_is_proper(col_id, reform)
-    sp_id = getoriginformuid(col_id)
-    sp_form = get_dw_pricing_sps(reform)[sp_id]
-    return _column_is_proper(col_id, sp_form)
-end

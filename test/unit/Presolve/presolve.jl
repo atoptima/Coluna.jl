@@ -491,6 +491,8 @@ function test_presolve_full()
         x_3 + x_4 + 0.0 PricingSetupVar_sp_5
         s.t.
         1.0 x_3 + 1.0 x_4 >= 4.0
+        solutions
+        2.0 x_3 {MC_2}
 
     continuous
         pure
@@ -614,4 +616,4 @@ function test_presolve_full()
     return nothing
 end
 
-register!(unit_tests, "presolve_reformulation", test_presolve_full, f = true)
+register!(unit_tests, "presolve_reformulation", test_presolve_full)
