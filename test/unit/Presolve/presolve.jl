@@ -601,7 +601,17 @@ function test_presolve_full()
           | MC_1 = [x_1 = 1.0 ] = 1.0
           └ value = 1.00 
           """    
+
+
+    input = Coluna.Algorithm.PresolveInput(Dict(master_vars["MC_1"] => 0.0))        
+    output = Coluna.Algorithm.run!(presolve_algorithm, env, reform, input)
+    @test output.feasible == true    
+
+    input = Coluna.Algorithm.PresolveInput(Dict(master_vars["MC_1"] => 1.0))        
+    output = Coluna.Algorithm.run!(presolve_algorithm, env, reform, input)
+    @test output.feasible == false    
+
     return nothing
 end
 
-register!(unit_tests, "presolve_reformulation", test_presolve_full)
+register!(unit_tests, "presolve_reformulation", test_presolve_full, f = true)

@@ -517,6 +517,7 @@ function run!(
     local_restr_partial_sol = propagate_partial_sol_into_master!(
         reform, presolve_reform, input.partial_sol_to_fix, algo.verbose
     )
+    isnothing(local_restr_partial_sol) && return PresolveOutput(false)
 
     # Perform several rounds of presolve.
     for i in 1:3

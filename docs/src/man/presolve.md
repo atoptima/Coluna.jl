@@ -2,7 +2,7 @@
 
 >### Ruslan Sadykov, 20/10/2023, revised 16/01/2024
 
-The document presents the presolve algorithm implemented in _Coluna_. Is it particularly important to run the this algorithm after augmenting the partial solution in rounding and diving heuristics. 
+The document presents the presolve algorithm implemented in _Coluna_. It is particularly important to run this algorithm after augmenting the partial solution in rounding and diving heuristics. 
 
 ## 1. Augmenting the partial solution
 
