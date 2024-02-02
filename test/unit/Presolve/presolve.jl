@@ -604,6 +604,8 @@ function test_presolve_full()
           └ value = 1.00 
           """    
 
+    @test Coluna.Algorithm.column_is_proper(master_vars["MC_1"], reform) == false
+    @test Coluna.Algorithm.column_is_proper(master_vars["MC_2"], reform) == true
 
     input = Coluna.Algorithm.PresolveInput(Dict(master_vars["MC_1"] => 0.0))        
     output = Coluna.Algorithm.run!(presolve_algorithm, env, reform, input)
