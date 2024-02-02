@@ -618,4 +618,4 @@ function test_presolve_full()
     return nothing
 end
 
-register!(unit_tests, "presolve_reformulation", test_presolve_full, f=true)
+register!(unit_tests, "presolve_reformulation", test_presolve_full)
