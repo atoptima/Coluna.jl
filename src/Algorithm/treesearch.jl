@@ -1,5 +1,6 @@
 """
     Coluna.Algorithm.TreeSearchAlgorithm(
+        presolvealg = nothing,
         conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
         dividealg::AbstractDivideAlgorithm = Branching(),
         explorestrategy::AbstractExploreStrategy = DepthFirstStrategy(),
@@ -16,7 +17,8 @@
 This algorithm is a branch and bound that uses a search tree to optimize the reformulation.
 At each node in the tree, it applies `conqueralg` to evaluate the node and improve the bounds, 
 `dividealg` to generate branching constraints, and `explorestrategy`
-to select the next node to treat.
+to select the next node to treat. Optionally, the `presolvealg` is run in the beginning to 
+preprocess the formulation.
 
 The three main elements of the algorithm are:
 - the conquer strategy (`conqueralg`): evaluation of the problem at a node of the Branch-and-Bound tree. Depending on the type of decomposition used ahead of the Branch-and-Bound, you can use either Column Generation (if your problem is decomposed following Dantzig-Wolfe transformation) and/or Cut Generation (for Dantzig-Wolfe and Benders decompositions). 
@@ -39,6 +41,7 @@ Options:
 in the json file.
 """
 struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
+    presolvealg::Union{Nothing,PresolveAlgorithm}
     conqueralg::AbstractConquerAlgorithm
     dividealg::AlgoAPI.AbstractDivideAlgorithm
     explorestrategy::TreeSearch.AbstractExploreStrategy
@@ -51,6 +54,7 @@ struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     jsonfile::String
     print_node_info::Bool
     TreeSearchAlgorithm(;
+        presolvealg = nothing,
         conqueralg = ColCutGenConquer(),
         dividealg = ClassicBranching(),
         explorestrategy = TreeSearch.DepthFirstStrategy(),
@@ -62,7 +66,7 @@ struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
         branchingtreefile = "",
         jsonfile = "",
         print_node_info = true
-    ) = new(conqueralg, dividealg, explorestrategy, maxnumnodes, opennodeslimit, timelimit, opt_atol, opt_rtol, branchingtreefile, jsonfile, print_node_info)
+    ) = new(presolvealg, conqueralg, dividealg, explorestrategy, maxnumnodes, opennodeslimit, timelimit, opt_atol, opt_rtol, branchingtreefile, jsonfile, print_node_info)
 end
 
 # TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storage units)
@@ -71,10 +75,14 @@ ismanager(algo::TreeSearchAlgorithm) = true
 # TreeSearchAlgorithm does not use any record itself, 
 # therefore get_units_usage() is not defined for it
 function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
-    return Dict(
+    child_algos = Dict(
         "conquer" => (algo.conqueralg, reform),
         "divide" => (algo.dividealg, reform)
     )
+    if !isnothing(algo.presolvealg)
+        child_algos["presolve"] = (algo.presolvealg, reform)
+    end
+    return child_algos
 end
 
 function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationState)
@@ -85,6 +93,15 @@ function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input:
     else
         @warn "Global time limit has been set through JuMP/MOI. Ignoring the time limit of TreeSearchAlgorithm."
     end
+
+    if !isnothing(algo.presolvealg)
+        if !isfeasible(run!(algo.presolvealg, env, reform, PresolveInput()))
+            output = input
+            setterminationstatus!(output, ColunaBase.INFEASIBLE)
+            return output
+        end
+    end
+
     search_space = TreeSearch.new_space(TreeSearch.search_space_type(algo), algo, reform, input)
     return TreeSearch.tree_search(algo.explorestrategy, search_space, env, input)
 end

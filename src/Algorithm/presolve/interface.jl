@@ -312,9 +312,13 @@ struct PresolveInput
     partial_sol_to_fix::Dict{VarId,Float64}
 end
 
+PresolveInput() = PresolveInput(Dict{VarId,Float64}())
+
 struct PresolveOutput
     feasible::Bool
 end
+
+isfeasible(output::PresolveOutput) = output.feasible
 
 function presolve_formulation!(presolve_form::PresolveFormulation)
     tightened_bounds = bounds_tightening(presolve_form.form)
