@@ -1,3 +1,14 @@
+# Coluna 0.8.1
+
+This is a minor update 
+
+Features:
+- A new parameter whether to presolve the DW reformulation or not
+- A new parameter whether to do strong integrality check in column generation
+
+Fixed bugs:
+- A bug in the presolve algorithm when the partial solution to fix contains deactivated variables
+
 # Coluna 0.8.0
 
 This is a major update which implements the presolve algorithm. 
