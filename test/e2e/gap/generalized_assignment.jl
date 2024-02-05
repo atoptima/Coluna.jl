@@ -7,6 +7,7 @@ function gap_toy_instance()
             solver = ClA.BranchCutAndPriceAlgorithm(
                 branchingtreefile = "playgap.dot",
                 colgen_strict_integrality_check = true, # only for testing purposes, not really needed here
+                run_presolve = true
             ), 
             local_art_var_cost=10000.0,
             global_art_var_cost=100000.0),

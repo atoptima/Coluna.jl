@@ -1,6 +1,7 @@
 """
 
     Coluna.Algorithm.BranchCutAndPriceAlgorithm(;
+        run_presolve::Bool = false, 
         maxnumnodes::Int = 100000,
         opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL,
         opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL,
@@ -20,6 +21,7 @@ Alias for a simplified parameterisation
 of the branch-cut-and-price algorithm.
 
 Parameters : 
+- `run_presolve` : whether to call the presolve algorithm before running the branch-cut-and-price
 - `maxnumnodes` : maximum number of nodes explored by the algorithm
 - `opt_atol` : optimality absolute tolerance 
 - `opt_rtol` : optimality relative tolerance
@@ -55,6 +57,7 @@ Parameters :
 
 
 function BranchCutAndPriceAlgorithm(;
+        run_presolve::Bool = false, 
         maxnumnodes::Int = 100000,
         branchingtreefile::String = "",
         jsonfile::String = "",
@@ -153,6 +156,7 @@ function BranchCutAndPriceAlgorithm(;
     end
 
     return TreeSearchAlgorithm(
+        presolvealg = run_presolve ? PresolveAlgorithm() : nothing, 
         conqueralg = conquer,
         dividealg = branching,
         maxnumnodes = maxnumnodes,
