@@ -116,8 +116,6 @@ LeavesStatus(reform) = LeavesStatus(true, nothing)
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     # Reformulation that the branch-and-bound algorithm will optimize.
     reformulation::Reformulation
-    # Algorithm that presolves the formulation
-    presolve::Union{Nothing, PresolveAlgorithm}
     # Algorithm that evaluates a node of the branch-and-bound tree.
     conquer::AbstractConquerAlgorithm
     # Algorithm that generated the children of a branch-and-bound node.
@@ -187,7 +185,6 @@ function TreeSearch.new_space(
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
-        algo.presolvealg,
         algo.conqueralg,
         algo.dividealg,
         algo.maxnumnodes,
