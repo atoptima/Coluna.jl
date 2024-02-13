@@ -255,6 +255,7 @@ function _colgen_optstate_output(result, master)
     return optstate
 end
 
+# run!() function to be called from the ColGenConquer algorithm
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::AbstractConquerInput)
     # We build 
     C = _colgen_context(algo)
@@ -263,4 +264,32 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Ab
 
     master = getmaster(reform)
     return _colgen_optstate_output(result, master)
+end
+
+# run!() function to be called from optimize!(), i.e. when ColumnGeneration is the top Coluna algorithm
+function run!(
+    algo::ColumnGeneration, env::Env, reform::Reformulation, input_state::OptimizationState
+)
+    C = _colgen_context(algo)
+    ctx = _new_context(C, reform, algo)
+    result = ColGen.run!(
+        ctx, env, GlobalPrimalBoundHandler(
+            reform; 
+            ip_primal_bound = get_ip_primal_bound(input_state)
+        )
+    )
+
+    master = getmaster(reform)
+    output_state = _colgen_optstate_output(result, master)
+
+    # if !isnothing(get_global_primal_sol(space.inc_primal_manager))
+    #     add_ip_primal_sol!(space.optstate, get_global_primal_sol(space.inc_primal_manager))
+    # end
+
+    if ip_gap_closed(output_state, rtol = algo.opt_rtol, atol = algo.opt_atol)
+        setterminationstatus!(output_state, OPTIMAL)
+    else
+        setterminationstatus!(output_state, OTHER_LIMIT)
+    end
+    return output_state
 end
