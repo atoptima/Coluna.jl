@@ -242,18 +242,6 @@ record_type_from_key(::StaticVarConstrKey) = StaticVarConstrRecord
 
 ClB.storage_unit(::Type{StaticVarConstrUnit}, _) = StaticVarConstrUnit()
 
-# function Base.show(io::IO, record::StaticVarConstrRecord)
-#     print(io, "[vars:")
-#     for (id, var) in record.vars
-#         print(io, " ", MathProg.getuid(id))
-#     end
-#     print(io, ", constrs:")
-#     for (id, constr) in record.constrs
-#         print(io, " ", MathProg.getuid(id))
-#     end
-#     print(io, "]")
-# end
-
 function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, unit::StaticVarConstrUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
     record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,StaticVarState}())
@@ -264,7 +252,7 @@ function ClB.record(::Type{StaticVarConstrRecord}, id::Int, form::Formulation, u
         end
     end
     for (id, var) in getvars(form)
-        if isaStaticDuty(getduty(id)) && isexplicit(form, var) && iscuractive(form, var)          
+        if isaStaticDuty(getduty(id)) && iscuractive(form, var) && (isexplicit(form, var) || isaMasterRepDuty(getduty(id)))
             varstate = StaticVarState(
                 getcurcost(form, var), 
                 getcurlb(form, var), 
@@ -302,7 +290,7 @@ function ClB.restore_from_record!(
         end
     end
     for (id, var) in getvars(form)
-        if isaStaticDuty(getduty(id)) && isexplicit(form, var)
+        if isaStaticDuty(getduty(id)) && (isexplicit(form, var) || isaMasterRepDuty(getduty(id)))
             @logmsg LogLevel(-4) "Checking " getname(form, var)
             if haskey(record.vars, id) 
                 if !iscuractive(form, var) 

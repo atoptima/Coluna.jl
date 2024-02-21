@@ -82,7 +82,7 @@ export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
 export Original, DwMaster, BendersMaster, DwSp, BendersSp
 
 # Methods related to duties
-export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
+export isanArtificialDuty, isaStaticDuty, isaMasterRepDuty, isaDynamicDuty, isanOriginalRepresentatives
 
 # Types and methods related to variables and constraints
 export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
