@@ -532,6 +532,7 @@ function ColGen.insert_columns!(ctx::ColGenContext, phase, columns)
     # Then, we add the new columns (i.e. not in the pool).
     col_ids = VarId[]
     for sol in primal_sols_to_insert
+        #print(IOContext(stdout, :user_only => true), sol)
         col_id = insert_column!(master, sol, "MC")
         _set_column_cost!(master, col_id, phase)
         push!(col_ids, col_id)

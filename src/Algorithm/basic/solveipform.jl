@@ -246,8 +246,9 @@ function run!(
 
     optimizer = getoptimizer(spform, optimizer_id)
     cbdata = MathProg.PricingCallbackData(spform)
-    optimizer.user_oracle(cbdata)
-
+    TO.@timeit Coluna._to "Pricing callback" begin
+        optimizer.user_oracle(cbdata)
+    end
     if cbdata.nb_times_dual_bound_set == 0
         throw(MissingPricingDualBound())
     elseif cbdata.nb_times_dual_bound_set > 1

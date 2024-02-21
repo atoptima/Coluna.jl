@@ -140,6 +140,11 @@ function isaStaticDuty(duty::NestedEnum)
            duty <= BendSpTechnologicalConstr
 end
 
+function isaMasterRepDuty(duty::NestedEnum)
+    return duty <= MasterRepPricingVar ||
+           duty <= MasterRepPricingSetupVar
+end
+
 function isaDynamicDuty(duty::NestedEnum)
     return duty <= MasterCol ||
            duty <= MasterBranchOnOrigVarConstr ||
