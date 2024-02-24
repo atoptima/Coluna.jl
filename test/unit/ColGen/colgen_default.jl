@@ -1568,8 +1568,6 @@ function test_red_cost_calc_with_non_robust_cuts()
 end
 register!(unit_tests, "colgen", test_red_cost_calc_with_non_robust_cuts)
 
-
-
 function jet_report_colgen_loop()
     env, master, sps, reform = min_toy_gap_for_colgen_loop()
     # We need subsolvers to optimize the master and subproblems.
@@ -1595,3 +1593,89 @@ function jet_report_colgen_loop()
 end
 # Excluded at the moment because too many errors come from DynamicSparseArrays.
 register!(unit_tests, "colgen_default", jet_report_colgen_loop; x = true)
+
+
+function min_toy_gap_without_art_var_for_colgen()
+    # We use very large costs to go through phase 1.
+    form = """
+    master
+        min
+        800.0 x_11 + 500.0 x_12 + 1100.0 x_13 + 2100.0 x_14 + 600.0 x_15 + 500.0 x_16 + 1900.0 x_17 + 100.0 x_21 + 1200.0 x_22 + 1100.0 x_23 + 1200.0 x_24 + 1400.0 x_25 + 800.0 x_26 + 500.0 x_27 + 0.0 PricingSetupVar_sp_5 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        1.0 x_11 + 1.0 x_21 >= 1.0
+        1.0 x_12 + 1.0 x_22 >= 1.0
+        1.0 x_13 + 1.0 x_23 >= 1.0
+        1.0 x_14 + 1.0 x_24 >= 1.0
+        1.0 x_15 + 1.0 x_25 >= 1.0
+        1.0 x_16 + 1.0 x_26 >= 1.0
+        1.0 x_17 + 1.0 x_27 >= 1.0
+        1.0 PricingSetupVar_sp_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 <= 1.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_4 <= 1.0 {MasterConvexityConstr}
+
+    dw_sp
+        min
+        800.0 x_11 + 500.0 x_12 + 1100.0 x_13 + 2100.0 x_14 + 600.0 x_15 + 500.0 x_16 + 1900.0 x_17 + 0.0 PricingSetupVar_sp_5 
+        s.t.
+        2.0 x_11 + 3.0 x_12 + 3.0 x_13 + 1.0 x_14 + 2.0 x_15 + 1.0 x_16 + 1.0 x_17  <= 5.0
+
+    dw_sp
+        min
+        100.0 x_21 + 1200.0 x_22 + 1100.0 x_23 + 1200.0 x_24 + 1400.0 x_25 + 800.0 x_26 + 500.0 x_27 + 0.0 PricingSetupVar_sp_4
+        s.t.
+        5.0 x_21 + 1.0 x_22 + 1.0 x_23 + 3.0 x_24 + 1.0 x_25 + 5.0 x_26 + 4.0 x_27  <= 8.0
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_4, PricingSetupVar_sp_5
+
+    binary
+        representatives
+            x_11, x_21, x_12, x_22, x_13, x_23, x_14, x_24, x_15, x_25, x_16, x_26, x_17, x_27
+
+    bounds
+        0.0 <= x_11 <= 1.0
+        0.0 <= x_21 <= 1.0
+        0.0 <= x_12 <= 1.0
+        0.0 <= x_22 <= 1.0
+        0.0 <= x_13 <= 1.0
+        0.0 <= x_23 <= 1.0
+        0.0 <= x_14 <= 1.0
+        0.0 <= x_24 <= 1.0
+        0.0 <= x_15 <= 1.0
+        0.0 <= x_25 <= 1.0
+        0.0 <= x_16 <= 1.0
+        0.0 <= x_26 <= 1.0
+        0.0 <= x_17 <= 1.0
+        0.0 <= x_27 <= 1.0
+        1.0 <= PricingSetupVar_sp_4 <= 1.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function test_farkas_pricing()
+    env, master, sps, reform = min_toy_gap_without_art_var_for_colgen()
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+
+    phase = ClA.ColGenPhase0()
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+    ColGen.setup_reformulation!(reform, phase)
+    Coluna.set_optim_start_time!(env)
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    stage = ColGenIterationTestStage()
+    stab = Coluna.Algorithm.NoColGenStab()
+    output = ColGen.run_colgen_phase!(ctx, phase, stage, env, input, stab)
+    
+    #@test output.mlp ≈ 70.33333333
+    #@test output.db ≈ 70.33333333
+end
+register!(unit_tests, "colgen", test_farkas_pricing; x = true)
