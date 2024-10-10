@@ -83,7 +83,6 @@ end
 
 function push_in_pool!(pool::Pool, solution::PrimalSolution, sol_id, cost)
     var_ids, vals = _sol_repr_for_pool(solution)
-    @show var_ids
     DynamicSparseArrays.addrow!(pool.solutions, sol_id, var_ids, vals)
     pool.costs[sol_id] = cost
     if !isnothing(solution.custom_data)
