@@ -5,10 +5,10 @@ abstract type AbstractPool end
 ############################################################################################
 
 struct Pool <: AbstractPool
-    solutions::DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64}
-    solutions_hash::ColunaBase.HashTable{VarId,VarId}
-    costs::Dict{VarId,Float64}
-    custom_data::Dict{VarId,BD.AbstractCustomVarData}
+    solutions::DynamicSparseArrays.DynamicSparseMatrix{VarId, VarId, Float64}
+    solutions_hash::ColunaBase.HashTable{VarId, VarId}
+    costs::Dict{VarId, Float64}
+    custom_data::Dict{VarId, BD.AbstractCustomVarData}
 end
 
 function Pool()
@@ -16,7 +16,7 @@ function Pool()
         DynamicSparseArrays.dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         ColunaBase.HashTable{VarId, VarId}(),
         Dict{VarId, Float64}(),
-        Dict{VarId, BD.AbstractCustomVarData}()
+        Dict{VarId, BD.AbstractCustomVarData}(),
     )
 end
 
@@ -25,7 +25,7 @@ end
 function _get_same_sol_in_pool(solutions, hashtable, sol)
     sols_with_same_members = ColunaBase.getsolids(hashtable, sol)
     for existing_sol_id in sols_with_same_members
-        existing_sol = @view solutions[existing_sol_id,:]
+        existing_sol = @view solutions[existing_sol_id, :]
         if existing_sol == sol
             return existing_sol_id
         end
@@ -40,7 +40,8 @@ function _sol_repr_for_pool(primal_sol::PrimalSolution)
     var_ids = VarId[]
     vals = Float64[]
     for (var_id, val) in primal_sol
-        if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
+        if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar ||
+           getduty(var_id) <= MasterRepPricingVar || getduty(var_id) <= MasterRepPricingSetupVar
             push!(var_ids, var_id)
             push!(vals, val)
         end
@@ -82,6 +83,7 @@ end
 
 function push_in_pool!(pool::Pool, solution::PrimalSolution, sol_id, cost)
     var_ids, vals = _sol_repr_for_pool(solution)
+    @show var_ids
     DynamicSparseArrays.addrow!(pool.solutions, sol_id, var_ids, vals)
     pool.costs[sol_id] = cost
     if !isnothing(solution.custom_data)
@@ -96,20 +98,20 @@ end
 ############################################################################################
 
 struct DualSolutionPool <: AbstractPool
-    solutions::DynamicSparseArrays.DynamicSparseMatrix{ConstrId,ConstrId,Float64}
-    solutions_hash::ColunaBase.HashTable{ConstrId,ConstrId}
-    solutions_active_bounds::Dict{ConstrId,Dict{VarId,Tuple{Float64,ActiveBound}}}
-    costs::Dict{ConstrId,Float64}
-    custom_data::Dict{ConstrId,BD.AbstractCustomConstrData}
+    solutions::DynamicSparseArrays.DynamicSparseMatrix{ConstrId, ConstrId, Float64}
+    solutions_hash::ColunaBase.HashTable{ConstrId, ConstrId}
+    solutions_active_bounds::Dict{ConstrId, Dict{VarId, Tuple{Float64, ActiveBound}}}
+    costs::Dict{ConstrId, Float64}
+    custom_data::Dict{ConstrId, BD.AbstractCustomConstrData}
 end
 
 function DualSolutionPool()
     return DualSolutionPool(
         DynamicSparseArrays.dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         ColunaBase.HashTable{ConstrId, ConstrId}(),
-        Dict{ConstrId, Tuple{ActiveBound,Float64}}(),
+        Dict{ConstrId, Tuple{ActiveBound, Float64}}(),
         Dict{ConstrId, Float64}(),
-        Dict{ConstrId, BD.AbstractCustomConstrData}()
+        Dict{ConstrId, BD.AbstractCustomConstrData}(),
     )
 end
 
@@ -149,7 +151,7 @@ end
 
 function push_in_pool!(pool::DualSolutionPool, solution::DualSolution, sol_id, cost)
     constr_ids, vals = _sol_repr_for_pool(solution)
-    DynamicSparseArrays.addrow!(pool.solutions, sol_id,  constr_ids, vals)
+    DynamicSparseArrays.addrow!(pool.solutions, sol_id, constr_ids, vals)
     pool.costs[sol_id] = cost
     pool.solutions_active_bounds[sol_id] = get_var_redcosts(solution)
     if !isnothing(solution.custom_data)
