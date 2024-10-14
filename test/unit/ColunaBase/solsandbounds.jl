@@ -1,9 +1,17 @@
-struct FakeModel <: ClB.AbstractModel 
+struct FakeModel <: ClB.AbstractModel
     id::Int
 end
 FakeModel() = FakeModel(1)
 
-const Solution = ClB.Solution{FakeModel,Int,Float64}
+const Solution = ClB.Solution{FakeModel, Int, Float64}
+
+function Base.show(io::IOContext, solution::Solution{FakeModel, Int, Float64})
+    println(io, "Solution")
+    for (decision, value) in solution
+        println(io, "| ", decision, " = ", value)
+    end
+    Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
+end
 
 function constructor()
     # Make sure that Coluna initializes bounds to infinity.
@@ -16,19 +24,19 @@ function constructor()
     pb = ClB.Bound(primal, min)
     @test pb == Inf
     @test ClB.getvalue(pb) == Inf
-    
+
     pb = ClB.Bound(primal, max)
     @test pb == -Inf
     @test ClB.getvalue(pb) == -Inf
-    
+
     db = ClB.Bound(dual, min)
     @test db == -Inf
     @test ClB.getvalue(db) == -Inf
-    
+
     db = ClB.Bound(dual, max)
     @test db == Inf
     @test ClB.getvalue(db) == Inf
-    
+
     pb = ClB.Bound(primal, min, 100)
     @test pb == 100
     @test ClB.getvalue(pb) == 100
@@ -118,16 +126,16 @@ function gap()
     # In minimisation, gap = (pb - db)/db
     pb = ClB.Bound(min, primal, 10.0)
     db = ClB.Bound(min, dual, 5.0)
-    @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0-5.0)/5.0
+    @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0 - 5.0) / 5.0
 
     # In maximisation, gap = (db - pb)/pb
     pb = ClB.Bound(max, primal, 5.0)
     db = ClB.Bound(max, dual, 10.0)
-    @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0-5.0)/5.0
+    @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0 - 5.0) / 5.0
 
     pb = ClB.Bound(min, primal, 10.0)
     db = ClB.Bound(min, dual, -5.0)
-    @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0+5.0)/5.0   
+    @test ClB.gap(pb, db) == ClB.gap(db, pb) == (10.0 + 5.0) / 5.0
 
     # Cannot compute the gap between 2 primal bounds
     pb1 = ClB.Bound(max, primal, 10)
@@ -174,7 +182,7 @@ function show_test()
     pb = ClB.Bound(max, primal, 4)
     io = IOBuffer()
     show(io, pb)
-    @test String(take!(io)) == "4.0" 
+    @test String(take!(io)) == "4.0"
 end
 register!(unit_tests, "bounds", show_test)
 
@@ -217,7 +225,7 @@ function convert_MOI_Coluna_termination_statuses()
         (MOI.ALMOST_OPTIMAL, ClB.UNCOVERED_TERMINATION_STATUS),
         (MOI.SLOW_PROGRESS, ClB.UNCOVERED_TERMINATION_STATUS),
         (MOI.MEMORY_LIMIT, ClB.UNCOVERED_TERMINATION_STATUS),
-        (MOI.ALMOST_OPTIMAL, ClB.UNCOVERED_TERMINATION_STATUS)
+        (MOI.ALMOST_OPTIMAL, ClB.UNCOVERED_TERMINATION_STATUS),
     ]
 
     for (moi_status, coluna_status) in statuses_bijection
@@ -236,7 +244,7 @@ function convert_MOI_Coluna_result_statuses()
     @test ClB.convert_status(MOI.NO_SOLUTION) == ClB.UNKNOWN_SOLUTION_STATUS
     @test ClB.convert_status(MOI.FEASIBLE_POINT) == ClB.FEASIBLE_SOL
     @test ClB.convert_status(MOI.INFEASIBLE_POINT) == ClB.INFEASIBLE_SOL
-    @test ClB.convert_status(MOI.NEARLY_FEASIBLE_POINT) == ClB.UNCOVERED_SOLUTION_STATUS 
+    @test ClB.convert_status(MOI.NEARLY_FEASIBLE_POINT) == ClB.UNCOVERED_SOLUTION_STATUS
 end
 register!(unit_tests, "convert_MOI_Coluna", convert_MOI_Coluna_result_statuses)
 
@@ -290,18 +298,18 @@ function solution_constructor_iterate_print()
     test_solution_iterations(primal_sol, dict_sol)
     @test ClB.getvalue(primal_sol) == 12.3
     @test ClB.getstatus(primal_sol) == ClB.FEASIBLE_SOL
-    
+
     dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
     primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, ClB.FEASIBLE_SOL)
-    
+
     @test length(primal_sol) == typemax(Coluna.MAX_NB_ELEMS)
     @test nnz(primal_sol) == 3
     @test primal_sol[1] == 2.0
     primal_sol[1] = 5.0 # change the value
     @test primal_sol[1] == 5.0
-    
+
     io = IOBuffer()
-    show(io, primal_sol)
+    ClB.show(io, primal_sol)
 
     @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
 end
@@ -324,7 +332,7 @@ function solution_isequal()
     sol6 = Solution(model, collect(keys(dict_sol2)), collect(values(dict_sol2)), 12.0, ClB.FEASIBLE_SOL)
     sol7 = Solution(model, collect(keys(dict_sol3)), collect(values(dict_sol3)), 12.0, ClB.FEASIBLE_SOL)
     sol8 = Solution(model, collect(keys(dict_sol4)), collect(values(dict_sol4)), 12.0, ClB.FEASIBLE_SOL)
-    
+
     @test sol1 == sol2
     @test sol1 != sol3 # different cost
     @test sol1 != sol4 # different solution status
