@@ -256,345 +256,53 @@ end;</code></pre><p>We re-declare the model and optimize it with these valid ine
 MOI.set(model, MOI.UserCutCallback(), valid_inequalities_callback);
 JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
 Version 0.8.1 | https://github.com/atoptima/Coluna.jl
---- Reformulation ---
-Formulation DwMaster id = 3
-Coluna.MathProg.MinSense + 120.0 y[1] + 150.0 y[2]
-cov[3] : + 1.0 x[3,1] + 1.0 x[3,2]  &gt;= 1.0 (MasterMixedConstr | true)
-cov[4] : + 1.0 x[4,1] + 1.0 x[4,2]  &gt;= 1.0 (MasterMixedConstr | true)
-cov[5] : + 1.0 x[5,1] + 1.0 x[5,2]  &gt;= 1.0 (MasterMixedConstr | true)
-cov[6] : + 1.0 x[6,1] + 1.0 x[6,2]  &gt;= 1.0 (MasterMixedConstr | true)
-cov[7] : + 1.0 x[7,1] + 1.0 x[7,2]  &gt;= 1.0 (MasterMixedConstr | true)
-cov[8] : + 1.0 x[8,1] + 1.0 x[8,2]  &gt;= 1.0 (MasterMixedConstr | true)
-cov[9] : + 1.0 x[9,1] + 1.0 x[9,2]  &gt;= 1.0 (MasterMixedConstr | true)
-open_facility[1] : - 2.0 y[1] + 1.0 z[1,3] + 1.0 z[1,4] + 1.0 z[1,5] + 1.0 z[1,6] + 1.0 z[1,7] + 1.0 z[1,8] + 1.0 z[1,9]  &lt;= 0.0 (MasterMixedConstr | true)
-open_facility[2] : - 2.0 y[2] + 1.0 z[2,3] + 1.0 z[2,4] + 1.0 z[2,5] + 1.0 z[2,6] + 1.0 z[2,7] + 1.0 z[2,8] + 1.0 z[2,9]  &lt;= 0.0 (MasterMixedConstr | true)
-0.0 &lt;= y[1] &lt;= 1.0 (Continuous | MasterPureVar | true)
-0.0 &lt;= y[2] &lt;= 1.0 (Continuous | MasterPureVar | true)
-0.0 &lt;= x[3,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[4,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[5,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[6,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[7,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[8,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[9,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[3,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[4,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[5,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[6,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[7,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[8,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= x[9,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,1] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,2] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,3] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,4] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,5] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,6] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,7] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,8] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[1,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[2,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[3,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[4,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[5,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[6,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[7,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[8,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-0.0 &lt;= z[9,9] &lt;= 1.0 (Binary | MasterRepPricingVar | false)
-Formulation DwSp id = 5
-Multiplicities: lower = 0, upper = 2
-Coluna.MathProg.MinSense + 25.3 z[2,1] + 25.4 z[3,1] + 25.4 z[4,1] + 35.4 z[5,1] + 37.4 z[6,1] + 31.9 z[7,1] + 24.6 z[8,1] + 34.2 z[9,1] + 25.3 z[1,2] + 21.2 z[3,2] + 16.2 z[4,2] + 27.1 z[5,2] + 26.8 z[6,2] + 17.8 z[7,2] + 16.7 z[8,2] + 23.2 z[9,2] + 25.4 z[1,3] + 21.2 z[2,3] + 14.2 z[4,3] + 23.4 z[5,3] + 23.8 z[6,3] + 18.3 z[7,3] + 17.0 z[8,3] + 21.6 z[9,3] + 25.4 z[1,4] + 16.2 z[2,4] + 14.2 z[3,4] + 28.6 z[5,4] + 28.8 z[6,4] + 22.6 z[7,4] + 15.6 z[8,4] + 29.5 z[9,4] + 35.4 z[1,5] + 27.1 z[2,5] + 23.4 z[3,5] + 28.6 z[4,5] + 42.1 z[6,5] + 30.4 z[7,5] + 24.9 z[8,5] + 39.1 z[9,5] + 37.4 z[1,6] + 26.8 z[2,6] + 23.8 z[3,6] + 28.8 z[4,6] + 42.1 z[5,6] + 32.4 z[7,6] + 29.5 z[8,6] + 38.2 z[9,6] + 31.9 z[1,7] + 17.8 z[2,7] + 18.3 z[3,7] + 22.6 z[4,7] + 30.4 z[5,7] + 32.4 z[6,7] + 22.5 z[8,7] + 30.7 z[9,7] + 24.6 z[1,8] + 16.7 z[2,8] + 17.0 z[3,8] + 15.6 z[4,8] + 24.9 z[5,8] + 29.5 z[6,8] + 22.5 z[7,8] + 21.4 z[9,8] + 34.2 z[1,9] + 23.2 z[2,9] + 21.6 z[3,9] + 29.5 z[4,9] + 39.1 z[5,9] + 38.2 z[6,9] + 30.7 z[7,9] + 21.4 z[8,9]
-0.0 &lt;= x[3,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[4,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[5,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[6,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[7,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[8,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[9,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-Formulation DwSp id = 4
-Multiplicities: lower = 0, upper = 2
-Coluna.MathProg.MinSense + 25.3 z[2,1] + 25.4 z[3,1] + 25.4 z[4,1] + 35.4 z[5,1] + 37.4 z[6,1] + 31.9 z[7,1] + 24.6 z[8,1] + 34.2 z[9,1] + 25.3 z[1,2] + 21.2 z[3,2] + 16.2 z[4,2] + 27.1 z[5,2] + 26.8 z[6,2] + 17.8 z[7,2] + 16.7 z[8,2] + 23.2 z[9,2] + 25.4 z[1,3] + 21.2 z[2,3] + 14.2 z[4,3] + 23.4 z[5,3] + 23.8 z[6,3] + 18.3 z[7,3] + 17.0 z[8,3] + 21.6 z[9,3] + 25.4 z[1,4] + 16.2 z[2,4] + 14.2 z[3,4] + 28.6 z[5,4] + 28.8 z[6,4] + 22.6 z[7,4] + 15.6 z[8,4] + 29.5 z[9,4] + 35.4 z[1,5] + 27.1 z[2,5] + 23.4 z[3,5] + 28.6 z[4,5] + 42.1 z[6,5] + 30.4 z[7,5] + 24.9 z[8,5] + 39.1 z[9,5] + 37.4 z[1,6] + 26.8 z[2,6] + 23.8 z[3,6] + 28.8 z[4,6] + 42.1 z[5,6] + 32.4 z[7,6] + 29.5 z[8,6] + 38.2 z[9,6] + 31.9 z[1,7] + 17.8 z[2,7] + 18.3 z[3,7] + 22.6 z[4,7] + 30.4 z[5,7] + 32.4 z[6,7] + 22.5 z[8,7] + 30.7 z[9,7] + 24.6 z[1,8] + 16.7 z[2,8] + 17.0 z[3,8] + 15.6 z[4,8] + 24.9 z[5,8] + 29.5 z[6,8] + 22.5 z[7,8] + 21.4 z[9,8] + 34.2 z[1,9] + 23.2 z[2,9] + 21.6 z[3,9] + 29.5 z[4,9] + 39.1 z[5,9] + 38.2 z[6,9] + 30.7 z[7,9] + 21.4 z[8,9]
-0.0 &lt;= x[3,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[4,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[5,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[6,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[7,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[8,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= x[9,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,1] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,2] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,3] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,4] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,5] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,6] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,7] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,8] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[1,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[2,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[3,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[4,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[5,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[6,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[7,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[8,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
-0.0 &lt;= z[9,9] &lt;= 1.0 (Binary | DwSpPricingVar | true)
----------------------
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.32 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
 ***************************************************************************************
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 2.04&gt; &lt;mst= 0.06&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 1.23&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89725.0000&gt; &lt;mlp=70000.0000&gt; &lt;PB=Inf&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 1.80&gt; &lt;mst= 0.06&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-89624.5000&gt; &lt;mlp=30132.7000&gt; &lt;PB=Inf&gt;
 Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
 [ Info: Improving primal solution with value 327.4 is found during column generation
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 2.25&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 2.25&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 2.25&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 2.25&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 2.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 2.27&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 2.27&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 2.27&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 2.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -550.8000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 2.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -370.2000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  5&gt; &lt;et= 2.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -364.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  6&gt; &lt;et= 2.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -301.0000&gt; &lt;mlp=  327.4000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  7&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  -84.9000&gt; &lt;mlp=  306.9667&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  8&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  121.6500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  184.1500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 10&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  243.9500&gt; &lt;mlp=  281.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 11&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  265.7000&gt; &lt;mlp=  279.3000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 12&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  267.8750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 13&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  272.7750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 14&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  271.3750&gt; &lt;mlp=  276.9750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 15&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  264.0250&gt; &lt;mlp=  276.8250&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 16&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.3500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 17&gt; &lt;et= 2.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  274.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it= 18&gt; &lt;et= 2.04&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  275.7500&gt; &lt;mlp=  275.7500&gt; &lt;PB=327.4000&gt;
 Cut separation callback adds 0 new essential cuts and 7 new facultative cuts.
 avg. viol. = 0.12, max. viol. = 0.12, zero viol. = 0.
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 3.28&gt; &lt;mst= 0.01&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  278.2000&gt; &lt;mlp=  283.5000&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 3.28&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.4125&gt; &lt;mlp=  283.3125&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 3.28&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  282.8750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
-  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 3.28&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  283.0750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 3.29&gt; &lt;mst= 0.01&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  278.2000&gt; &lt;mlp=  283.5000&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 3.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.4125&gt; &lt;mlp=  283.3125&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 3.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  282.8750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
+  &lt;st= 1&gt; &lt;it=  4&gt; &lt;et= 3.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  283.0750&gt; &lt;mlp=  283.0750&gt; &lt;PB=327.4000&gt;
 Cut separation callback adds 0 new essential cuts and 7 new facultative cuts.
 avg. viol. = 0.12, max. viol. = 0.12, zero viol. = 0.
 Cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
 [ Info: Improving primal solution with value 289.8 is found during column generation
-  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 3.28&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  268.0667&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
+  &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 3.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  268.0667&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
   &lt;st= 1&gt; &lt;it=  2&gt; &lt;et= 3.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  281.3286&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
   &lt;st= 1&gt; &lt;it=  3&gt; &lt;et= 3.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  289.8000&gt; &lt;mlp=  289.8000&gt; &lt;PB=289.8000&gt;
 ───────────────────────────────────────────────────────────────────────────────
                                       Time                    Allocations
                              ───────────────────────   ────────────────────────
-      Tot / % measured:           76.6s /  33.3%           6.13GiB /  42.3%
+      Tot / % measured:           76.4s /  32.3%           5.47GiB /  36.4%
 
 Section              ncalls     time    %tot     avg     alloc    %tot      avg
 ───────────────────────────────────────────────────────────────────────────────
-Coluna                    2    25.5s  100.0%   12.7s   2.59GiB  100.0%  1.30GiB
-  Pricing callback       51    1.35s    5.3%  26.4ms    108MiB    4.1%  2.12MiB
-  SolveLpForm            26    915ms    3.6%  35.2ms   41.2MiB    1.6%  1.58MiB
+Coluna                    2    24.7s  100.0%   12.3s   1.99GiB  100.0%  1.00GiB
+  Pricing callback       51    2.17s    8.8%  42.6ms    135MiB    6.6%  2.65MiB
+  SolveLpForm            26    1.02s    4.1%  39.2ms   41.2MiB    2.0%  1.58MiB
 ───────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 289.8
@@ -846,34 +554,26 @@ routes_costs = Dict(
     sum(routes_costs[j][k] * λ[fake, j, k] for j in facilities, k in 1:length(routes_per_facility[j])));</code></pre><p>We perform the decomposition over the axis and we optimize the problem.</p><pre><code class="language-julia hljs">@benders_decomposition(model, dec, axis)
 JuMP.optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
 Version 0.8.1 | https://github.com/atoptima/Coluna.jl
---- Reformulation ---
-Formulation BendersMaster id = 3
-Coluna.MathProg.MinSense + 120.0 y[1] + 150.0 y[2] + 1.0 η[4]
-min_opening : + 1.0 y[1] + 1.0 y[2]  &gt;= 1.0 (MasterPureConstr | true)
-0.0 &lt;= y[1] &lt;= 1.0 (Continuous | MasterPureVar | true)
-0.0 &lt;= y[2] &lt;= 1.0 (Continuous | MasterPureVar | true)
--Inf &lt;= η[4] &lt;= Inf (Continuous | MasterBendSecondStageCostVar | true)
----------------------
-&lt;it=  1&gt; &lt;et= 6.36&gt; &lt;mst= 0.09&gt; &lt;sp= 1.41&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
-&lt;it=  2&gt; &lt;et= 7.02&gt; &lt;mst= 0.24&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
-&lt;it=  3&gt; &lt;et= 7.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
-&lt;it=  4&gt; &lt;et= 7.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
-&lt;it=  5&gt; &lt;et= 7.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
-&lt;it=  6&gt; &lt;et= 7.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
-&lt;it=  7&gt; &lt;et= 7.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
-&lt;it=  8&gt; &lt;et= 7.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
-&lt;it=  9&gt; &lt;et= 7.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
-&lt;it= 10&gt; &lt;et= 7.11&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
+&lt;it=  1&gt; &lt;et= 6.00&gt; &lt;mst= 0.10&gt; &lt;sp= 1.51&gt; &lt;cuts= 1&gt; &lt;master=    0.0000&gt;
+&lt;it=  2&gt; &lt;et= 6.68&gt; &lt;mst= 0.25&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  120.0000&gt;
+&lt;it=  3&gt; &lt;et= 6.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  127.9962&gt;
+&lt;it=  4&gt; &lt;et= 6.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  269.4996&gt;
+&lt;it=  5&gt; &lt;et= 6.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  270.0777&gt;
+&lt;it=  6&gt; &lt;et= 6.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.1080&gt;
+&lt;it=  7&gt; &lt;et= 6.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.7932&gt;
+&lt;it=  8&gt; &lt;et= 6.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8133&gt;
+&lt;it=  9&gt; &lt;et= 6.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 1&gt; &lt;master=  271.8222&gt;
+&lt;it= 10&gt; &lt;et= 6.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cuts= 0&gt; &lt;master=  271.8231&gt;
 ───────────────────────────────────────────────────────────────────────────────
                                       Time                    Allocations
                              ───────────────────────   ────────────────────────
-      Tot / % measured:           17.6s /  56.3%           1.81GiB /  65.3%
+      Tot / % measured:           17.2s /  55.0%           1.21GiB /  47.8%
 
 Section              ncalls     time    %tot     avg     alloc    %tot      avg
 ───────────────────────────────────────────────────────────────────────────────
-Coluna                    3    9.90s  100.0%   3.30s   1.18GiB  100.0%   403MiB
-  SolveLpForm            39    698ms    7.1%  17.9ms   45.1MiB    3.7%  1.16MiB
-  Pricing callback       37    640ms    6.5%  17.3ms   74.6MiB    6.2%  2.01MiB
+Coluna                    3    9.47s  100.0%   3.16s    594MiB  100.0%   198MiB
+  SolveLpForm            39    754ms    8.0%  19.3ms   45.1MiB    7.6%  1.16MiB
+  Pricing callback       37    664ms    7.0%  18.0ms   74.6MiB   12.6%  2.01MiB
 ───────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -939,4 +639,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 24 December 2024 10:23">Tuesday 24 December 2024</span>. Using Julia version 1.11.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../initial_columns/">« Initial columns callback</a><a class="docs-footer-nextpage" href="../other_pbs/">Other classic problems »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 24 December 2024 10:27">Tuesday 24 December 2024</span>. Using Julia version 1.11.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
