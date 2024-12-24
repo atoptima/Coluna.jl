@@ -404,9 +404,6 @@ end
 function ColGen.optimize_master_lp_problem!(master, ctx::ColGenContext, env)
     rm_input = OptimizationState(master, ip_primal_bound=ctx.current_ip_primal_bound)
     opt_state = run!(ctx.restr_master_solve_alg, env, master, rm_input, ctx.restr_master_optimizer_id)
-    # print(get_best_lp_primal_sol(opt_state))
-    # print(IOContext(stdout, :user_only => true), get_best_lp_dual_sol(opt_state))
-    # print(master)
     return ColGenMasterResult(opt_state)
 end
 
@@ -757,9 +754,8 @@ function ColGen.optimize_pricing_problem!(ctx::ColGenContext, sp::Formulation{Dw
     generated_columns = GeneratedColumn[]
     for col in get_ip_primal_sols(opt_state)
         # `subprob_var_contrib` includes contribution of non-robust cuts.
-        subprob_var_contrib = _subprob_var_contrib(ctx, col, stab_changes_mast_dual_sol, master_dual_sol)       
+        subprob_var_contrib = _subprob_var_contrib(ctx, col, stab_changes_mast_dual_sol, master_dual_sol)
         red_cost = subprob_var_contrib - lb_dual - ub_dual
-        #@show subprob_var_contrib, red_cost
         push!(generated_columns, GeneratedColumn(col, red_cost))
         if sc * best_red_cost > sc * red_cost
             best_red_cost = red_cost

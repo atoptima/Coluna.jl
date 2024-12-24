@@ -87,7 +87,7 @@ function optimize!(
     # initialize all the units used by the algorithm and its child algorithms
     Algorithm.initialize_storage_units!(reform, algorithm)    
 
-    print(IOContext(stdout, :user_only => true), reform)
+    # print(IOContext(stdout, :user_only => true), reform)
 
     algstate = Algorithm.run!(algorithm, env, reform, initstate)
 
@@ -104,7 +104,6 @@ function optimize!(
     ip_primal_sols = get_ip_primal_sols(algstate)
     if !isnothing(ip_primal_sols)
         for sol in ip_primal_sols
-            #print(IOContext(stdout, :user_only => true), sol)
             add_ip_primal_sol!(outstate, proj_cols_on_rep(sol))
         end
     end
