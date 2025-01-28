@@ -1569,9 +1569,57 @@ end
 register!(unit_tests, "colgen", test_red_cost_calc_with_non_robust_cuts)
 
 
+function unbounded_subproblem_form()
+    form = """
+    master
+        min
+        x1 + 7x2 + 2x3 + 3x4 + 100 local_art_of_cov_1 + 100 local_art_of_cov_2 + 100 local_art_of_cov_3 + 100 global_pos_art_var + 100 local_art_of_sp_lb_5 + 100 local_art_of_sp_ub_5 + 0 PricingSetupVar_sp_5
+        s.t.
+        4x1 + 2x2 + 2x3 + 3x4 + 1.0 local_art_of_cov_1 + 1.0 global_pos_art_var <= 30
+        x1 + x2 + x3 + 2x4 + 1.0 local_art_of_cov_2 - 1.0 local_art_of_cov_3 + 1.0 global_pos_art_var == 15
+        1.0 PricingSetupVar_sp_5 + 1.0 local_art_of_sp_lb_5 >= 0.0 {MasterConvexityConstr}
+        1.0 PricingSetupVar_sp_5 - 1.0 local_art_of_sp_ub_5 <= 2.0 {MasterConvexityConstr}
 
-function jet_report_colgen_loop()
-    env, master, sps, reform = min_toy_gap_for_colgen_loop()
+    dw_sp
+        min
+        x1 + 7x2 + 2x3 + 3x4 + 0 PricingSetupVar_sp_5
+        s.t.
+        2x1 + 3x2 - 7x3 - 6x4 == 0
+        -x2 + 2x3 <= 0
+        x2 - 2x3 - 2x4 <= 0
+        -x2 + 3x3 + 2x4 <= 2
+
+    continuous
+        representatives
+            x1, x2, x3, x4
+
+        artificial
+            local_art_of_cov_1, local_art_of_cov_2, local_art_of_cov_3, global_pos_art_var, local_art_of_sp_lb_5, local_art_of_sp_ub_5
+
+    integer
+        pricing_setup
+            PricingSetupVar_sp_5
+        
+    bounds
+        x1 >= 0.0
+        x2 >= 0.0
+        x3 >= 0.0
+        x4 >= 0.0
+        local_art_of_cov_1 >= 0.0
+        local_art_of_cov_2 >= 0.0
+        local_art_of_cov_3 >= 0.0
+        global_pos_art_var >= 0.0
+        local_art_of_sp_lb_5 >= 0.0
+        local_art_of_sp_ub_5 >= 0.0
+        1.0 <= PricingSetupVar_sp_5 <= 1.0
+    """
+    env, master, sps, _, reform = reformfromstring(form)
+    return env, master, sps, reform
+end
+
+function test_colgen_unbounded_sp()
+    env, master, sps, reform = unbounded_subproblem_form()
+ 
     # We need subsolvers to optimize the master and subproblems.
     # We relax the master formulation.
     ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
@@ -1580,6 +1628,26 @@ function jet_report_colgen_loop()
         ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
     end
 
+    Coluna.set_optim_start_time!(env)
+    ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
+
+    input = Coluna.Algorithm.GlobalPrimalBoundHandler(reform)
+    output = ColGen.run!(ctx, env, input)
+    @show output
+end
+register!(unit_tests, "colgen", test_colgen_unbounded_sp; x = true)
+          
+function jet_report_colgen_loop()
+    env, master, sps, reform = min_toy_gap_for_colgen_loop()
+    
+    # We need subsolvers to optimize the master and subproblems.
+    # We relax the master formulation.
+    ClMP.push_optimizer!(master, () -> ClA.MoiOptimizer(GLPK.Optimizer())) # we need warm start
+    ClMP.relax_integrality!(master)
+    for sp in sps
+        ClMP.push_optimizer!(sp, () -> ClA.MoiOptimizer(GLPK.Optimizer()))
+    end
+          
     phase = ClA.ColGenPhase0()
     ctx = ClA.ColGenContext(reform, ClA.ColumnGeneration())
     ColGen.setup_reformulation!(reform, phase)
