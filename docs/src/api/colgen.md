@@ -279,7 +279,7 @@ flowchart TB;
     id10(Iteration output)
     id1 --> id2
     id2 --yes--> id3
-    id2 --no--> id4
+    id2 --no --> id4
     id3 --> id4
     id4 --> id5
     id5 --subproblem--> id6
