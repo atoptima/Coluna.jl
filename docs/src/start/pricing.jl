@@ -79,9 +79,9 @@ function my_pricing_callback(cbdata)
     jobs_assigned_to_cur_machine = solve_knapsack(red_costs, w[cur_machine, :], Q[cur_machine])
 
     ## Create the solution (send only variables with non-zero values)
-    sol_vars = [x[cur_machine, j] for j in jobs_assigned_to_cur_machine]
+    sol_vars = VariableRef[x[cur_machine, j] for j in jobs_assigned_to_cur_machine]
     sol_vals = [1.0 for _ in jobs_assigned_to_cur_machine]
-    sol_cost = sum(red_costs[j] for j in jobs_assigned_to_cur_machine)
+    sol_cost = sum(red_costs[j] for j in jobs_assigned_to_cur_machine; init = 0.0)
 
     ## Submit the solution to the subproblem to Coluna
     MOI.submit(model, BD.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
