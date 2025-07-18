@@ -43,7 +43,7 @@ getsubproblems(decomposition)</code></pre><pre class="documenter-example-output"
 
  Subproblem formulation for M_axis = 3 contains :	 0.0 &lt;= multiplicity &lt;= 1.0
 </code></pre><p>The model is now fully defined. To solve it, you need to call:</p><pre><code class="language-julia hljs">optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.8.1 | https://github.com/atoptima/Coluna.jl
+Version 0.8.2 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** B&amp;B tree root node
 **** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
@@ -79,7 +79,7 @@ Version 0.8.1 | https://github.com/atoptima/Coluna.jl
   &lt;st= 1&gt; &lt;it= 27&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  140.3645&gt; &lt;mlp=  175.3548&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 28&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  140.6211&gt; &lt;mlp=  174.9184&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 29&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  131.2406&gt; &lt;mlp=  173.4125&gt; &lt;PB=180.6000&gt;
-  &lt;st= 1&gt; &lt;it= 30&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  146.2667&gt; &lt;mlp=  173.0521&gt; &lt;PB=180.6000&gt;
+  &lt;st= 1&gt; &lt;it= 30&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  146.2667&gt; &lt;mlp=  173.0521&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 31&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  152.7125&gt; &lt;mlp=  173.0521&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 32&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  155.1333&gt; &lt;mlp=  172.6444&gt; &lt;PB=180.6000&gt;
   &lt;st= 1&gt; &lt;it= 33&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  156.4722&gt; &lt;mlp=  172.6444&gt; &lt;PB=180.6000&gt;
@@ -99,12 +99,12 @@ Version 0.8.1 | https://github.com/atoptima/Coluna.jl
 ──────────────────────────────────────────────────────────────────────────
                                  Time                    Allocations
                         ───────────────────────   ────────────────────────
-   Tot / % measured:         1.04s /   2.1%            113MiB /  14.0%
+   Tot / % measured:         1.02s /   2.2%            114MiB /  13.9%
 
 Section         ncalls     time    %tot     avg     alloc    %tot      avg
 ──────────────────────────────────────────────────────────────────────────
-Coluna               1   21.7ms  100.0%  21.7ms   15.8MiB  100.0%  15.8MiB
-  SolveLpForm       43   9.03ms   41.7%   210μs   4.09MiB   25.8%  97.4KiB
+Coluna               1   22.2ms  100.0%  22.2ms   15.8MiB  100.0%  15.8MiB
+  SolveLpForm       43   9.24ms   41.6%   215μs   4.09MiB   25.8%  97.4KiB
 ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 166.5
@@ -113,4 +113,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../cuts/">Cut Generation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 18 July 2025 15:01">Friday 18 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../cuts/">Cut Generation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 18 July 2025 15:23">Friday 18 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
