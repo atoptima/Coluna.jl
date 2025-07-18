@@ -51,7 +51,7 @@ getsubproblems(dec_on_types)</code></pre><pre class="documenter-example-output">
 
  Subproblem formulation for T = 2 contains :	 0.0 &lt;= multiplicity &lt;= 2.0
 </code></pre><p>We see that subproblem for machine type 1 has an upper multiplicity equals to 3, and the second subproblem for machine type 2 has an upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.8.1 | https://github.com/atoptima/Coluna.jl
+Version 0.8.2 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** B&amp;B tree root node
 **** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
@@ -67,7 +67,7 @@ Version 0.8.1 | https://github.com/atoptima/Coluna.jl
   &lt;st= 1&gt; &lt;it=  9&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  114.0000&gt; &lt;mlp=  114.0000&gt; &lt;PB=Inf&gt;
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 2 untreated nodes
-**** Local DB = 114.0000, global bounds: [ 114.0000 , Inf ], time = 0.01 sec.
+**** Local DB = 114.0000, global bounds: [ 114.0000 , Inf ], time = 0.00 sec.
 **** Branching constraint: x[1,6]&lt;=0.0
 ***************************************************************************************
   &lt;st= 1&gt; &lt;it=  1&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=   64.0000&gt; &lt;mlp=  124.0000&gt; &lt;PB=Inf&gt;
@@ -106,12 +106,12 @@ Version 0.8.1 | https://github.com/atoptima/Coluna.jl
 ──────────────────────────────────────────────────────────────────────────
                                  Time                    Allocations
                         ───────────────────────   ────────────────────────
-   Tot / % measured:         2.48s /   0.4%            180MiB /   6.5%
+   Tot / % measured:         2.45s /   0.4%            180MiB /   6.5%
 
 Section         ncalls     time    %tot     avg     alloc    %tot      avg
 ──────────────────────────────────────────────────────────────────────────
-Coluna               1   9.81ms  100.0%  9.81ms   11.7MiB  100.0%  11.7MiB
-  SolveLpForm       18   2.20ms   22.4%   122μs    777KiB    6.5%  43.2KiB
+Coluna               1   9.83ms  100.0%  9.83ms   11.7MiB  100.0%  11.7MiB
+  SolveLpForm       18   2.14ms   21.8%   119μs    777KiB    6.5%  43.2KiB
 ──────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 114.0
@@ -135,4 +135,4 @@ mermaid.initialize({
     startOnLoad: true,
     theme: "neutral"
 });
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 18 July 2025 10:38">Friday 18 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../custom_data/">Custom data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 18 July 2025 16:04">Friday 18 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
