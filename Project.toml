@@ -1,7 +1,7 @@
 name = "Coluna"
 uuid = "88b4ec78-b192-11e8-04aa-4d367dd96a64"
 authors = ["François Vanderbeck", "Guillaume Marques", "Vitor Nesello", "Ruslan Sadykov"]
-version = "0.8.1"
+version = "0.8.2"
 
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
@@ -23,7 +23,7 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
-BlockDecomposition = "1.15"
+BlockDecomposition = "1.15.1"
 Crayons = "4.1"
 DataStructures = "0.17, 0.18"
 DynamicSparseArrays = "0.7"
