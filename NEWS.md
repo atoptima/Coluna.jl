@@ -1,3 +1,8 @@
+# Coluna 0.8.2
+
+This is a minor update which serves to support the latest versions of `BlockDecomposition` and `MathOptInterface`.
+
+
 # Coluna 0.8.1
 
 This is a minor update 
