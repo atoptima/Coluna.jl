@@ -15,7 +15,7 @@ function MOI.set(model::Coluna.Optimizer, attr::MOI.LazyConstraintCallback, call
     return
 end
 
-function MOI.set(model::Coluna.Optimizer, ::BD.PricingCallback, ::Nothing)
+function MOI.set(model::Coluna.Optimizer, ::BD.PricingCallback, ::BD.AnnotationCallback)
     model.has_pricing_cb = true
     # We register the pricing callback through the annotations.
     return
