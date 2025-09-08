@@ -81,8 +81,6 @@ Base.convert(::Type{Int32}, id::I) where {I<:Id} = id.uid
 Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid < b.uid
 Base.:(<=)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid <= b.uid
 Base.:(==)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid == b.uid
-Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid > b.uid
-Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid >= b.uid
 
 ClB.getuid(id::Id) = id.uid # TODO: change name
 getduty(vcid::Id{VC}) where {VC} = vcid.duty
