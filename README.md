@@ -66,6 +66,24 @@ who make Coluna possible.
 Using Coluna for your business?
 [Contact us](https://atoptima.com/contact/?sup) to get tailored and qualified support.
 
+## Citing Coluna
+
+If you find Coluna useful in your work, we kindly request that you cite [the paper](https://doi.org/10.1287/ijoc.2025.1130):
+
+```bibtex
+@article{vanderbeck2026coluna,
+    author = {Vanderbeck, Fran{\c c}ois and Marques, Guillaume and Sadykov, Ruslan and Nesello, Vitor and Javerzat, Natacha and Pessoa, Artur and Bulh{\~o}es, Teobaldo and Bentes, Cristiana and de Lima, Vinicius L. and Subramanian, Anand},
+    title = {Coluna.jl: A Branch-Cut-and-Price Framework in Julia},
+    journal = {INFORMS Journal on Computing},
+    volume = {0},
+    number = {0},
+    pages = {null},
+    year = {2026},
+    doi = {10.1287/ijoc.2025.1130},
+    URL = {https://doi.org/10.1287/ijoc.2025.1130}
+}
+```
+
 ## Acknowledgments
 
 The platform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/).
@@ -75,6 +93,12 @@ The platform development has received an important support grant from the intern
 [**University of Bordeaux**](https://www.u-bordeaux.fr/)
 
 [**Inria**](https://www.inria.fr/fr)
+
+[**LOG-UFPB**](https://www.linkedin.com/showcase/log-ufpb)
+
+[**UFF**](https://www.uff.br/)
+
+[**UERJ**](https://www.uerj.br/)
 
 ## Related packages
 
